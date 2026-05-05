@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +33,9 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </div>
       </div>
 
-      <h1 className="mb-4 font-display-lg text-on-background">{product.title}</h1>
+      <h1 className="mb-4 font-display-lg text-on-background">
+        {product.title}
+      </h1>
 
       <div className="mb-8 flex items-baseline gap-4">
         <span className="font-headline-md text-on-background">
@@ -57,7 +62,9 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
                 type="button"
                 className={cn(
                   "h-10 w-10 rounded-full p-0.5 transition-transform active:scale-90",
-                  idx === 0 ? "border-2 border-primary" : "border border-outline-variant/50 hover:border-primary"
+                  idx === 0
+                    ? "border-2 border-primary"
+                    : "border border-outline-variant/50 hover:border-primary",
                 )}
                 aria-label={opt.name}
               >
@@ -86,7 +93,9 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
                 <span className="mb-1 block text-label-sm text-outline">
                   {item.label}
                 </span>
-                <span className="font-label-md text-on-surface">{item.value}</span>
+                <span className="font-label-md text-on-surface">
+                  {item.value}
+                </span>
               </div>
             ))}
           </div>
@@ -94,16 +103,19 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
       </div>
 
       <div className="mb-10 flex flex-col gap-4">
-        <Button className="h-auto w-full rounded-full py-5 text-label-md shadow-xl hover:-translate-y-[2px] hover:shadow-2xl active:scale-95">
+        <Button className="h-auto w-full rounded-full py-5 text-label-md shadow-xl hover:translate-y-[-2px] hover:shadow-2xl active:scale-95">
           <MaterialIcon name="shopping_bag" className="mr-2 text-[22px]" />
           Add to Cart
         </Button>
-        <Button
-          variant="secondary"
-          className="h-auto w-full rounded-full bg-warm-gold py-5 text-label-md text-white shadow-lg hover:-translate-y-[2px] hover:shadow-xl active:scale-95"
+        <Link
+          href={`/checkout?product=${encodeURIComponent(product.slug)}`}
+          className={cn(
+            buttonVariants({ variant: "secondary", size: "lg" }),
+            "h-auto w-full rounded-full bg-warm-gold py-5 text-label-md text-white shadow-lg transition-all hover:translate-y-[-2px] hover:bg-warm-gold/95 hover:shadow-xl active:scale-95",
+          )}
         >
           Buy Now
-        </Button>
+        </Link>
       </div>
 
       <Separator className="my-6 bg-outline-variant/30" />
@@ -122,4 +134,3 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
     </div>
   );
 }
-
