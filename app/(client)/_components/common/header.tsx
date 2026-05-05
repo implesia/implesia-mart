@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { headerNav, productCategories } from "../../_data/common/site-nav";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
+import { ThemeToggle } from "./theme-toggle";
 
 const LOGO_SRC = "/images/common/logo.png";
 const SITE_NAME = "Implesia Mart";
@@ -253,6 +254,7 @@ export default function Header() {
             >
               <MaterialIcon name="account_circle" />
             </Button>
+            <ThemeToggle className="hidden shrink-0 scale-95 text-primary hover:opacity-80 active:scale-90 md:inline-flex [&_.material-symbols-outlined]:text-[26px]" />
 
             <Button
               variant="ghost"
@@ -379,6 +381,10 @@ export default function Header() {
                 />
                 Account
               </Button>
+            </div>
+
+            <div className="mt-3">
+              <ThemeToggle className="w-full justify-center rounded-full border border-input bg-background text-foreground hover:bg-muted [&_.material-symbols-outlined]:text-[22px]" />
             </div>
           </div>
         </aside>

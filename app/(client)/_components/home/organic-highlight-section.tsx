@@ -9,7 +9,7 @@ import { organicHighlight } from "../../_data/home/home";
 
 export function OrganicHighlightSection() {
   return (
-    <section id="organic" className="bg-white py-xl">
+    <section id="organic" className="bg-white py-xl dark:bg-background">
       <Container className="grid items-center gap-20 px-8 md:grid-cols-2">
         <div className="grid grid-cols-2 gap-4">
           {organicHighlight.images.map((img) => (

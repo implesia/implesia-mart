@@ -60,9 +60,9 @@ export function BestSellingCarousel() {
         {bestSellingProducts.map((product) => (
           <article
             key={product.id}
-            className="group min-w-[320px] shrink-0 rounded-2xl border border-surface-container bg-white p-4 shadow-sm transition-all duration-500 hover:shadow-xl"
+            className="group min-w-[320px] shrink-0 rounded-2xl border border-surface-container bg-white p-4 shadow-sm transition-all duration-500 hover:shadow-xl dark:bg-card"
           >
-            <div className="relative mb-6 aspect-[4/5] overflow-hidden rounded-xl bg-surface-bright">
+            <div className="relative mb-6 aspect-4/5 overflow-hidden rounded-xl bg-surface-bright">
               <Image
                 src={product.imageSrc}
                 alt={product.imageAlt}
