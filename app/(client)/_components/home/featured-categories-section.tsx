@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../common/container";
-import { featuredCategories } from "../../_data/home";
+import { featuredCategories } from "../../_data/home/home";
 
 export function FeaturedCategoriesSection() {
   return (

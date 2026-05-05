@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/accordion";
 
 import { Container } from "../common/container";
-import { faqSections } from "../../_data/home";
+import { faqSections } from "../../_data/home/home";
 
 export function FaqSection() {
   return (

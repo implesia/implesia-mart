@@ -1,4 +1,4 @@
-export const SITE_NAME = "LUXE RETAIL";
+export const SITE_NAME = "Implesia Mart";
 
 export const navLinks = [
   { href: "#fabrics", label: "Fabrics", active: true },
@@ -159,7 +159,7 @@ export const testimonials = [
   {
     id: "1",
     quote:
-      "The quality of the silk fabrics I ordered exceeded all expectations. LUXE RETAIL truly understands the meaning of craftsmanship. Their attention to detail in packaging is unparalleled.",
+      "The quality of the silk fabrics I ordered exceeded all expectations. Implesia Mart truly understands the meaning of craftsmanship. Their attention to detail in packaging is unparalleled.",
     name: "Alexandra Vance",
     role: "Interior Designer",
     avatarSrc:

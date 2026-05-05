@@ -6,7 +6,7 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 import { MaterialIcon } from "../common/material-icon";
-import { bestSellingProducts } from "../../_data/home";
+import { bestSellingProducts } from "../../_data/home/home";
 
 export function BestSellingCarousel() {
   const scrollerRef = useRef<HTMLDivElement>(null);

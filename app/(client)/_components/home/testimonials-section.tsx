@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
-import { testimonials } from "../../_data/home";
+import { testimonials } from "../../_data/home/home";
 
 export function TestimonialsSection() {
   return (

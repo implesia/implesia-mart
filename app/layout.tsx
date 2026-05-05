@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "LUXE RETAIL | Premium Multi-Category Shopping",
+  title: "Implesia Mart | Premium Multi-Category Shopping",
   description:
     "Premium multi-category shopping across fabrics, electronics, and organic lifestyle.",
 };

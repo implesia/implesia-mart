@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { headerNav, productCategories } from "../../_data/site-nav";
+import { headerNav, productCategories } from "../../_data/common/site-nav";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
 
@@ -75,8 +75,8 @@ export default function Header() {
     cn(
       "inline-flex items-center whitespace-nowrap text-sm font-medium tracking-tight transition-all duration-300 xl:text-[0.9375rem]",
       href === activeHref
-        ? "border-b-2 border-emerald-900 pb-1 text-emerald-900 dark:border-emerald-400 dark:text-emerald-400"
-        : "text-neutral-600 hover:text-emerald-800 dark:text-neutral-400 dark:hover:text-emerald-200",
+        ? "border-b-2 border-primary pb-1 text-primary"
+        : "text-neutral-600 hover:text-primary dark:text-neutral-400 dark:hover:text-primary",
     );
 
   return (

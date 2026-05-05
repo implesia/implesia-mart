@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { MaterialIcon } from "./material-icon";
-import { navLinks, SITE_NAME } from "../../_data/home";
+import { navLinks, SITE_NAME } from "../../_data/home/home";
 
 const footerCollections = navLinks.map((l) => ({ href: l.href, label: l.label }));
 
@@ -23,7 +23,7 @@ export default function Footer() {
         <div className="space-y-6">
           <Link
             href="/"
-            className="text-xl font-bold tracking-tight text-emerald-900 dark:text-emerald-50"
+            className="text-xl font-bold tracking-tight text-primary"
           >
             {SITE_NAME}
           </Link>
@@ -56,7 +56,7 @@ export default function Footer() {
           </div>
         </div>
         <div>
-          <h6 className="mb-6 text-xs font-semibold tracking-widest text-emerald-900 uppercase dark:text-emerald-400">
+          <h6 className="mb-6 text-xs font-semibold tracking-widest text-primary uppercase">
             Collections
           </h6>
           <ul className="space-y-4">
@@ -64,7 +64,7 @@ export default function Footer() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-sm leading-relaxed text-neutral-500 underline transition-colors hover:text-emerald-700 dark:text-neutral-400 dark:hover:text-emerald-300"
+                  className="text-sm leading-relaxed text-neutral-500 underline transition-colors hover:text-primary dark:text-neutral-400 dark:hover:text-primary"
                 >
                   {item.label}
                 </Link>
@@ -73,7 +73,7 @@ export default function Footer() {
           </ul>
         </div>
         <div>
-          <h6 className="mb-6 text-xs font-semibold tracking-widest text-emerald-900 uppercase dark:text-emerald-400">
+          <h6 className="mb-6 text-xs font-semibold tracking-widest text-primary uppercase">
             Company
           </h6>
           <ul className="space-y-4">
@@ -81,7 +81,7 @@ export default function Footer() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-sm leading-relaxed text-neutral-500 underline transition-colors hover:text-emerald-700 dark:text-neutral-400 dark:hover:text-emerald-300"
+                  className="text-sm leading-relaxed text-neutral-500 underline transition-colors hover:text-primary dark:text-neutral-400 dark:hover:text-primary"
                 >
                   {item.label}
                 </Link>
@@ -90,7 +90,7 @@ export default function Footer() {
           </ul>
         </div>
         <div>
-          <h6 className="mb-6 text-xs font-semibold tracking-widest text-emerald-900 uppercase dark:text-emerald-400">
+          <h6 className="mb-6 text-xs font-semibold tracking-widest text-primary uppercase">
             Support
           </h6>
           <ul className="space-y-4">
@@ -98,7 +98,7 @@ export default function Footer() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-sm leading-relaxed text-neutral-500 underline transition-colors hover:text-emerald-700 dark:text-neutral-400 dark:hover:text-emerald-300"
+                  className="text-sm leading-relaxed text-neutral-500 underline transition-colors hover:text-primary dark:text-neutral-400 dark:hover:text-primary"
                 >
                   {item.label}
                 </Link>

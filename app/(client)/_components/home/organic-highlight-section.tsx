@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
-import { organicHighlight } from "../../_data/home";
+import { organicHighlight } from "../../_data/home/home";
 
 export function OrganicHighlightSection() {
   return (
@@ -48,7 +48,7 @@ export function OrganicHighlightSection() {
             href="#story"
             className={cn(
               "inline-flex items-center justify-center rounded-lg bg-primary px-10 py-5 font-label-md text-white uppercase tracking-widest shadow-md transition-colors",
-              "hover:bg-emerald-900 active:scale-[0.98]",
+              "hover:bg-primary/90 active:scale-[0.98]",
             )}
           >
             {organicHighlight.cta}

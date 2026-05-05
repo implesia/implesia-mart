@@ -4,13 +4,13 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../common/container";
-import { flashSale } from "../../_data/home";
+import { flashSale } from "../../_data/home/home";
 
 export function FlashSaleSection() {
   return (
     <section className="py-xl">
       <Container className="px-8">
-        <div className="flex flex-col items-center overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-900 to-primary md:flex-row">
+        <div className="flex flex-col items-center overflow-hidden rounded-[2rem] bg-linear-to-br from-[#062f2c] to-primary md:flex-row">
           <div className="flex-1 p-12 md:p-20">
             <div className="mb-6 flex items-center gap-3">
               <span className="size-3 animate-pulse rounded-full bg-warm-gold" />

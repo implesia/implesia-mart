@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../common/container";
-import { hero } from "../../_data/home";
+import { hero } from "../../_data/home/home";
 
 export function HeroSection() {
   return (
@@ -18,7 +18,7 @@ export function HeroSection() {
           className="object-cover"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/40 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/45 via-transparent to-transparent" />
       </div>
       <Container className="relative z-10">
         <div className="max-w-2xl">
