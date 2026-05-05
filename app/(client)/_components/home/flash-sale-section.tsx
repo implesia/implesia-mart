@@ -1,0 +1,75 @@
+import Image from "next/image";
+import Link from "next/link";
+
+import { cn } from "@/lib/utils";
+
+import { Container } from "../common/container";
+import { flashSale } from "../../_data/home";
+
+export function FlashSaleSection() {
+  return (
+    <section className="py-xl">
+      <Container className="px-8">
+        <div className="flex flex-col items-center overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-900 to-primary md:flex-row">
+          <div className="flex-1 p-12 md:p-20">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="size-3 animate-pulse rounded-full bg-warm-gold" />
+              <span className="font-label-md tracking-[0.3em] text-white uppercase">
+                {flashSale.badge}
+              </span>
+            </div>
+            <h2 className="mb-8 font-display-xl text-white">
+              {flashSale.titleLines[0]}
+              <br />
+              {flashSale.titleLines[1]}
+            </h2>
+            <div className="mb-12 flex gap-8">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-white">
+                  {flashSale.hours}
+                </p>
+                <p className="text-xs font-label-md text-white/60 uppercase">
+                  Hrs
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-white">
+                  {flashSale.minutes}
+                </p>
+                <p className="text-xs font-label-md text-white/60 uppercase">
+                  Min
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-white">
+                  {flashSale.seconds}
+                </p>
+                <p className="text-xs font-label-md text-white/60 uppercase">
+                  Sec
+                </p>
+              </div>
+            </div>
+            <Link
+              href="#sale"
+              className={cn(
+                "inline-flex items-center justify-center rounded-full bg-white px-12 py-5 font-label-md text-primary uppercase tracking-widest transition-all duration-300",
+                "hover:bg-warm-gold hover:text-white active:scale-95",
+              )}
+            >
+              {flashSale.cta}
+            </Link>
+          </div>
+          <div className="h-full min-h-[400px] w-full flex-1">
+            <Image
+              src={flashSale.imageSrc}
+              alt={flashSale.imageAlt}
+              width={1200}
+              height={800}
+              className="h-full min-h-[400px] w-full object-cover"
+            />
+          </div>
+        </div>
+      </Container>
+    </section>
+  );
+}
