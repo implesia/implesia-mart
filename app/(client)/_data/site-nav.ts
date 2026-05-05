@@ -1,10 +1,3 @@
-export const topNav = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About Us" },
-  { href: "/contact", label: "Contacts" },
-  { href: "/blogs", label: "Blogs" },
-] as const;
-
 export const productCategories = [
   {
     title: "Fabrics",
@@ -26,5 +19,13 @@ export const productCategories = [
     href: "/products/accessories",
     description: "Watches, carry, and finishing details.",
   },
+] as const;
+
+export const headerNav = [
+  { type: "link", href: "/", label: "Home" },
+  { type: "products", href: "/products", label: "Products" },
+  { type: "link", href: "/about", label: "About Us" },
+  { type: "link", href: "/contact", label: "Contacts" },
+  { type: "link", href: "/blogs", label: "Blogs" },
 ] as const;
 
