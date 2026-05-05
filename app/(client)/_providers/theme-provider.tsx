@@ -38,39 +38,33 @@ function applyThemeClass(resolved: ThemeMode) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeSetting>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<ThemeMode>("light");
-
-  useEffect(() => {
+  const [theme, setThemeState] = useState<ThemeSetting>(() => {
+    if (typeof window === "undefined") return "system";
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeSetting | null;
-      if (stored === "light" || stored === "dark" || stored === "system") {
-        setThemeState(stored);
-      }
+      return stored === "light" || stored === "dark" || stored === "system"
+        ? stored
+        : "system";
     } catch {
-      // ignore
+      return "system";
     }
-  }, []);
+  });
+
+  const [systemTheme, setSystemTheme] = useState<ThemeMode>(() => getSystemTheme());
+
+  const resolvedTheme: ThemeMode = theme === "system" ? systemTheme : theme;
+
+  useEffect(() => {
+    applyThemeClass(resolvedTheme);
+  }, [resolvedTheme]);
 
   useEffect(() => {
     const media = window.matchMedia?.("(prefers-color-scheme: dark)");
-    const computeResolved = () => (theme === "system" ? getSystemTheme() : theme);
-
-    const next = computeResolved();
-    setResolvedTheme(next);
-    applyThemeClass(next);
-
     if (!media) return;
-    const onChange = () => {
-      if (theme !== "system") return;
-      const updated = computeResolved();
-      setResolvedTheme(updated);
-      applyThemeClass(updated);
-    };
-
+    const onChange = () => setSystemTheme(media.matches ? "dark" : "light");
     media.addEventListener?.("change", onChange);
     return () => media.removeEventListener?.("change", onChange);
-  }, [theme]);
+  }, []);
 
   const setTheme = useCallback((next: ThemeSetting) => {
     setThemeState(next);

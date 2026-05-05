@@ -19,7 +19,7 @@ function PageButton({ children, active }: PageButtonProps) {
         "h-10 w-10 rounded-lg font-semibold",
         active
           ? "shadow-lg"
-          : "text-muted-foreground hover:bg-surface-container-low hover:text-foreground"
+          : "text-muted-foreground hover:bg-surface-container-low hover:text-foreground",
       )}
     >
       {children}
@@ -45,4 +45,3 @@ export function ProductsPagination() {
     </div>
   );
 }
-

@@ -2,6 +2,7 @@ export type ProductBadge = "New" | "Best Seller" | "Limited";
 
 export type Product = {
   id: string;
+  slug: string;
   title: string;
   subtitle: string;
   price: number;
@@ -15,6 +16,7 @@ export type Product = {
 export const products: Product[] = [
   {
     id: "saree-1",
+    slug: "artisanal-heritage-saree",
     title: "Artisanal Saree",
     subtitle: "Hand-woven Heritage Silk",
     price: 850,
@@ -25,6 +27,7 @@ export const products: Product[] = [
   },
   {
     id: "headphones-1",
+    slug: "noise-cancelling-headphones",
     title: "Noise-Cancelling Headphones",
     subtitle: "SonicPure Pro X1",
     price: 349,
@@ -36,6 +39,7 @@ export const products: Product[] = [
   },
   {
     id: "litchi-1",
+    slug: "premium-litchi",
     title: "Premium Litchi",
     subtitle: "Farm-to-Table Organic",
     price: 24,
@@ -46,6 +50,7 @@ export const products: Product[] = [
   },
   {
     id: "sneakers-1",
+    slug: "crimson-rush-sneakers",
     title: "Crimson Rush Sneakers",
     subtitle: "Performance x Luxury",
     price: 180,
@@ -55,6 +60,7 @@ export const products: Product[] = [
   },
   {
     id: "watch-1",
+    slug: "elysian-chronograph",
     title: "Elysian Chronograph",
     subtitle: "Sapphire Glass Edition",
     price: 1200,
@@ -65,6 +71,7 @@ export const products: Product[] = [
   },
   {
     id: "bowl-1",
+    slug: "artisan-harvest-bowl",
     title: "Artisan Harvest Bowl",
     subtitle: "Chef-Curated Organic Selection",
     price: 45,

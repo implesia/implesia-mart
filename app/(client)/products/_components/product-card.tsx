@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { Product } from "../../_data/products/products";
@@ -93,6 +95,26 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.unitLabel ? (
             <span className="text-xs font-medium text-muted-foreground">{product.unitLabel}</span>
           ) : null}
+        </div>
+
+        <div className="mt-5 flex items-center gap-3">
+          <Link
+            href={`/products/${product.slug}`}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "h-10 flex-1 rounded-lg bg-transparent text-primary hover:bg-surface-container-low"
+            )}
+          >
+            Details
+          </Link>
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-10 rounded-lg px-4"
+            aria-label="Quick add to cart"
+          >
+            <MaterialIcon name="add_shopping_cart" className="text-[20px]" />
+          </Button>
         </div>
       </div>
     </article>
