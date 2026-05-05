@@ -1,7 +1,16 @@
-import React from 'react'
+import { FaqsContent } from "./_components/faqs-content";
+import { FaqsHero } from "./_components/faqs-hero";
+import { FaqsSidebar } from "./_components/faqs-sidebar";
 
-export default function Faqs() {
+export default function FaqsPage() {
   return (
-    <div>Faqs</div>
-  )
+    <main className="bg-background text-on-surface">
+      <FaqsHero />
+
+      <section className="mx-auto flex max-w-[1440px] gap-xl px-6 py-xl md:px-12 lg:px-12">
+        <FaqsSidebar />
+        <FaqsContent />
+      </section>
+    </main>
+  );
 }
