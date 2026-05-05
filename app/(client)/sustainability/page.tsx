@@ -1,11 +1,23 @@
+import { SustainabilityCta } from "./_components/sustainability-cta";
+import { SustainabilityCommitment } from "./_components/sustainability-commitment";
+import { SustainabilityFashion } from "./_components/sustainability-fashion";
+import { SustainabilityHero } from "./_components/sustainability-hero";
+import { SustainabilityImpact } from "./_components/sustainability-impact";
+import { SustainabilityOrganic } from "./_components/sustainability-organic";
+import { SustainabilityOrigin } from "./_components/sustainability-origin";
+import { SustainabilityTrust } from "./_components/sustainability-trust";
+
 export default function SustainabilityPage() {
   return (
-    <main className="mx-auto max-w-7xl px-6 pt-32 pb-xl lg:px-8">
-      <h1 className="font-display-lg text-primary">Sustainability</h1>
-      <p className="mt-4 max-w-2xl font-body-lg text-on-surface-variant">
-        We’re building this page next. For now, explore products and learn more about our materials,
-        sourcing, and shipping practices.
-      </p>
+    <main className="pt-20">
+      <SustainabilityHero />
+      <SustainabilityOrigin />
+      <SustainabilityCommitment />
+      <SustainabilityOrganic />
+      <SustainabilityFashion />
+      <SustainabilityImpact />
+      <SustainabilityTrust />
+      <SustainabilityCta />
     </main>
   );
 }

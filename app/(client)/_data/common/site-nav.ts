@@ -25,7 +25,7 @@ export const headerNav = [
   { type: "link", href: "/", label: "Home" },
   { type: "products", href: "/products", label: "Products" },
   { type: "link", href: "/about-us", label: "About Us" },
+  { type: "link", href: "/sustainability", label: "Sustainability" },
   { type: "link", href: "/contact-us", label: "Contacts" },
   { type: "link", href: "/blogs", label: "Blogs" },
 ] as const;
-
