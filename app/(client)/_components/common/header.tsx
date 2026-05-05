@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Accordion,
@@ -37,8 +37,33 @@ export default function Header() {
   const pathname = usePathname();
   const [productsOpen, setProductsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const productsCloseTimerRef = useRef<number | null>(null);
 
   useScrollLock(mobileOpen);
+
+  const scheduleCloseProducts = () => {
+    if (productsCloseTimerRef.current) {
+      window.clearTimeout(productsCloseTimerRef.current);
+    }
+    productsCloseTimerRef.current = window.setTimeout(() => {
+      setProductsOpen(false);
+    }, 160);
+  };
+
+  const cancelCloseProducts = () => {
+    if (productsCloseTimerRef.current) {
+      window.clearTimeout(productsCloseTimerRef.current);
+      productsCloseTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (productsCloseTimerRef.current) {
+        window.clearTimeout(productsCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   const activeHref = useMemo(() => {
     if (!pathname) return "/";
@@ -83,16 +108,30 @@ export default function Header() {
                     <div
                       key={item.href}
                       className="relative"
-                      onMouseEnter={() => setProductsOpen(true)}
-                      onMouseLeave={() => setProductsOpen(false)}
+                      onMouseEnter={() => {
+                        cancelCloseProducts();
+                        setProductsOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        scheduleCloseProducts();
+                      }}
                     >
                       <Link
                         href={item.href}
                         className={cn(linkClass(item.href), "gap-0.5")}
                         aria-haspopup="menu"
                         aria-expanded={productsOpen}
-                        onFocus={() => setProductsOpen(true)}
-                        onClick={() => setProductsOpen(false)}
+                        onFocus={() => {
+                          cancelCloseProducts();
+                          setProductsOpen(true);
+                        }}
+                        onBlur={() => {
+                          scheduleCloseProducts();
+                        }}
+                        onClick={() => {
+                          cancelCloseProducts();
+                          setProductsOpen(false);
+                        }}
                       >
                         {item.label}
                         <MaterialIcon
@@ -106,18 +145,25 @@ export default function Header() {
 
                       <div
                         className={cn(
-                          "absolute left-1/2 top-full z-50 mt-3 w-[min(520px,calc(100vw-2rem))] max-w-[520px] -translate-x-1/2 rounded-2xl border border-neutral-200/60 bg-white/95 p-3 shadow-xl backdrop-blur-xl transition sm:p-4",
+                          "absolute left-1/2 top-full z-50 mt-3 w-[min(920px,calc(100vw-2rem))] max-w-[920px] -translate-x-1/2 rounded-2xl border border-neutral-200/60 bg-white/95 p-3 shadow-xl backdrop-blur-xl transition sm:p-4",
                           "dark:border-neutral-800/60 dark:bg-slate-950/90",
                           productsOpen
                             ? "pointer-events-auto translate-y-0 opacity-100"
                             : "pointer-events-none -translate-y-1 opacity-0",
                         )}
                         role="menu"
+                        onMouseEnter={() => {
+                          cancelCloseProducts();
+                          setProductsOpen(true);
+                        }}
+                        onMouseLeave={() => {
+                          scheduleCloseProducts();
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Escape") setProductsOpen(false);
                         }}
                       >
-                        <div className="grid grid-cols-1 gap-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                           <Link
                             href="/products"
                             className="rounded-xl p-3 transition-colors hover:bg-surface-container-low dark:hover:bg-white/5"
