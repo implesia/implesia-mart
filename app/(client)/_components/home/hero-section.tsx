@@ -15,7 +15,7 @@ export function HeroSection() {
           alt={hero.imageAlt}
           fill
           priority
-          className="object-cover"
+        
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-linear-to-r from-black/45 via-transparent to-transparent" />

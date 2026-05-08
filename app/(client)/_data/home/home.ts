@@ -1,3 +1,5 @@
+import bannerHero from "../../../../public/images/hero/bannerHero.png";
+import womenFasion from "../../../../public/images/hero/women.jpg";
 export const SITE_NAME = "Implesia Mart";
 
 export const navLinks = [
@@ -13,19 +15,18 @@ export const hero = {
     "Discover the intersection of artisanal craftsmanship and modern silhouettes. Our Spring Collection defines effortless luxury for the conscious curator.",
   primaryCta: "Shop The Edit",
   secondaryCta: "Lookbook",
-  imageSrc:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAmsyonn5xXdTzPO2exS-1RGBfOEUu8ZiN8Nk0tP_OCBt1MK_XEktlLaVQSum8GJSmSl3frRc0_uvBFZJ9qVGtIo2NV080NlHvPMrGAbEPOScthMkl5kP-Wr6Q0SrFePs0JqlSW-ttX5pfYddUVkEQkg4q4ZjFWE2eIGuFbLmw789rz4VEpSUdjwxwRynJCcG5EzuOYB6PaG-bieXoGXF5D5kDw19vgKVSnlPxzHGkDwjp2t-45uguDWlGq4gg2eBfJNuzN02tcHQ",
+  imageSrc:bannerHero.src,
   imageAlt: "Seasonal Fashion",
 };
 
 export const featuredCategories = [
   {
-    id: "womens",
-    title: "Women's Fashion",
+    id: "Mens",
+    title: "Men's Fashion",
     subtitle: "Tailored Perfection",
     imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDCz0pm43svopQLQtiRM2mq0GC_Tdlw6UWzZNmdwoOEAThj7srNe_XzzAgqv2IIJ-lzXgXJvulPR7ZtJQh0jKviuz11NQNroXx5cGwEZx0rSwuEKWkVkR90CACDIVY5RkTxXeSy00Gs4ySCe3rzx3dFZPmNHLfa9XcxtZ6W7ROS2jra5bzVnFOALd9K-szD3VZcMJTNeoQDcRN0dCmu2ujT8_m6msNgaIzeAd_gtRLGCrIvN6u_dMqoN-xPhefRCuyXwRZnD6SsYg",
-    imageAlt: "Women's Fashion",
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuCKse9AFtyij7Uu0PGGHPrprlA43yNDxebFB4lLhLjexYbKEJC6AX4ynEO14ch7IBnqlNswdHEFIB0GVoF7rniZQtkIFkJ_5KuUCEcYQJLFq_21CtFtpB_y7e8hssFZYN148hS-pbEuIZyBPwU7Du7krw4T6JAT6WD79hTA5blFFrf_0t_TXLRzfwZBIPs2SdYszUePcTYn6SG2JUnmMvYcSlPaqKPF8mkkZ_XsjzgDcxC4tXoevVkflsY7-tHDEePhWDUWVmgUqA",
+    imageAlt: "men's Fashion",
     colSpan: 2,
     rowSpan: 2,
     headlineClass: "font-headline-md",
@@ -53,12 +54,11 @@ export const featuredCategories = [
     subtitleUppercase: true,
   },
   {
-    id: "mens",
-    title: "Men's Fashion",
+    id: "womens",
+    title: "Women's Fashion",
     subtitle: "Modern Classics",
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCKse9AFtyij7Uu0PGGHPrprlA43yNDxebFB4lLhLjexYbKEJC6AX4ynEO14ch7IBnqlNswdHEFIB0GVoF7rniZQtkIFkJ_5KuUCEcYQJLFq_21CtFtpB_y7e8hssFZYN148hS-pbEuIZyBPwU7Du7krw4T6JAT6WD79hTA5blFFrf_0t_TXLRzfwZBIPs2SdYszUePcTYn6SG2JUnmMvYcSlPaqKPF8mkkZ_XsjzgDcxC4tXoevVkflsY7-tHDEePhWDUWVmgUqA",
-    imageAlt: "Men's Fashion",
+    imageSrc: womenFasion.src,
+    imageAlt: "Women's Fashion",
     colSpan: 2,
     rowSpan: 1,
     headlineClass: "font-headline-md",
@@ -100,7 +100,7 @@ export const bestSellingProducts = [
     name: "Chrono-Master Gold Edition",
     price: "$2,400.00",
     imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCPTvYgDoxPxO31vcIhIQbRy1uNyG3h0iKsL2ehrdnyi9V4sJhZHsz01xKTt8_OMe9F-pIsaQgKfN_iUG8lG1W87eOT8i43HGUiDNsYV2e46gMkJWg52AwQWipQgkrb020MFk2MJQhaiffAU_XlLD39ImwEq2vAokUIm2xU3ew_DqQu90s1uV5BL3wwJX61s0UkkzlgIzdYkkAJHuagONc2OBUuBqe8UNELoRsp0ypBQJ7u9MK5dsWRgiQrWhocXX4SWyy7dYMsaw",
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuDCz0pm43svopQLQtiRM2mq0GC_Tdlw6UWzZNmdwoOEAThj7srNe_XzzAgqv2IIJ-lzXgXJvulPR7ZtJQh0jKviuz11NQNroXx5cGwEZx0rSwuEKWkVkR90CACDIVY5RkTxXeSy00Gs4ySCe3rzx3dFZPmNHLfa9XcxtZ6W7ROS2jra5bzVnFOALd9K-szD3VZcMJTNeoQDcRN0dCmu2ujT8_m6msNgaIzeAd_gtRLGCrIvN6u_dMqoN-xPhefRCuyXwRZnD6SsYg",
     imageAlt: "Watch",
   },
 ] as const;
