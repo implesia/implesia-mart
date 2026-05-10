@@ -187,27 +187,46 @@ export const testimonials = [
 
 export const faqSections = [
   {
-    category: "Orders & Shipping",
-    question: "How long does delivery take?",
+    category: "Order Tracking",
+    question: "How can I track my order?",
     answer:
-      "Our standard concierge delivery takes 3-5 business days for domestic orders. International shipping typically arrives within 7-10 business days, depending on customs processing in your region.",
+      "Once your order is confirmed, you will receive a tracking link via email and SMS. You can monitor your shipment in real time from dispatch to delivery through our secure tracking portal.",
   },
   {
-    category: "Payments",
-    question: "Do you offer cash on delivery?",
+    category: "Account & Security",
+    question: "Is my payment information secure?",
     answer:
-      "We currently accept all major credit cards, digital wallets, and bank transfers. To maintain our premium service standard, we do not offer cash on delivery at this time.",
+      "Absolutely. All transactions are encrypted using industry-standard SSL security protocols. We never store your full payment details, ensuring a safe and protected shopping experience.",
   },
   {
-    category: "Returns & Refunds",
-    question: "Can I return a product?",
+    category: "Returns & Exchanges",
+    question: "Can I exchange a product instead of returning it?",
     answer:
-      "Yes, we offer a complimentary 14-day return window for fashion and electronics in their original condition. Please note that for hygiene and freshness reasons, organic food items are non-returnable unless arrived damaged.",
+      "Certainly. Eligible products may be exchanged within 14 days of delivery, provided the items remain unused, undamaged, and in their original packaging.",
   },
   {
-    category: "Product Quality",
-    question: "Are your organic products certified?",
+    category: "Customer Support",
+    question: "How can I contact customer support?",
     answer:
-      "Every item in our Organic Collective is sourced from certified single-origin farms. We ensure freshness through our 24-hour farm-to-table logistics, guaranteeing the highest nutritional value and flavor profile.",
+      "Our customer experience team is available 24/7 through live chat, email, and phone support. We aim to respond to all inquiries within a few hours.",
   },
+  {
+    category: "Product Authenticity",
+    question: "Are all products authentic and original?",
+    answer:
+      "Yes. Every item featured on our platform is carefully sourced from verified brands, certified suppliers, and trusted partners to guarantee complete authenticity.",
+  },
+  {
+    category: "Warranty & Protection",
+    question: "Do your products include warranty coverage?",
+    answer:
+      "Selected products include official manufacturer warranties and protection coverage. Warranty details are clearly mentioned on each product page.",
+  },
+  {
+    category: "Sizing & Fit",
+    question: "How do I choose the correct size?",
+    answer:
+      "Each fashion item includes a detailed sizing guide with measurements and fit recommendations to help you select the most accurate size confidently.",
+  },
+
 ] as const;
