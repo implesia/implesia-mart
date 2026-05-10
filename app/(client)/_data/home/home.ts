@@ -140,7 +140,7 @@ export const organicHighlight = {
     {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuDJQvk7PEsLbhWh1rH49bpWik5wPIeFfKzK7sl-ymR2gsXDgHa4JkCObO6MtR63FlDW52a_7E__KQsdeIzoyoMSVFQJvT_v745Ub81CM-G0xKwcG9rzCQUGIRQ808iHwmYWnmTub7StybRXwz9OK0p7yulK2YkiB_xl8FNR07mDL82Fm7aClhllUwCr1g-1lbyspV3bEdlUmaBd5UWykn0QkDcpwWzHQaPRT-rp-1SK7m-BJ9OIgIKqPUnG8_kI9ZIGIUUMib3Kkw",
       alt: "Organic Gur",
-      className: "h-80 -mt-10",
+      className: "h-80 -mt-14",
     },
     {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuDSQbHzkcJBRaR9GKLrJ7XOjJK5mquYm_rVHscKASSqG16Zqx1bFazS1vcGcDGA6-B1g5F6Ta292KJ-Aw6q-Mn3re0DMlCYFAmCvFsbGIoBfm-TAjS1Y1g8JZZniH4Hc5iws58IMkc90heePmfLStKE8BRgXZryPe_oIy5gxt5qUPZxZvhoNln6_onql9Hj-Y01KG4hwfRt24_RkrNbn4uETzjTeVA8nIzMSGm8Yx4759xpGneptLhXFtgLgfDs0EhKYu5wPqVqbA",
@@ -150,7 +150,7 @@ export const organicHighlight = {
     {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCurPVRujGd2RQZUsY4r3VPU7x16J5NDFbm7iFq7h44gfPCDuAY_w6r1CZ9ImZ16zVGwstWtfHVGiwhuDEAN8tZ0s_o56KQf-dqO_OB-FM8YTtWMysbFdyhdPC0WiN_uMFrSgmcLtj8P5mgMh319VBgWDRXbvgrf1mHOZypibn2-6IE1soO__1WSAnu4292XULCt0g9xgbLLFvRAXteiCIjSTcvxXDyx7IGSyZklWgInoBQuvY3alHolrCKqOtmosCiiNz0RgZkkA",
       alt: "Pure Honey",
-      className: "h-64 -mt-10",
+      className: "h-64",
     },
   ],
 };
