@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -7,6 +10,34 @@ import { Container } from "../common/container";
 import { flashSale } from "../../_data/home/home";
 
 export function FlashSaleSection() {
+  // Example: 5 hours countdown
+  const SALE_DURATION = 8 * 60 * 60;
+
+  const [timeLeft, setTimeLeft] = useState(SALE_DURATION);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const hours = String(Math.floor(timeLeft / 3600)).padStart(2, "0");
+
+  const minutes = String(
+    Math.floor((timeLeft % 3600) / 60),
+  ).padStart(2, "0");
+
+  const seconds = String(timeLeft % 60).padStart(2, "0");
+
   return (
     <section className="py-xl">
       <Container className="px-8">
@@ -14,41 +45,45 @@ export function FlashSaleSection() {
           <div className="flex-1 p-12 md:p-20">
             <div className="mb-6 flex items-center gap-3">
               <span className="size-3 animate-pulse rounded-full bg-warm-gold" />
+
               <span className="font-label-md tracking-[0.3em] text-white uppercase">
                 {flashSale.badge}
               </span>
             </div>
+
             <h2 className="mb-8 font-display-xl text-white">
               {flashSale.titleLines[0]}
               <br />
               {flashSale.titleLines[1]}
             </h2>
+
+            {/* Countdown */}
             <div className="mb-12 flex gap-8">
               <div className="text-center">
-                <p className="text-3xl font-bold text-white">
-                  {flashSale.hours}
-                </p>
+                <p className="text-3xl font-bold text-white">{hours}</p>
+
                 <p className="text-xs font-label-md text-white/60 uppercase">
                   Hrs
                 </p>
               </div>
+
               <div className="text-center">
-                <p className="text-3xl font-bold text-white">
-                  {flashSale.minutes}
-                </p>
+                <p className="text-3xl font-bold text-white">{minutes}</p>
+
                 <p className="text-xs font-label-md text-white/60 uppercase">
                   Min
                 </p>
               </div>
+
               <div className="text-center">
-                <p className="text-3xl font-bold text-white">
-                  {flashSale.seconds}
-                </p>
+                <p className="text-3xl font-bold text-white">{seconds}</p>
+
                 <p className="text-xs font-label-md text-white/60 uppercase">
                   Sec
                 </p>
               </div>
             </div>
+
             <Link
               href="#sale"
               className={cn(
@@ -59,6 +94,7 @@ export function FlashSaleSection() {
               {flashSale.cta}
             </Link>
           </div>
+
           <div className="h-full min-h-[400px] w-full flex-1">
             <Image
               src={flashSale.imageSrc}
