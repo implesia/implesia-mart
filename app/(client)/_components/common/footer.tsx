@@ -108,7 +108,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="mx-auto max-w-[1440px] border-t border-neutral-200 px-10 py-10 text-center md:text-left dark:border-neutral-800">
-        <p className="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-center leading-relaxed text-neutral-500 dark:text-neutral-400">
           © 2024 {SITE_NAME}. ALL RIGHTS RESERVED.
         </p>
       </div>

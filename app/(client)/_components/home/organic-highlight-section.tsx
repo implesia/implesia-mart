@@ -18,13 +18,13 @@ export function OrganicHighlightSection() {
               src={img.src}
               alt={img.alt}
               width={400}
-              height={320}
+              height={300}
               className={cn("w-full rounded-2xl object-cover", img.className)}
             />
           ))}
         </div>
         <div className="space-y-8">
-          <span className="inline-block border-b-2 border-warm-gold pb-2 font-label-md tracking-[0.2em] text-primary-container uppercase">
+          <span className="inline-block border-b-2 border-warm-gold pb-2 font-label-md tracking-[0.2em] text-primary uppercase">
             {organicHighlight.kicker}
           </span>
           <h2 className="font-display-lg leading-tight text-primary">

@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,41 +9,79 @@ import { MaterialIcon } from "../common/material-icon";
 import { testimonials } from "../../_data/home/home";
 
 export function TestimonialsSection() {
+  const marqueeItems = [...testimonials, ...testimonials];
+
   return (
-    <section className="bg-surface-container-high py-xl">
-      <Container className="px-8 text-center">
-        <h2 className="mb-16 font-display-lg text-primary">The Luxe Standard</h2>
-        <div className="grid gap-8 md:grid-cols-3">
-          {testimonials.map((t) => (
-            <Card
-              key={t.id}
-              className="glass-card gap-0 rounded-2xl border-0 py-0 text-left shadow-none ring-0"
-            >
-              <CardContent className="p-10">
-                <div className="mb-6 flex gap-1 text-warm-gold">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <MaterialIcon key={`${t.id}-star-${i}`} name="star" filled className="text-sm" />
-                  ))}
-                </div>
-                <p className="mb-8 font-body-md text-on-surface italic">&ldquo;{t.quote}&rdquo;</p>
-                <div className="flex items-center gap-4">
-                  <div className="size-12 overflow-hidden rounded-full">
-                    <Image
-                      src={t.avatarSrc}
-                      alt={t.name}
-                      width={48}
-                      height={48}
-                      className="size-full object-cover"
-                    />
+    <section className="overflow-hidden bg-surface-container-high py-xl">
+      <Container className="px-0 md:px-8">
+        <div className="mb-16 px-6 text-center">
+          <h2 className="mb-4 font-display-lg text-primary">
+            The Luxe Standard
+          </h2>
+
+          <p className="mx-auto max-w-2xl font-body-lg text-on-surface-variant">
+            Trusted by customers who value timeless elegance and premium
+            experiences.
+          </p>
+        </div>
+
+        {/* Marquee */}
+        <div className="relative overflow-hidden">
+          {/* Left Gradient */}
+          <div className="pointer-events-none absolute top-0 left-0 z-20 h-full w-24 bg-linear-to-r from-surface-container-high to-transparent" />
+
+          {/* Right Gradient */}
+          <div className="pointer-events-none absolute top-0 right-0 z-20 h-full w-24 bg-linear-to-l from-surface-container-high to-transparent" />
+
+          {/* Track */}
+          <div className="marquee-track flex w-max gap-8">
+            {marqueeItems.map((t, index) => (
+              <Card
+                key={`${t.id}-${index}`}
+                className="glass-card w-[360px] shrink-0 rounded-3xl border border-white/10 bg-white/70 py-0 backdrop-blur-xl dark:bg-white/5"
+              >
+                <CardContent className="p-10">
+                  {/* Stars */}
+                  <div className="mb-6 flex gap-1 text-warm-gold">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <MaterialIcon
+                        key={`${t.id}-${i}`}
+                        name="star"
+                        filled
+                        className="text-sm"
+                      />
+                    ))}
                   </div>
-                  <div>
-                    <h5 className="font-label-md text-primary">{t.name}</h5>
-                    <p className="text-xs text-outline">{t.role}</p>
+
+                  {/* Quote */}
+                  <p className="mb-8 min-h-[110px] font-body-md leading-relaxed text-on-surface italic">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+
+                  {/* User */}
+                  <div className="flex items-center gap-4">
+                    <div className="size-14 overflow-hidden rounded-full ring-2 ring-white/20">
+                      <Image
+                        src={t.avatarSrc}
+                        alt={t.name}
+                        width={56}
+                        height={56}
+                        className="size-full object-cover"
+                      />
+                    </div>
+
+                    <div>
+                      <h5 className="font-label-lg text-primary">
+                        {t.name}
+                      </h5>
+
+                      <p className="text-sm text-outline">{t.role}</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </Container>
     </section>

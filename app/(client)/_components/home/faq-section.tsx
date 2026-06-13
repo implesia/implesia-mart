@@ -25,9 +25,9 @@ export function FaqSection() {
                 key={block.category}
                 className="border-b border-surface-container-highest pb-6"
               >
-                <h3 className="mb-4 font-label-md text-outline uppercase tracking-widest">
+                {/* <h3 className="mb-4 font-label-md text-outline uppercase tracking-widest">
                   {block.category}
-                </h3>
+                </h3> */}
                 <Accordion defaultValue={[]} className="w-full">
                   <AccordionItem value={`faq-${index}`} className="border-0">
                     <AccordionTrigger className="py-4 font-headline-sm text-on-surface hover:no-underline [&_svg]:text-primary">

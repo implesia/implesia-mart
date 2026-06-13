@@ -1,3 +1,5 @@
+import bannerHero from "../../../../public/images/hero/bannerHero.png";
+import womenFasion from "../../../../public/images/hero/women.jpg";
 export const SITE_NAME = "Implesia Mart";
 
 export const navLinks = [
@@ -13,19 +15,18 @@ export const hero = {
     "Discover the intersection of artisanal craftsmanship and modern silhouettes. Our Spring Collection defines effortless luxury for the conscious curator.",
   primaryCta: "Shop The Edit",
   secondaryCta: "Lookbook",
-  imageSrc:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAmsyonn5xXdTzPO2exS-1RGBfOEUu8ZiN8Nk0tP_OCBt1MK_XEktlLaVQSum8GJSmSl3frRc0_uvBFZJ9qVGtIo2NV080NlHvPMrGAbEPOScthMkl5kP-Wr6Q0SrFePs0JqlSW-ttX5pfYddUVkEQkg4q4ZjFWE2eIGuFbLmw789rz4VEpSUdjwxwRynJCcG5EzuOYB6PaG-bieXoGXF5D5kDw19vgKVSnlPxzHGkDwjp2t-45uguDWlGq4gg2eBfJNuzN02tcHQ",
+  imageSrc:bannerHero.src,
   imageAlt: "Seasonal Fashion",
 };
 
 export const featuredCategories = [
   {
-    id: "womens",
-    title: "Women's Fashion",
+    id: "Mens",
+    title: "Men's Fashion",
     subtitle: "Tailored Perfection",
     imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDCz0pm43svopQLQtiRM2mq0GC_Tdlw6UWzZNmdwoOEAThj7srNe_XzzAgqv2IIJ-lzXgXJvulPR7ZtJQh0jKviuz11NQNroXx5cGwEZx0rSwuEKWkVkR90CACDIVY5RkTxXeSy00Gs4ySCe3rzx3dFZPmNHLfa9XcxtZ6W7ROS2jra5bzVnFOALd9K-szD3VZcMJTNeoQDcRN0dCmu2ujT8_m6msNgaIzeAd_gtRLGCrIvN6u_dMqoN-xPhefRCuyXwRZnD6SsYg",
-    imageAlt: "Women's Fashion",
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuCKse9AFtyij7Uu0PGGHPrprlA43yNDxebFB4lLhLjexYbKEJC6AX4ynEO14ch7IBnqlNswdHEFIB0GVoF7rniZQtkIFkJ_5KuUCEcYQJLFq_21CtFtpB_y7e8hssFZYN148hS-pbEuIZyBPwU7Du7krw4T6JAT6WD79hTA5blFFrf_0t_TXLRzfwZBIPs2SdYszUePcTYn6SG2JUnmMvYcSlPaqKPF8mkkZ_XsjzgDcxC4tXoevVkflsY7-tHDEePhWDUWVmgUqA",
+    imageAlt: "men's Fashion",
     colSpan: 2,
     rowSpan: 2,
     headlineClass: "font-headline-md",
@@ -53,12 +54,11 @@ export const featuredCategories = [
     subtitleUppercase: true,
   },
   {
-    id: "mens",
-    title: "Men's Fashion",
+    id: "womens",
+    title: "Women's Fashion",
     subtitle: "Modern Classics",
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCKse9AFtyij7Uu0PGGHPrprlA43yNDxebFB4lLhLjexYbKEJC6AX4ynEO14ch7IBnqlNswdHEFIB0GVoF7rniZQtkIFkJ_5KuUCEcYQJLFq_21CtFtpB_y7e8hssFZYN148hS-pbEuIZyBPwU7Du7krw4T6JAT6WD79hTA5blFFrf_0t_TXLRzfwZBIPs2SdYszUePcTYn6SG2JUnmMvYcSlPaqKPF8mkkZ_XsjzgDcxC4tXoevVkflsY7-tHDEePhWDUWVmgUqA",
-    imageAlt: "Men's Fashion",
+    imageSrc: womenFasion.src,
+    imageAlt: "Women's Fashion",
     colSpan: 2,
     rowSpan: 1,
     headlineClass: "font-headline-md",
@@ -100,7 +100,7 @@ export const bestSellingProducts = [
     name: "Chrono-Master Gold Edition",
     price: "$2,400.00",
     imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCPTvYgDoxPxO31vcIhIQbRy1uNyG3h0iKsL2ehrdnyi9V4sJhZHsz01xKTt8_OMe9F-pIsaQgKfN_iUG8lG1W87eOT8i43HGUiDNsYV2e46gMkJWg52AwQWipQgkrb020MFk2MJQhaiffAU_XlLD39ImwEq2vAokUIm2xU3ew_DqQu90s1uV5BL3wwJX61s0UkkzlgIzdYkkAJHuagONc2OBUuBqe8UNELoRsp0ypBQJ7u9MK5dsWRgiQrWhocXX4SWyy7dYMsaw",
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuDCz0pm43svopQLQtiRM2mq0GC_Tdlw6UWzZNmdwoOEAThj7srNe_XzzAgqv2IIJ-lzXgXJvulPR7ZtJQh0jKviuz11NQNroXx5cGwEZx0rSwuEKWkVkR90CACDIVY5RkTxXeSy00Gs4ySCe3rzx3dFZPmNHLfa9XcxtZ6W7ROS2jra5bzVnFOALd9K-szD3VZcMJTNeoQDcRN0dCmu2ujT8_m6msNgaIzeAd_gtRLGCrIvN6u_dMqoN-xPhefRCuyXwRZnD6SsYg",
     imageAlt: "Watch",
   },
 ] as const;
@@ -140,7 +140,7 @@ export const organicHighlight = {
     {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuDJQvk7PEsLbhWh1rH49bpWik5wPIeFfKzK7sl-ymR2gsXDgHa4JkCObO6MtR63FlDW52a_7E__KQsdeIzoyoMSVFQJvT_v745Ub81CM-G0xKwcG9rzCQUGIRQ808iHwmYWnmTub7StybRXwz9OK0p7yulK2YkiB_xl8FNR07mDL82Fm7aClhllUwCr1g-1lbyspV3bEdlUmaBd5UWykn0QkDcpwWzHQaPRT-rp-1SK7m-BJ9OIgIKqPUnG8_kI9ZIGIUUMib3Kkw",
       alt: "Organic Gur",
-      className: "h-80 -mt-10",
+      className: "h-80 -mt-14",
     },
     {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuDSQbHzkcJBRaR9GKLrJ7XOjJK5mquYm_rVHscKASSqG16Zqx1bFazS1vcGcDGA6-B1g5F6Ta292KJ-Aw6q-Mn3re0DMlCYFAmCvFsbGIoBfm-TAjS1Y1g8JZZniH4Hc5iws58IMkc90heePmfLStKE8BRgXZryPe_oIy5gxt5qUPZxZvhoNln6_onql9Hj-Y01KG4hwfRt24_RkrNbn4uETzjTeVA8nIzMSGm8Yx4759xpGneptLhXFtgLgfDs0EhKYu5wPqVqbA",
@@ -150,7 +150,7 @@ export const organicHighlight = {
     {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCurPVRujGd2RQZUsY4r3VPU7x16J5NDFbm7iFq7h44gfPCDuAY_w6r1CZ9ImZ16zVGwstWtfHVGiwhuDEAN8tZ0s_o56KQf-dqO_OB-FM8YTtWMysbFdyhdPC0WiN_uMFrSgmcLtj8P5mgMh319VBgWDRXbvgrf1mHOZypibn2-6IE1soO__1WSAnu4292XULCt0g9xgbLLFvRAXteiCIjSTcvxXDyx7IGSyZklWgInoBQuvY3alHolrCKqOtmosCiiNz0RgZkkA",
       alt: "Pure Honey",
-      className: "h-64 -mt-10",
+      className: "h-64",
     },
   ],
 };
@@ -187,27 +187,46 @@ export const testimonials = [
 
 export const faqSections = [
   {
-    category: "Orders & Shipping",
-    question: "How long does delivery take?",
+    category: "Order Tracking",
+    question: "How can I track my order?",
     answer:
-      "Our standard concierge delivery takes 3-5 business days for domestic orders. International shipping typically arrives within 7-10 business days, depending on customs processing in your region.",
+      "Once your order is confirmed, you will receive a tracking link via email and SMS. You can monitor your shipment in real time from dispatch to delivery through our secure tracking portal.",
   },
   {
-    category: "Payments",
-    question: "Do you offer cash on delivery?",
+    category: "Account & Security",
+    question: "Is my payment information secure?",
     answer:
-      "We currently accept all major credit cards, digital wallets, and bank transfers. To maintain our premium service standard, we do not offer cash on delivery at this time.",
+      "Absolutely. All transactions are encrypted using industry-standard SSL security protocols. We never store your full payment details, ensuring a safe and protected shopping experience.",
   },
   {
-    category: "Returns & Refunds",
-    question: "Can I return a product?",
+    category: "Returns & Exchanges",
+    question: "Can I exchange a product instead of returning it?",
     answer:
-      "Yes, we offer a complimentary 14-day return window for fashion and electronics in their original condition. Please note that for hygiene and freshness reasons, organic food items are non-returnable unless arrived damaged.",
+      "Certainly. Eligible products may be exchanged within 14 days of delivery, provided the items remain unused, undamaged, and in their original packaging.",
   },
   {
-    category: "Product Quality",
-    question: "Are your organic products certified?",
+    category: "Customer Support",
+    question: "How can I contact customer support?",
     answer:
-      "Every item in our Organic Collective is sourced from certified single-origin farms. We ensure freshness through our 24-hour farm-to-table logistics, guaranteeing the highest nutritional value and flavor profile.",
+      "Our customer experience team is available 24/7 through live chat, email, and phone support. We aim to respond to all inquiries within a few hours.",
   },
+  {
+    category: "Product Authenticity",
+    question: "Are all products authentic and original?",
+    answer:
+      "Yes. Every item featured on our platform is carefully sourced from verified brands, certified suppliers, and trusted partners to guarantee complete authenticity.",
+  },
+  {
+    category: "Warranty & Protection",
+    question: "Do your products include warranty coverage?",
+    answer:
+      "Selected products include official manufacturer warranties and protection coverage. Warranty details are clearly mentioned on each product page.",
+  },
+  {
+    category: "Sizing & Fit",
+    question: "How do I choose the correct size?",
+    answer:
+      "Each fashion item includes a detailed sizing guide with measurements and fit recommendations to help you select the most accurate size confidently.",
+  },
+
 ] as const;
