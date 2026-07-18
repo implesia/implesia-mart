@@ -182,10 +182,10 @@ const aiTrackingHolderDetail: ProductDetail = {
     { label: "এআই ফেস ট্র্যাকিং ফোন হোল্ডার" },
   ],
   gallery: [
-    { src: placeholderImage("AI Tracking Holder"), alt: "এআই ফেস ট্র্যাকিং ফোন হোল্ডার - মেইন ভিউ" },
-    { src: placeholderImage("AI Holder - Tripod Mode"), alt: "ট্রাইপড মোডে এআই ফোন হোল্ডার" },
-    { src: placeholderImage("AI Holder - Remote"), alt: "ব্লুটুথ রিমোট সহ এআই ফোন হোল্ডার" },
-    { src: placeholderImage("AI Holder - Folded"), alt: "ফোল্ডেবল অবস্থায় এআই ফোন হোল্ডার" },
+    { src: "/images/products/selfie-stand/stand-1.jpg", alt: "এআই ফেস ট্র্যাকিং সেলফি স্ট্যান্ড - মেইন ভিউ" },
+    { src: "/images/products/selfie-stand/stand-2.jpg", alt: "সেলফি স্ট্যান্ড এক্সটেন্ডেড ট্রাইপড মোড" },
+    { src: "/images/products/selfie-stand/stand-3.jpg", alt: "সেলফি স্ট্যান্ড প্যাকেজিং ও ফোল্ডেড ভিউ" },
+    { src: "/images/products/selfie-stand/stand-4.jpg", alt: "সেলফি স্ট্যান্ড অতিরিক্ত অ্যাঙ্গেল" },
   ],
   description:
     "লাইভ, রিলস, ভ্লগ বা অনলাইন ক্লাস — যেকোনো কনটেন্টই এখন রেকর্ড করুন হাত ছাড়াই। এই এআই ফেস ট্র্যাকিং ফোন হোল্ডার কোনো অ্যাপ ছাড়াই আপনার মুখ ও শরীরের মুভমেন্ট ফলো করে ফ্রেমে রাখে, যাতে প্রতিটি শট থাকে পারফেক্টলি সেন্টারড। জেসচার কন্ট্রোল, ৩৬০° রোটেশন আর ব্লুটুথ রিমোট থাকায় সেটআপ করা এবং ব্যবহার করা দুটোই খুব সহজ।",

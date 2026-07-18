@@ -11,7 +11,7 @@ export function SustainabilityOrganic({ className }: { className?: string }) {
   const { organic } = sustainabilityCopy;
 
   return (
-    <section className={cn("mx-auto max-w-[1440px] px-6 py-xl md:px-12", className)}>
+    <section className={cn("mx-auto max-w-7xl px-6 py-xl md:px-12", className)}>
       <div className="flex flex-col items-center gap-16 lg:flex-row">
         <div className="order-2 w-full lg:order-1 lg:w-1/2">
           <div className="relative overflow-hidden rounded-xl shadow-lg">

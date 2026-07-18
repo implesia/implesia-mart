@@ -9,7 +9,7 @@ export function SustainabilityImpact({ className }: { className?: string }) {
   const { impact } = sustainabilityCopy;
 
   return (
-    <section className={cn("mx-auto max-w-[1440px] px-6 py-xl md:px-12", className)}>
+    <section className={cn("mx-auto max-w-7xl px-6 py-xl md:px-12", className)}>
       <div className="grid grid-cols-1 gap-gutter md:grid-cols-3">
         {impact.stats.map((s) => (
           <Card key={s.label} className="border-border/70 bg-card">

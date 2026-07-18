@@ -21,7 +21,7 @@ export function FaqsHero({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="mx-auto max-w-[1440px] px-6 text-center md:px-12 lg:px-12">
+      <div className="mx-auto max-w-7xl px-6 text-center md:px-12 lg:px-12">
         <h1 className="mb-md font-display-lg text-primary">
           {faqsCopy.hero.title}
         </h1>

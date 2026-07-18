@@ -19,7 +19,7 @@ const supportLinks = [
 export default function Footer() {
   return (
     <footer className="mt-20 w-full border-t border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
-      <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-16 px-10 py-20 md:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-16 px-10 py-20 md:grid-cols-4">
         <div className="space-y-6">
           <Link
             href="/"
@@ -106,7 +106,7 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="mx-auto max-w-[1440px] border-t border-neutral-200 px-10 py-10 text-center md:text-left dark:border-neutral-800">
+      <div className="mx-auto max-w-7xl border-t border-neutral-200 px-10 py-10 text-center md:text-left dark:border-neutral-800">
         <p className="text-sm text-center leading-relaxed text-neutral-500 dark:text-neutral-400">
           © 2024 {SITE_NAME}. ALL RIGHTS RESERVED.
         </p>

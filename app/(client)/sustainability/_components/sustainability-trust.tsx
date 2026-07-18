@@ -23,7 +23,7 @@ export function SustainabilityTrust({ className }: { className?: string }) {
 
   return (
     <section className={cn("bg-surface-container py-xl", className)}>
-      <div className="mx-auto max-w-[1440px] px-6 md:px-12">
+      <div className="mx-auto max-w-7xl px-6 md:px-12">
         <div className="flex flex-col gap-12 md:flex-row">
           {trust.testimonials.map((t) => (
             <Card

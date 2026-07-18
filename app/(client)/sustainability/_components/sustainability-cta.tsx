@@ -13,7 +13,7 @@ export function SustainabilityCta({ className }: { className?: string }) {
 
   return (
     <section className={cn("py-xl", className)}>
-      <div className="mx-auto max-w-[1440px] px-6 md:px-12">
+      <div className="mx-auto max-w-7xl px-6 md:px-12">
         <div className="relative overflow-hidden rounded-[2rem] bg-primary-container p-10 text-center md:p-16 lg:p-24">
           <div className="pointer-events-none absolute inset-0 opacity-10">
             <Image src={cta.backgroundSrc} alt={cta.backgroundAlt} fill className="object-cover" />

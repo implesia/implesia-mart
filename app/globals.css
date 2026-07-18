@@ -57,6 +57,9 @@
   --spacing-xl: 80px;
   --spacing-gutter: 24px;
   --spacing-margin: 32px;
+
+  /* Site layout width — `max-w-7xl` resolves to 1720px everywhere */
+  --container-7xl: 1720px;
 }
 
 /* Dark-mode overrides for the custom design tokens above.
@@ -375,6 +378,35 @@ details > summary {
   to {
     transform: scaleX(1);
   }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes hero-kenburns {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.hero-float {
+  animation: hero-float 5.5s ease-in-out infinite;
+}
+
+.hero-kenburns {
+  animation: hero-kenburns 8s ease-out forwards;
 }
 
 .hero-slide-active-zoom {

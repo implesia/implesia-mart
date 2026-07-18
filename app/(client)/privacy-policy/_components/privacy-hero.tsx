@@ -9,7 +9,7 @@ export function PrivacyHero({ className }: { className?: string }) {
 
   return (
     <section className={cn("pt-40 pb-20 bg-linear-to-b from-primary/10 to-transparent", className)}>
-      <div className="mx-auto max-w-[1440px] px-6 text-center md:px-8">
+      <div className="mx-auto max-w-7xl px-6 text-center md:px-8">
         <h1 className="mb-base font-display-xl text-primary">{hero.title}</h1>
         <p className="mx-auto max-w-2xl font-body-lg text-outline">{hero.subtitle}</p>
       </div>

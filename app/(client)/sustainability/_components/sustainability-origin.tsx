@@ -10,7 +10,7 @@ export function SustainabilityOrigin({ className }: { className?: string }) {
   const { origin } = sustainabilityCopy;
 
   return (
-    <section className={cn("mx-auto max-w-[1440px] px-6 py-xl md:px-12", className)}>
+    <section className={cn("mx-auto max-w-7xl px-6 py-xl md:px-12", className)}>
       <div className="grid grid-cols-1 items-center gap-20 md:grid-cols-2">
         <div className="space-y-8">
           <span className="font-label-md tracking-widest text-primary uppercase">{origin.eyebrow}</span>

@@ -11,7 +11,7 @@ export default function ShippingReturnsPage() {
     <main className="pt-20">
       <ShippingHero />
 
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-12 px-6 py-xl lg:flex-row lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 py-xl lg:flex-row lg:px-8">
         <ShippingSideNav />
 
         <div className="flex-1 space-y-xl">

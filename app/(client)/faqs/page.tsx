@@ -7,7 +7,7 @@ export default function FaqsPage() {
     <main className="bg-background text-on-surface">
       <FaqsHero />
 
-      <section className="mx-auto flex max-w-[1440px] gap-xl px-6 py-xl md:px-12 lg:px-12">
+      <section className="mx-auto flex max-w-7xl gap-xl px-6 py-xl md:px-12 lg:px-12">
         <FaqsSidebar />
         <FaqsContent />
       </section>

@@ -19,7 +19,7 @@ export function SustainabilityHero({ className }: { className?: string }) {
         <div className="absolute inset-0 bg-black/30" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1440px] px-6 text-white md:px-12">
+      <div className="relative mx-auto w-full max-w-7xl px-6 text-white md:px-12">
         <div className="max-w-2xl">
           <h1 className="font-display-xl">{hero.title}</h1>
           <p className="mt-6 font-body-lg text-stone-100">{hero.subtitle}</p>

@@ -30,7 +30,7 @@ export default async function ProductDetailsPage({
   };
 
   return (
-    <main className="mx-auto max-w-[1440px] px-4 pt-24 pb-28 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32 lg:pb-16">
+    <main className="mx-auto max-w-7xl px-4 pt-24 pb-28 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32 lg:pb-16">
       <ProductBreadcrumbs items={product.breadcrumbs} />
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-16">

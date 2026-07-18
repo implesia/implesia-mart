@@ -11,7 +11,7 @@ export function SustainabilityCommitment({ className }: { className?: string }) 
 
   return (
     <section className={cn("bg-surface-container-low py-xl", className)}>
-      <div className="mx-auto max-w-[1440px] px-6 md:px-12">
+      <div className="mx-auto max-w-7xl px-6 md:px-12">
         <div className="mb-16 text-center">
           <h2 className="font-display-lg text-primary">{commitment.title}</h2>
           <p className="mx-auto mt-4 max-w-2xl text-on-surface-variant">{commitment.subtitle}</p>

@@ -5,7 +5,7 @@ import { ProductsToolbar } from "./_components/products-toolbar";
 
 export default function ProductsPage() {
   return (
-    <main className="mx-auto flex max-w-[1440px] pt-20">
+    <main className="mx-auto flex max-w-7xl pt-20">
       <ProductsFilters />
       <section className="min-w-0 flex-1 px-8 py-12">
         <ProductsToolbar />

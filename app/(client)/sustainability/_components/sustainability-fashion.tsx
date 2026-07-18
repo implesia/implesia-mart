@@ -12,7 +12,7 @@ export function SustainabilityFashion({ className }: { className?: string }) {
 
   return (
     <section className={cn("bg-primary py-xl text-on-primary overflow-hidden", className)}>
-      <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-16 px-6 md:grid-cols-2 md:px-12">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 px-6 md:grid-cols-2 md:px-12">
         <div className="space-y-8">
           <h2 className="font-display-lg">{fashion.title}</h2>
           <p className="font-body-lg text-on-primary/80">{fashion.body}</p>

@@ -8,37 +8,69 @@ export const navLinks = [
 
 export type HeroSlide = {
   id: string;
-  badge: string;
-  titleLines: readonly [string, string];
+  eyebrow: string;
+  title: string;
   description: string;
+  priceLabel: string;
+  compareAtLabel?: string;
+  discountLabel?: string;
+  highlights: readonly string[];
   primaryCta: { label: string; href: string };
   secondaryCta: { label: string; href: string };
   imageSrc: string;
   imageAlt: string;
+  secondaryImageSrc?: string;
+  secondaryImageAlt?: string;
+  /** dual = show two product shots side-by-side (selfie stands) */
+  layout: "featured" | "dual";
+  accent: "sunset" | "selfie";
 };
+
+const sunsetLamp = products.find((p) => p.slug === "sunset-rainbow-projection-lamp")!;
+const selfieStand = products.find((p) => p.slug === "ai-face-tracking-phone-holder")!;
 
 export const heroSlides: HeroSlide[] = [
   {
     id: "sunset-lamp",
-    badge: "বেস্ট সেলার",
-    titleLines: ["রুম আলোকিত করুন", "সানসেট ল্যাম্পে"],
+    eyebrow: "ট্রেন্ডিং গ্যাজেট",
+    title: "রুম আলোকিত করুন সানসেট ল্যাম্পে",
     description:
-      "রেইনবো ও সানসেট কালারে রুমের পরিবেশ বদলে দিন সেকেন্ডেই। রিলস, ফটোগ্রাফি বা রিলাক্সিং অ্যাম্বিয়েন্সের জন্য পারফেক্ট — এখন মাত্র ৳৯৯৯ টাকায়, ক্যাশ অন ডেলিভারিতে।",
-    primaryCta: { label: "অর্ডার করুন", href: "/products/sunset-rainbow-projection-lamp" },
-    secondaryCta: { label: "সব প্রোডাক্ট দেখুন", href: "/products" },
-    imageSrc: placeholderImage("Sunset Lamp Hero", "0d5c56"),
-    imageAlt: "সানসেট প্রজেকশন ল্যাম্প",
+      "রেইনবো ও সানসেট কালারে রুমের পরিবেশ বদলে দিন সেকেন্ডেই — ক্যাশ অন ডেলিভারিতে।",
+    priceLabel: `৳${sunsetLamp.price.toLocaleString("en-US")}`,
+    compareAtLabel: sunsetLamp.compareAtPrice
+      ? `৳${sunsetLamp.compareAtPrice.toLocaleString("en-US")}`
+      : undefined,
+    discountLabel: "৩৩% ছাড়",
+    highlights: ["১৬ কালার মোড", "রিমোট কন্ট্রোল", "USB পাওয়ার্ড"],
+    primaryCta: { label: "অর্ডার করুন", href: `/products/${sunsetLamp.slug}` },
+    secondaryCta: { label: "সব গ্যাজেট", href: "/products" },
+    imageSrc: "/images/products/lamp/lamp-5.jpg",
+    imageAlt: "সানসেট প্রজেকশন ল্যাম্প কালেকশন",
+    secondaryImageSrc: "/images/products/lamp/lamp-1.jpg",
+    secondaryImageAlt: "সানসেট ল্যাম্পের অ্যাম্বিয়েন্ট প্রজেকশন",
+    layout: "featured",
+    accent: "sunset",
   },
   {
-    id: "ai-tracking-holder",
-    badge: "নতুন এসেছে",
-    titleLines: ["হাত ছাড়াই রেকর্ড করুন", "এআই ট্র্যাকিং হোল্ডারে"],
+    id: "selfie-stand",
+    eyebrow: "সেলফি স্ট্যান্ড",
+    title: "হাত ছাড়াই রেকর্ড করুন স্মার্ট স্ট্যান্ডে",
     description:
-      "কোনো অ্যাপ ছাড়াই AI ফেস ট্র্যাকিং, ৩৬০° রোটেশন আর ব্লুটুথ রিমোট — লাইভ, রিলস আর ভ্লগিং এখন আরও সহজ। মাত্র ৳১,৯৯৯ টাকায়।",
-    primaryCta: { label: "অর্ডার করুন", href: "/products/ai-face-tracking-phone-holder" },
-    secondaryCta: { label: "সব প্রোডাক্ট দেখুন", href: "/products" },
-    imageSrc: placeholderImage("AI Tracking Holder Hero", "0d5c56"),
-    imageAlt: "এআই ফেস ট্র্যাকিং ফোন হোল্ডার",
+      "সেলফি স্টিক + ট্রাইপড + LED লাইট — লাইভ, রিলস আর ভ্লগিং এখন আরও সহজ।",
+    priceLabel: `৳${selfieStand.price.toLocaleString("en-US")}`,
+    compareAtLabel: selfieStand.compareAtPrice
+      ? `৳${selfieStand.compareAtPrice.toLocaleString("en-US")}`
+      : undefined,
+    discountLabel: "২০% ছাড়",
+    highlights: ["ট্রাইপড মোড", "ব্লুটুথ রিমোট", "LED ফিল লাইট"],
+    primaryCta: { label: "অর্ডার করুন", href: `/products/${selfieStand.slug}` },
+    secondaryCta: { label: "বিস্তারিত দেখুন", href: `/products/${selfieStand.slug}` },
+    imageSrc: "/images/products/selfie-stand/stand-1.jpg",
+    imageAlt: "সেলফি স্ট্যান্ড — ট্রাইপড মোড",
+    secondaryImageSrc: "/images/products/selfie-stand/stand-2.jpg",
+    secondaryImageAlt: "সেলফি স্ট্যান্ড — এক্সটেন্ডেড ভিউ",
+    layout: "dual",
+    accent: "selfie",
   },
 ];
 
@@ -66,14 +98,12 @@ export const bestSellingProducts: BestSellingProduct[] = products.map((p) => ({
   status: p.status,
 }));
 
-const sunsetLamp = products.find((p) => p.slug === "sunset-rainbow-projection-lamp")!;
-
 export const flashSale = {
   titleLines: ["৩৩% পর্যন্ত ছাড়ে", "সানসেট প্রজেকশন ল্যাম্প"],
   badge: "লিমিটেড টাইম অফার",
   cta: "এখনই কিনুন",
   ctaHref: `/products/${sunsetLamp.slug}`,
-  imageSrc: placeholderImage("Flash Sale - Sunset Lamp", "0d5c56"),
+  imageSrc: "/images/products/lamp/lamp-4.jpg",
   imageAlt: "সানসেট প্রজেকশন ল্যাম্প ছাড়ে",
 };
 
