@@ -2,120 +2,108 @@
 
 import { useState } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { checkoutCopy } from "../../_data/checkout/checkout";
 
 type CheckoutPaymentMethodProps = {
   className?: string;
 };
 
-export function CheckoutPaymentMethod({
-  className,
-}: CheckoutPaymentMethodProps) {
-  const [method, setMethod] = useState<"online" | "cod">("cod");
+const methods = [
+  {
+    id: "cod" as const,
+    title: "ক্যাশ অন ডেলিভারি",
+    description: "প্রোডাক্ট হাতে পাওয়ার পর টাকা পরিশোধ করুন। কোনো অগ্রিম পেমেন্ট লাগবে না।",
+    icon: "payments",
+    badge: "সুপারিশকৃত",
+  },
+  {
+    id: "online" as const,
+    title: "অনলাইন পেমেন্ট",
+    description: "কার্ড / মোবাইল ব্যাংকিং অপশন শীঘ্রই চালু হবে। এখন COD দিয়ে অর্ডার করুন।",
+    icon: "credit_card",
+    disabled: true,
+  },
+];
+
+export function CheckoutPaymentMethod({ className }: CheckoutPaymentMethodProps) {
+  const [method, setMethod] = useState<"cod" | "online">("cod");
 
   return (
-    <section className={cn(className)}>
-      <Card className="border-border/60 bg-card/70 shadow-[0_8px_24px_rgba(0,0,0,0.04)] backdrop-blur-sm">
-        <CardHeader className="pb-0">
-          <CardTitle className="flex items-center gap-2 font-headline-sm text-on-surface">
-            <MaterialIcon name="payments" className="text-primary" />
-            পেমেন্ট পদ্ধতি
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup
-            value={method}
-            onValueChange={(v) => setMethod(v as "online" | "cod")}
-            className="gap-md"
-          >
-            <div
+    <section
+      className={cn(
+        "rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 sm:p-8",
+        className,
+      )}
+    >
+      <div className="mb-6 flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <MaterialIcon name="account_balance_wallet" className="text-[22px]" />
+        </span>
+        <div>
+          <h2 className="font-headline-sm text-on-surface">{checkoutCopy.paymentTitle}</h2>
+          <p className="mt-1 text-body-md text-on-surface-variant">
+            {checkoutCopy.paymentHint}
+          </p>
+        </div>
+      </div>
+
+      <RadioGroup
+        value={method}
+        onValueChange={(v) => {
+          if (v === "online") return;
+          setMethod(v as "cod" | "online");
+        }}
+        className="gap-3"
+      >
+        {methods.map((item) => {
+          const selected = method === item.id;
+          const disabled = Boolean(item.disabled);
+
+          return (
+            <label
+              key={item.id}
               className={cn(
-                "rounded-xl border p-md transition-shadow",
-                method === "online"
-                  ? "border-primary bg-card shadow-[0_4px_12px_rgba(43,192,181,0.18)]"
-                  : "border-border/60 bg-muted/20 hover:bg-card",
+                "relative flex cursor-pointer gap-4 rounded-2xl border p-4 transition-all duration-200 sm:p-5",
+                disabled && "cursor-not-allowed opacity-60",
+                selected && !disabled
+                  ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(43,192,181,0.25)]"
+                  : "border-outline-variant/30 bg-surface-container-low/60 hover:border-outline-variant/50",
               )}
             >
-              <label className="mb-md flex cursor-pointer items-center justify-between">
-                <div className="flex items-center gap-sm">
-                  <RadioGroupItem value="online" />
-                  <span className="font-label-md text-on-surface">
-                    অনলাইন পেমেন্ট (কার্ড)
-                  </span>
-                </div>
-                <div className="opacity-60">
-                  <MaterialIcon name="credit_card" />
-                </div>
-              </label>
-
-              {method === "online" ? (
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-md">
-                  <div className="flex flex-col gap-xs">
-                    <label className="text-[10px] font-bold tracking-widest text-outline uppercase">
-                      Card Number
-                    </label>
-                    <div className="flex items-center gap-sm">
-                      <Input
-                        placeholder="xxxx xxxx xxxx xxxx"
-                        className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-                      />
-                      <MaterialIcon
-                        name="contactless"
-                        className="text-slate-300"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-md grid grid-cols-2 gap-md border-t border-border/60 pt-md">
-                    <div className="flex flex-col gap-xs">
-                      <label className="text-[10px] font-bold tracking-widest text-outline uppercase">
-                        Expiry
-                      </label>
-                      <Input
-                        placeholder="MM / YY"
-                        className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-xs">
-                      <label className="text-[10px] font-bold tracking-widest text-outline uppercase">
-                        CVC
-                      </label>
-                      <Input
-                        placeholder="123"
-                        className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div
-              className={cn(
-                "cursor-pointer rounded-xl border border-border/60 bg-muted/20 p-md transition-all hover:bg-card",
-              )}
-              onClick={() => setMethod("cod")}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") setMethod("cod");
-              }}
-            >
-              <label className="flex cursor-pointer items-center gap-sm">
-                <RadioGroupItem value="cod" />
-                <span className="font-label-md text-on-surface-variant">
-                  ক্যাশ অন ডেলিভারি (COD)
+              <RadioGroupItem
+                value={item.id}
+                disabled={disabled}
+                className="mt-1"
+              />
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-container-lowest text-primary ring-1 ring-outline-variant/20">
+                <MaterialIcon name={item.icon} className="text-[22px]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-label-md text-on-surface">{item.title}</span>
+                  {item.badge ? (
+                    <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-label-sm text-primary">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                  {disabled ? (
+                    <span className="rounded-full bg-surface-container px-2.5 py-0.5 text-label-sm text-outline">
+                      শীঘ্রই
+                    </span>
+                  ) : null}
                 </span>
-              </label>
-            </div>
-          </RadioGroup>
-        </CardContent>
-      </Card>
+                <span className="mt-1 block text-body-md text-on-surface-variant">
+                  {item.description}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </RadioGroup>
     </section>
   );
 }

@@ -1,45 +1,28 @@
 "use client";
 
-import Link from "next/link";
-
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
+import type { CheckoutCart } from "../../_data/checkout/checkout";
+import { checkoutCopy } from "../../_data/checkout/checkout";
 
-function NavItem({
-  label,
-  icon,
-  active,
-  href = "#",
-}: {
-  label: string;
-  icon: string;
-  active?: boolean;
-  href?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex flex-col items-center justify-center rounded-xl px-4 py-1 text-slate-400 transition-all duration-150 ease-in-out active:scale-90 dark:text-slate-500",
-        "hover:bg-surface-container-low dark:hover:bg-white/5",
-        active && "bg-surface-container-low text-primary dark:bg-white/10 dark:text-foreground"
-      )}
-    >
-      <MaterialIcon name={icon} filled={active} />
-      <span className="text-[10px] font-semibold tracking-tighter uppercase">{label}</span>
-    </Link>
-  );
+function money(value: number) {
+  return `৳${value.toLocaleString("en-US")}`;
 }
 
-export function CheckoutMobileNav() {
+export function CheckoutMobileNav({ cart }: { cart: CheckoutCart }) {
   return (
-    <nav className="pb-safe fixed bottom-0 left-0 z-50 flex w-full items-center justify-around border-t border-border bg-background/90 px-4 py-3 backdrop-blur-lg md:hidden">
-      <NavItem label="Shop" icon="storefront" />
-      <NavItem label="Search" icon="search" />
-      <NavItem label="Bag" icon="shopping_bag" active />
-      <NavItem label="Profile" icon="person" />
-    </nav>
+    <div className="pb-safe fixed inset-x-0 bottom-0 z-50 border-t border-outline-variant/30 bg-surface-container-lowest/95 px-4 py-3 shadow-[0_-8px_30px_rgba(10,46,43,0.08)] backdrop-blur-lg lg:hidden">
+      <div className="mx-auto flex max-w-7xl items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-label-sm text-outline">সর্বমোট</p>
+          <p className="font-headline-sm text-primary">{money(cart.pricing.total)}</p>
+        </div>
+        <Button className="h-12 flex-1 rounded-full px-5 font-label-md shadow-lg active:scale-[0.98] sm:flex-none sm:min-w-[220px]">
+          <MaterialIcon name="shopping_bag" className="mr-2 text-[20px]" />
+          {checkoutCopy.placeOrder}
+        </Button>
+      </div>
+    </div>
   );
 }
-
