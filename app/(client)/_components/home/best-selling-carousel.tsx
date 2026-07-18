@@ -87,7 +87,8 @@ export function BestSellingCarousel() {
             slidesPerView: 2,
           },
           1024: {
-            slidesPerView: 3,
+            slidesPerView: 4,
+            spaceBetween: 24,
           },
         }}
         className="pb-4"

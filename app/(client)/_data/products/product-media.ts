@@ -1,6 +1,8 @@
 /**
- * Single source of truth for product photography.
+ * Single source of truth for product photography & video.
  * Folder names match `public/images/products/*` (including existing typos).
+ *
+ * Gallery order on the PDP: video first (when present), then images.
  */
 
 export type ProductMediaItem = {
@@ -8,8 +10,23 @@ export type ProductMediaItem = {
   alt: string;
 };
 
+export type ProductVideoItem = {
+  src: string;
+  alt: string;
+  /** Poster frame for thumbs / before play */
+  poster: string;
+};
+
+export type ProductGalleryItem = {
+  src: string;
+  alt: string;
+  type: "image" | "video";
+  poster?: string;
+};
+
 export type ProductMedia = {
   primary: string;
+  video?: ProductVideoItem;
   gallery: ProductMediaItem[];
   authenticity: ProductMediaItem;
 };
@@ -20,6 +37,11 @@ const stand = (file: string) => `/images/products/selfie-stand/${file}`;
 export const productMediaById = {
   "sunset-lamp": {
     primary: lamp("lamp-5.jpg"),
+    video: {
+      src: lamp("lamp.mp4"),
+      alt: "সানসেট প্রজেকশন ল্যাম্প — প্রোডাক্ট ভিডিও",
+      poster: lamp("lamp-5.jpg"),
+    },
     gallery: [
       { src: lamp("lamp-5.jpg"), alt: "সানসেট প্রজেকশন ল্যাম্প কালেকশন — মেইন ভিউ" },
       { src: lamp("lamp-1.jpg"), alt: "সানসেট ল্যাম্পের অ্যাম্বিয়েন্ট প্রজেকশন" },
@@ -34,6 +56,11 @@ export const productMediaById = {
   },
   "ai-tracking-holder": {
     primary: stand("stand-1.jpg"),
+    video: {
+      src: stand("stand-video.mp4"),
+      alt: "এআই ফেস ট্র্যাকিং সেলফি স্ট্যান্ড — প্রোডাক্ট ভিডিও",
+      poster: stand("stand-1.jpg"),
+    },
     gallery: [
       { src: stand("stand-1.jpg"), alt: "এআই ফেস ট্র্যাকিং সেলফি স্ট্যান্ড — মেইন ভিউ" },
       { src: stand("stand-2.jpg"), alt: "সেলফি স্ট্যান্ড এক্সটেন্ডেড ট্রাইপড মোড" },
@@ -144,4 +171,29 @@ export type ProductMediaId = keyof typeof productMediaById;
 
 export function getProductMedia(id: ProductMediaId): ProductMedia {
   return productMediaById[id];
+}
+
+/** PDP gallery order: video (if any) → images */
+export function getProductGalleryItems(id: ProductMediaId): ProductGalleryItem[] {
+  const media = getProductMedia(id);
+  const items: ProductGalleryItem[] = [];
+
+  if (media.video) {
+    items.push({
+      type: "video",
+      src: media.video.src,
+      alt: media.video.alt,
+      poster: media.video.poster,
+    });
+  }
+
+  for (const image of media.gallery) {
+    items.push({
+      type: "image",
+      src: image.src,
+      alt: image.alt,
+    });
+  }
+
+  return items;
 }

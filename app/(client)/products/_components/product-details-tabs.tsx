@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
@@ -21,178 +24,322 @@ function Stars({ value }: { value: number }) {
 
 export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
   const materialDetails = product.materialDetails ?? [];
+  const whatsInBox = product.whatsInBox ?? [];
+  const howToUse = product.howToUse ?? [];
+  const suitableFor = product.suitableFor ?? [];
+  const faqs = product.faqs ?? [];
   const reviews = product.reviews;
   const hasReviews = Boolean(reviews && reviews.items.length > 0);
+  const [activeTab, setActiveTab] = useState("details");
+
+  const tabs = [
+    { value: "details", label: "বিস্তারিত", icon: "description" },
+    { value: "specifications", label: "স্পেসিফিকেশন", icon: "tune" },
+    ...(faqs.length ? [{ value: "faq", label: "প্রশ্নোত্তর", icon: "help" }] : []),
+    { value: "reviews", label: "রিভিউ", icon: "rate_review" },
+  ];
+
+  const tabTriggerClass =
+    "relative z-10 h-auto flex-none cursor-pointer gap-2 rounded-xl border-transparent bg-transparent px-4 py-2.5 font-label-md text-on-surface-variant shadow-none after:hidden transition-colors duration-300 ease-out hover:text-on-surface data-active:bg-transparent data-active:text-primary data-active:shadow-none dark:data-active:bg-transparent dark:data-active:text-primary sm:flex-1 sm:px-5";
 
   return (
     <section className="mt-xl">
-      <Tabs defaultValue="details">
-        <TabsList
-          variant="line"
-          className="w-full justify-start rounded-none border-b border-outline-variant/30 p-0 text-outline"
-        >
-          <TabsTrigger
-            value="details"
-            className="px-8 py-4 font-label-md data-active:text-primary data-active:after:bg-primary"
-          >
-            বিস্তারিত
-          </TabsTrigger>
-          <TabsTrigger
-            value="specifications"
-            className="px-8 py-4 font-label-md data-active:text-primary data-active:after:bg-primary"
-          >
-            স্পেসিফিকেশন
-          </TabsTrigger>
-          <TabsTrigger
-            value="reviews"
-            className="px-8 py-4 font-label-md data-active:text-primary data-active:after:bg-primary"
-          >
-            রিভিউ
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="details" className="pt-10">
-          <div className="grid grid-cols-1 gap-16 lg:grid-cols-2">
-            <div className="space-y-6">
-              <h3 className="font-headline-sm text-on-background">{product.details.heading}</h3>
-              <p className="text-body-lg text-on-surface-variant">{product.details.body}</p>
-              <ul className="space-y-3">
-                {product.details.bullets.map((b) => (
-                  <li key={b} className="flex items-center gap-3 text-body-md text-on-surface">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    {b}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="relative flex items-center justify-center overflow-hidden rounded-2xl bg-surface-container p-10">
-              <div className="relative z-10 text-center">
-                <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
-                  <MaterialIcon name="verified" className="text-3xl text-white" />
-                </div>
-                <h4 className="mb-2 font-headline-sm text-white drop-shadow-md">
-                  {product.details.authenticity.title}
-                </h4>
-                <p className="mx-auto max-w-[300px] text-white/80 drop-shadow-sm">
-                  {product.details.authenticity.body}
-                </p>
-              </div>
-
-              <div className="absolute inset-0 bg-linear-to-br from-primary-container to-primary opacity-90" />
-              <Image
-                src={product.details.authenticity.imageSrc}
-                alt={product.details.authenticity.imageAlt}
-                fill
-                className="absolute inset-0 object-cover mix-blend-overlay opacity-30"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="specifications" className="pt-10">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {materialDetails.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-6"
-              >
-                <p className="text-label-sm text-outline">{item.label}</p>
-                <p className="mt-1 font-label-md text-on-surface">{item.value}</p>
-              </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="h-auto w-max min-w-full justify-start gap-1 rounded-2xl border border-outline-variant/25 bg-surface-container-low p-1.5 text-on-surface-variant sm:w-full">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerClass}>
+                {activeTab === tab.value ? (
+                  <motion.span
+                    layoutId="pdp-tab-pill"
+                    className="absolute inset-0 -z-10 rounded-xl bg-surface-container-lowest shadow-sm ring-1 ring-outline-variant/20 dark:bg-surface-container-highest"
+                    transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                  />
+                ) : null}
+                <MaterialIcon
+                  name={tab.icon}
+                  className={cn(
+                    "text-[18px] transition-colors duration-300",
+                    activeTab === tab.value ? "text-primary" : "text-outline",
+                  )}
+                />
+                {tab.label}
+              </TabsTrigger>
             ))}
-          </div>
-        </TabsContent>
+          </TabsList>
+        </div>
+      </Tabs>
 
-        <TabsContent value="reviews" className="pt-10">
-          {!hasReviews || !reviews ? (
-            <section className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low p-8 md:p-12">
-              <div className="mb-3 inline-flex items-center gap-2 text-primary">
-                <MaterialIcon name="rate_review" />
-                <span className="font-label-md tracking-widest uppercase">রিভিউ</span>
+      <div className="pt-10" role="tabpanel" aria-label={tabs.find((t) => t.value === activeTab)?.label}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {activeTab === "details" ? (
+              <div className="grid grid-cols-1 gap-16 lg:grid-cols-2">
+                <div className="space-y-8">
+                  <div className="space-y-6">
+                    <h3 className="font-headline-sm text-on-background">{product.details.heading}</h3>
+                    <p className="text-body-lg text-on-surface-variant">{product.details.body}</p>
+                    <ul className="space-y-3">
+                      {product.details.bullets.map((b) => (
+                        <li key={b} className="flex items-center gap-3 text-body-md text-on-surface">
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {howToUse.length ? (
+                    <div className="space-y-4">
+                      <h4 className="font-headline-sm text-on-background">কীভাবে ব্যবহার করবেন</h4>
+                      <ol className="space-y-3">
+                        {howToUse.map((step, index) => (
+                          <li
+                            key={step}
+                            className="flex items-start gap-3 text-body-md text-on-surface"
+                          >
+                            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 font-label-md text-primary">
+                              {index + 1}
+                            </span>
+                            <span className="pt-0.5">{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+
+                  {suitableFor.length ? (
+                    <div className="space-y-3">
+                      <h4 className="font-headline-sm text-on-background">কার জন্য উপযোগী</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {suitableFor.map((item) => (
+                          <span
+                            key={item}
+                            className="rounded-full bg-surface-container px-3 py-1.5 text-label-sm text-on-surface-variant"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <aside className="relative flex h-full min-h-[320px] flex-col overflow-hidden rounded-2xl border border-primary/15 bg-[#0a2e2b] text-white shadow-sm">
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle at 20% 20%, #2bc0b5 0%, transparent 45%), radial-gradient(circle at 80% 80%, #1a9e94 0%, transparent 40%)",
+                    }}
+                  />
+                  <div className="relative z-10 flex flex-1 flex-col p-7 sm:p-8">
+                    <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
+                      <MaterialIcon name="verified" filled className="text-[18px] text-primary" />
+                      <span className="text-label-sm text-white/90">ভেরিফাইড কোয়ালিটি</span>
+                    </div>
+
+                    <h4 className="mb-3 font-headline-sm text-white">
+                      {product.details.authenticity.title}
+                    </h4>
+                    <p className="mb-6 max-w-md text-body-md leading-relaxed text-white/75">
+                      {product.details.authenticity.body}
+                    </p>
+
+                    <ul className="mt-auto space-y-3">
+                      {[
+                        "ডেলিভারির আগে ফাংশনালিটি চেক",
+                        "প্যাকেজিং ও অ্যাকসেসরিজ ভেরিফাই",
+                        "ডিফেক্ট হলে সহজ সাপোর্ট",
+                      ].map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-center gap-3 text-body-md text-white/90"
+                        >
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+                            <MaterialIcon name="check" className="text-[16px]" />
+                          </span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="relative z-10 mx-7 mb-7 h-28 overflow-hidden rounded-xl border border-white/10 bg-black/25 sm:mx-8 sm:mb-8">
+                    <Image
+                      src={product.details.authenticity.imageSrc}
+                      alt={product.details.authenticity.imageAlt}
+                      fill
+                      className="scale-105 object-cover object-[center_30%] opacity-70 blur-[1px]"
+                      sizes="(max-width: 1024px) 100vw, 40vw"
+                    />
+                    <div className="absolute inset-0 bg-linear-to-r from-[#0a2e2b]/90 via-[#0a2e2b]/35 to-[#0a2e2b]/70" />
+                  </div>
+                </aside>
               </div>
-              <h3 className="mb-3 font-headline-sm text-on-background">
-                এখনও কোনো রিভিউ নেই
-              </h3>
-              <p className="max-w-xl text-body-md text-on-surface-variant">
-                {product.status === "coming-soon"
-                  ? "প্রোডাক্ট লঞ্চ হওয়ার পর এখানে ভেরিফাইড কাস্টমার রিভিউ যুক্ত হবে।"
-                  : "প্রথম রিভিউটি আপনার হতে পারে — অর্ডার করার পর আপনার অভিজ্ঞতা শেয়ার করুন।"}
-              </p>
-            </section>
-          ) : (
-            <section className="pb-10">
-              <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            ) : null}
+
+            {activeTab === "specifications" ? (
+              <div className="space-y-10">
+                {whatsInBox.length ? (
+                  <div>
+                    <h3 className="mb-4 font-headline-sm text-on-background">বক্সে যা থাকবে</h3>
+                    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {whatsInBox.map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-center gap-3 rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-body-md text-on-surface"
+                        >
+                          <MaterialIcon
+                            name="inventory_2"
+                            className="shrink-0 text-[20px] text-primary"
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
                 <div>
-                  <h2 className="mb-2 font-headline-md">কাস্টমার ফিডব্যাক</h2>
-                  <p className="text-on-surface-variant">
-                    আমাদের কাস্টমারদের সত্যিকারের অভিজ্ঞতা।
+                  <h3 className="mb-4 font-headline-sm text-on-background">টেকনিক্যাল স্পেক</h3>
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    {materialDetails.map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-6"
+                      >
+                        <p className="text-label-sm text-outline">{item.label}</p>
+                        <p className="mt-1 font-label-md text-on-surface">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {activeTab === "faq" && faqs.length ? (
+              <div className="mx-auto max-w-3xl space-y-4">
+                <div className="mb-6">
+                  <h3 className="font-headline-sm text-on-background">সাধারণ জিজ্ঞাসা</h3>
+                  <p className="mt-2 text-body-md text-on-surface-variant">
+                    অর্ডারের আগে যে প্রশ্নগুলো বেশি আসে।
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                >
-                  রিভিউ লিখুন
-                </Button>
+                {faqs.map((faq) => (
+                  <details
+                    key={faq.question}
+                    className="group rounded-2xl border border-outline-variant/30 bg-surface-container-low px-5 py-4"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-label-md text-on-surface">
+                      {faq.question}
+                      <MaterialIcon
+                        name="expand_more"
+                        className="shrink-0 text-outline transition-transform duration-300 group-open:rotate-180"
+                      />
+                    </summary>
+                    <p className="mt-3 text-body-md text-on-surface-variant">{faq.answer}</p>
+                  </details>
+                ))}
               </div>
+            ) : null}
 
-              <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
-                <div className="h-fit rounded-2xl border border-outline-variant/30 bg-card p-8">
-                  <div className="mb-8 text-center">
-                    <span className="text-[64px] font-bold leading-none text-on-background">
-                      {reviews.average.toFixed(1)}
-                    </span>
-                    <div className="my-2 flex justify-center gap-1 text-tertiary">
-                      <Stars value={reviews.average} />
-                    </div>
-                    <p className="text-label-sm text-outline">
-                      {reviews.total} টি ভেরিফাইড রিভিউয়ের ভিত্তিতে
-                    </p>
+            {activeTab === "reviews" ? (
+              !hasReviews || !reviews ? (
+                <section className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low p-8 md:p-12">
+                  <div className="mb-3 inline-flex items-center gap-2 text-primary">
+                    <MaterialIcon name="rate_review" />
+                    <span className="font-label-md tracking-widest uppercase">রিভিউ</span>
                   </div>
-
-                  <div className="space-y-4">
-                    {reviews.breakdown
-                      .filter((b) => b.stars >= 3)
-                      .map((b) => (
-                        <div key={b.stars} className="flex items-center gap-4">
-                          <span className="w-4 text-label-sm">{b.stars}</span>
-                          <div className="flex-1">
-                            <Progress value={b.percent} />
-                          </div>
-                          <span className="w-10 text-label-sm text-outline">{b.percent}%</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                <div className="space-y-8 lg:col-span-2">
-                  {reviews.items.map((r) => (
-                    <div key={r.id} className="border-b border-outline-variant/30 p-8">
-                      <div className="mb-4 flex items-start justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-highest font-bold text-primary">
-                            {r.initials}
-                          </div>
-                          <div>
-                            <h5 className="font-label-md text-on-surface">{r.name}</h5>
-                            <p className="text-label-sm text-outline">{r.meta}</p>
-                          </div>
-                        </div>
-                        <Stars value={r.rating} />
-                      </div>
-                      <p className="text-body-md text-on-surface-variant italic">
-                        &ldquo;{r.quote}&rdquo;
+                  <h3 className="mb-3 font-headline-sm text-on-background">
+                    এখনও কোনো রিভিউ নেই
+                  </h3>
+                  <p className="max-w-xl text-body-md text-on-surface-variant">
+                    {product.status === "coming-soon"
+                      ? "প্রোডাক্ট লঞ্চ হওয়ার পর এখানে ভেরিফাইড কাস্টমার রিভিউ যুক্ত হবে।"
+                      : "প্রথম রিভিউটি আপনার হতে পারে — অর্ডার করার পর আপনার অভিজ্ঞতা শেয়ার করুন।"}
+                  </p>
+                </section>
+              ) : (
+                <section className="pb-10">
+                  <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <h2 className="mb-2 font-headline-md">কাস্টমার ফিডব্যাক</h2>
+                      <p className="text-on-surface-variant">
+                        আমাদের কাস্টমারদের সত্যিকারের অভিজ্ঞতা।
                       </p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-        </TabsContent>
-      </Tabs>
+                    <Button
+                      variant="outline"
+                      className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                    >
+                      রিভিউ লিখুন
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+                    <div className="h-fit rounded-2xl border border-outline-variant/30 bg-card p-8">
+                      <div className="mb-8 text-center">
+                        <span className="text-[64px] font-bold leading-none text-on-background">
+                          {reviews.average.toFixed(1)}
+                        </span>
+                        <div className="my-2 flex justify-center gap-1 text-tertiary">
+                          <Stars value={reviews.average} />
+                        </div>
+                        <p className="text-label-sm text-outline">
+                          {reviews.total} টি ভেরিফাইড রিভিউয়ের ভিত্তিতে
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        {reviews.breakdown
+                          .filter((b) => b.stars >= 3)
+                          .map((b) => (
+                            <div key={b.stars} className="flex items-center gap-4">
+                              <span className="w-4 text-label-sm">{b.stars}</span>
+                              <div className="flex-1">
+                                <Progress value={b.percent} />
+                              </div>
+                              <span className="w-10 text-label-sm text-outline">{b.percent}%</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-8 lg:col-span-2">
+                      {reviews.items.map((r) => (
+                        <div key={r.id} className="border-b border-outline-variant/30 p-8">
+                          <div className="mb-4 flex items-start justify-between gap-6">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-highest font-bold text-primary">
+                                {r.initials}
+                              </div>
+                              <div>
+                                <h5 className="font-label-md text-on-surface">{r.name}</h5>
+                                <p className="text-label-sm text-outline">{r.meta}</p>
+                              </div>
+                            </div>
+                            <Stars value={r.rating} />
+                          </div>
+                          <p className="text-body-md text-on-surface-variant italic">
+                            &ldquo;{r.quote}&rdquo;
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </section>
   );
 }

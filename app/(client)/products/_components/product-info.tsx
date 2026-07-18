@@ -105,7 +105,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         <div className="mb-8">
           <label className="mb-4 block font-label-md text-on-background">স্পেসিফিকেশন</label>
           <div className="grid grid-cols-2 gap-4">
-            {product.materialDetails.map((item) => (
+            {product.materialDetails.slice(0, 4).map((item) => (
               <div
                 key={item.label}
                 className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4"
@@ -113,6 +113,22 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
                 <span className="mb-1 block text-label-sm text-outline">{item.label}</span>
                 <span className="font-label-md text-on-surface">{item.value}</span>
               </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {product.suitableFor?.length ? (
+        <div className="mb-8">
+          <label className="mb-3 block font-label-md text-on-background">কার জন্য উপযোগী</label>
+          <div className="flex flex-wrap gap-2">
+            {product.suitableFor.map((item) => (
+              <span
+                key={item}
+                className="rounded-full bg-surface-container px-3 py-1.5 text-label-sm text-on-surface-variant"
+              >
+                {item}
+              </span>
             ))}
           </div>
         </div>
