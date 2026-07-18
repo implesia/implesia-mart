@@ -16,7 +16,7 @@ type CheckoutPaymentMethodProps = {
 export function CheckoutPaymentMethod({
   className,
 }: CheckoutPaymentMethodProps) {
-  const [method, setMethod] = useState<"online" | "cod">("online");
+  const [method, setMethod] = useState<"online" | "cod">("cod");
 
   return (
     <section className={cn(className)}>
@@ -24,7 +24,7 @@ export function CheckoutPaymentMethod({
         <CardHeader className="pb-0">
           <CardTitle className="flex items-center gap-2 font-headline-sm text-on-surface">
             <MaterialIcon name="payments" className="text-primary" />
-            Payment Method
+            পেমেন্ট পদ্ধতি
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -45,7 +45,7 @@ export function CheckoutPaymentMethod({
                 <div className="flex items-center gap-sm">
                   <RadioGroupItem value="online" />
                   <span className="font-label-md text-on-surface">
-                    Online Payment (Credit/Debit Card)
+                    অনলাইন পেমেন্ট (কার্ড)
                   </span>
                 </div>
                 <div className="opacity-60">
@@ -109,7 +109,7 @@ export function CheckoutPaymentMethod({
               <label className="flex cursor-pointer items-center gap-sm">
                 <RadioGroupItem value="cod" />
                 <span className="font-label-md text-on-surface-variant">
-                  Cash on Delivery
+                  ক্যাশ অন ডেলিভারি (COD)
                 </span>
               </label>
             </div>

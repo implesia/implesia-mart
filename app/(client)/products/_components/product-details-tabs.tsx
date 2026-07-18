@@ -13,18 +13,37 @@ function Stars({ value }: { value: number }) {
   return (
     <div className="flex text-tertiary">
       {Array.from({ length: 5 }).map((_, i) => (
-        <MaterialIcon
-          key={i}
-          name="star"
-          filled={i < Math.round(value)}
-          className="text-[18px]"
-        />
+        <MaterialIcon key={i} name="star" filled={i < Math.round(value)} className="text-[18px]" />
       ))}
     </div>
   );
 }
 
 export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
+  if (product.status === "coming-soon") {
+    return (
+      <section className="mt-xl rounded-2xl border border-outline-variant/30 bg-surface-container-low p-8 md:p-12">
+        <h3 className="mb-4 font-headline-sm text-on-background">{product.details.heading}</h3>
+        <p className="mb-6 text-body-lg text-on-surface-variant">{product.details.body}</p>
+        <ul className="mb-8 space-y-3">
+          {product.details.bullets.map((b) => (
+            <li key={b} className="flex items-center gap-3 text-body-md text-on-surface">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              {b}
+            </li>
+          ))}
+        </ul>
+        <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 font-label-sm text-primary">
+          <MaterialIcon name="hourglass_top" className="text-[18px]" />
+          বিস্তারিত স্পেসিফিকেশন ও রিভিউ শীঘ্রই যুক্ত হবে
+        </p>
+      </section>
+    );
+  }
+
+  const materialDetails = product.materialDetails ?? [];
+  const reviews = product.reviews ?? { average: 0, total: 0, breakdown: [], items: [] };
+
   return (
     <section className="mt-xl">
       <Tabs defaultValue="details">
@@ -36,28 +55,26 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
             value="details"
             className="px-8 py-4 font-label-md data-active:text-primary data-active:after:bg-primary"
           >
-            Details
+            বিস্তারিত
           </TabsTrigger>
           <TabsTrigger
             value="specifications"
             className="px-8 py-4 font-label-md data-active:text-primary data-active:after:bg-primary"
           >
-            Specifications
+            স্পেসিফিকেশন
           </TabsTrigger>
           <TabsTrigger
             value="reviews"
             className="px-8 py-4 font-label-md data-active:text-primary data-active:after:bg-primary"
           >
-            Reviews
+            রিভিউ
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="pt-10">
           <div className="grid grid-cols-1 gap-16 lg:grid-cols-2">
             <div className="space-y-6">
-              <h3 className="font-headline-sm text-on-background">
-                {product.details.heading}
-              </h3>
+              <h3 className="font-headline-sm text-on-background">{product.details.heading}</h3>
               <p className="text-body-lg text-on-surface-variant">{product.details.body}</p>
               <ul className="space-y-3">
                 {product.details.bullets.map((b) => (
@@ -96,7 +113,7 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
 
         <TabsContent value="specifications" className="pt-10">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {product.materialDetails.map((item) => (
+            {materialDetails.map((item) => (
               <div
                 key={item.label}
                 className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-6"
@@ -112,16 +129,16 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
           <section className="pb-10">
             <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <h2 className="mb-2 font-headline-md">Customer Feedback</h2>
+                <h2 className="mb-2 font-headline-md">কাস্টমার ফিডব্যাক</h2>
                 <p className="text-on-surface-variant">
-                  Real experiences from our global community.
+                  আমাদের কাস্টমারদের সত্যিকারের অভিজ্ঞতা।
                 </p>
               </div>
               <Button
                 variant="outline"
                 className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
-                Write a Review
+                রিভিউ লিখুন
               </Button>
             </div>
 
@@ -129,18 +146,18 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
               <div className="h-fit rounded-2xl border border-outline-variant/30 bg-card p-8">
                 <div className="mb-8 text-center">
                   <span className="text-[64px] font-bold leading-none text-on-background">
-                    {product.reviews.average.toFixed(1)}
+                    {reviews.average.toFixed(1)}
                   </span>
                   <div className="my-2 flex justify-center gap-1 text-tertiary">
-                    <Stars value={product.reviews.average} />
+                    <Stars value={reviews.average} />
                   </div>
                   <p className="text-label-sm text-outline">
-                    Based on {product.reviews.total} verified reviews
+                    {reviews.total} টি ভেরিফাইড রিভিউয়ের ভিত্তিতে
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  {product.reviews.breakdown
+                  {reviews.breakdown
                     .filter((b) => b.stars >= 3)
                     .map((b) => (
                       <div key={b.stars} className="flex items-center gap-4">
@@ -155,11 +172,8 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
               </div>
 
               <div className="space-y-8 lg:col-span-2">
-                {product.reviews.items.map((r) => (
-                  <div
-                    key={r.id}
-                    className="border-b border-outline-variant/30 p-8"
-                  >
+                {reviews.items.map((r) => (
+                  <div key={r.id} className="border-b border-outline-variant/30 p-8">
                     <div className="mb-4 flex items-start justify-between gap-6">
                       <div className="flex items-center gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-highest font-bold text-primary">
@@ -185,4 +199,3 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
     </section>
   );
 }
-

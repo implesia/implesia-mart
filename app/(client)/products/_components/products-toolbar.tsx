@@ -10,7 +10,10 @@ type ProductsToolbarProps = {
   totalLabel?: string;
 };
 
-export function ProductsToolbar({ className, totalLabel = "Showing 124 items" }: ProductsToolbarProps) {
+export function ProductsToolbar({
+  className,
+  totalLabel = "সব ১০টি পণ্য দেখানো হচ্ছে",
+}: ProductsToolbarProps) {
   return (
     <div
       className={cn(
@@ -19,13 +22,13 @@ export function ProductsToolbar({ className, totalLabel = "Showing 124 items" }:
       )}
     >
       <div>
-        <h1 className="font-display-lg text-primary">All Collections</h1>
+        <h1 className="font-display-lg text-primary">ট্রেন্ডিং গ্যাজেট কালেকশন</h1>
         <p className="mt-2 font-label-md tracking-wide text-muted-foreground">
           {totalLabel}
         </p>
       </div>
       <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-muted-foreground">Sort By:</span>
+        <span className="text-sm font-medium text-muted-foreground">সাজান:</span>
         <Select defaultValue={productFilters.sortOptions[0].id}>
           <SelectTrigger className="h-10 rounded-lg border-0 bg-surface-container-low pr-10 font-semibold text-primary focus-visible:ring-2 focus-visible:ring-primary">
             <SelectValue />

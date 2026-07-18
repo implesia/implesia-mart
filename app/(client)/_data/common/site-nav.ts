@@ -1,29 +1,14 @@
 export const productCategories = [
   {
-    title: "Fabrics",
-    href: "/products/fabrics",
-    description: "Tailored textiles and premium seasonal edits.",
-  },
-  {
-    title: "Electronics",
-    href: "/products/electronics",
-    description: "Curated tech with performance and aesthetic harmony.",
-  },
-  {
-    title: "Organic Food",
-    href: "/products/organic",
-    description: "Single-origin ingredients, delivered at peak freshness.",
-  },
-  {
-    title: "Accessories",
-    href: "/products/accessories",
-    description: "Watches, carry, and finishing details.",
+    title: "ট্রেন্ডিং গ্যাজেট",
+    href: "/products",
+    description: "ইউনিক ও ট্রেন্ডিং গ্যাজেট, সারাদেশে ক্যাশ অন ডেলিভারিতে।",
   },
 ] as const;
 
 export const headerNav = [
   { type: "link", href: "/", label: "Home" },
-  { type: "products", href: "/products", label: "Products" },
+  { type: "link", href: "/products", label: "Products" },
   { type: "link", href: "/about-us", label: "About Us" },
   { type: "link", href: "/sustainability", label: "Sustainability" },
   { type: "link", href: "/contact-us", label: "Contacts" },

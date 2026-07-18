@@ -16,12 +16,11 @@ export function TestimonialsSection() {
       <Container className="px-0 md:px-8">
         <div className="mb-16 px-6 text-center">
           <h2 className="mb-4 font-display-lg text-primary">
-            The Luxe Standard
+            আমাদের কাস্টমাররা যা বলছেন
           </h2>
 
           <p className="mx-auto max-w-2xl font-body-lg text-on-surface-variant">
-            Trusted by customers who value timeless elegance and premium
-            experiences.
+            হাজারো সন্তুষ্ট কাস্টমারের বিশ্বাস নিয়ে আমরা এগিয়ে যাচ্ছি।
           </p>
         </div>
 

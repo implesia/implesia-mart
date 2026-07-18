@@ -4,6 +4,7 @@ import { ProductBreadcrumbs } from "../_components/product-breadcrumbs";
 import { ProductDetailsTabs } from "../_components/product-details-tabs";
 import { ProductGallery } from "../_components/product-gallery";
 import { ProductInfo } from "../_components/product-info";
+import { ProductMobileBuyBar } from "../_components/product-mobile-buy-bar";
 import { RelatedProducts } from "../_components/related-products";
 import { getProductDetailBySlug } from "../../_data/products/product-details";
 import { products } from "../../_data/products/products";
@@ -22,17 +23,25 @@ export default async function ProductDetailsPage({
   const product = getProductDetailBySlug(slug);
   if (!product) return notFound();
 
+  const badgeLabel: Record<NonNullable<typeof product.badge>, string> = {
+    New: "নতুন প্রোডাক্ট",
+    "Best Seller": "বেস্ট সেলার",
+    Limited: "লিমিটেড স্টক",
+  };
+
   return (
-    <main className="mx-auto max-w-[1440px] px-10 pt-32">
+    <main className="mx-auto max-w-[1440px] px-4 pt-24 pb-28 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32 lg:pb-16">
       <ProductBreadcrumbs items={product.breadcrumbs} />
 
-      <div className="grid grid-cols-1 gap-16 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">
           <ProductGallery
             badge={
-              product.badge
-                ? `${product.badge.toUpperCase()} ARRIVAL`
-                : undefined
+              product.status === "coming-soon"
+                ? "কামিং সুন"
+                : product.badge
+                  ? badgeLabel[product.badge]
+                  : undefined
             }
             images={product.gallery}
           />
@@ -44,6 +53,8 @@ export default async function ProductDetailsPage({
 
       <ProductDetailsTabs product={product} />
       <RelatedProducts items={product.related} />
+
+      <ProductMobileBuyBar product={product} />
     </main>
   );
 }

@@ -63,7 +63,7 @@ export function FlashSaleSection() {
                 <p className="text-3xl font-bold text-white">{hours}</p>
 
                 <p className="text-xs font-label-md text-white/60 uppercase">
-                  Hrs
+                  ঘণ্টা
                 </p>
               </div>
 
@@ -71,7 +71,7 @@ export function FlashSaleSection() {
                 <p className="text-3xl font-bold text-white">{minutes}</p>
 
                 <p className="text-xs font-label-md text-white/60 uppercase">
-                  Min
+                  মিনিট
                 </p>
               </div>
 
@@ -79,13 +79,13 @@ export function FlashSaleSection() {
                 <p className="text-3xl font-bold text-white">{seconds}</p>
 
                 <p className="text-xs font-label-md text-white/60 uppercase">
-                  Sec
+                  সেকেন্ড
                 </p>
               </div>
             </div>
 
             <Link
-              href="#sale"
+              href={flashSale.ctaHref}
               className={cn(
                 "inline-flex items-center justify-center rounded-full bg-white px-12 py-5 font-label-md text-primary uppercase tracking-widest transition-all duration-300",
                 "hover:bg-warm-gold hover:text-white active:scale-95",

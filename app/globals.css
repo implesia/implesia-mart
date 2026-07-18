@@ -365,3 +365,23 @@ details > summary {
     transform: translateX(calc(-50% - 1rem));
   }
 }
+
+/* hero slider */
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-slide-active-zoom {
+  transform: scale(1);
+  transition: transform 6500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.swiper-slide-active .hero-slide-active-zoom {
+  transform: scale(1.08);
+}

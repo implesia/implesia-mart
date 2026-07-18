@@ -1,7 +1,6 @@
 
 import { BestSellingSection } from "./(client)/_components/home/best-selling-section";
 import { FaqSection } from "./(client)/_components/home/faq-section";
-import { FeaturedCategoriesSection } from "./(client)/_components/home/featured-categories-section";
 import { FlashSaleSection } from "./(client)/_components/home/flash-sale-section";
 import { HeroSection } from "./(client)/_components/home/hero-section";
 import { NewsletterSection } from "./(client)/_components/home/newsletter-section";
@@ -11,10 +10,8 @@ import { TestimonialsSection } from "./(client)/_components/home/testimonials-se
 export default function HomePage() {
   return (
     <>
-    
       <main className="pt-20">
         <HeroSection />
-        <FeaturedCategoriesSection />
         <BestSellingSection />
         <FlashSaleSection />
         <OrganicHighlightSection />
@@ -22,7 +19,6 @@ export default function HomePage() {
         <FaqSection />
         <NewsletterSection />
       </main>
-    
     </>
   );
 }

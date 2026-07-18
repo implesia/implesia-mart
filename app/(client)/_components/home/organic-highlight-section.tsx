@@ -9,7 +9,7 @@ import { organicHighlight } from "../../_data/home/home";
 
 export function OrganicHighlightSection() {
   return (
-    <section id="organic" className="bg-white py-xl dark:bg-background">
+    <section id="why-us" className="bg-white py-xl dark:bg-background">
       <Container className="grid items-center gap-20 px-8 md:grid-cols-2">
         <div className="grid grid-cols-2 gap-4">
           {organicHighlight.images.map((img) => (
@@ -45,7 +45,7 @@ export function OrganicHighlightSection() {
             ))}
           </ul>
           <Link
-            href="#story"
+            href={organicHighlight.ctaHref}
             className={cn(
               "inline-flex items-center justify-center rounded-lg bg-primary px-10 py-5 font-label-md text-white uppercase tracking-widest shadow-md transition-colors",
               "hover:bg-primary/90 active:scale-[0.98]",

@@ -28,7 +28,7 @@ export function ProductGallery({
             alt={active.alt}
             width={1400}
             height={1400}
-            className="h-[520px] w-full cursor-crosshair object-cover transition-transform duration-700 ease-in-out md:h-[700px]"
+            className="h-[420px] w-full cursor-crosshair object-cover transition-transform duration-700 ease-in-out md:h-[520px] lg:h-[700px]"
             priority
           />
           {badge ? (

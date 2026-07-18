@@ -1,4 +1,5 @@
 export type ProductBadge = "New" | "Best Seller" | "Limited";
+export type ProductStatus = "available" | "coming-soon";
 
 export type Product = {
   id: string;
@@ -11,97 +12,148 @@ export type Product = {
   imageSrc: string;
   imageAlt: string;
   badge?: ProductBadge;
+  status: ProductStatus;
+  categoryId: "gadgets";
 };
 
+/**
+ * Temporary on-brand placeholder image until real product photography is
+ * uploaded. Swapping to a real photo later is a one-line change per product.
+ */
+export function placeholderImage(text: string, bg = "2bc0b5", fg = "ffffff") {
+  return `https://placehold.co/900x900/${bg}/${fg}.png?text=${encodeURIComponent(text)}&font=roboto`;
+}
+
 export const products: Product[] = [
+  // --- Available now ---
   {
-    id: "saree-1",
-    slug: "artisanal-heritage-saree",
-    title: "Artisanal Saree",
-    subtitle: "Hand-woven Heritage Silk",
-    price: 850,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBVuhWuTnt-poPnTqx-EZ0sg__YpmwKzrxlKfxqxdyud1RyhBQdasxWkdxt2LX-uMhoyRgYklO-7HqPAABCU34hnq8BuSm9qhnLQFYiYWlJ0tl3XIdhDK4Q5Uk31fglb5Bd3WLYVxeUJ5gkzzv37qZI55dlYMJf81Sm7qUPxJqwJTpeZoZH6PmVBWa8M-7mDsrCCKTKLgnWAJ6M6cQQInRWKBq3Zp0YcDCTnv9lhTFRmuTEPTtXoUCiGLXdORHn7pry-vhoLQ5U9g",
-    imageAlt: "Artisanal Saree",
-    badge: "New",
-  },
-  {
-    id: "headphones-1",
-    slug: "noise-cancelling-headphones",
-    title: "Noise-Cancelling Headphones",
-    subtitle: "SonicPure Pro X1",
-    price: 349,
-    compareAtPrice: 420,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDgghrtVRmn1eCdHE_72TJinKVQkYN4N9fDcJ8fiNIYW6BKmH53U_d0jzjinJDw6Wp1BmWHl87SggUjVTuU2XossW90zwJ60uApeby1f1U4RXmvd1Y0K72BvT0DTYkVL87MxEs37hwA0ZDAaVXG3V3aNyLL3KxWoo2yX-lOh0J87g3w4gIPnh8bQBJ1eFilEcXYFiAEI9Rxvw6qzsaxdeqF6m1MU0oCcE9Iz95BHGBLqzvqqKjxhqGGSW0pBRDvYu2nsWZq-rcK3Q",
-    imageAlt: "Noise-Cancelling Headphones",
+    id: "sunset-lamp",
+    slug: "sunset-rainbow-projection-lamp",
+    title: "সানসেট প্রজেকশন ল্যাম্প",
+    subtitle: "রেইনবো লাইট | রুম ডেকোর গ্যাজেট",
+    price: 999,
+    compareAtPrice: 1499,
+    imageSrc: placeholderImage("Sunset Lamp"),
+    imageAlt: "সানসেট প্রজেকশন ল্যাম্প",
     badge: "Best Seller",
+    status: "available",
+    categoryId: "gadgets",
   },
   {
-    id: "litchi-1",
-    slug: "premium-litchi",
-    title: "Premium Litchi",
-    subtitle: "Farm-to-Table Organic",
-    price: 24,
-    unitLabel: "per kg",
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCjBg26Vkx6bi37ISuVO_AbS16P5d0wBFDxDU1ElfofAv7P-arpbFaO9uC6HJ6RAcGJne9uH44GiDB6VOyV6Y8IOc5ROes7iiHbMENrPiC85gU3mkG9QY9qoxaHOOsxE78DvFdXp9CGxU9N8JbNAAGDvxmLXevehv3qihzVIDPyr2bWAozWOwxicDLK9_v3xwrYymIy1SFN0iQGmbr7wG6zLCq8Ww2uC03GXURX7aYD3W3889TEJtB7cDfuQL-IppnUzJIuRSLA",
-    imageAlt: "Premium Litchi",
+    id: "ai-tracking-holder",
+    slug: "ai-face-tracking-phone-holder",
+    title: "এআই ফেস ট্র্যাকিং ফোন হোল্ডার",
+    subtitle: "স্মার্ট ট্রাইপড | হ্যান্ডস-ফ্রি রেকর্ডিং",
+    price: 1999,
+    compareAtPrice: 2499,
+    imageSrc: placeholderImage("AI Tracking Holder"),
+    imageAlt: "এআই ফেস ট্র্যাকিং ফোন হোল্ডার",
+    badge: "New",
+    status: "available",
+    categoryId: "gadgets",
+  },
+
+  // --- Coming soon ---
+  {
+    id: "tws-earbuds",
+    slug: "tws-wireless-earbuds",
+    title: "TWS ওয়্যারলেস ইয়ারবাড",
+    subtitle: "প্রিমিয়াম সাউন্ড | লং ব্যাটারি লাইফ",
+    price: 1299,
+    imageSrc: placeholderImage("TWS Earbuds", "4c5e7d"),
+    imageAlt: "TWS ওয়্যারলেস ইয়ারবাড",
+    status: "coming-soon",
+    categoryId: "gadgets",
   },
   {
-    id: "sneakers-1",
-    slug: "crimson-rush-sneakers",
-    title: "Crimson Rush Sneakers",
-    subtitle: "Performance x Luxury",
-    price: 180,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCKOHuzGjImPolZzhPOsTeeCTBhtbqiun0NAVdKCjIN6QAWegADwxo6lbja7F3j6Nt-2_0vhtaWdAHWGvs8BRfrKZbbobLcMIOjIO8mBxHEBUryV5mAX-cWalgZSydogSNlnKJ9rjUDguTsH8qy-q1trKa-Gr4p8coJSeVAqik4kjohJwDGKOpAXniTWYLlCBhCtYJ5GHB6dfRim5nd9GizMXeggxapSfGEGYX3ZHzS_API3CFPYbPJB47A4fVRYJVmjUMKE4GG5A",
-    imageAlt: "Luxury Sneakers",
+    id: "neckband",
+    slug: "bluetooth-neckband-earphone",
+    title: "ব্লুটুথ নেকব্যান্ড ইয়ারফোন",
+    subtitle: "স্পোর্টস ফ্রেন্ডলি | ক্লিয়ার কলিং",
+    price: 799,
+    imageSrc: placeholderImage("Neckband", "4c5e7d"),
+    imageAlt: "ব্লুটুথ নেকব্যান্ড ইয়ারফোন",
+    status: "coming-soon",
+    categoryId: "gadgets",
   },
   {
-    id: "watch-1",
-    slug: "elysian-chronograph",
-    title: "Elysian Chronograph",
-    subtitle: "Sapphire Glass Edition",
-    price: 1200,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBfr5dzhoMW81_wRJErQ1oBjnS_V9iZZ-tVeIZLLqhFkzgxgzv9e356AwUYDeghDaySQnBiatT_1yNE0nmH43bLmlj81_zMm3ooljO5HlHvMiZNNbJ8npok9KneJMFJgKTDxZBZeNQZxz4ygedRcdaVQ2FdiBQPa6FfUhJdneE6vGG9RoB5ExJ9HcKAteATnKNyOOyErCxXvKIWIFSXAWSHfnNdKB0rQoF1tNfu7oAd2thsPvGOTlHkQ0RXRyjE6Lo_a31VlESVtg",
-    imageAlt: "Designer Watch",
-    badge: "Limited",
+    id: "car-holder",
+    slug: "magnetic-car-phone-holder",
+    title: "ম্যাগনেটিক কার ফোন হোল্ডার",
+    subtitle: "ম্যাগনেটিক গ্রিপ | ৩৬০° রোটেশন",
+    price: 499,
+    imageSrc: placeholderImage("Car Holder", "4c5e7d"),
+    imageAlt: "ম্যাগনেটিক কার ফোন হোল্ডার",
+    status: "coming-soon",
+    categoryId: "gadgets",
   },
   {
-    id: "bowl-1",
-    slug: "artisan-harvest-bowl",
-    title: "Artisan Harvest Bowl",
-    subtitle: "Chef-Curated Organic Selection",
-    price: 45,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDCE9RtMnFxT2R-ygCbIhvNQmY8aL1R3FIiiQ4URLoxC5zdqe9L3kuROGgD6kVPCaMS3v1KSAYI2ynoT45jBFO6XhIvLwFRX7VNCxOq7HOQJ6QqhRn8use1hSAQ9vJGHateKU7EU7kU5wuPkWYnf0AsuKPKX3R2MINOU2ePOXs74Sc2dtC9E4pu_tHjtMDSJkiP9FLFUQncu9S8_hr0pX-gIc3_oJsbV0mtbsFSnEykSd09POMmf5cChS4eXp7nmxu67SKbW6K0CA",
-    imageAlt: "Gourmet Bowl",
+    id: "charging-cable",
+    slug: "fast-charging-3in1-cable",
+    title: "ফাস্ট চার্জিং ৩-ইন-১ ক্যাবল",
+    subtitle: "ফাস্ট চার্জিং | মাল্টি-ডিভাইস সাপোর্ট",
+    price: 399,
+    imageSrc: placeholderImage("3-in-1 Cable", "4c5e7d"),
+    imageAlt: "ফাস্ট চার্জিং ৩-ইন-১ ক্যাবল",
+    status: "coming-soon",
+    categoryId: "gadgets",
+  },
+  {
+    id: "power-bank",
+    slug: "slim-power-bank-10000mah",
+    title: "স্লিম পাওয়ার ব্যাংক ১০,০০০mAh",
+    subtitle: "স্লিম ডিজাইন | ফাস্ট চার্জিং সাপোর্ট",
+    price: 1299,
+    imageSrc: placeholderImage("Power Bank", "4c5e7d"),
+    imageAlt: "স্লিম পাওয়ার ব্যাংক ১০,০০০mAh",
+    status: "coming-soon",
+    categoryId: "gadgets",
+  },
+  {
+    id: "mini-printer",
+    slug: "mini-thermal-printer",
+    title: "মিনি থার্মাল প্রিন্টার",
+    subtitle: "ইঙ্কলেস প্রিন্টিং | নোট ও স্টাডির জন্য পারফেক্ট",
+    price: 2999,
+    imageSrc: placeholderImage("Mini Printer", "4c5e7d"),
+    imageAlt: "মিনি থার্মাল প্রিন্টার",
+    status: "coming-soon",
+    categoryId: "gadgets",
+  },
+  {
+    id: "smart-ring",
+    slug: "smart-fitness-ring",
+    title: "স্মার্ট রিং (ফিটনেস ট্র্যাকার)",
+    subtitle: "হার্ট রেট ও স্লিপ ট্র্যাকিং | মিনিমাল ডিজাইন",
+    price: 2299,
+    imageSrc: placeholderImage("Smart Ring", "4c5e7d"),
+    imageAlt: "স্মার্ট রিং",
+    status: "coming-soon",
+    categoryId: "gadgets",
+  },
+  {
+    id: "galaxy-humidifier",
+    slug: "galaxy-projector-humidifier",
+    title: "গ্যালাক্সি প্রজেক্টর হিউমিডিফায়ার",
+    subtitle: "নাইট লাইট + এয়ার হিউমিডিফায়ার, ২-ইন-১",
+    price: 1499,
+    imageSrc: placeholderImage("Galaxy Humidifier", "4c5e7d"),
+    imageAlt: "গ্যালাক্সি প্রজেক্টর হিউমিডিফায়ার",
+    status: "coming-soon",
+    categoryId: "gadgets",
   },
 ];
 
 export const productFilters = {
-  categories: [
-    { id: "premium-apparel", label: "Premium Apparel" },
-    { id: "artisanal-saree", label: "Artisanal Saree" },
-    { id: "luxe-electronics", label: "Luxe Electronics" },
-    { id: "organic-gourmet", label: "Organic Gourmet" },
+  categories: [{ id: "gadgets", label: "ট্রেন্ডিং গ্যাজেট" }],
+  availability: [
+    { id: "available", label: "এভেইলেবল" },
+    { id: "coming-soon", label: "কামিং সুন" },
   ],
-  brands: [
-    { id: "luxe-heritage", label: "Luxe Heritage" },
-    { id: "sonicpure", label: "SonicPure" },
-    { id: "earthbound", label: "EarthBound" },
-  ],
-  ratings: [
-    { id: "4-up", label: "4 & Up", value: 4 },
-    { id: "3-up", label: "3 & Up", value: 3 },
-  ],
-  availability: [{ id: "in-stock", label: "In Stock" }],
   sortOptions: [
-    { id: "popularity", label: "Popularity" },
-    { id: "price-asc", label: "Price: Low to High" },
-    { id: "price-desc", label: "Price: High to Low" },
-    { id: "newest", label: "Newest" },
+    { id: "popularity", label: "জনপ্রিয়তা" },
+    { id: "price-asc", label: "দাম: কম থেকে বেশি" },
+    { id: "price-desc", label: "দাম: বেশি থেকে কম" },
+    { id: "newest", label: "নতুন সংযোজন" },
   ],
 } as const;

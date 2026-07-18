@@ -11,12 +11,7 @@ import type { CheckoutCart } from "../../_data/checkout/checkout";
 import { checkoutCopy } from "../../_data/checkout/checkout";
 
 function money(value: number) {
-  return value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return `৳${value.toLocaleString("en-US")}`;
 }
 
 export function CheckoutOrderSummary({
@@ -56,21 +51,23 @@ export function CheckoutOrderSummary({
 
         <div className="flex flex-col gap-sm pt-md">
           <div className="flex items-center justify-between text-body-md">
-            <span className="text-on-surface-variant">Subtotal</span>
+            <span className="text-on-surface-variant">সাবটোটাল</span>
             <span className="font-medium text-on-surface">{money(cart.pricing.subtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-body-md">
-            <span className="text-on-surface-variant">Shipping</span>
+            <span className="text-on-surface-variant">ডেলিভারি চার্জ</span>
             <span className="font-medium text-on-surface">{money(cart.pricing.shipping)}</span>
           </div>
-          <div className="flex items-center justify-between text-body-md">
-            <span className="text-on-surface-variant">Estimated Tax</span>
-            <span className="font-medium text-on-surface">{money(cart.pricing.tax)}</span>
-          </div>
+          {cart.pricing.tax > 0 ? (
+            <div className="flex items-center justify-between text-body-md">
+              <span className="text-on-surface-variant">ট্যাক্স</span>
+              <span className="font-medium text-on-surface">{money(cart.pricing.tax)}</span>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex items-center justify-between border-t border-surface-container-highest pt-md">
-          <span className="font-headline-sm text-on-surface">Grand Total</span>
+          <span className="font-headline-sm text-on-surface">সর্বমোট</span>
           <span className="font-headline-sm text-primary">{money(cart.pricing.total)}</span>
         </div>
 

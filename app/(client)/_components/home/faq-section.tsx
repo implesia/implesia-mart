@@ -15,9 +15,9 @@ export function FaqSection() {
         <div className="mx-auto max-w-3xl">
           <div className="mb-16 text-center">
             <span className="mb-4 block font-label-md tracking-[0.2em] text-warm-gold uppercase">
-              Information Center
+              জিজ্ঞাসা ও উত্তর
             </span>
-            <h2 className="font-display-lg text-primary">Frequently Asked Questions</h2>
+            <h2 className="font-display-lg text-primary">প্রায়শই জিজ্ঞাসিত প্রশ্ন</h2>
           </div>
           <div className="space-y-6">
             {faqSections.map((block, index) => (

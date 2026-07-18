@@ -28,8 +28,7 @@ export default function Footer() {
             {SITE_NAME}
           </Link>
           <p className="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
-            Defining the modern standard of excellence across fashion, technology, and organic
-            lifestyle since 2024.
+            সারাদেশে ট্রেন্ডিং ও ইউনিক গ্যাজেট, ক্যাশ অন ডেলিভারিতে নিশ্চিন্তে অর্ডার করুন।
           </p>
           <div className="flex gap-4">
             <Link

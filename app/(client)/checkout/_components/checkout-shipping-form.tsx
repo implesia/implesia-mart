@@ -18,7 +18,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
         <CardHeader className="pb-0">
           <CardTitle className="flex items-center gap-2 font-headline-sm text-on-surface">
             <MaterialIcon name="local_shipping" className="text-primary" />
-            Shipping Details
+            ডেলিভারি ঠিকানা
           </CardTitle>
         </CardHeader>
         <CardContent>

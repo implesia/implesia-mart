@@ -3,19 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { headerNav, productCategories } from "../../_data/common/site-nav";
+import { headerNav } from "../../_data/common/site-nav";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
 import { ThemeToggle } from "./theme-toggle";
@@ -36,35 +30,9 @@ function useScrollLock(locked: boolean) {
 
 export default function Header() {
   const pathname = usePathname();
-  const [productsOpen, setProductsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const productsCloseTimerRef = useRef<number | null>(null);
 
   useScrollLock(mobileOpen);
-
-  const scheduleCloseProducts = () => {
-    if (productsCloseTimerRef.current) {
-      window.clearTimeout(productsCloseTimerRef.current);
-    }
-    productsCloseTimerRef.current = window.setTimeout(() => {
-      setProductsOpen(false);
-    }, 160);
-  };
-
-  const cancelCloseProducts = () => {
-    if (productsCloseTimerRef.current) {
-      window.clearTimeout(productsCloseTimerRef.current);
-      productsCloseTimerRef.current = null;
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (productsCloseTimerRef.current) {
-        window.clearTimeout(productsCloseTimerRef.current);
-      }
-    };
-  }, []);
 
   const activeHref = useMemo(() => {
     if (!pathname) return "/";
@@ -103,126 +71,15 @@ export default function Header() {
 
           <div className="hidden min-w-0 justify-self-center md:flex">
             <div className="flex shrink-0 items-center gap-3 lg:gap-5 xl:gap-7">
-              {headerNav.map((item) => {
-                if (item.type === "products") {
-                  return (
-                    <div
-                      key={item.href}
-                      className="relative"
-                      onMouseEnter={() => {
-                        cancelCloseProducts();
-                        setProductsOpen(true);
-                      }}
-                      onMouseLeave={() => {
-                        scheduleCloseProducts();
-                      }}
-                    >
-                      <Link
-                        href={item.href}
-                        className={cn(linkClass(item.href), "gap-0.5")}
-                        aria-haspopup="menu"
-                        aria-expanded={productsOpen}
-                        onFocus={() => {
-                          cancelCloseProducts();
-                          setProductsOpen(true);
-                        }}
-                        onBlur={() => {
-                          scheduleCloseProducts();
-                        }}
-                        onClick={() => {
-                          cancelCloseProducts();
-                          setProductsOpen(false);
-                        }}
-                      >
-                        {item.label}
-                        <MaterialIcon
-                          name="expand_more"
-                          className={cn(
-                            "shrink-0 text-[18px] transition-transform",
-                            productsOpen && "rotate-180",
-                          )}
-                        />
-                      </Link>
-
-                      <div
-                        className={cn(
-                          "absolute left-1/2 top-full z-50 mt-3 w-[min(920px,calc(100vw-2rem))] max-w-[920px] -translate-x-1/2 rounded-2xl border border-neutral-200/60 bg-white/95 p-3 shadow-xl backdrop-blur-xl transition sm:p-4",
-                          "dark:border-neutral-800/60 dark:bg-slate-950/90",
-                          productsOpen
-                            ? "pointer-events-auto translate-y-0 opacity-100"
-                            : "pointer-events-none -translate-y-1 opacity-0",
-                        )}
-                        role="menu"
-                        onMouseEnter={() => {
-                          cancelCloseProducts();
-                          setProductsOpen(true);
-                        }}
-                        onMouseLeave={() => {
-                          scheduleCloseProducts();
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") setProductsOpen(false);
-                        }}
-                      >
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                          <Link
-                            href="/products"
-                            className="rounded-xl p-3 transition-colors hover:bg-surface-container-low dark:hover:bg-white/5"
-                            role="menuitem"
-                            onClick={() => setProductsOpen(false)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-label-md text-on-surface dark:text-white">
-                                All Products
-                              </span>
-                              <MaterialIcon
-                                name="arrow_forward"
-                                className="text-[18px] text-outline"
-                              />
-                            </div>
-                            <p className="mt-1 text-sm text-on-surface-variant dark:text-neutral-400">
-                              Explore everything in the catalogue.
-                            </p>
-                          </Link>
-
-                          {productCategories.map((cat) => (
-                            <Link
-                              key={cat.href}
-                              href={cat.href}
-                              className="rounded-xl p-3 transition-colors hover:bg-surface-container-low dark:hover:bg-white/5"
-                              role="menuitem"
-                              onClick={() => setProductsOpen(false)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-label-md text-on-surface dark:text-white">
-                                  {cat.title}
-                                </span>
-                                <MaterialIcon
-                                  name="arrow_forward"
-                                  className="text-[18px] text-outline"
-                                />
-                              </div>
-                              <p className="mt-1 text-sm text-on-surface-variant dark:text-neutral-400">
-                                {cat.description}
-                              </p>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={linkClass(item.href)}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+              {headerNav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={linkClass(item.href)}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
 
@@ -318,52 +175,21 @@ export default function Header() {
             </div>
 
             <div className="space-y-1">
-              {headerNav
-                .filter((x) => x.type !== "products")
-                .map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "block rounded-xl px-3 py-2 font-medium tracking-tight",
-                      item.href === activeHref
-                        ? "bg-surface-container-low text-primary"
-                        : "text-on-surface",
-                    )}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-
-              <Accordion defaultValue={[]} className="w-full">
-                <AccordionItem value="products" className="border-0">
-                  <AccordionTrigger className="rounded-xl px-3 py-2 font-medium tracking-tight text-on-surface hover:no-underline [&_svg]:text-primary">
-                    Products
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-2">
-                    <div className="mt-1 space-y-1">
-                      <Link
-                        href="/products"
-                        className="block rounded-lg px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        All Products
-                      </Link>
-                      {productCategories.map((cat) => (
-                        <Link
-                          key={cat.href}
-                          href={cat.href}
-                          className="block rounded-lg px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low"
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          {cat.title}
-                        </Link>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+              {headerNav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "block rounded-xl px-3 py-2 font-medium tracking-tight",
+                    item.href === activeHref
+                      ? "bg-surface-container-low text-primary"
+                      : "text-on-surface",
+                  )}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
 
             <div className="mt-6 flex gap-2">
