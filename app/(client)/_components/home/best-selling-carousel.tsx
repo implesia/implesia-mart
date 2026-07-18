@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../common/material-icon";
 import { bestSellingProducts } from "../../_data/home/home";
+import { useCart } from "../../_providers/cart-provider";
 
 // Import Swiper
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -21,6 +22,7 @@ import "swiper/css/navigation";
 export function BestSellingCarousel() {
   const prevRef = useRef<HTMLButtonElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const { addItem } = useCart();
 
   return (
     <>
@@ -151,7 +153,11 @@ export function BestSellingCarousel() {
                       size="icon"
                       className="rounded-lg bg-primary-container text-on-primary-container hover:opacity-90"
                       aria-label={`${product.name} কার্টে যুক্ত করুন`}
-                      onClick={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        addItem(product.slug, 1, { openDrawer: true });
+                      }}
                     >
                       <MaterialIcon name="add_shopping_cart" />
                     </Button>

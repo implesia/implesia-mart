@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 import type { Product, ProductBadge } from "../../_data/products/products";
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { useCart } from "../../_providers/cart-provider";
 
 type ProductCardProps = {
   product: Product;
@@ -26,7 +27,14 @@ const BADGE_LABEL: Record<ProductBadge, string> = {
 };
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { addItem } = useCart();
   const isComingSoon = product.status === "coming-soon";
+
+  function handleAddToCart(e?: React.MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
+    addItem(product.slug, 1, { openDrawer: true });
+  }
 
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -86,7 +94,11 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {!isComingSoon ? (
           <div className="absolute inset-x-0 bottom-0 hidden p-2 translate-y-full transition-transform duration-300 group-hover:translate-y-0 lg:block">
-            <Button className="h-9 w-full rounded-lg text-xs font-semibold tracking-wider uppercase shadow-lg">
+            <Button
+              type="button"
+              className="h-9 w-full rounded-lg text-xs font-semibold tracking-wider uppercase shadow-lg"
+              onClick={handleAddToCart}
+            >
               কার্টে যুক্ত করুন
             </Button>
           </div>
@@ -131,6 +143,7 @@ export function ProductCard({ product }: ProductCardProps) {
               variant="secondary"
               className="size-9 shrink-0 rounded-lg p-0"
               aria-label="কার্টে যুক্ত করুন"
+              onClick={handleAddToCart}
             >
               <MaterialIcon name="add_shopping_cart" className="text-[18px]" />
             </Button>

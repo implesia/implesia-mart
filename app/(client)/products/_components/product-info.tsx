@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
+import { useCart } from "../../_providers/cart-provider";
 
 function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
@@ -23,8 +25,24 @@ const TRUST_BADGES = [
 ];
 
 export function ProductInfo({ product }: { product: ProductDetail }) {
+  const router = useRouter();
+  const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [justAdded, setJustAdded] = useState(false);
   const isComingSoon = product.status === "coming-soon";
+
+  function handleAddToCart() {
+    const ok = addItem(product.slug, quantity, { openDrawer: true });
+    if (!ok) return;
+    setJustAdded(true);
+    window.setTimeout(() => setJustAdded(false), 1600);
+  }
+
+  function handleBuyNow() {
+    const ok = addItem(product.slug, quantity, { openDrawer: false });
+    if (!ok) return;
+    router.push("/checkout");
+  }
 
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -183,19 +201,25 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           </div>
 
           <div className="mb-10 flex flex-col gap-4">
-            <Button className="h-auto w-full rounded-full py-5 text-label-md shadow-xl hover:translate-y-[-2px] hover:shadow-2xl active:scale-95">
-              <MaterialIcon name="shopping_bag" className="mr-2 text-[22px]" />
-              কার্টে যুক্ত করুন
+            <Button
+              type="button"
+              onClick={handleAddToCart}
+              className="h-auto w-full rounded-full py-5 text-label-md shadow-xl hover:translate-y-[-2px] hover:shadow-2xl active:scale-95"
+            >
+              <MaterialIcon
+                name={justAdded ? "check_circle" : "shopping_bag"}
+                className="mr-2 text-[22px]"
+              />
+              {justAdded ? "কার্টে যোগ হয়েছে" : "কার্টে যুক্ত করুন"}
             </Button>
-            <Link
-              href={`/checkout?product=${encodeURIComponent(product.slug)}&qty=${quantity}`}
-              className={cn(
-                buttonVariants({ variant: "secondary", size: "lg" }),
-                "h-auto w-full rounded-full bg-warm-gold py-5 text-label-md text-white shadow-lg transition-all hover:translate-y-[-2px] hover:bg-warm-gold/95 hover:shadow-xl active:scale-95",
-              )}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleBuyNow}
+              className="h-auto w-full rounded-full bg-warm-gold py-5 text-label-md text-white shadow-lg transition-all hover:translate-y-[-2px] hover:bg-warm-gold/95 hover:shadow-xl active:scale-95"
             >
               অর্ডার করুন
-            </Link>
+            </Button>
           </div>
         </>
       )}

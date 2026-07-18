@@ -1,8 +1,10 @@
 /* eslint-disable @next/next/no-page-custom-font */
 import type { Metadata } from "next";
 import "./globals.css";
+import { CartDrawer } from "./(client)/_components/cart/cart-drawer";
 import Header from "./(client)/_components/common/header";
 import Footer from "./(client)/_components/common/footer";
+import { CartProvider } from "./(client)/_providers/cart-provider";
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
 
 export const metadata: Metadata = {
@@ -42,9 +44,12 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
-          <Header />
-          {children}
-          <Footer />
+          <CartProvider>
+            <Header />
+            {children}
+            <Footer />
+            <CartDrawer />
+          </CartProvider>
         </ThemeProvider>
       </body>
     </html>

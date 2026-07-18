@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import { headerNav } from "../../_data/common/site-nav";
+import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
 import { SiteLogo } from "./site-logo";
@@ -111,14 +112,7 @@ export default function Header() {
               <MaterialIcon name="search" className="text-[22px]" />
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-10 text-primary hover:bg-primary/5 hover:text-primary lg:size-11"
-              aria-label="শপিং কার্ট"
-            >
-              <MaterialIcon name="shopping_cart" className="text-[22px] lg:text-[24px]" />
-            </Button>
+            <CartTrigger />
 
             <Button
               variant="ghost"
@@ -241,10 +235,10 @@ export default function Header() {
             </nav>
 
             <div className="mt-auto grid grid-cols-2 gap-2 pt-6">
-              <Button variant="outline" className="h-11 rounded-full text-sm">
-                <MaterialIcon name="shopping_cart" className="mr-1.5 text-[18px]" />
-                কার্ট
-              </Button>
+              <CartTrigger
+                variant="button"
+                onNavigate={() => setMobileOpen(false)}
+              />
               <Button variant="outline" className="h-11 rounded-full text-sm">
                 <MaterialIcon name="account_circle" className="mr-1.5 text-[18px]" />
                 অ্যাকাউন্ট

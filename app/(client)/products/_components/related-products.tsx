@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { useCart } from "../../_providers/cart-provider";
 
 type RelatedProduct = {
   id: string;
@@ -33,6 +34,8 @@ function ArrowButton({ dir }: { dir: "prev" | "next" }) {
 }
 
 export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
+  const { addItem } = useCart();
+
   if (!items.length) return null;
 
   return (
@@ -78,6 +81,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      addItem(p.slug, 1, { openDrawer: true });
                     }}
                   >
                     <MaterialIcon name="add_shopping_cart" className="text-primary" />
