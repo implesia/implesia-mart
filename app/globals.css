@@ -417,3 +417,15 @@ details > summary {
 .swiper-slide-active .hero-slide-active-zoom {
   transform: scale(1.08);
 }
+
+/* Keep fade slides filling the aspect-ratio stage (prevents 0-height / overflow on mobile) */
+.hero-swiper-stage {
+  overflow: hidden;
+}
+
+.hero-swiper,
+.hero-swiper .swiper-wrapper,
+.hero-swiper .swiper-slide {
+  height: 100%;
+  width: 100%;
+}
