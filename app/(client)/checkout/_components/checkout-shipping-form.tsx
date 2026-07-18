@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
 
+import { useCheckoutForm } from "./checkout-form-context";
+
 type CheckoutShippingFormProps = {
   className?: string;
 };
@@ -14,15 +16,31 @@ type CheckoutShippingFormProps = {
 const fieldClass =
   "h-12 rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 text-body-md shadow-none focus-visible:border-primary focus-visible:ring-primary/20";
 
-function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
+function FieldLabel({
+  htmlFor,
+  children,
+  required,
+}: {
+  htmlFor: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) {
   return (
     <label htmlFor={htmlFor} className="mb-2 block font-label-md text-on-surface">
       {children}
+      {required ? <span className="ml-0.5 text-red-500">*</span> : null}
     </label>
   );
 }
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="mt-1.5 text-label-sm text-red-500">{message}</p>;
+}
+
 export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
+  const { shipping, setShippingField, errors } = useCheckoutForm();
+
   return (
     <section
       className={cn(
@@ -42,62 +60,109 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
         </div>
       </div>
 
-      <form
-        className="grid grid-cols-1 gap-5 md:grid-cols-2"
-        onSubmit={(e) => e.preventDefault()}
-      >
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
-          <FieldLabel htmlFor="checkout-name">পুরো নাম</FieldLabel>
+          <FieldLabel htmlFor="checkout-name" required>
+            পুরো নাম
+          </FieldLabel>
           <Input
             id="checkout-name"
             name="name"
             autoComplete="name"
             placeholder="যেমন: রাকিব হাসান"
-            className={fieldClass}
+            value={shipping.name}
+            onChange={(e) => setShippingField("name", e.target.value)}
+            className={cn(fieldClass, errors.name && "border-red-400")}
+            aria-invalid={Boolean(errors.name)}
           />
+          <FieldError message={errors.name} />
         </div>
 
         <div>
-          <FieldLabel htmlFor="checkout-phone">মোবাইল নম্বর</FieldLabel>
+          <FieldLabel htmlFor="checkout-phone" required>
+            মোবাইল নম্বর
+          </FieldLabel>
           <Input
             id="checkout-phone"
             name="phone"
             type="tel"
+            inputMode="numeric"
             autoComplete="tel"
             placeholder="01XXXXXXXXX"
-            className={fieldClass}
+            value={shipping.phone}
+            onChange={(e) => setShippingField("phone", e.target.value)}
+            className={cn(fieldClass, errors.phone && "border-red-400")}
+            aria-invalid={Boolean(errors.phone)}
           />
+          <FieldError message={errors.phone} />
+        </div>
+
+        <div className="md:col-span-2">
+          <FieldLabel htmlFor="checkout-email">ইমেইল (ঐচ্ছিক)</FieldLabel>
+          <Input
+            id="checkout-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="example@gmail.com"
+            value={shipping.email}
+            onChange={(e) => setShippingField("email", e.target.value)}
+            className={cn(fieldClass, errors.email && "border-red-400")}
+            aria-invalid={Boolean(errors.email)}
+          />
+          <FieldError message={errors.email} />
         </div>
 
         <div>
-          <FieldLabel htmlFor="checkout-district">জেলা</FieldLabel>
+          <FieldLabel htmlFor="checkout-district" required>
+            জেলা
+          </FieldLabel>
           <Input
             id="checkout-district"
             name="district"
             placeholder="যেমন: ঢাকা"
-            className={fieldClass}
+            value={shipping.district}
+            onChange={(e) => setShippingField("district", e.target.value)}
+            className={cn(fieldClass, errors.district && "border-red-400")}
+            aria-invalid={Boolean(errors.district)}
           />
+          <FieldError message={errors.district} />
         </div>
 
         <div>
-          <FieldLabel htmlFor="checkout-area">এলাকা / থানা</FieldLabel>
+          <FieldLabel htmlFor="checkout-area" required>
+            এলাকা / থানা
+          </FieldLabel>
           <Input
             id="checkout-area"
             name="area"
             placeholder="যেমন: ধানমন্ডি"
-            className={fieldClass}
+            value={shipping.area}
+            onChange={(e) => setShippingField("area", e.target.value)}
+            className={cn(fieldClass, errors.area && "border-red-400")}
+            aria-invalid={Boolean(errors.area)}
           />
+          <FieldError message={errors.area} />
         </div>
 
         <div className="md:col-span-2">
-          <FieldLabel htmlFor="checkout-address">সম্পূর্ণ ঠিকানা</FieldLabel>
+          <FieldLabel htmlFor="checkout-address" required>
+            সম্পূর্ণ ঠিকানা
+          </FieldLabel>
           <Textarea
             id="checkout-address"
             name="address"
             rows={3}
             placeholder="বাড়ি/ফ্ল্যাট নং, রোড, ল্যান্ডমার্ক..."
-            className="min-h-[96px] resize-none rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 py-3 text-body-md shadow-none focus-visible:border-primary focus-visible:ring-primary/20"
+            value={shipping.address}
+            onChange={(e) => setShippingField("address", e.target.value)}
+            className={cn(
+              "min-h-[96px] resize-none rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 py-3 text-body-md shadow-none focus-visible:border-primary focus-visible:ring-primary/20",
+              errors.address && "border-red-400",
+            )}
+            aria-invalid={Boolean(errors.address)}
           />
+          <FieldError message={errors.address} />
         </div>
 
         <div className="md:col-span-2">
@@ -107,10 +172,12 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
             name="notes"
             rows={2}
             placeholder="ডেলিভারি সংক্রান্ত কোনো বিশেষ নির্দেশনা থাকলে লিখুন"
+            value={shipping.notes}
+            onChange={(e) => setShippingField("notes", e.target.value)}
             className="min-h-[72px] resize-none rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 py-3 text-body-md shadow-none focus-visible:border-primary focus-visible:ring-primary/20"
           />
         </div>
-      </form>
+      </div>
     </section>
   );
 }

@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +9,8 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 import { formatCartMoney, MAX_CART_QTY } from "../../_lib/cart";
 import { useCart } from "../../_providers/cart-provider";
 import { checkoutCopy } from "../../_data/checkout/checkout";
+
+import { CheckoutPlaceOrderButton } from "./checkout-place-order-button";
 
 const TRUST_ITEMS = [
   { icon: "payments", label: "ক্যাশ অন ডেলিভারি" },
@@ -119,10 +120,9 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
           </span>
         </div>
 
-        <Button className="hidden h-12 w-full rounded-full font-label-md shadow-lg transition-transform hover:-translate-y-0.5 active:scale-[0.98] lg:inline-flex">
-          <MaterialIcon name="shopping_bag" className="mr-2 text-[20px]" />
-          {checkoutCopy.placeOrder}
-        </Button>
+        <div className="hidden lg:block">
+          <CheckoutPlaceOrderButton />
+        </div>
 
         <div className="grid grid-cols-3 gap-2">
           {TRUST_ITEMS.map((item) => (

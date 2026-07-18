@@ -11,11 +11,16 @@ import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { useCart } from "../../_providers/cart-provider";
 
+import {
+  CheckoutFormProvider,
+  useCheckoutForm,
+} from "./checkout-form-context";
 import { CheckoutMobileNav } from "./checkout-mobile-nav";
 import { CheckoutOrderSummary } from "./checkout-order-summary";
 import { CheckoutPageHeader } from "./checkout-page-header";
 import { CheckoutPaymentMethod } from "./checkout-payment-method";
 import { CheckoutShippingForm } from "./checkout-shipping-form";
+import { CheckoutSuccess } from "./checkout-success";
 
 type CheckoutViewProps = {
   seedSlug?: string;
@@ -64,7 +69,37 @@ export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
     );
   }
 
-  if (items.length === 0) {
+  return (
+    <CheckoutFormProvider>
+      <CheckoutReadyView
+        productHref={productHref}
+        hasItems={items.length > 0}
+      />
+    </CheckoutFormProvider>
+  );
+}
+
+function CheckoutReadyView({
+  productHref,
+  hasItems,
+}: {
+  productHref: string;
+  hasItems: boolean;
+}) {
+  const { status } = useCheckoutForm();
+
+  if (status === "success") {
+    return (
+      <div className="min-h-[calc(100vh-5rem)] bg-surface-container-low pb-16">
+        <Container className="px-5 pt-24 sm:px-8 sm:pt-28">
+          <CheckoutPageHeader productHref="/products" />
+          <CheckoutSuccess />
+        </Container>
+      </div>
+    );
+  }
+
+  if (!hasItems) {
     return (
       <div className="min-h-[calc(100vh-5rem)] bg-surface-container-low pb-16">
         <Container className="px-5 pt-24 sm:px-8 sm:pt-28">
