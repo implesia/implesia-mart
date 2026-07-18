@@ -1,8 +1,10 @@
+import { getProductMedia, type ProductMediaId } from "./product-media";
+
 export type ProductBadge = "New" | "Best Seller" | "Limited";
 export type ProductStatus = "available" | "coming-soon";
 
 export type Product = {
-  id: string;
+  id: ProductMediaId;
   slug: string;
   title: string;
   subtitle: string;
@@ -17,132 +19,131 @@ export type Product = {
 };
 
 /**
- * Temporary on-brand placeholder image until real product photography is
- * uploaded. Swapping to a real photo later is a one-line change per product.
+ * Temporary on-brand placeholder (kept for non-product surfaces / avatars).
  */
 export function placeholderImage(text: string, bg = "2bc0b5", fg = "ffffff") {
   return `https://placehold.co/900x900/${bg}/${fg}.png?text=${encodeURIComponent(text)}&font=roboto`;
 }
 
+function withMedia(
+  id: ProductMediaId,
+  rest: Omit<Product, "id" | "imageSrc" | "imageAlt"> & { imageAlt: string },
+): Product {
+  const media = getProductMedia(id);
+  return {
+    id,
+    imageSrc: media.primary,
+    ...rest,
+  };
+}
+
 export const products: Product[] = [
-  // --- Available now ---
-  {
-    id: "sunset-lamp",
+  withMedia("sunset-lamp", {
     slug: "sunset-rainbow-projection-lamp",
     title: "সানসেট প্রজেকশন ল্যাম্প",
     subtitle: "রেইনবো লাইট | রুম ডেকোর গ্যাজেট",
     price: 999,
     compareAtPrice: 1499,
-    imageSrc: placeholderImage("Sunset Lamp"),
     imageAlt: "সানসেট প্রজেকশন ল্যাম্প",
     badge: "Best Seller",
     status: "available",
     categoryId: "gadgets",
-  },
-  {
-    id: "ai-tracking-holder",
+  }),
+  withMedia("ai-tracking-holder", {
     slug: "ai-face-tracking-phone-holder",
     title: "এআই ফেস ট্র্যাকিং ফোন হোল্ডার",
     subtitle: "সেলফি স্ট্যান্ড | স্মার্ট ট্রাইপড",
     price: 1999,
     compareAtPrice: 2499,
-    imageSrc: "/images/products/selfie-stand/stand-1.jpg",
     imageAlt: "এআই ফেস ট্র্যাকিং সেলফি স্ট্যান্ড",
     badge: "New",
     status: "available",
     categoryId: "gadgets",
-  },
-
-  // --- Coming soon ---
-  {
-    id: "tws-earbuds",
+  }),
+  withMedia("tws-earbuds", {
     slug: "tws-wireless-earbuds",
     title: "TWS ওয়্যারলেস ইয়ারবাড",
     subtitle: "প্রিমিয়াম সাউন্ড | লং ব্যাটারি লাইফ",
     price: 1299,
-    imageSrc: placeholderImage("TWS Earbuds", "4c5e7d"),
+    compareAtPrice: 1799,
     imageAlt: "TWS ওয়্যারলেস ইয়ারবাড",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
-  {
-    id: "neckband",
+  }),
+  withMedia("neckband", {
     slug: "bluetooth-neckband-earphone",
     title: "ব্লুটুথ নেকব্যান্ড ইয়ারফোন",
     subtitle: "স্পোর্টস ফ্রেন্ডলি | ক্লিয়ার কলিং",
     price: 799,
-    imageSrc: placeholderImage("Neckband", "4c5e7d"),
+    compareAtPrice: 1199,
     imageAlt: "ব্লুটুথ নেকব্যান্ড ইয়ারফোন",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
-  {
-    id: "car-holder",
+  }),
+  withMedia("car-holder", {
     slug: "magnetic-car-phone-holder",
     title: "ম্যাগনেটিক কার ফোন হোল্ডার",
     subtitle: "ম্যাগনেটিক গ্রিপ | ৩৬০° রোটেশন",
     price: 499,
-    imageSrc: placeholderImage("Car Holder", "4c5e7d"),
+    compareAtPrice: 799,
     imageAlt: "ম্যাগনেটিক কার ফোন হোল্ডার",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
-  {
-    id: "charging-cable",
+  }),
+  withMedia("charging-cable", {
     slug: "fast-charging-3in1-cable",
     title: "ফাস্ট চার্জিং ৩-ইন-১ ক্যাবল",
     subtitle: "ফাস্ট চার্জিং | মাল্টি-ডিভাইস সাপোর্ট",
     price: 399,
-    imageSrc: placeholderImage("3-in-1 Cable", "4c5e7d"),
+    compareAtPrice: 699,
     imageAlt: "ফাস্ট চার্জিং ৩-ইন-১ ক্যাবল",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
-  {
-    id: "power-bank",
+  }),
+  withMedia("power-bank", {
     slug: "slim-power-bank-10000mah",
     title: "স্লিম পাওয়ার ব্যাংক ১০,০০০mAh",
     subtitle: "স্লিম ডিজাইন | ফাস্ট চার্জিং সাপোর্ট",
     price: 1299,
-    imageSrc: placeholderImage("Power Bank", "4c5e7d"),
+    compareAtPrice: 1799,
     imageAlt: "স্লিম পাওয়ার ব্যাংক ১০,০০০mAh",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
-  {
-    id: "mini-printer",
+  }),
+  withMedia("mini-printer", {
     slug: "mini-thermal-printer",
     title: "মিনি থার্মাল প্রিন্টার",
     subtitle: "ইঙ্কলেস প্রিন্টিং | নোট ও স্টাডির জন্য পারফেক্ট",
     price: 2999,
-    imageSrc: placeholderImage("Mini Printer", "4c5e7d"),
+    compareAtPrice: 3999,
     imageAlt: "মিনি থার্মাল প্রিন্টার",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
-  {
-    id: "smart-ring",
+  }),
+  withMedia("smart-ring", {
     slug: "smart-fitness-ring",
     title: "স্মার্ট রিং (ফিটনেস ট্র্যাকার)",
     subtitle: "হার্ট রেট ও স্লিপ ট্র্যাকিং | মিনিমাল ডিজাইন",
     price: 2299,
-    imageSrc: placeholderImage("Smart Ring", "4c5e7d"),
+    compareAtPrice: 2999,
     imageAlt: "স্মার্ট রিং",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
-  {
-    id: "galaxy-humidifier",
+  }),
+  withMedia("galaxy-humidifier", {
     slug: "galaxy-projector-humidifier",
     title: "গ্যালাক্সি প্রজেক্টর হিউমিডিফায়ার",
     subtitle: "নাইট লাইট + এয়ার হিউমিডিফায়ার, ২-ইন-১",
     price: 1499,
-    imageSrc: placeholderImage("Galaxy Humidifier", "4c5e7d"),
+    compareAtPrice: 1999,
     imageAlt: "গ্যালাক্সি প্রজেক্টর হিউমিডিফায়ার",
     status: "coming-soon",
     categoryId: "gadgets",
-  },
+  }),
 ];
+
+export const PRICE_FILTER_MIN = 0;
+export const PRICE_FILTER_MAX = 5000;
 
 export const productFilters = {
   categories: [{ id: "gadgets", label: "ট্রেন্ডিং গ্যাজেট" }],

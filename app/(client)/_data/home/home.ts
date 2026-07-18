@@ -122,23 +122,23 @@ export const organicHighlight = {
   ],
   images: [
     {
-      src: placeholderImage("Quality Checked", "4c5e7d"),
-      alt: "কোয়ালিটি চেক করা প্রোডাক্ট",
+      src: "/images/products/lamp/lamp-5.jpg",
+      alt: "কোয়ালিটি চেক করা সানসেট ল্যাম্প",
       className: "h-64",
     },
     {
-      src: placeholderImage("Cash On Delivery", "0d5c56"),
-      alt: "ক্যাশ অন ডেলিভারি",
+      src: "/images/products/selfie-stand/stand-1.jpg",
+      alt: "ক্যাশ অন ডেলিভারিতে সেলফি স্ট্যান্ড",
       className: "h-80 -mt-14",
     },
     {
-      src: placeholderImage("Fast Delivery", "2bc0b5"),
-      alt: "সারাদেশে দ্রুত ডেলিভারি",
+      src: "/images/products/earbuts/earbuts.jpg",
+      alt: "ট্রেন্ডিং গ্যাজেট — TWS ইয়ারবাড",
       className: "h-80",
     },
     {
-      src: placeholderImage("Easy Return", "4c5e7d"),
-      alt: "৩ দিনের ইজি রিটার্ন",
+      src: "/images/products/power-bank/power-bank.jpg",
+      alt: "দ্রুত ডেলিভারিতে পাওয়ার ব্যাংক",
       className: "h-64",
     },
   ],

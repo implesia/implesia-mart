@@ -20,29 +20,9 @@ function Stars({ value }: { value: number }) {
 }
 
 export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
-  if (product.status === "coming-soon") {
-    return (
-      <section className="mt-xl rounded-2xl border border-outline-variant/30 bg-surface-container-low p-8 md:p-12">
-        <h3 className="mb-4 font-headline-sm text-on-background">{product.details.heading}</h3>
-        <p className="mb-6 text-body-lg text-on-surface-variant">{product.details.body}</p>
-        <ul className="mb-8 space-y-3">
-          {product.details.bullets.map((b) => (
-            <li key={b} className="flex items-center gap-3 text-body-md text-on-surface">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-              {b}
-            </li>
-          ))}
-        </ul>
-        <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 font-label-sm text-primary">
-          <MaterialIcon name="hourglass_top" className="text-[18px]" />
-          বিস্তারিত স্পেসিফিকেশন ও রিভিউ শীঘ্রই যুক্ত হবে
-        </p>
-      </section>
-    );
-  }
-
   const materialDetails = product.materialDetails ?? [];
-  const reviews = product.reviews ?? { average: 0, total: 0, breakdown: [], items: [] };
+  const reviews = product.reviews;
+  const hasReviews = Boolean(reviews && reviews.items.length > 0);
 
   return (
     <section className="mt-xl">
@@ -126,74 +106,91 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
         </TabsContent>
 
         <TabsContent value="reviews" className="pt-10">
-          <section className="pb-10">
-            <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div>
-                <h2 className="mb-2 font-headline-md">কাস্টমার ফিডব্যাক</h2>
-                <p className="text-on-surface-variant">
-                  আমাদের কাস্টমারদের সত্যিকারের অভিজ্ঞতা।
-                </p>
+          {!hasReviews || !reviews ? (
+            <section className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low p-8 md:p-12">
+              <div className="mb-3 inline-flex items-center gap-2 text-primary">
+                <MaterialIcon name="rate_review" />
+                <span className="font-label-md tracking-widest uppercase">রিভিউ</span>
               </div>
-              <Button
-                variant="outline"
-                className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-              >
-                রিভিউ লিখুন
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
-              <div className="h-fit rounded-2xl border border-outline-variant/30 bg-card p-8">
-                <div className="mb-8 text-center">
-                  <span className="text-[64px] font-bold leading-none text-on-background">
-                    {reviews.average.toFixed(1)}
-                  </span>
-                  <div className="my-2 flex justify-center gap-1 text-tertiary">
-                    <Stars value={reviews.average} />
-                  </div>
-                  <p className="text-label-sm text-outline">
-                    {reviews.total} টি ভেরিফাইড রিভিউয়ের ভিত্তিতে
+              <h3 className="mb-3 font-headline-sm text-on-background">
+                এখনও কোনো রিভিউ নেই
+              </h3>
+              <p className="max-w-xl text-body-md text-on-surface-variant">
+                {product.status === "coming-soon"
+                  ? "প্রোডাক্ট লঞ্চ হওয়ার পর এখানে ভেরিফাইড কাস্টমার রিভিউ যুক্ত হবে।"
+                  : "প্রথম রিভিউটি আপনার হতে পারে — অর্ডার করার পর আপনার অভিজ্ঞতা শেয়ার করুন।"}
+              </p>
+            </section>
+          ) : (
+            <section className="pb-10">
+              <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="mb-2 font-headline-md">কাস্টমার ফিডব্যাক</h2>
+                  <p className="text-on-surface-variant">
+                    আমাদের কাস্টমারদের সত্যিকারের অভিজ্ঞতা।
                   </p>
                 </div>
-
-                <div className="space-y-4">
-                  {reviews.breakdown
-                    .filter((b) => b.stars >= 3)
-                    .map((b) => (
-                      <div key={b.stars} className="flex items-center gap-4">
-                        <span className="w-4 text-label-sm">{b.stars}</span>
-                        <div className="flex-1">
-                          <Progress value={b.percent} />
-                        </div>
-                        <span className="w-10 text-label-sm text-outline">{b.percent}%</span>
-                      </div>
-                    ))}
-                </div>
+                <Button
+                  variant="outline"
+                  className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                >
+                  রিভিউ লিখুন
+                </Button>
               </div>
 
-              <div className="space-y-8 lg:col-span-2">
-                {reviews.items.map((r) => (
-                  <div key={r.id} className="border-b border-outline-variant/30 p-8">
-                    <div className="mb-4 flex items-start justify-between gap-6">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-highest font-bold text-primary">
-                          {r.initials}
-                        </div>
-                        <div>
-                          <h5 className="font-label-md text-on-surface">{r.name}</h5>
-                          <p className="text-label-sm text-outline">{r.meta}</p>
-                        </div>
-                      </div>
-                      <Stars value={r.rating} />
+              <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+                <div className="h-fit rounded-2xl border border-outline-variant/30 bg-card p-8">
+                  <div className="mb-8 text-center">
+                    <span className="text-[64px] font-bold leading-none text-on-background">
+                      {reviews.average.toFixed(1)}
+                    </span>
+                    <div className="my-2 flex justify-center gap-1 text-tertiary">
+                      <Stars value={reviews.average} />
                     </div>
-                    <p className="text-body-md text-on-surface-variant italic">
-                      &ldquo;{r.quote}&rdquo;
+                    <p className="text-label-sm text-outline">
+                      {reviews.total} টি ভেরিফাইড রিভিউয়ের ভিত্তিতে
                     </p>
                   </div>
-                ))}
+
+                  <div className="space-y-4">
+                    {reviews.breakdown
+                      .filter((b) => b.stars >= 3)
+                      .map((b) => (
+                        <div key={b.stars} className="flex items-center gap-4">
+                          <span className="w-4 text-label-sm">{b.stars}</span>
+                          <div className="flex-1">
+                            <Progress value={b.percent} />
+                          </div>
+                          <span className="w-10 text-label-sm text-outline">{b.percent}%</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="space-y-8 lg:col-span-2">
+                  {reviews.items.map((r) => (
+                    <div key={r.id} className="border-b border-outline-variant/30 p-8">
+                      <div className="mb-4 flex items-start justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-highest font-bold text-primary">
+                            {r.initials}
+                          </div>
+                          <div>
+                            <h5 className="font-label-md text-on-surface">{r.name}</h5>
+                            <p className="text-label-sm text-outline">{r.meta}</p>
+                          </div>
+                        </div>
+                        <Stars value={r.rating} />
+                      </div>
+                      <p className="text-body-md text-on-surface-variant italic">
+                        &ldquo;{r.quote}&rdquo;
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
         </TabsContent>
       </Tabs>
     </section>

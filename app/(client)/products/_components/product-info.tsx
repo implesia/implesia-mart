@@ -28,12 +28,14 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
 
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
-      ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
+      ? Math.round(
+          ((product.compareAtPrice - product.price) / product.compareAtPrice) * 100,
+        )
       : null;
 
   return (
     <div id="buy-box" className="flex flex-col">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-3">
         <span className="font-label-md tracking-[0.2em] text-primary uppercase">
           {product.tagline}
         </span>
@@ -53,15 +55,78 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         {product.description}
       </p>
 
+      <div className="mb-6 flex flex-wrap items-baseline gap-3">
+        <span className="font-headline-md text-on-background">
+          {formatPrice(product.price)}
+        </span>
+        {product.compareAtPrice ? (
+          <>
+            <span className="text-lg text-muted-foreground line-through">
+              {formatPrice(product.compareAtPrice)}
+            </span>
+            {discountPct ? (
+              <span className="text-sm font-bold text-red-500">-{discountPct}%</span>
+            ) : null}
+          </>
+        ) : null}
+        <span className="rounded-full bg-surface-container px-3 py-1 font-label-md text-outline">
+          {isComingSoon ? "প্রত্যাশিত মূল্য" : product.stockLabel}
+        </span>
+      </div>
+
+      {product.keyFeatures?.length ? (
+        <ul className="mb-6 space-y-3">
+          {product.keyFeatures.map((feature) => (
+            <li key={feature} className="flex items-start gap-3 text-body-md text-on-surface">
+              <MaterialIcon
+                name="check_circle"
+                filled
+                className="mt-0.5 shrink-0 text-[18px] text-primary"
+              />
+              {feature}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mb-6 flex flex-wrap gap-x-6 gap-y-3 rounded-2xl bg-surface-container-low p-4">
+        {TRUST_BADGES.map((badge) => (
+          <div
+            key={badge.label}
+            className="flex items-center gap-2 text-sm text-on-surface-variant"
+          >
+            <MaterialIcon name={badge.icon} className="text-[20px] text-primary" />
+            {badge.label}
+          </div>
+        ))}
+      </div>
+
+      {product.materialDetails?.length ? (
+        <div className="mb-8">
+          <label className="mb-4 block font-label-md text-on-background">স্পেসিফিকেশন</label>
+          <div className="grid grid-cols-2 gap-4">
+            {product.materialDetails.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4"
+              >
+                <span className="mb-1 block text-label-sm text-outline">{item.label}</span>
+                <span className="font-label-md text-on-surface">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {isComingSoon ? (
-        <div className="mb-6 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-6">
+        <div className="mb-8 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-6">
           <div className="mb-3 flex items-center gap-2 text-primary">
             <MaterialIcon name="hourglass_top" />
             <span className="font-label-md tracking-widest uppercase">কামিং সুন</span>
           </div>
           <p className="mb-5 text-body-md text-on-surface-variant">
-            এই প্রোডাক্টটি শীঘ্রই আমাদের স্টকে যুক্ত হচ্ছে। আগে থেকে জানতে বা অর্ডার বুক করে রাখতে
-            চাইলে আমাদের সাথে যোগাযোগ করুন।
+            এই প্রোডাক্টটি শীঘ্রই স্টকে আসছে। আগে থেকে জানতে বা প্রি-বুকিংয়ে আগ্রহী হলে আমাদের সাথে
+            যোগাযোগ করুন।
           </p>
           <Link
             href="/contact-us"
@@ -76,66 +141,6 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </div>
       ) : (
         <>
-          <div className="mb-6 flex items-baseline gap-3">
-            <span className="font-headline-md text-on-background">
-              {formatPrice(product.price)}
-            </span>
-            {product.compareAtPrice ? (
-              <>
-                <span className="text-lg text-muted-foreground line-through">
-                  {formatPrice(product.compareAtPrice)}
-                </span>
-                {discountPct ? (
-                  <span className="text-sm font-bold text-red-500">-{discountPct}%</span>
-                ) : null}
-              </>
-            ) : null}
-            <span className="rounded-full bg-surface-container px-3 py-1 font-label-md text-outline">
-              {product.stockLabel}
-            </span>
-          </div>
-
-          {product.keyFeatures?.length ? (
-            <ul className="mb-6 space-y-3">
-              {product.keyFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-3 text-body-md text-on-surface">
-                  <MaterialIcon
-                    name="check_circle"
-                    filled
-                    className="mt-0.5 shrink-0 text-[18px] text-primary"
-                  />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <div className="mb-6 flex flex-wrap gap-x-6 gap-y-3 rounded-2xl bg-surface-container-low p-4">
-            {TRUST_BADGES.map((badge) => (
-              <div key={badge.label} className="flex items-center gap-2 text-sm text-on-surface-variant">
-                <MaterialIcon name={badge.icon} className="text-[20px] text-primary" />
-                {badge.label}
-              </div>
-            ))}
-          </div>
-
-          {product.materialDetails?.length ? (
-            <div className="mb-8">
-              <label className="mb-4 block font-label-md text-on-background">স্পেসিফিকেশন</label>
-              <div className="grid grid-cols-2 gap-4">
-                {product.materialDetails.map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4"
-                  >
-                    <span className="mb-1 block text-label-sm text-outline">{item.label}</span>
-                    <span className="font-label-md text-on-surface">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
           <div className="mb-6 flex items-center gap-4">
             <label className="font-label-md text-on-background">পরিমাণ</label>
             <div className="inline-flex items-center rounded-full border border-outline-variant/40">
@@ -176,22 +181,22 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
               অর্ডার করুন
             </Link>
           </div>
-
-          <Separator className="my-6 bg-outline-variant/30" />
-
-          <div className="space-y-4">
-            {product.delivery.map((d) => (
-              <div key={d.title} className="flex items-start gap-4">
-                <MaterialIcon name={d.icon} className="text-primary" />
-                <div>
-                  <p className="font-label-md text-on-surface">{d.title}</p>
-                  <p className="text-label-sm text-outline">{d.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
         </>
       )}
+
+      <Separator className="my-6 bg-outline-variant/30" />
+
+      <div className="space-y-4">
+        {product.delivery.map((d) => (
+          <div key={d.title} className="flex items-start gap-4">
+            <MaterialIcon name={d.icon} className="text-primary" />
+            <div>
+              <p className="font-label-md text-on-surface">{d.title}</p>
+              <p className="text-label-sm text-outline">{d.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

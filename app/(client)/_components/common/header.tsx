@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +11,9 @@ import { cn } from "@/lib/utils";
 import { headerNav } from "../../_data/common/site-nav";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
+import { SiteLogo } from "./site-logo";
 import { ThemeToggle } from "./theme-toggle";
 
-const LOGO_SRC = "/images/common/logo.png";
 const SITE_NAME = "Implesia Mart";
 
 function useScrollLock(locked: boolean) {
@@ -31,8 +30,22 @@ function useScrollLock(locked: boolean) {
 export default function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuId = useId();
 
   useScrollLock(mobileOpen);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileOpen]);
 
   const activeHref = useMemo(() => {
     if (!pathname) return "/";
@@ -42,35 +55,27 @@ export default function Header() {
 
   const linkClass = (href: string) =>
     cn(
-      "inline-flex items-center whitespace-nowrap text-sm font-medium tracking-tight transition-all duration-300 xl:text-[0.9375rem]",
+      "inline-flex items-center whitespace-nowrap text-[13px] font-medium tracking-tight transition-colors duration-200 xl:text-sm",
       href === activeHref
-        ? "border-b-2 border-primary pb-1 text-primary"
+        ? "border-b-2 border-primary pb-0.5 text-primary"
         : "text-neutral-600 hover:text-primary dark:text-neutral-400 dark:hover:text-primary",
     );
 
   return (
     <header>
-      <nav className="fixed top-0 z-50 w-full border-b border-neutral-200/50 bg-white/80 shadow-sm backdrop-blur-xl transition-all duration-300 dark:border-neutral-800/50 dark:bg-slate-900/80">
-        <Container className="grid h-20 w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-x-4">
-          <div className="flex min-w-0 items-center justify-self-start">
-            <Link
-              href="/"
-              className="relative block h-9 w-38 shrink-0 transition-opacity hover:opacity-90 sm:h-10 sm:w-42 lg:w-44"
-              aria-label={SITE_NAME}
-            >
-              <Image
-                src={LOGO_SRC}
-                alt=""
-                fill
-                priority
-                className="object-contain object-left"
-                sizes="(max-width: 768px) 140px, 176px"
-              />
-            </Link>
+      <nav
+        className="fixed top-0 z-50 w-full border-b border-neutral-200/60 bg-white/85 shadow-sm backdrop-blur-xl dark:border-neutral-800/60 dark:bg-slate-900/85"
+        aria-label="প্রধান নেভিগেশন"
+      >
+        <Container className="flex h-16 w-full min-w-0 items-center justify-between gap-2 px-4 sm:h-20 sm:gap-3 sm:px-6 lg:gap-4 lg:px-8">
+          {/* Logo — light navy mark / white mark in dark mode */}
+          <div className="flex min-w-0 shrink-0 items-center">
+            <SiteLogo priority onClick={() => setMobileOpen(false)} />
           </div>
 
-          <div className="hidden min-w-0 justify-self-center md:flex">
-            <div className="flex shrink-0 items-center gap-3 lg:gap-5 xl:gap-7">
+          {/* Desktop nav — lg+ only (avoids crush on tablets) */}
+          <div className="hidden min-w-0 flex-1 items-center justify-center px-2 lg:flex">
+            <div className="flex max-w-full items-center justify-center gap-4 overflow-x-auto xl:gap-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {headerNav.map((item) => (
                 <Link
                   key={item.href}
@@ -83,134 +88,171 @@ export default function Header() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center justify-self-end gap-2 sm:gap-3 lg:gap-5">
-            <div className="relative hidden min-w-0 shrink lg:block">
+          {/* Actions */}
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5 lg:gap-2">
+            <div className="relative hidden min-w-0 xl:block">
               <MaterialIcon
                 name="search"
                 className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-outline"
               />
               <Input
-                placeholder="Search curated collections..."
-                className="h-10 w-52 rounded-full border-0 bg-surface-container-low py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 xl:w-64 xl:text-base"
+                placeholder="সার্চ করুন..."
+                className="h-10 w-44 rounded-full border-0 bg-surface-container-low py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 2xl:w-56"
+                aria-label="প্রোডাক্ট সার্চ"
               />
             </div>
 
             <Button
               variant="ghost"
-              size="icon-lg"
-              className="hidden shrink-0 scale-95 text-primary hover:opacity-80 active:scale-90 md:inline-flex [&_.material-symbols-outlined]:text-[28px]"
-              aria-label="Shopping cart"
+              size="icon"
+              className="hidden size-10 text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex xl:hidden"
+              aria-label="সার্চ"
             >
-              <MaterialIcon name="shopping_cart" />
+              <MaterialIcon name="search" className="text-[22px]" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              className="hidden shrink-0 scale-95 text-primary hover:opacity-80 active:scale-90 md:inline-flex [&_.material-symbols-outlined]:text-[28px]"
-              aria-label="Account"
-            >
-              <MaterialIcon name="account_circle" />
-            </Button>
-            <ThemeToggle className="hidden shrink-0 scale-95 text-primary hover:opacity-80 active:scale-90 md:inline-flex [&_.material-symbols-outlined]:text-[26px]" />
 
             <Button
               variant="ghost"
-              size="icon-lg"
-              className="shrink-0 scale-95 text-primary hover:opacity-80 active:scale-90 md:hidden [&_.material-symbols-outlined]:text-[28px]"
-              aria-label="Open menu"
-              onClick={() => setMobileOpen(true)}
+              size="icon"
+              className="size-10 text-primary hover:bg-primary/5 hover:text-primary lg:size-11"
+              aria-label="শপিং কার্ট"
             >
-              <MaterialIcon name="menu" />
+              <MaterialIcon name="shopping_cart" className="text-[22px] lg:text-[24px]" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden size-11 text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex"
+              aria-label="অ্যাকাউন্ট"
+            >
+              <MaterialIcon name="account_circle" className="text-[24px]" />
+            </Button>
+
+            <ThemeToggle className="hidden size-11 text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex [&_.material-symbols-outlined]:text-[22px]" />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-10 text-primary hover:bg-primary/5 hover:text-primary lg:hidden"
+              aria-label={mobileOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
+              aria-expanded={mobileOpen}
+              aria-controls={menuId}
+              onClick={() => setMobileOpen((open) => !open)}
+            >
+              <MaterialIcon
+                name={mobileOpen ? "close" : "menu"}
+                className="text-[24px]"
+              />
             </Button>
           </div>
         </Container>
       </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile / tablet drawer */}
       <div
+        id={menuId}
         className={cn(
-          "fixed inset-0 z-60 md:hidden",
+          "fixed inset-0 z-60 lg:hidden",
           mobileOpen ? "pointer-events-auto" : "pointer-events-none",
         )}
         aria-hidden={!mobileOpen}
       >
-        <div
+        <button
+          type="button"
           className={cn(
-            "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity",
+            "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300",
             mobileOpen ? "opacity-100" : "opacity-0",
           )}
+          aria-label="মেনু বন্ধ করুন"
           onClick={() => setMobileOpen(false)}
         />
+
         <aside
           className={cn(
-            "absolute right-0 top-0 h-full w-[min(92vw,420px)] bg-white shadow-2xl transition-transform dark:bg-slate-950",
+            "absolute top-0 right-0 flex h-full w-[min(100vw-2.5rem,22rem)] max-w-full flex-col bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-slate-950",
+            "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
             mobileOpen ? "translate-x-0" : "translate-x-full",
           )}
+          role="dialog"
+          aria-modal="true"
+          aria-label="মোবাইল মেনু"
         >
-          <div className="flex items-center justify-between border-b border-neutral-200/60 px-5 py-4 dark:border-neutral-800/60">
-            <span className="font-label-md tracking-widest text-outline uppercase">
-              Menu
-            </span>
+          <div className="flex items-center justify-between gap-3 border-b border-neutral-200/60 px-4 py-3.5 sm:px-5 dark:border-neutral-800/60">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-outline uppercase">
+                মেনু
+              </p>
+              <p className="truncate text-sm font-semibold text-on-surface">
+                {SITE_NAME}
+              </p>
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              className="[&_.material-symbols-outlined]:text-[26px]"
-              aria-label="Close menu"
+              className="size-10 shrink-0"
+              aria-label="মেনু বন্ধ করুন"
               onClick={() => setMobileOpen(false)}
             >
-              <MaterialIcon name="close" />
+              <MaterialIcon name="close" className="text-[24px]" />
             </Button>
           </div>
 
-          <div className="px-5 py-4">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-5">
             <div className="relative mb-4">
               <MaterialIcon
                 name="search"
                 className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-outline"
               />
               <Input
-                placeholder="Search curated collections..."
-                className="h-11 rounded-full border-0 bg-surface-container-low py-2 pr-4 pl-10 font-label-md shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                placeholder="প্রোডাক্ট সার্চ করুন..."
+                className="h-11 w-full rounded-full border-0 bg-surface-container-low py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                aria-label="প্রোডাক্ট সার্চ"
               />
             </div>
 
-            <div className="space-y-1">
-              {headerNav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "block rounded-xl px-3 py-2 font-medium tracking-tight",
-                    item.href === activeHref
-                      ? "bg-surface-container-low text-primary"
-                      : "text-on-surface",
-                  )}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <nav className="space-y-1" aria-label="মোবাইল লিঙ্ক">
+              {headerNav.map((item) => {
+                const active = item.href === activeHref;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center justify-between rounded-xl px-3 py-3 text-[0.95rem] font-medium tracking-tight transition-colors",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-on-surface hover:bg-surface-container-low",
+                    )}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span>{item.label}</span>
+                    {active ? (
+                      <MaterialIcon name="check" className="text-[18px]" />
+                    ) : (
+                      <MaterialIcon
+                        name="chevron_right"
+                        className="text-[20px] text-outline"
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-6">
+              <Button variant="outline" className="h-11 rounded-full text-sm">
+                <MaterialIcon name="shopping_cart" className="mr-1.5 text-[18px]" />
+                কার্ট
+              </Button>
+              <Button variant="outline" className="h-11 rounded-full text-sm">
+                <MaterialIcon name="account_circle" className="mr-1.5 text-[18px]" />
+                অ্যাকাউন্ট
+              </Button>
             </div>
 
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="w-full rounded-full">
-                <MaterialIcon
-                  name="shopping_cart"
-                  className="mr-2 text-[20px]"
-                />
-                Cart
-              </Button>
-              <Button variant="outline" className="w-full rounded-full">
-                <MaterialIcon
-                  name="account_circle"
-                  className="mr-2 text-[20px]"
-                />
-                Account
-              </Button>
-            </div>
-
-            <div className="mt-3">
-              <ThemeToggle className="w-full justify-center rounded-full border border-input bg-background text-foreground hover:bg-muted [&_.material-symbols-outlined]:text-[22px]" />
+            <div className="mt-2 pb-2">
+              <ThemeToggle className="h-11 w-full justify-center rounded-full border border-input bg-background text-foreground hover:bg-muted [&_.material-symbols-outlined]:text-[20px]" />
             </div>
           </div>
         </aside>

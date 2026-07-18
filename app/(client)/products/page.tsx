@@ -1,16 +1,15 @@
+import { Container } from "../_components/common/container";
 import { products } from "../_data/products/products";
-import { ProductsFilters } from "./_components/products-filters";
-import { ProductsGrid } from "./_components/products-grid";
-import { ProductsToolbar } from "./_components/products-toolbar";
+import { ProductsCatalog } from "./_components/products-catalog";
 
 export default function ProductsPage() {
   return (
-    <main className="mx-auto flex max-w-7xl pt-20">
-      <ProductsFilters />
-      <section className="min-w-0 flex-1 px-8 py-12">
-        <ProductsToolbar />
-        <ProductsGrid products={products} />
-      </section>
+    <main className="w-full pt-16 sm:pt-20">
+      <Container className="px-4 sm:px-6 lg:px-8">
+        <div className="w-full py-8 lg:py-10">
+          <ProductsCatalog products={products} />
+        </div>
+      </Container>
     </main>
   );
 }

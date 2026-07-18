@@ -10,7 +10,7 @@ import { TestimonialsSection } from "./(client)/_components/home/testimonials-se
 export default function HomePage() {
   return (
     <>
-      <main className="pt-20">
+      <main className="pt-16 sm:pt-20">
         <HeroSection />
         <BestSellingSection />
         <FlashSaleSection />
