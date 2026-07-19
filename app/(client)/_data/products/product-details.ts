@@ -108,7 +108,7 @@ function buildRelatedFromProducts(excludeSlug: string) {
       title: p.title,
       priceLabel:
         p.status === "coming-soon"
-          ? "কামিং সুন"
+          ? "Out of Stock"
           : `৳${p.price.toLocaleString("en-US")}`,
       imageSrc: p.imageSrc,
       imageAlt: p.imageAlt,

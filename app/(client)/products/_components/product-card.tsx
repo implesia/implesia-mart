@@ -78,7 +78,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {isComingSoon ? (
           <Badge className="absolute top-2 left-2 rounded-full bg-on-surface/80 px-2 py-0.5 text-[9px] tracking-wider text-white uppercase sm:px-2.5">
-            কামিং সুন
+            Out of Stock
           </Badge>
         ) : product.badge ? (
           <Badge

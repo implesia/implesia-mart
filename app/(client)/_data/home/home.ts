@@ -91,7 +91,7 @@ export const bestSellingProducts: BestSellingProduct[] = products.map((p) => ({
   slug: p.slug,
   category: "ট্রেন্ডিং গ্যাজেট",
   name: p.title,
-  price: p.status === "coming-soon" ? "কামিং সুন" : `৳${p.price.toLocaleString("en-US")}`,
+  price: p.status === "coming-soon" ? "Out of Stock" : `৳${p.price.toLocaleString("en-US")}`,
   imageSrc: p.imageSrc,
   imageAlt: p.imageAlt,
   favorite: p.badge === "Best Seller",
