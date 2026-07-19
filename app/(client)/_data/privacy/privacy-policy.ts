@@ -147,8 +147,8 @@ export const privacyPolicyCopy = {
       title: "Still Have Questions?",
       body:
         "Our privacy team is here to assist you with any inquiries regarding your data.",
-      email: "privacy@implesiamart.com",
-      phone: "+880 1XXX-XXXXXX",
+      email: "implesiaitltd@gmail.com",
+      phone: "+880 1516-527932",
       cta: "CONTACT US",
     },
   },

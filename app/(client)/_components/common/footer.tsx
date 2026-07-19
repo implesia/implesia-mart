@@ -1,20 +1,27 @@
 import Link from "next/link";
 
-import { MaterialIcon } from "./material-icon";
+import { contactCopy } from "../../_data/contact/contact";
 import { navLinks, SITE_NAME } from "../../_data/home/home";
+import { FacebookIcon, LinkedinIcon } from "./brand-icons";
+import { MaterialIcon } from "./material-icon";
 
 const footerCollections = navLinks.map((l) => ({ href: l.href, label: l.label }));
 
 const companyLinks = [
-  { href: "#story", label: "Our Story" },
-  { href: "#sustainability", label: "Sustainability" },
-  { href: "#contact", label: "Contact Us" },
+  { href: "/about-us", label: "Our Story" },
+  { href: "/sustainability", label: "Sustainability" },
+  { href: "/contact-us", label: "Contact Us" },
 ];
 
 const supportLinks = [
-  { href: "#shipping", label: "Shipping & Returns" },
-  { href: "#privacy", label: "Privacy Policy" },
+  { href: "/shipping-returns", label: "Shipping & Returns" },
+  { href: "/privacy-policy", label: "Privacy Policy" },
 ];
+
+const socialChannels = contactCopy.direct.channels.filter(
+  (c) => c.icon === "call" || c.icon === "mail",
+);
+const socialLinks = contactCopy.direct.social;
 
 export default function Footer() {
   return (
@@ -31,27 +38,34 @@ export default function Footer() {
             সারাদেশে ট্রেন্ডিং ও ইউনিক গ্যাজেট, ক্যাশ অন ডেলিভারিতে নিশ্চিন্তে অর্ডার করুন।
           </p>
           <div className="flex gap-4">
-            <Link
-              href="#"
+            {socialChannels.map((c) => (
+              <a
+                key={c.icon}
+                href={c.href}
+                className="text-neutral-400 transition-colors hover:text-primary"
+                aria-label={c.title}
+              >
+                <MaterialIcon name={c.icon} />
+              </a>
+            ))}
+            <a
+              href={socialLinks[0].href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-neutral-400 transition-colors hover:text-primary"
-              aria-label="Web"
+              aria-label={socialLinks[0].label}
             >
-              <MaterialIcon name="public" />
-            </Link>
-            <Link
-              href="#"
+              <FacebookIcon className="size-[22px]" />
+            </a>
+            <a
+              href={socialLinks[1].href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-neutral-400 transition-colors hover:text-primary"
-              aria-label="Security"
+              aria-label={socialLinks[1].label}
             >
-              <MaterialIcon name="shield" />
-            </Link>
-            <Link
-              href="#"
-              className="text-neutral-400 transition-colors hover:text-primary"
-              aria-label="Policies"
-            >
-              <MaterialIcon name="policy" />
-            </Link>
+              <LinkedinIcon className="size-[22px]" />
+            </a>
           </div>
         </div>
         <div>

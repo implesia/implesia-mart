@@ -69,8 +69,8 @@ export const faqsCopy = {
       subtitle:
         "Our concierge team is available 24/7 to assist with any inquiries regarding your experience.",
       button: "Contact Support",
-      email: "support@implesiamart.com",
-      phone: "+880 1XXX-XXXXXX",
+      email: "implesiaitltd@gmail.com",
+      phone: "+880 1516-527932",
     },
   },
 } as const;

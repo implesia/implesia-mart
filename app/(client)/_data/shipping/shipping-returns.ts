@@ -136,8 +136,8 @@ export const shippingReturnsCopy = {
     title: "Need Further Assistance?",
     subtitle:
       "Our dedicated support team is here to help you with tracking, returns, or any policy questions.",
-    phone: "+880 1XXX-XXXXXX",
-    email: "support@implesiamart.com",
+    phone: "+880 1516-527932",
+    email: "implesiaitltd@gmail.com",
     cta: "Visit Contact Us Page",
   },
   miniFaq: {

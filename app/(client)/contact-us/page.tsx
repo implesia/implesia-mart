@@ -1,22 +1,25 @@
+import { Container } from "../_components/common/container";
+import { ContactDetails } from "./_components/contact-details";
 import { ContactFaq } from "./_components/contact-faq";
 import { ContactForm } from "./_components/contact-form";
 import { ContactHero } from "./_components/contact-hero";
-import { ContactDetails } from "./_components/contact-details";
-import { ContactMap } from "./_components/contact-map";
+import { ContactSupport } from "./_components/contact-support";
 
 export default function ContactUsPage() {
   return (
-    <main className="pt-32">
+    <main className="pt-16 sm:pt-20">
       <ContactHero />
 
-      <section className="py-xl">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-xl px-6 lg:grid-cols-2 lg:px-8">
-          <ContactForm />
-          <ContactDetails />
-        </div>
+      <section className="w-full py-10 sm:py-14 lg:py-xl">
+        <Container className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-14">
+            <ContactForm />
+            <ContactDetails />
+          </div>
+        </Container>
       </section>
 
-      <ContactMap />
+      <ContactSupport />
       <ContactFaq />
     </main>
   );

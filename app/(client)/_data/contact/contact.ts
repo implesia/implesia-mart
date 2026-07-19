@@ -2,6 +2,19 @@ export type ContactChannel = {
   icon: string;
   title: string;
   value: string;
+  href: string;
+};
+
+export type ContactQuickLink = {
+  icon: string;
+  label: string;
+  href: string;
+};
+
+export type ContactSocialLink = {
+  platform: "facebook" | "linkedin";
+  label: string;
+  href: string;
 };
 
 export type ContactFaqItem = {
@@ -10,65 +23,109 @@ export type ContactFaqItem = {
   answer: string;
 };
 
+const WHATSAPP_NUMBER = "8801516527932";
+const WHATSAPP_DEFAULT_MESSAGE =
+  "হ্যালো, আমি ইমপ্লেসিয়া মার্ট সম্পর্কে জানতে চাই।";
+const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_DEFAULT_MESSAGE)}`;
+
 export const contactCopy = {
   hero: {
-    title: "Contact Us",
+    eyebrow: "যোগাযোগ করুন",
+    title: "আমরা সাহায্য করতে সবসময় প্রস্তুত",
     subtitle:
-      "Our concierge team is available around the clock to ensure your Implesia Mart experience is nothing short of exceptional.",
+      "অর্ডার, ডেলিভারি বা প্রোডাক্ট নিয়ে যেকোনো প্রশ্ন থাকলে নিচের ফর্মে মেসেজ পাঠান অথবা সরাসরি কল/হোয়াটসঅ্যাপ করুন — আমাদের টিম দ্রুত রেসপন্স করবে।",
   },
   form: {
-    title: "Send a Message",
+    title: "মেসেজ পাঠান",
+    subtitle: "নিচের ফর্মটি পূরণ করুন, আমরা দ্রুততম সময়ে যোগাযোগ করব।",
     fields: {
-      name: { label: "Name", placeholder: "John Doe" },
-      email: { label: "Email", placeholder: "john@example.com" },
-      subject: { label: "Subject", placeholder: "Inquiry about product sourcing" },
-      message: { label: "Message", placeholder: "How can we assist you today?" },
+      name: { label: "নাম", placeholder: "আপনার নাম লিখুন" },
+      phone: { label: "ফোন নাম্বার", placeholder: "০১XXX-XXXXXX" },
+      subject: { label: "বিষয়", placeholder: "যেমন: অর্ডার সম্পর্কে জানতে চাই" },
+      message: { label: "মেসেজ", placeholder: "আমরা কীভাবে সাহায্য করতে পারি লিখুন..." },
     },
-    cta: "Send Message",
+    cta: "মেসেজ পাঠান",
+    successTitle: "মেসেজ পাঠানো হয়েছে!",
+    successBody: "ধন্যবাদ। আমাদের টিম দ্রুত আপনার সাথে যোগাযোগ করবে।",
   },
   direct: {
-    title: "Direct Contact",
-    subtitle:
-      "Prefer direct communication? Reach out through any of our premium channels.",
+    title: "সরাসরি যোগাযোগ",
+    subtitle: "নিচের যেকোনো মাধ্যমে সরাসরি যোগাযোগ করতে পারেন।",
     channels: [
-      { icon: "mail", title: "Email Concierge", value: "support@implesiamart.com" },
-      { icon: "call", title: "Priority Support", value: "+880 1XXX-XXXXXX" },
-      { icon: "location_on", title: "Global Flagship", value: "Dhaka, Bangladesh" },
+      {
+        icon: "call",
+        title: "কল করুন",
+        value: "+880 1516-527932",
+        href: "tel:+8801516527932",
+      },
+      {
+        icon: "chat",
+        title: "হোয়াটসঅ্যাপ",
+        value: "+880 1516-527932",
+        href: WHATSAPP_HREF,
+      },
+      {
+        icon: "mail", 
+        title: "ইমেইল করুন",
+        value: "implesiaitltd@gmail.com",
+        href: "mailto:implesiaitltd@gmail.com",
+      },
+      {
+        icon: "location_on",
+        title: "সার্ভিস এরিয়া",
+        value: "সারাদেশে ৬৪ জেলা কভারেজ",
+        href: "/sustainability",
+      },
     ] satisfies ContactChannel[],
-    badge: "Authorized Retailer",
+    badge: "যাচাইকৃত ও নিরাপদ বিক্রেতা",
+    social: [
+      {
+        platform: "facebook",
+        label: "ফেসবুক গ্রুপ",
+        href: "https://www.facebook.com/implesiamart",
+      },
+      {
+        platform: "linkedin",
+        label: "লিংকডইন",
+        href: "https://www.linkedin.com/company/implesia-mart",
+      },
+    ] satisfies ContactSocialLink[],
   },
-  map: {
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAmAtrO4GzXlLd4Sj-k1xkq7NIjLJNjm2QeMEc8dqFO3ntCjAR_XQ4SHKlNC_QkfmY-EQSviC9Iyi_fhqVCJrxhE7MOHpCzswkIusXy-4R1VJosRNrEThm-kMGMJruaTBiM58GUiIrtXbQsfVKBg0HOq0VPjOju3lpXDdwSj9vIWvU67R9OGXvHBq-uUlfDdghxkc5Q4w0Bwfei_GValKdNoUjVeKHVMG4KXvFoy_L6fbf03b70twf4kUrVLxKFIC4tTAlzJQiFNg",
-    imageAlt: "Map showing our office location",
-    cardTitle: "Visit Us",
-    cardBody:
-      "Our flagship store and support offices are located in a central, easy-to-reach area.",
-    cardCta: "Get Directions",
+  support: {
+    title: "কাস্টমার সাপোর্ট সময়সূচি",
+    subtitle: "নিচের সময়ে আমাদের টিম সরাসরি রেসপন্স দিতে পারবে।",
+    hours: [
+      { label: "শনি – বৃহস্পতি", value: "সকাল ৯টা – রাত ১০টা" },
+      { label: "শুক্রবার", value: "দুপুর ২টা – রাত ১০টা" },
+    ],
+    quickLinks: [
+      { icon: "help", label: "সাধারণ প্রশ্নোত্তর", href: "/faqs" },
+      { icon: "local_shipping", label: "শিপিং ও রিটার্ন", href: "/shipping-returns" },
+      { icon: "storefront", label: "সব প্রোডাক্ট", href: "/products" },
+    ] satisfies ContactQuickLink[],
   },
   faq: {
-    title: "Frequently Asked Questions",
-    subtitle: "Instant answers to common inquiries.",
+    title: "সচরাচর জিজ্ঞাসিত প্রশ্ন",
+    subtitle: "যোগাযোগ নিয়ে সাধারণ কিছু প্রশ্নের উত্তর।",
     items: [
       {
-        id: "shipping",
-        question: "Shipping & Global Delivery",
+        id: "response-time",
+        question: "মেসেজ পাঠানোর পর কতক্ষণে রিপ্লাই পাব?",
         answer:
-          "We offer complimentary shipping on select orders. International shipping is handled via trusted courier partners with insured delivery.",
+          "সাধারণত আমরা কর্মঘণ্টার মধ্যে ১-২ ঘণ্টার মধ্যে রিপ্লাই দিই। দ্রুত সাহায্যের জন্য সরাসরি কল বা হোয়াটসঅ্যাপ করতে পারেন।",
       },
       {
-        id: "returns",
-        question: "Returns & Exchanges",
+        id: "order-status",
+        question: "আমার অর্ডার স্ট্যাটাস কীভাবে জানব?",
         answer:
-          "Our returns policy allows returns within 30 days of receipt. Items must be in original, unused condition with tags intact.",
+          "অর্ডার করার সময় দেওয়া ফোন নাম্বারে আমাদের ডেলিভারি টিম যোগাযোগ করবে। এছাড়া সরাসরি কল করেও অর্ডার স্ট্যাটাস জানতে পারবেন।",
       },
       {
-        id: "sourcing",
-        question: "Ethical Product Sourcing",
+        id: "cod-question",
+        question: "ক্যাশ অন ডেলিভারিতে কি কোনো সমস্যা হলে যোগাযোগ করা যাবে?",
         answer:
-          "We’re committed to ethical sourcing. Every item is vetted for sustainable manufacturing practices and fair labor conditions.",
+          "হ্যাঁ, প্রোডাক্ট হাতে পাওয়ার আগে বা পরে কোনো সমস্যা হলে আমাদের সাপোর্ট টিমে সরাসরি কল বা মেসেজ করুন, আমরা সমাধান করে দেব।",
       },
     ] satisfies ContactFaqItem[],
   },
 } as const;
-
