@@ -100,11 +100,13 @@ export const bestSellingProducts: BestSellingProduct[] = products.map((p) => ({
 
 export const flashSale = {
   titleLines: ["৩৩% পর্যন্ত ছাড়ে", "সানসেট প্রজেকশন ল্যাম্প"],
+  description:
+    "সীমিত সময়ের অফার — ক্যাশ অন ডেলিভারিতে অর্ডার করুন, ঘরে বসেই পৌঁছে যাবে।",
   badge: "লিমিটেড টাইম অফার",
   cta: "এখনই কিনুন",
   ctaHref: `/products/${sunsetLamp.slug}`,
-  imageSrc: "/images/products/lamp/lamp-4.jpg",
-  imageAlt: "সানসেট প্রজেকশন ল্যাম্প ছাড়ে",
+  imageSrc: "/images/products/lamp/lamp-1.jpg",
+  imageAlt: "সানসেট প্রজেকশন ল্যাম্পের অ্যাম্বিয়েন্ট লাইট ইফেক্ট",
 };
 
 export const organicHighlight = {
