@@ -1,42 +1,52 @@
-"use client";
-
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { aboutCopy } from "../../_data/about/about";
 
 export function TrustBadges({ className }: { className?: string }) {
-  const { trust } = aboutCopy;
+  const { values } = aboutCopy;
 
   return (
-    <section className={cn("bg-surface-container-low py-xl", className)}>
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mx-auto mb-16 max-w-2xl text-center">
-          <h2 className="font-headline-md text-primary">{trust.title}</h2>
-          <p className="mt-4 font-body-md text-on-surface-variant">{trust.subtitle}</p>
+    <section className={cn("w-full py-10 sm:py-14 lg:py-xl", className)}>
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto mb-8 max-w-2xl text-center sm:mb-10 lg:mb-12">
+          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-3 py-1.5 text-xs font-semibold text-warm-gold">
+            <MaterialIcon name="workspace_premium" className="text-[16px]" />
+            {values.kicker}
+          </span>
+          <h2 className="mb-3 text-2xl leading-tight font-semibold text-primary sm:text-3xl lg:text-4xl">
+            {values.title}
+          </h2>
+          <p className="text-sm leading-relaxed text-on-surface-variant sm:text-base">
+            {values.subtitle}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
-          {trust.badges.map((b) => (
-            <Card
-              key={b.title}
-              className="border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+          {values.items.map((item) => (
+            <div
+              key={item.title}
+              className={cn(
+                "rounded-2xl p-5 text-center sm:p-6",
+                "bg-surface-container-lowest dark:bg-surface-container",
+                "border border-outline-variant/35 dark:border-white/10",
+                "transition-colors hover:border-primary/30 dark:hover:border-primary/25",
+              )}
             >
-              <CardContent className="pt-6">
-                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/5">
-                  <MaterialIcon name={b.icon} className="text-3xl text-primary" filled />
-                </div>
-                <h4 className="text-center font-label-md text-primary">{b.title}</h4>
-                <p className="mt-2 text-center text-sm text-on-surface-variant">
-                  {b.description}
-                </p>
-              </CardContent>
-            </Card>
+              <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary sm:size-14 dark:bg-primary/15">
+                <MaterialIcon name={item.icon} filled className="text-[24px] sm:text-[26px]" />
+              </span>
+              <h3 className="mb-2 text-sm font-semibold text-on-surface sm:text-base">
+                {item.title}
+              </h3>
+              <p className="text-xs leading-relaxed text-on-surface-variant sm:text-sm">
+                {item.description}
+              </p>
+            </div>
           ))}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }
-

@@ -1,41 +1,63 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 
+import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { aboutCopy } from "../../_data/about/about";
 
 export function MissionVision({ className }: { className?: string }) {
   const { missionVision } = aboutCopy;
+  const cards = [missionVision.vision, missionVision.mission];
 
   return (
-    <section className={cn("bg-[#0B1F3B] py-xl text-white", className)}>
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-10 transition-colors hover:bg-white/10 lg:p-12">
-            <MaterialIcon
-              name={missionVision.vision.icon}
-              className="mb-6 text-4xl text-primary-fixed-dim"
-              filled
-            />
-            <h3 className="mb-4 font-headline-sm">{missionVision.vision.title}</h3>
-            <p className="font-body-md text-white/80">{missionVision.vision.description}</p>
-          </div>
-
-          <div className="rounded-xl border border-white/20 bg-primary-container p-10 shadow-2xl lg:p-12">
-            <MaterialIcon
-              name={missionVision.mission.icon}
-              className="mb-6 text-4xl text-primary-fixed"
-              filled
-            />
-            <h3 className="mb-4 font-headline-sm">{missionVision.mission.title}</h3>
-            <p className="font-body-md text-on-primary-container">
-              {missionVision.mission.description}
-            </p>
-          </div>
+    <section
+      className={cn(
+        "w-full bg-surface-container-low py-10 sm:py-14 lg:py-xl dark:bg-surface-container",
+        className,
+      )}
+    >
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 md:gap-6">
+          {cards.map((card, index) => (
+            <div
+              key={card.title}
+              className={cn(
+                "rounded-2xl p-6 sm:rounded-3xl sm:p-8 lg:p-10",
+                "border border-outline-variant/35 dark:border-white/10",
+                index === 0
+                  ? "bg-surface-container-lowest dark:bg-surface-container-high"
+                  : "bg-primary text-on-primary",
+              )}
+            >
+              <span
+                className={cn(
+                  "mb-5 flex size-12 items-center justify-center rounded-xl sm:size-14",
+                  index === 0
+                    ? "bg-warm-gold/12 text-warm-gold"
+                    : "bg-white/15 text-on-primary",
+                )}
+              >
+                <MaterialIcon name={card.icon} filled className="text-[26px] sm:text-[28px]" />
+              </span>
+              <h3
+                className={cn(
+                  "mb-3 text-lg font-semibold sm:text-xl",
+                  index === 0 ? "text-primary" : "text-on-primary",
+                )}
+              >
+                {card.title}
+              </h3>
+              <p
+                className={cn(
+                  "text-sm leading-relaxed sm:text-base",
+                  index === 0 ? "text-on-surface-variant" : "text-on-primary/85",
+                )}
+              >
+                {card.description}
+              </p>
+            </div>
+          ))}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }
-
