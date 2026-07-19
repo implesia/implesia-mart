@@ -61,14 +61,14 @@ export function ContactSupport({ className }: { className?: string }) {
                 )}
               >
                 <span className="flex items-center gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warm-gold/10 text-warm-gold">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/15">
                     <MaterialIcon name={link.icon} className="text-[18px]" />
                   </span>
                   <span className="text-sm font-medium text-on-surface">{link.label}</span>
                 </span>
                 <MaterialIcon
                   name="arrow_forward"
-                  className="text-[18px] text-on-surface-variant transition-transform group-hover:translate-x-0.5"
+                  className="text-[18px] text-on-surface-variant transition-all group-hover:translate-x-0.5 group-hover:text-primary"
                 />
               </Link>
             ))}
