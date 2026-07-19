@@ -1,52 +1,63 @@
-"use client";
-
-import Image from "next/image";
 import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { Container } from "../../_components/common/container";
+import { MaterialIcon } from "../../_components/common/material-icon";
 import { sustainabilityCopy } from "../../_data/sustainability/sustainability";
 
 export function SustainabilityCta({ className }: { className?: string }) {
   const { cta } = sustainabilityCopy;
 
   return (
-    <section className={cn("py-xl", className)}>
-      <div className="mx-auto max-w-7xl px-6 md:px-12">
-        <div className="relative overflow-hidden rounded-[2rem] bg-primary-container p-10 text-center md:p-16 lg:p-24">
-          <div className="pointer-events-none absolute inset-0 opacity-10">
-            <Image src={cta.backgroundSrc} alt={cta.backgroundAlt} fill className="object-cover" />
-          </div>
+    <section className={cn("w-full py-10 sm:py-14 lg:py-xl", className)}>
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
+        <div
+          className={cn(
+            "relative w-full overflow-hidden rounded-2xl px-5 py-10 text-center sm:rounded-3xl sm:px-10 sm:py-12 md:px-14 md:py-14",
+            "bg-[#062f2c] dark:bg-[#041f1d]",
+            "ring-1 ring-black/10 dark:ring-primary/15",
+            "shadow-[0_20px_50px_rgba(6,47,44,0.18)] dark:shadow-[0_24px_56px_rgba(0,0,0,0.45)]",
+          )}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_10%_0%,rgba(43,192,181,0.28),transparent_50%),radial-gradient(ellipse_50%_40%_at_100%_100%,rgba(245,179,1,0.12),transparent_45%)]"
+          />
 
-          <div className="relative z-10 mx-auto max-w-2xl">
-            <h2 className="font-display-lg text-on-primary-container">{cta.title}</h2>
-            <p className="mt-6 font-body-lg text-on-primary-container/90">{cta.subtitle}</p>
+          <div className="relative z-10 mx-auto max-w-xl">
+            <h2 className="mb-3 text-2xl leading-tight font-semibold text-white sm:text-3xl lg:text-4xl">
+              {cta.title}
+            </h2>
+            <p className="mb-8 text-sm leading-relaxed text-white/70 sm:text-base">
+              {cta.subtitle}
+            </p>
 
-            <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
               <Link
-                href="/products"
+                href={cta.primaryCta.href}
                 className={cn(
-                  buttonVariants({ variant: "default", size: "lg" }),
-                  "h-12 rounded-full px-10 bg-primary text-on-primary hover:scale-105 transition-transform"
+                  "inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 sm:px-8",
+                  "bg-warm-gold text-sm font-semibold text-on-surface",
+                  "transition-colors hover:bg-warm-gold/90 active:scale-[0.98]",
                 )}
               >
-                {cta.primary}
+                {cta.primaryCta.label}
+                <MaterialIcon name="arrow_forward" className="text-[18px]" />
               </Link>
               <Link
-                href="/contact-us"
+                href={cta.secondaryCta.href}
                 className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "h-12 rounded-full px-10 border-on-primary-container text-on-primary-container hover:bg-on-primary-container/10"
+                  "inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 px-6 py-3.5 sm:px-8",
+                  "text-sm font-semibold text-white transition-colors hover:bg-white/10",
                 )}
               >
-                {cta.secondary}
+                {cta.secondaryCta.label}
               </Link>
             </div>
           </div>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }
-

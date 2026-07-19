@@ -5,6 +5,7 @@ export type SustainabilityCommitment = {
 };
 
 export type SustainabilityImpactStat = {
+  icon: string;
   value: string;
   label: string;
 };
@@ -13,136 +14,134 @@ export type SustainabilityTestimonial = {
   quote: string;
   name: string;
   role: string;
-  avatarSrc: string;
-  avatarAlt: string;
+  initials: string;
+  accent: string;
 };
 
 export const sustainabilityCopy = {
   hero: {
-    title: "Rooted in Quality, Driven by Trust",
+    eyebrow: "সাসটেইনেবিলিটি",
+    title: "দায়িত্বশীল শপিং, দীর্ঘস্থায়ী প্রোডাক্ট",
     subtitle:
-      "From the soil that nurtures our ingredients to the hands that craft our garments, we are dedicated to a legacy of conscious excellence.",
-    cta: "Explore Our Products",
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAyGGZe56owz0Zd9ynHAuQMp1GqY11AyXztBRl71OahzCf0ZU-eTuKmustYA2ZsqwzwYkze3VWFY3olI7Z4J1pGai3ZXOOQw26u0oi_35q41Tn_gHvJ_AOVOqLPDYkp_EC_RlutOGLULQ2YjU6RtwLJn0DI6KnsbVEnXvfgazXEKeAu82_VN2AW70jn2QVmgnFMEDLHqOmJuiQAjcbzQPfWYhjxLeg886C_iS1CEgpm3-eIU-n2ZlcKshCPh3XikcvSj5YsBgyZEA",
-    imageAlt:
-      "Wide-angle view of a lush organic farm at sunrise with soft morning mist",
+      "ভালো প্রোডাক্ট মানেই কম রিটার্ন, কম বর্জ্য। আমরা বিশ্বাস করি টেকসই ব্যবসার মূল চাবিকাঠি হলো কোয়ালিটি — তাই প্রতিটি গ্যাজেট যাচাই করে, দায়িত্বশীল প্যাকেজিংয়ে, দীর্ঘমেয়াদী ব্যবহারের কথা মাথায় রেখে আমরা সরবরাহ করি।",
+    primaryCta: { label: "সব প্রোডাক্ট দেখুন", href: "/products" },
+    secondaryCta: { label: "আমাদের সম্পর্কে", href: "/about-us" },
+    imageSrc: "/images/products/power-bank/power-bank.jpg",
+    imageAlt: "পাওয়ার ব্যাংক — দীর্ঘস্থায়ী পারফরম্যান্স",
+    secondaryImageSrc: "/images/products/earbuts/earbuts.jpg",
+    secondaryImageAlt: "ইয়ারবাডস — কোয়ালিটি চেকড গ্যাজেট",
   },
   origin: {
-    eyebrow: "The Origin",
-    title: "A Vision for Pure Living",
-    body:
-      "Implesia Mart began with a simple question: why has quality become a luxury? We sought to return to the basics—organic nutrients and authentic craftsmanship. Our journey took us to hidden valleys and artisan workshops across the globe.",
+    eyebrow: "আমাদের দৃষ্টিভঙ্গি",
+    title: "কোয়ালিটি এখন বিলাসিতা নয়, দায়িত্ব",
+    body: "ইমপ্লেসিয়া মার্ট শুরু হয়েছিল একটা সহজ প্রশ্ন থেকে — কেন ভালো প্রোডাক্ট মানেই বেশি দাম বা বেশি ঝুঁকি হবে? আমরা চেয়েছিলাম মূল জায়গায় ফিরে যেতে: যাচাই করা কোয়ালিটি এবং সৎ ব্যবসা। প্রতিটি গ্যাজেট অর্ডারের আগে নিজেরা টেস্ট করি, যাতে আপনার হাতে পৌঁছানো প্রোডাক্টটি প্রথমবারেই সঠিকভাবে কাজ করে — কম রিটার্ন, কম বর্জ্য, বেশি সন্তুষ্টি।",
     images: [
       {
-        src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBAlgU3MDXVEOb7jNVK128HOMASOOLk6r28s5C7SHGBHPOVXSOd5zLutKeq8cSKHa3lo2LBkjay_CqeiBqBNP_Bw2B_6A8kvYXypegSdPauJA1lBz5TZekKCzL1k1yhTt9PQ5-FFPtKs8fteHKQnAH_B2MtV_DnbC6mTGPjjhAkiZr0scub1Xcgy88n5xLCc4HMxlXYJ-k-7bOmETj9auivJUpnCWINWzwMdWGElL1S9r8-Ge7h8Hvlv51UaueId5typhO1qUgwTQ",
-        alt: "Artisan weaver hands on a traditional wooden loom",
+        src: "/images/products/mini-printer/mini-printer.jpg",
+        alt: "মিনি প্রিন্টার — কোয়ালিটি চেক করা প্রোডাক্ট",
       },
       {
-        src: "https://lh3.googleusercontent.com/aida-public/AB6AXuB5_IrkEqk9mfSwTEgARNKv2CKAsGfpX2v6uxfmAeRWyy6Ez-529HLPO3ux-hgq4OqGm0JDn4Kf-EbQ-YR_u81PY3nS1Yb7OU65QwmmFZT4qEa-uUhiajL1PMmesFL9P1KAqQeUNeCtFghSByVVCXQLsT5_Ye0QHwoJ_CmJO4kIIM7oBlDLqFRoIqnGVrR1uoeLsb25mX7CkLZGKHKo7kKoFauTcJtAku6OxDN6nX6_H04gN6Sb9rVCzOYaPYihQcD16GrZhimUYQ",
-        alt: "Organic farmer holding fresh heirloom tomatoes",
+        src: "/images/products/car-holder/car-holder.jpg",
+        alt: "কার হোল্ডার — টেকসই ডিজাইন",
       },
     ],
     featureImage: {
-      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBTnPWOnOHMTjP6EfZwGII3WyA5HbuRzJP2dlUBv2KzWiOJlq9YgdVamiXYEsj7My5mICwv38_iHjV3PAq1uqzOtGba0By2_aGI86OBhSoI-JPgtysIo30H-4X6uTo_n5tvPlbdCNLhgkS5-XE0bQqAaik_AKp8sWkmLBXxfHK2QQoboniIywS4h3GLSPIBG3GQBfa4ur-bTNHrvP6bmDYElZMHqnSPCiIj_nwKLJZX1VMmoCyMtdWdq9wtiDyYsn87YF8epRHRDg",
-      alt: "Aerial view of neat rows of organic crops",
+      src: "/images/products/neckbrand/neckbrand.jpg",
+      alt: "নেক ব্যান্ড — দীর্ঘমেয়াদী ব্যবহারের জন্য তৈরি",
     },
-    quote: "“Quality is not an act, it is a habit.”",
+    quote: "\u201cকোয়ালিটি একটি অভ্যাস, একবারের কাজ নয়।\u201d",
   },
   commitment: {
-    title: "Our Commitment",
-    subtitle: "We believe in a circular future where every choice respects the planet and its people.",
+    kicker: "আমাদের অঙ্গীকার",
+    title: "আমরা যেভাবে দায়িত্ব পালন করি",
+    subtitle: "প্রতিটি সিদ্ধান্তে আমরা মানুষ ও পরিবেশ — দুটোকেই মাথায় রাখি।",
     items: [
       {
-        icon: "verified_user",
-        title: "Ethical Sourcing",
-        description: "Direct partnerships ensuring fair wages and safe conditions.",
+        icon: "verified",
+        title: "কোয়ালিটি চেকড ডেলিভারি",
+        description: "প্রতিটি প্রোডাক্ট ডেলিভারির আগে চালিয়ে যাচাই করা হয়।",
       },
       {
-        icon: "package_2",
-        title: "Eco-friendly Packaging",
-        description: "100% biodegradable or recycled materials used in all shipping.",
+        icon: "eco",
+        title: "পরিবেশ-বান্ধব প্যাকেজিং",
+        description: "রিসাইক্লেবল ও কম প্লাস্টিক প্যাকেজিং ব্যবহার করি।",
       },
       {
-        icon: "agriculture",
-        title: "Local Support",
-        description: "Investing in small-scale farmers to preserve regional heritage.",
+        icon: "schedule",
+        title: "দীর্ঘস্থায়ী প্রোডাক্ট বাছাই",
+        description: "শুধু ট্রেন্ডিং না, দীর্ঘদিন টিকবে এমন গ্যাজেটই রাখি।",
       },
       {
-        icon: "co2",
-        title: "Carbon Reduction",
-        description: "Continuous efforts to offset and reduce our logistics footprint.",
+        icon: "assignment_return",
+        title: "সহজ ও নিরাপদ রিটার্ন",
+        description: "সমস্যা হলে ৩ দিনের মধ্যে সহজেই রিটার্ন সুবিধা।",
       },
     ] satisfies SustainabilityCommitment[],
   },
-  organic: {
-    title: "The Organic Food Promise",
-    body:
-      "We bridge the gap between rural bounty and urban living. Every product in our pantry is traceably sourced, ensuring you receive nature's finest without compromise.",
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBpDcoAjQxSYHvjuqGYDVeFKkpBPEOz3Cwk8le2pL5_uDPpiXM90wlNHs8TD5tWdyOP4mPDCayqqlcKzx5ABd-f3EcVVAlg2RUDn53IYtXnhV2wrQG8ZdmKCo7p0yIwGu0x5tFMKWdT2g-AGUCjAF32cXiX7fQ_64MLo17u-Q4pX9dsrlM670lFghTzEZkbRqfbE_x51NsicUUZJv_hRbpc9usSxyJ9Ff2bgeV9OFpKYYgv3gnev1KPC2RS0XZPYuSlgnowtpx1bA",
-    imageAlt: "Fresh organic harvest on a rustic wood background",
+  quality: {
+    title: "কোয়ালিটি নিশ্চয়তা প্রক্রিয়া",
+    body: "প্রতিটি প্রোডাক্ট আপনার কাছে পৌঁছানোর আগে আমাদের টিম নিজে ব্যবহার করে দেখে, যাচাই করে। ফলে আপনি যা অর্ডার করছেন, ঠিক তাই এবং সঠিক কোয়ালিটিতেই হাতে পাচ্ছেন।",
+    imageSrc: "/images/products/smart-ring/smart-ring.jpg",
+    imageAlt: "স্মার্ট রিং — কোয়ালিটি টেস্টেড প্রোডাক্ট",
     steps: [
-      "Harvested at Peak Freshness",
-      "Zero-Contact Sustainable Transport",
-      "Direct to Your Doorstep",
+      "প্রতিটি প্রোডাক্ট চালিয়ে পরীক্ষা করা হয়",
+      "নিরাপদে প্যাক করে পাঠানো হয়",
+      "হাতে পেয়ে দেখে তারপর পেমেন্ট (COD)",
     ],
     badges: [
-      { icon: "check_circle", label: "100% NATURAL" },
-      { icon: "block", label: "NO PRESERVATIVES" },
+      { icon: "check_circle", label: "১০০% টেস্টেড" },
+      { icon: "block", label: "নো রিফার্বিশড প্রোডাক্ট" },
     ],
   },
-  fashion: {
-    title: "Fashion for the Future",
-    body:
-      "We create forever pieces—garments designed to outlive trends. Using high-grade organic cotton, recycled fibers, and ethical labor, we ensure your wardrobe is as kind as it is beautiful.",
+  durability: {
+    title: "দীর্ঘস্থায়ী গ্যাজেট, কম বর্জ্য",
+    body: "আমরা এমন প্রোডাক্ট বাছাই করি যেগুলো শুধু ট্রেন্ডিং নয়, দীর্ঘদিন ভালো পারফরম্যান্স দেয়। ভালো গ্যাজেট মানেই কম রিপ্লেসমেন্ট, কম ই-বর্জ্য।",
     bullets: [
-      "Fair Labor Certified Factories",
-      "Biodegradable Natural Dyes",
-      "Long-lasting Design Aesthetic",
+      "মানসম্পন্ন ম্যাটেরিয়াল ও বিল্ড কোয়ালিটি",
+      "ওয়ারেন্টি সাপোর্টেড প্রোডাক্ট",
+      "রিপেয়ারযোগ্য ও দীর্ঘস্থায়ী ডিজাইন",
     ],
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD6MYZD7WYgeMHrPv5wnTxXikvDanhARc5LsDV1bgoa_VWSKGBLCBn4I9phFsdL637-BsdZa-7BAMllYdXMH9g15qHmKWGVxYzruvtLrgCRxcSHVAJJ-JXC4OoT4Vyb0pe0aoOc2MDo7EU1pViutH_yRhVFsKB4Cm5CWJ7ReSddPVwOSZuB_FJlFZpWlUcWYpLCEm7-LVznlYptyTGAGmDGj-yqJbJ5cJSJgb_OwTYNYFGRconZ7tCjAEj4yQ1fGMXCTA5c2j4bGg",
-    imageAlt: "Sustainable cotton fabric textures draped in soft lighting",
+    imageSrc: "/images/products/3-in-1-cable/3-in-1-cable.jpg",
+    imageAlt: "৩-ইন-১ কেবল — টেকসই বিল্ড কোয়ালিটি",
   },
   impact: {
+    kicker: "আমাদের প্রভাব",
+    title: "সংখ্যায় আমাদের দায়িত্বশীলতা",
+    subtitle: "প্রতিটি সংখ্যার পেছনে আছে হাজারো কাস্টমারের বিশ্বাস।",
     stats: [
-      { value: "500+", label: "Farmers Supported" },
-      { value: "50k+", label: "Orders Delivered" },
-      { value: "99.9%", label: "Quality Satisfaction" },
+      { icon: "eco", value: "৯৫%", label: "রিসাইক্লেবল প্যাকেজিং" },
+      { icon: "assignment_return", value: "৩ দিন", label: "সহজ রিটার্ন সুবিধা" },
+      { icon: "verified", value: "১০০%", label: "কোয়ালিটি চেকড ডেলিভারি" },
+      { icon: "diversity_3", value: "৫,০০০+", label: "সন্তুষ্ট কাস্টমার" },
     ] satisfies SustainabilityImpactStat[],
   },
   trust: {
+    kicker: "কাস্টমার ভয়েস",
+    title: "কাস্টমাররা যা বলছেন",
     testimonials: [
       {
         quote:
-          "The transparency is what sold me. Knowing exactly which farm my food comes from and how my clothes are made has changed how I shop forever.",
-        name: "Sarah Jenkins",
-        role: "Conscious Consumer",
-        avatarSrc:
-          "https://lh3.googleusercontent.com/aida-public/AB6AXuDzu-ORI2h9XuFBy-jnBfu56iZFMua_TrKA8SxCc0qEgtJl8xFhLZBYleV3VkH0BTrEuR_9CtGKuUHSNJOiFi3Xdho9wzEZ0KVepRCf55oaclheJ6UzVK51_7G9ZzqwSOHcLcT0GE80KT9GPQjxBwRs2tRNGQw_6-XHOj1VLU41IakaST0GyfBVznf9GiBTqYSGEniqyh5gjgTOkIbbf7jq_OwrgBGJCSmrLET8Bo9Pn6OpnEZCiNEyfjB0muG7XM1kErt7Xgpq8w",
-        avatarAlt: "Portrait of a satisfied modern woman customer",
+          "প্রোডাক্ট হাতে পাওয়ার আগে কোনো টাকা দিতে হয়নি, আর কোয়ালিটিও দারুণ। এখন থেকে চোখ বন্ধ করে অর্ডার করা যায়।",
+        name: "তানভীর হাসান",
+        role: "নিয়মিত কাস্টমার",
+        initials: "তা",
+        accent: "#2bc0b5",
       },
       {
         quote:
-          "Implesia Mart doesn't just sell products; they sell a philosophy. The quality of the organic linens is unmatched by any high-street brand.",
-        name: "Mark Robertson",
-        role: "Interior Architect",
-        avatarSrc:
-          "https://lh3.googleusercontent.com/aida-public/AB6AXuAaama1I_ifmId8ccF6D6yQDhYiHnqRtUuDn6L-21GXVEXfYwEl9hc6Wol9NCJGyilgUbRc9U_N26EaKL_wzpa-xTMOxlqLM4OK9-GLMUA8J_OAgqxSXUqzUd1XvqZ5p8oo3qQGnjfZj8CbnEcQWYtravfVPvzoRYIjRvVTNwhQLtm9tsvyiqMRV3jGlmwjenQqV4t0ly8F4RuXKKldPsQZ5mY5MAIxrbva2Jl7mcGLx4dkXLgZrRwDw8tWe-Bhxglg--GiirHS4w",
-        avatarAlt: "Portrait of a sophisticated male client in premium sustainable attire",
+          "প্যাকেজিং অনেক সুন্দর আর পরিবেশ-বান্ধব মনে হলো। প্রোডাক্টও একদম বিজ্ঞাপনের মতোই কাজ করছে।",
+        name: "নুসরাত জাহান",
+        role: "ভেরিফাইড বায়ার",
+        initials: "নু",
+        accent: "#f5b301",
       },
     ] satisfies SustainabilityTestimonial[],
   },
   cta: {
-    title: "Join Our Conscious Journey",
+    title: "আজই কিনুন কোয়ালিটি নিশ্চিত গ্যাজেট",
     subtitle:
-      "Subscribe to our newsletter for exclusive updates on our sustainability projects and seasonal artisan releases.",
-    primary: "Shop Now",
-    secondary: "Contact Us",
-    backgroundSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAq2aII_Y_i3ftprtQS8H6CjzMxB788KJocvx57VD758sNVp3Bt3FXeFYVaHMgLMGzdU5x_V0hF1AzlqVJJkSz9MNJvPVpB-ScXWiVBT9QYQvLudZl9kBmBMY-SyEhelq3AVVY6JzTetnK2velW62VwAegDTHt2WV_2d20d-QL-nY3KdwFhMzRSJ2cZ0ZqbhU0ZgRNNMi5Uyye2DapTkMERdh65rAL80BkiN8KBEf2VgzEcf0d_RYFxMe7FXKbqUDbVQRzWdBylGw",
-    backgroundAlt: "Faint background texture of an organic green field",
+      "হাজারো কাস্টমারের বিশ্বাস নিয়ে আমরা দায়িত্বশীলভাবে এগিয়ে যাচ্ছি। ক্যাশ অন ডেলিভারিতে নিশ্চিন্তে অর্ডার করুন আজই।",
+    primaryCta: { label: "সব প্রোডাক্ট দেখুন", href: "/products" },
+    secondaryCta: { label: "যোগাযোগ করুন", href: "/contact-us" },
   },
 } as const;
-
