@@ -260,7 +260,7 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                   <h3 className="mb-3 font-headline-sm text-on-background">
                     এখনও কোনো রিভিউ নেই
                   </h3>
-                  <p className="max-w-xl text-body-md text-on-surface-variant">
+                  <p className="max-w-2xl text-body-md text-on-surface-variant">
                     {product.status === "coming-soon"
                       ? "প্রোডাক্ট লঞ্চ হওয়ার পর এখানে ভেরিফাইড কাস্টমার রিভিউ যুক্ত হবে।"
                       : "প্রথম রিভিউটি আপনার হতে পারে — অর্ডার করার পর আপনার অভিজ্ঞতা শেয়ার করুন।"}

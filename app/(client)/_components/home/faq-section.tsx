@@ -25,24 +25,15 @@ const categoryIcons: Record<string, string> = {
 
 export function FaqSection() {
   return (
-    <section className="relative overflow-hidden py-12 sm:py-16 lg:py-xl">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-background dark:bg-background"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_0%,rgba(43,192,181,0.08),transparent_55%)] dark:bg-[radial-gradient(ellipse_60%_45%_at_50%_0%,rgba(61,212,200,0.07),transparent_55%)]"
-      />
-
-      <Container className="relative px-4 sm:px-6 lg:px-8">
+    <section className="py-10 sm:py-14 lg:py-xl">
+      <Container className="px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <div className="mb-8 text-center sm:mb-10 lg:mb-12">
-            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-warm-gold">
+          <div className="mb-8 text-center sm:mb-10">
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-3 py-1.5 text-xs font-semibold text-warm-gold">
               <MaterialIcon name="help" className="text-[16px]" />
               জিজ্ঞাসা ও উত্তর
             </span>
-            <h2 className="mb-3 font-display-lg text-[1.65rem] leading-tight text-primary sm:text-[2.1rem] lg:text-[2.35rem]">
+            <h2 className="mb-3 font-display-lg text-2xl leading-tight text-primary sm:text-3xl lg:text-4xl">
               প্রায়শই জিজ্ঞাসিত প্রশ্ন
             </h2>
             <p className="mx-auto max-w-lg text-sm leading-relaxed text-on-surface-variant sm:text-base">
@@ -53,64 +44,42 @@ export function FaqSection() {
 
           <Accordion
             defaultValue={["faq-0"]}
-            className="flex flex-col gap-3 sm:gap-3.5"
+            className="flex flex-col gap-3"
           >
             {faqSections.map((block, index) => {
-              const icon =
-                categoryIcons[block.category] ?? "help_outline";
+              const icon = categoryIcons[block.category] ?? "help_outline";
 
               return (
                 <AccordionItem
                   key={block.category}
                   value={`faq-${index}`}
                   className={cn(
-                    "overflow-hidden rounded-2xl border-0",
-                    "bg-surface-container-lowest dark:bg-surface-container",
-                    "ring-1 ring-outline-variant/40 dark:ring-white/8",
-                    "shadow-[0_6px_20px_rgba(15,40,38,0.04)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.25)]",
-                    "transition-[box-shadow,ring-color] duration-200",
-                    "has-[[aria-expanded=true]]:ring-primary/30 has-[[aria-expanded=true]]:shadow-[0_10px_28px_rgba(43,192,181,0.12)]",
-                    "dark:has-[[aria-expanded=true]]:ring-primary/25",
+                    "rounded-2xl border border-outline-variant/40 bg-surface-container-lowest px-4 dark:border-white/10 dark:bg-surface-container sm:px-5",
                   )}
                 >
-                  <AccordionTrigger
-                    className={cn(
-                      "gap-3 px-4 py-4 hover:no-underline sm:gap-4 sm:px-5 sm:py-5",
-                      "text-left font-label-md text-[0.95rem] leading-snug text-on-surface sm:text-base",
-                      "**:data-[slot=accordion-trigger-icon]:size-5 **:data-[slot=accordion-trigger-icon]:text-primary",
-                    )}
-                  >
-                    <span className="flex min-w-0 flex-1 items-start gap-3 sm:items-center sm:gap-3.5">
-                      <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/14 sm:mt-0 sm:size-10">
-                        <MaterialIcon name={icon} className="text-[20px] sm:text-[22px]" />
-                      </span>
-                      <span className="min-w-0 pt-1 sm:pt-0">{block.question}</span>
+                  <AccordionTrigger className="gap-3 py-4 text-left text-sm font-semibold leading-snug text-on-surface hover:no-underline sm:py-5 sm:text-base">
+                    <span className="mr-2 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary sm:size-10">
+                      <MaterialIcon name={icon} className="text-[20px]" />
                     </span>
+                    <span className="min-w-0 flex-1">{block.question}</span>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4 sm:px-5 sm:pb-5">
-                    <div className="border-t border-outline-variant/30 pt-3 pl-12 text-sm leading-relaxed text-on-surface-variant dark:border-white/8 sm:pl-13 sm:text-[0.95rem] sm:leading-relaxed">
+                  <AccordionContent className="pb-4 text-sm leading-relaxed text-on-surface-variant sm:pb-5 sm:text-[0.95rem]">
+                    <p className="border-t border-outline-variant/30 pt-3 dark:border-white/10">
                       {block.answer}
-                    </div>
+                    </p>
                   </AccordionContent>
                 </AccordionItem>
               );
             })}
           </Accordion>
 
-          <div className="mt-8 flex justify-center sm:mt-10">
+          <div className="mt-8 flex justify-center">
             <Link
               href="/faqs"
-              className={cn(
-                "group inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold",
-                "text-primary ring-1 ring-primary/25 transition-colors",
-                "hover:bg-primary/8 hover:ring-primary/40 dark:hover:bg-primary/12",
-              )}
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-primary ring-1 ring-primary/25 transition-colors hover:bg-primary/8"
             >
               আরও প্রশ্ন দেখুন
-              <MaterialIcon
-                name="arrow_forward"
-                className="text-[18px] transition-transform duration-200 group-hover:translate-x-0.5"
-              />
+              <MaterialIcon name="arrow_forward" className="text-[18px]" />
             </Link>
           </div>
         </div>

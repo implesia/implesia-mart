@@ -155,6 +155,10 @@ export const organicHighlight = {
       src: "/images/products/lamp/lamp-2.jpg",
       alt: "সানসেট ল্যাম্প ডিটেইল",
     },
+    {
+      src: "/images/products/selfie-stand/stand-2.jpg",
+      alt: "সেলফি স্ট্যান্ড সেটআপ",
+    },
   ],
 };
 

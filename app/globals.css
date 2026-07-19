@@ -460,3 +460,12 @@ details > summary {
   height: 100%;
   width: 100%;
 }
+
+/*
+  Tailwind v4 maps max-w-xl → --spacing-xl when that token exists.
+  Our --spacing-xl is 80px (section padding), which collapses content.
+  Keep py-xl/mt-xl working via spacing, but restore real max-w-xl width.
+*/
+.max-w-xl {
+  max-width: 36rem !important;
+}

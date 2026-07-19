@@ -21,7 +21,7 @@ export function SupportCenter({ className }: { className?: string }) {
 
         <div className="relative z-10">
           <h2 className="font-display-lg">{support.title}</h2>
-          <p className="mx-auto mt-4 max-w-xl text-primary-fixed/70">{support.subtitle}</p>
+          <p className="mx-auto mt-4 max-w-2xl text-primary-fixed/70">{support.subtitle}</p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-6 sm:flex-row">
             <div className="flex items-center gap-3 rounded-full bg-white/10 px-6 py-4 backdrop-blur-md">

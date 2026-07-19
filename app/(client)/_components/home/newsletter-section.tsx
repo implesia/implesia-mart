@@ -1,117 +1,124 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
+const perks = [
+  { icon: "local_offer" as const, label: "ফ্ল্যাশ অফার আপডেট" },
+  { icon: "campaign" as const, label: "নতুন গ্যাজেট আগে জানুন" },
+  { icon: "shield" as const, label: "স্প্যাম নেই" },
+] as const;
+
 export function NewsletterSection() {
+  const [email, setEmail] = useState("");
+  const [done, setDone] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setDone(true);
+    setEmail("");
+  }
+
   return (
-    <section className="relative overflow-hidden py-[120px]">
-      {/* Background Glow */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
-
-        <div className="absolute right-0 bottom-0 h-[400px] w-[400px] rounded-full bg-warm-gold/20 blur-3xl" />
-      </div>
-
-      <Container className="relative z-10 px-6 md:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          viewport={{ once: true }}
-          className="relative overflow-hidden rounded-[40px] border border-white/10 bg-primary px-6 py-16 shadow-2xl md:px-14 md:py-24"
+    <section className="w-full py-10 sm:py-14 lg:py-xl">
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
+        <div
+          className={cn(
+            "relative w-full overflow-hidden rounded-2xl sm:rounded-3xl",
+            "bg-[#062f2c] dark:bg-[#041f1d]",
+            "ring-1 ring-black/10 dark:ring-primary/15",
+            "px-5 py-8 sm:px-8 sm:py-10 md:px-12 md:py-12 lg:px-14 lg:py-14",
+          )}
         >
-          {/* Decorative Layers */}
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute top-0 right-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/10 blur-3xl" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_10%_0%,rgba(43,192,181,0.28),transparent_50%),radial-gradient(ellipse_50%_40%_at_100%_100%,rgba(245,179,1,0.12),transparent_45%)]"
+          />
 
-            <div className="absolute bottom-0 left-0 h-72 w-72 -translate-x-1/3 translate-y-1/3 rounded-full bg-warm-gold/20 blur-3xl" />
+          <div className="relative z-10 mx-auto w-full max-w-2xl text-center">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">
+              <span className="size-1.5 shrink-0 rounded-full bg-warm-gold" />
+              অফার ও আপডেট
+            </p>
 
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%)]" />
-          </div>
-
-          {/* Badge */}
-          <div className="relative z-10 mb-8 flex justify-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-2 backdrop-blur-xl">
-              <span className="size-2 rounded-full bg-warm-gold animate-pulse" />
-
-              <span className="font-label-sm uppercase tracking-[0.25em] text-white/80">
-                Exclusive Access
-              </span>
-            </div>
-          </div>
-
-          {/* Heading */}
-          <div className="relative z-10 mx-auto max-w-3xl text-center">
-            <h2 className="mb-6 font-display-xl leading-tight text-white">
-              Join The Collective
+            <h2 className="mb-3 text-2xl font-semibold leading-snug text-white sm:text-3xl lg:text-4xl">
+              নতুন অফার মিস করবেন না
             </h2>
 
-            <p className="mx-auto mb-12 max-w-2xl font-body-lg leading-relaxed text-white/70">
-              Get early access to exclusive collections, premium launches,
-              private events, curated inspiration, and luxury experiences
-              tailored for our members.
+            <p className="mx-auto mb-8 text-sm leading-relaxed text-white/70 sm:text-base">
+              ইমেইলে পান ফ্ল্যাশ সেল, নতুন গ্যাজেট লঞ্চ আর বিশেষ ছাড়ের খবর।
             </p>
+
+            {done ? (
+              <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm font-medium text-white">
+                <MaterialIcon
+                  name="check_circle"
+                  filled
+                  className="shrink-0 text-warm-gold"
+                />
+                ধন্যবাদ! শীঘ্রই আপডেট পাবেন।
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSubmit}
+                className="flex w-full flex-col gap-3 sm:flex-row sm:items-center"
+              >
+                <label className="relative block w-full min-w-0 flex-1">
+                  <span className="sr-only">ইমেইল</span>
+                  <MaterialIcon
+                    name="mail"
+                    className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-white/45"
+                  />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="আপনার ইমেইল লিখুন"
+                    className={cn(
+                      "box-border h-12 w-full rounded-xl border border-white/20 bg-white/10",
+                      "pl-10 pr-3 text-sm text-white outline-none sm:text-base",
+                      "placeholder:text-white/40",
+                      "focus:border-warm-gold focus:ring-2 focus:ring-warm-gold/30",
+                    )}
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  className={cn(
+                    "inline-flex h-12 w-full shrink-0 items-center justify-center gap-1.5 rounded-xl sm:w-auto sm:px-8",
+                    "bg-warm-gold px-6 text-sm font-semibold text-on-surface",
+                    "transition-colors hover:bg-warm-gold/90",
+                  )}
+                >
+                  সাবস্ক্রাইব
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </button>
+              </form>
+            )}
+
+            <ul className="mt-8 flex w-full flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-8">
+              {perks.map((perk) => (
+                <li
+                  key={perk.label}
+                  className="flex items-center gap-2 text-xs text-white/65 sm:text-sm"
+                >
+                  <MaterialIcon
+                    name={perk.icon}
+                    className="shrink-0 text-[18px] text-warm-gold"
+                  />
+                  <span>{perk.label}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-
-          {/* Form */}
-          <form
-            action="#"
-            onSubmit={(e) => e.preventDefault()}
-            className="relative z-10 mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-[28px] border border-white/10 bg-white/5 p-3 backdrop-blur-2xl md:flex-row"
-          >
-            {/* Input */}
-            <div className="relative flex-1">
-              <MaterialIcon
-                name="mail"
-                className="absolute top-1/2 left-5 -translate-y-1/2 text-white/50"
-              />
-
-              <Input
-                type="email"
-                required
-                placeholder="Enter your email address"
-                className="h-16 rounded-2xl border-0 bg-transparent pl-14 text-base text-white placeholder:text-white/40 focus-visible:ring-2 focus-visible:ring-warm-gold"
-              />
-            </div>
-
-            {/* Button */}
-            <Button
-              type="submit"
-              className="group h-16 rounded-2xl bg-warm-gold px-8 font-label-md text-on-surface uppercase tracking-[0.2em] transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-warm-gold/30 active:scale-95"
-            >
-              Subscribe
-
-              <MaterialIcon
-                name="arrow_forward"
-                className="ml-2 transition-transform duration-300 group-hover:translate-x-1"
-              />
-            </Button>
-          </form>
-
-          {/* Bottom Features */}
-          <div className="relative z-10 mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-white/60">
-            <div className="flex items-center gap-2">
-              <MaterialIcon name="verified" className="text-warm-gold" />
-              Premium Updates
-            </div>
-
-            <div className="flex items-center gap-2">
-              <MaterialIcon name="local_shipping" className="text-warm-gold" />
-              Early Product Access
-            </div>
-
-            <div className="flex items-center gap-2">
-              <MaterialIcon name="shield" className="text-warm-gold" />
-              No Spam Guarantee
-            </div>
-          </div>
-        </motion.div>
+        </div>
       </Container>
     </section>
   );
