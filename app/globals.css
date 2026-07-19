@@ -381,13 +381,22 @@ details > summary {
   animation-play-state: paused;
 }
 
+.testimonials-marquee {
+  animation: marqueeMove 45s linear infinite;
+  will-change: transform;
+}
+
+.testimonials-marquee:hover {
+  animation-play-state: paused;
+}
+
 @keyframes marqueeMove {
   0% {
     transform: translateX(0);
   }
 
   100% {
-    transform: translateX(calc(-50% - 1rem));
+    transform: translateX(-50%);
   }
 }
 

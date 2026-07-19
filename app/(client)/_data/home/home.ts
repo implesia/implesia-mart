@@ -1,4 +1,4 @@
-import { placeholderImage, products } from "../products/products";
+import { products } from "../products/products";
 
 export const SITE_NAME = "Implesia Mart";
 
@@ -117,31 +117,43 @@ export const organicHighlight = {
   cta: "সব প্রোডাক্ট দেখুন",
   ctaHref: "/products",
   bullets: [
-    { icon: "payments" as const, label: "ক্যাশ অন ডেলিভারি — আগে টাকা লাগবে না" },
-    { icon: "local_shipping" as const, label: "সারাদেশে দ্রুত ডেলিভারি" },
-    { icon: "verified" as const, label: "প্রতিটি প্রোডাক্ট কোয়ালিটি চেকড" },
-    { icon: "assignment_return" as const, label: "৩ দিনের ইজি রিটার্ন" },
+    {
+      icon: "payments" as const,
+      label: "ক্যাশ অন ডেলিভারি — আগে টাকা লাগবে না",
+      title: "ক্যাশ অন ডেলিভারি",
+      detail: "আগে টাকা লাগবে না — পণ্য হাতে পেয়ে পেমেন্ট",
+    },
+    {
+      icon: "local_shipping" as const,
+      label: "সারাদেশে দ্রুত ডেলিভারি",
+      title: "সারাদেশে ডেলিভারি",
+      detail: "ঢাকা ও জেলায় দ্রুত, নির্ভরযোগ্য শিপিং",
+    },
+    {
+      icon: "verified" as const,
+      label: "প্রতিটি প্রোডাক্ট কোয়ালিটি চেকড",
+      title: "কোয়ালিটি চেকড",
+      detail: "প্রতিটি প্রোডাক্ট যাচাই করে পাঠানো হয়",
+    },
+    {
+      icon: "assignment_return" as const,
+      label: "৩ দিনের ইজি রিটার্ন",
+      title: "৩ দিনের ইজি রিটার্ন",
+      detail: "সমস্যা হলে সহজেই রিটার্ন করতে পারবেন",
+    },
   ],
   images: [
     {
-      src: "/images/products/lamp/lamp-5.jpg",
-      alt: "কোয়ালিটি চেক করা সানসেট ল্যাম্প",
-      className: "h-64",
+      src: "/images/products/lamp/lamp-1.jpg",
+      alt: "সানসেট ল্যাম্প — মুড লাইটিং",
     },
     {
-      src: "/images/products/selfie-stand/stand-1.jpg",
-      alt: "ক্যাশ অন ডেলিভারিতে সেলফি স্ট্যান্ড",
-      className: "h-80 -mt-14",
+      src: "/images/products/selfie-stand/stand-3.jpg",
+      alt: "AI সেলফি স্ট্যান্ড",
     },
     {
-      src: "/images/products/earbuts/earbuts.jpg",
-      alt: "ট্রেন্ডিং গ্যাজেট — TWS ইয়ারবাড",
-      className: "h-80",
-    },
-    {
-      src: "/images/products/power-bank/power-bank.jpg",
-      alt: "দ্রুত ডেলিভারিতে পাওয়ার ব্যাংক",
-      className: "h-64",
+      src: "/images/products/lamp/lamp-2.jpg",
+      alt: "সানসেট ল্যাম্প ডিটেইল",
     },
   ],
 };
@@ -149,27 +161,75 @@ export const organicHighlight = {
 export const testimonials = [
   {
     id: "1",
+    rating: 5,
+    product: "সানসেট ল্যাম্প",
     quote:
-      "সানসেট ল্যাম্পটা অর্ডার করার পর থেকে রুমের পুরো লুকই বদলে গেছে। কালারগুলো এত সুন্দর, আর ক্যাশ অন ডেলিভারিতে পাওয়ায় নিশ্চিন্তে অর্ডার করেছিলাম।",
+      "রুমটা একদম অন্যরকম লাগে এখন। রাতে লাইট জ্বালালে কালারগুলো খুব সুন্দর। ক্যাশ অন ডেলিভারিতে নিয়ে দেখে টাকা দিয়েছি — কোনো ঝামেলা হয়নি।",
     name: "রাফিয়া আহমেদ",
-    role: "ভেরিফাইড কাস্টমার",
-    avatarSrc: placeholderImage("RA", "2bc0b5"),
+    location: "ধানমন্ডি, ঢাকা",
+    timeAgo: "২ সপ্তাহ আগে",
+    initials: "রা",
+    accent: "#2bc0b5",
   },
   {
     id: "2",
+    rating: 5,
+    product: "AI সেলফি স্ট্যান্ড",
     quote:
-      "এআই ট্র্যাকিং হোল্ডারটা কনটেন্ট বানানো অনেক সহজ করে দিয়েছে। ডেলিভারি দ্রুত পেয়েছি এবং প্রোডাক্টের কোয়ালিটি দামের তুলনায় অনেক ভালো।",
-    name: "তানভীর হোসেন",
-    role: "ভেরিফাইড কাস্টমার",
-    avatarSrc: placeholderImage("TH", "0d5c56"),
+      "রিলস বানানোর জন্য নিয়েছিলাম। মুখ ঘোরালেও ক্যামেরা ফলো করে, হাত ছাড়াই রেকর্ড করা যায়। ডেলিভারিও দ্রুত পেয়েছি।",
+    name: "তৌফিক হোসেন",
+    location: "মিরপুর, ঢাকা",
+    timeAgo: "১০ দিন আগে",
+    initials: "তৌ",
+    accent: "#0d5c56",
   },
   {
     id: "3",
+    rating: 4,
+    product: "সানসেট ল্যাম্প",
     quote:
-      "ফেসবুকে অ্যাড দেখে অর্ডার করেছিলাম, প্রথমে একটু সন্দেহ ছিল। কিন্তু প্রোডাক্ট হাতে পাওয়ার পর পুরো সন্তুষ্ট, এখন নিয়মিত কাস্টমার হয়ে গেছি।",
+      "ফেসবুক অ্যাড দেখে অর্ডার করেছিলাম, প্রথমে একটু ভয় ছিল। প্রোডাক্ট ভালোই — শুধু ক্যাবলটা একটু ছোট মনে হয়েছে। মোটের ওপর সন্তুষ্ট।",
     name: "সাদিয়া ইসলাম",
-    role: "ভেরিফাইড কাস্টমার",
-    avatarSrc: placeholderImage("SI", "4c5e7d"),
+    location: "চট্টগ্রাম",
+    timeAgo: "৩ সপ্তাহ আগে",
+    initials: "সা",
+    accent: "#4c5e7d",
+  },
+  {
+    id: "4",
+    rating: 5,
+    product: "AI সেলফি স্ট্যান্ড",
+    quote:
+      "অনলাইন ক্লাস নেই, তাই হোল্ডারটা কিনেছি। ব্লুটুথ রিমোট দিয়ে ছবি তোলাও সহজ। কোয়ালিটি দামের চেয়ে ভালো লেগেছে।",
+    name: "ইমরান খান",
+    location: "সিলেট",
+    timeAgo: "১ মাস আগে",
+    initials: "ইম",
+    accent: "#1a6b64",
+  },
+  {
+    id: "5",
+    rating: 5,
+    product: "সানসেট ল্যাম্প",
+    quote:
+      "বান্ধবীকে বার্থডে গিফট দিয়েছি। প্যাকেজিং সুন্দর ছিল, রিমোট দিয়ে কালার চেঞ্জ করতেও পছন্দ হয়েছে তার। আবার অর্ডার করব।",
+    name: "নুসরাত জাহান",
+    location: "উত্তরা, ঢাকা",
+    timeAgo: "৫ দিন আগে",
+    initials: "নু",
+    accent: "#c4870a",
+  },
+  {
+    id: "6",
+    rating: 4,
+    product: "AI সেলফি স্ট্যান্ড",
+    quote:
+      "ট্র্যাকিং স্পিড ভালো, স্ট্যান্ডও মজবুত। ব্যাটারি আর একটু বেশি চললে পারফেক্ট হতো। তবু রোজ ব্যবহার করি।",
+    name: "মাহি চৌধুরী",
+    location: "রাজশাহী",
+    timeAgo: "২ মাস আগে",
+    initials: "মা",
+    accent: "#3d6b8a",
   },
 ] as const;
 
