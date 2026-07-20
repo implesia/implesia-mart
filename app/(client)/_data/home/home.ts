@@ -1,4 +1,4 @@
-import { products } from "../products/products";
+import { categoryLabels, products } from "../products/products";
 
 export const SITE_NAME = "Implesia Mart";
 
@@ -122,24 +122,50 @@ export type BestSellingProduct = {
   slug: string;
   category: string;
   name: string;
-  price: string;
+  price: number;
+  compareAtPrice?: number;
+  unitLabel?: string;
   imageSrc: string;
   imageAlt: string;
-  favorite?: boolean;
+  badge?: "New" | "Best Seller" | "Limited";
   status: "available" | "coming-soon";
 };
 
-export const bestSellingProducts: BestSellingProduct[] = products.map((p) => ({
-  id: p.id,
-  slug: p.slug,
-  category: "ট্রেন্ডিং গ্যাজেট",
-  name: p.title,
-  price: p.status === "coming-soon" ? "Out of Stock" : `৳${p.price.toLocaleString("en-US")}`,
-  imageSrc: p.imageSrc,
-  imageAlt: p.imageAlt,
-  favorite: p.badge === "Best Seller",
-  status: p.status,
-}));
+/** Curated home carousel — available picks first, then upcoming gadgets. */
+const BEST_SELLING_SLUGS = [
+  "sunset-rainbow-projection-lamp",
+  "ai-face-tracking-phone-holder",
+  "custom-gorgeous-womens-gown",
+  "custom-baby-party-frock",
+  "baby-comfort-top-shorts-set",
+  "womens-daily-wear-dress",
+  "slim-power-bank-10000mah",
+  "tws-wireless-earbuds",
+  "mini-thermal-printer",
+  "smart-fitness-ring",
+  "magnetic-car-phone-holder",
+  "bluetooth-neckband-earphone",
+] as const;
+
+export const bestSellingProducts: BestSellingProduct[] = BEST_SELLING_SLUGS.map(
+  (slug) => {
+    const p = products.find((item) => item.slug === slug);
+    if (!p) throw new Error(`Missing product for home carousel: ${slug}`);
+    return {
+      id: p.id,
+      slug: p.slug,
+      category: categoryLabels[p.categoryId],
+      name: p.title,
+      price: p.price,
+      compareAtPrice: p.compareAtPrice,
+      unitLabel: p.unitLabel,
+      imageSrc: p.imageSrc,
+      imageAlt: p.imageAlt,
+      badge: p.badge,
+      status: p.status,
+    };
+  },
+);
 
 export const flashSale = {
   titleLines: ["৩৩% পর্যন্ত ছাড়ে", "সানসেট প্রজেকশন ল্যাম্প"],
