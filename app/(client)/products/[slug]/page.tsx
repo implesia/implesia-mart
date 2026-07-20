@@ -6,6 +6,7 @@ import { ProductDetailsTabs } from "../_components/product-details-tabs";
 import { ProductGallery } from "../_components/product-gallery";
 import { ProductInfo } from "../_components/product-info";
 import { ProductMobileBuyBar } from "../_components/product-mobile-buy-bar";
+import { ProductSupportPanel } from "../_components/product-support-panel";
 import { RelatedProducts } from "../_components/related-products";
 import { getProductDetailBySlug } from "../../_data/products/product-details";
 import { products } from "../../_data/products/products";
@@ -57,8 +58,8 @@ export default async function ProductDetailsPage({
     <main className="mx-auto max-w-7xl px-4 pt-24 pb-28 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32 lg:pb-16">
       <ProductBreadcrumbs items={product.breadcrumbs} />
 
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-16">
-        <div className="lg:col-span-7">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
+        <div className="space-y-6 lg:col-span-7 lg:space-y-8">
           <ProductGallery
             badge={
               product.status === "coming-soon"
@@ -69,6 +70,7 @@ export default async function ProductDetailsPage({
             }
             images={product.gallery}
           />
+          <ProductSupportPanel product={product} className="hidden lg:block" />
         </div>
         <div className="lg:col-span-5">
           <ProductInfo product={product} />

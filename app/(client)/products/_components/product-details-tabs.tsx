@@ -39,39 +39,57 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
     { value: "reviews", label: "রিভিউ", icon: "rate_review" },
   ];
 
-  const tabTriggerClass =
-    "relative z-10 h-auto flex-none cursor-pointer gap-2 rounded-xl border-transparent bg-transparent px-4 py-2.5 font-label-md text-on-surface-variant shadow-none after:hidden transition-colors duration-300 ease-out hover:text-on-surface data-active:bg-transparent data-active:text-primary data-active:shadow-none dark:data-active:bg-transparent dark:data-active:text-primary sm:flex-1 sm:px-5";
+  const tabTriggerClass = cn(
+    "relative z-10 !h-auto min-h-12 flex-1 cursor-pointer gap-2.5 rounded-xl border-transparent bg-transparent",
+    "px-4 py-3.5 font-label-md text-on-surface-variant shadow-none after:hidden",
+    "justify-center transition-colors duration-300 ease-out",
+    "hover:text-on-surface",
+    "data-active:bg-transparent data-active:text-primary data-active:shadow-none",
+    "dark:data-active:bg-transparent dark:data-active:text-primary",
+    "sm:min-h-14 sm:gap-3 sm:px-5 sm:py-4",
+  );
 
   return (
-    <section className="mt-xl">
+    <section className="mt-10 sm:mt-12 lg:mt-16">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsList className="h-auto w-max min-w-full justify-start gap-1 rounded-2xl border border-outline-variant/25 bg-surface-container-low p-1.5 text-on-surface-variant sm:w-full">
+        <div className="overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList
+            className={cn(
+              "!h-auto w-full min-w-max justify-stretch gap-1.5 rounded-2xl",
+              "group-data-horizontal/tabs:!h-auto group-data-horizontal/tabs:min-h-14",
+              "border border-outline-variant/30 bg-surface-container-low p-1.5",
+              "text-on-surface-variant sm:min-w-0 sm:min-h-16 sm:gap-2 sm:p-2",
+              "dark:border-white/10 dark:bg-surface-container",
+            )}
+          >
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerClass}>
                 {activeTab === tab.value ? (
                   <motion.span
                     layoutId="pdp-tab-pill"
-                    className="absolute inset-0 -z-10 rounded-xl bg-surface-container-lowest shadow-sm ring-1 ring-outline-variant/20 dark:bg-surface-container-highest"
+                    className="absolute inset-0 -z-10 rounded-xl bg-surface-container-lowest shadow-sm ring-1 ring-outline-variant/20 dark:bg-surface-container-highest dark:ring-white/10"
                     transition={{ type: "spring", stiffness: 380, damping: 34 }}
                   />
                 ) : null}
                 <MaterialIcon
                   name={tab.icon}
                   className={cn(
-                    "text-[18px] transition-colors duration-300",
+                    "text-[18px] sm:text-[20px] transition-colors duration-300",
                     activeTab === tab.value ? "text-primary" : "text-outline",
                   )}
                 />
-                {tab.label}
+                <span className="whitespace-nowrap text-xs sm:text-sm">{tab.label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
         </div>
       </Tabs>
 
-      <div className="pt-10" role="tabpanel" aria-label={tabs.find((t) => t.value === activeTab)?.label}>
-        <AnimatePresence mode="wait">
+      <div
+        className="pt-6 sm:pt-8 lg:pt-10"
+        role="tabpanel"
+        aria-label={tabs.find((t) => t.value === activeTab)?.label}
+      >        <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, y: 12 }}

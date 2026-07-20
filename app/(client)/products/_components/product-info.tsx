@@ -6,12 +6,12 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { useCart } from "../../_providers/cart-provider";
+import { ProductSupportPanel } from "./product-support-panel";
 
 function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
@@ -122,23 +122,6 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         ))}
       </div>
 
-      {product.materialDetails?.length ? (
-        <div className="mb-8">
-          <label className="mb-4 block font-label-md text-on-background">স্পেসিফিকেশন</label>
-          <div className="grid grid-cols-2 gap-4">
-            {product.materialDetails.slice(0, 4).map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4"
-              >
-                <span className="mb-1 block text-label-sm text-outline">{item.label}</span>
-                <span className="font-label-md text-on-surface">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       {product.suitableFor?.length ? (
         <div className="mb-8">
           <label className="mb-3 block font-label-md text-on-background">কার জন্য উপযোগী</label>
@@ -203,7 +186,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             </div>
           </div>
 
-          <div className="mb-10 flex flex-col gap-4">
+          <div className="mb-8 flex flex-col gap-4 lg:mb-0">
             <Button
               type="button"
               onClick={handleAddToCart}
@@ -227,19 +210,8 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </>
       )}
 
-      <Separator className="my-6 bg-outline-variant/30" />
-
-      <div className="space-y-4">
-        {product.delivery.map((d) => (
-          <div key={d.title} className="flex items-start gap-4">
-            <MaterialIcon name={d.icon} className="text-primary" />
-            <div>
-              <p className="font-label-md text-on-surface">{d.title}</p>
-              <p className="text-label-sm text-outline">{d.description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Mobile/tablet: keep support info after CTA so buy actions stay high */}
+      <ProductSupportPanel product={product} className="mt-8 lg:hidden" />
     </div>
   );
 }
