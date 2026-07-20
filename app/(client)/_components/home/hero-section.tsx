@@ -14,9 +14,6 @@ import { SITE_NAME, heroSlides, type HeroSlide } from "../../_data/home/home";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
-import "swiper/css";
-import "swiper/css/effect-fade";
-
 const AUTOPLAY_DELAY = 6500;
 const TRANSITION_SPEED = 750;
 const ease = [0.22, 1, 0.36, 1] as const;

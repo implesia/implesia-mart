@@ -12,9 +12,6 @@ import { cn } from "@/lib/utils";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { useCart } from "../../_providers/cart-provider";
 
-import "swiper/css";
-import "swiper/css/navigation";
-
 type RelatedProduct = {
   id: string;
   slug: string;

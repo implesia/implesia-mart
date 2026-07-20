@@ -11,9 +11,6 @@ import { testimonials } from "../../_data/home/home";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
-import "swiper/css";
-import "swiper/css/navigation";
-
 function Stars({ value }: { value: number }) {
   return (
     <div className="flex gap-0.5" aria-label={`${value} স্টার`}>

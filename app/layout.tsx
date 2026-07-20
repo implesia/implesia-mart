@@ -1,6 +1,10 @@
 /* eslint-disable @next/next/no-page-custom-font */
 import type { Metadata } from "next";
 import "./globals.css";
+/* Load Swiper CSS with the root layout so carousels don’t FOUC before client chunks */
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/effect-fade";
 import { CartDrawer } from "./(client)/_components/cart/cart-drawer";
 import Header from "./(client)/_components/common/header";
 import Footer from "./(client)/_components/common/footer";

@@ -449,6 +449,7 @@ details > summary {
 /* Keep fade slides filling the aspect-ratio stage (prevents 0-height / overflow on mobile) */
 .hero-swiper-stage {
   overflow: hidden;
+  isolation: isolate;
 }
 
 .hero-swiper,
@@ -456,6 +457,25 @@ details > summary {
 .hero-swiper .swiper-slide {
   height: 100%;
   width: 100%;
+}
+
+/*
+  Before Swiper JS adds `.swiper-initialized`, slides stack in normal flow and
+  `fill` images expand to intrinsic size (looks like fullscreen flash on reload).
+  Hide siblings until init; first slide stays as a stable placeholder.
+*/
+.swiper:not(.swiper-initialized) {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.swiper:not(.swiper-initialized) .swiper-slide:not(:first-child) {
+  display: none !important;
+}
+
+/* Constrain fill images if a parent briefly has no height */
+img[data-nimg="fill"] {
+  max-width: 100%;
 }
 
 /*

@@ -13,9 +13,6 @@ import { bestSellingProducts } from "../../_data/home/home";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
 
-import "swiper/css";
-import "swiper/css/navigation";
-
 function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
 }
