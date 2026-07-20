@@ -173,7 +173,13 @@
 }
 
 .product-zoom:hover img {
-  transform: scale(1.1);
+  transform: scale(1.05);
+}
+
+@media (hover: none) {
+  .product-zoom:hover img {
+    transform: none;
+  }
 }
 
 .pb-safe {

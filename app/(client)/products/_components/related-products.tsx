@@ -33,29 +33,31 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
   if (!items.length) return null;
 
   return (
-    <section className="mt-xl">
-      <div className="mb-8 flex items-center justify-between gap-3 sm:mb-10">
-        <h2 className="font-headline-md">আরও দেখুন</h2>
-        <div className="flex gap-2">
+    <section className="mt-10 sm:mt-12 lg:mt-16">
+      <div className="mb-5 flex items-center justify-between gap-3 sm:mb-8 lg:mb-10">
+        <h2 className="text-xl font-semibold tracking-tight text-on-background sm:text-2xl lg:text-3xl">
+          আরও দেখুন
+        </h2>
+        <div className="flex gap-1.5 sm:gap-2">
           <Button
             ref={prevRef}
             type="button"
             variant="outline"
-            size="icon-lg"
-            className="rounded-full border-outline-variant/30 hover:bg-surface-container"
+            size="icon"
+            className="size-9 rounded-full border-outline-variant/30 hover:bg-surface-container sm:size-10"
             aria-label="আগের প্রোডাক্ট"
           >
-            <MaterialIcon name="west" />
+            <MaterialIcon name="west" className="text-[18px]" />
           </Button>
           <Button
             ref={nextRef}
             type="button"
             variant="outline"
-            size="icon-lg"
-            className="rounded-full border-outline-variant/30 hover:bg-surface-container"
+            size="icon"
+            className="size-9 rounded-full border-outline-variant/30 hover:bg-surface-container sm:size-10"
             aria-label="পরের প্রোডাক্ট"
           >
-            <MaterialIcon name="east" />
+            <MaterialIcon name="east" className="text-[18px]" />
           </Button>
         </div>
       </div>
@@ -109,27 +111,27 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
           return (
             <SwiperSlide key={p.id} className="!h-auto">
               <Link href={`/products/${p.slug}`} className="group block h-full">
-                <div className="relative mb-4 aspect-3/4 overflow-hidden rounded-2xl bg-surface-container-low shadow-sm transition-all duration-500 group-hover:shadow-xl">
+                <div className="relative mb-3 aspect-3/4 overflow-hidden rounded-xl bg-surface-container-low shadow-sm transition-all duration-500 group-hover:shadow-xl sm:mb-4 sm:rounded-2xl">
                   <Image
                     src={p.imageSrc}
                     alt={p.imageAlt}
                     fill
                     className={cn(
-                      "object-contain p-4 transition-transform duration-700 group-hover:scale-105",
-                      isComingSoon && "opacity-60 grayscale-[35%]",
+                      "object-contain p-3 transition-transform duration-700 group-hover:scale-105 sm:p-4",
+                      isComingSoon && "opacity-60 grayscale-35",
                     )}
-                    sizes="(max-width: 768px) 70vw, 25vw"
+                    sizes="(max-width: 640px) 70vw, (max-width: 1024px) 40vw, 25vw"
                   />
                   {isComingSoon ? (
-                    <span className="absolute top-4 left-4 rounded-full bg-on-surface/80 px-3 py-1 text-[10px] tracking-widest text-white uppercase">
+                    <span className="absolute top-3 left-3 rounded-full bg-on-surface/80 px-2.5 py-1 text-[9px] tracking-widest text-white uppercase sm:top-4 sm:left-4 sm:px-3 sm:text-[10px]">
                       Out of Stock
                     </span>
                   ) : (
                     <Button
                       type="button"
-                      size="icon-lg"
+                      size="icon"
                       className={cn(
-                        "absolute bottom-4 right-4 size-12 translate-y-12 rounded-full bg-white shadow-lg opacity-0 transition-all duration-300",
+                        "absolute right-3 bottom-3 size-10 translate-y-10 rounded-full bg-white shadow-lg opacity-0 transition-all duration-300 sm:right-4 sm:bottom-4 sm:size-12 sm:translate-y-12",
                         "group-hover:translate-y-0 group-hover:opacity-100",
                       )}
                       aria-label="কার্টে যুক্ত করুন"
@@ -143,8 +145,10 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                     </Button>
                   )}
                 </div>
-                <h3 className="mb-1 font-label-md text-on-surface">{p.title}</h3>
-                <p className="text-on-surface-variant">{p.priceLabel}</p>
+                <h3 className="mb-0.5 line-clamp-2 text-sm font-semibold text-on-surface sm:mb-1 sm:text-base">
+                  {p.title}
+                </h3>
+                <p className="text-sm text-on-surface-variant">{p.priceLabel}</p>
               </Link>
             </SwiperSlide>
           );

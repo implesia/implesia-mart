@@ -167,15 +167,15 @@ export const productMediaById = {
     },
   },
   "custom-baby-frock": {
-    primary: dress("baby-frock-with-baby.jpeg"),
+    // Single-product shots only — collage files break the PDP gallery on mobile.
+    primary: dress("baby-ground-frog-new.jpeg"),
     gallery: [
-      { src: dress("baby-frock-with-baby.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পরিহিত অবস্থায়" },
-      { src: dress("baby-ground-frog.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পিংক" },
+      { src: dress("baby-ground-frog-new.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পাফ স্লিভ ডিজাইন" },
+      { src: dress("baby-ground-frog.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পিংক ফ্লাওয়ার ডিটেইল" },
       { src: dress("baby-ground-frog-2.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — গ্লিটার ফিনিশ" },
       { src: dress("baby-ground-frog-3.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — বো ডিটেইল" },
-      { src: dress("baby-ground-frog-new.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পাফ স্লিভ ডিজাইন" },
-      { src: dress("baby-ground-frog-more.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — কালার অপশন" },
       { src: dress("baby-frock.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — গোল্ড বেল্ট ডিটেইল" },
+      { src: dress("baby-ground-frog-more.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — কালার অপশন" },
     ],
     authenticity: {
       src: dress("baby-ground-frog-3.jpeg"),

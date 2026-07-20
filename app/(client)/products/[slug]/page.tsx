@@ -43,7 +43,6 @@ export default async function ProductDetailsPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  // Next.js 16: dynamic route params are async.
   const { slug } = await params;
   const product = getProductDetailBySlug(slug);
   if (!product) return notFound();
@@ -55,11 +54,12 @@ export default async function ProductDetailsPage({
   };
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pt-24 pb-28 sm:px-6 sm:pt-28 lg:px-10 lg:pt-32 lg:pb-16">
+    <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 pt-20 pb-28 sm:px-6 sm:pt-24 sm:pb-32 lg:px-8 lg:pt-28 lg:pb-16 xl:px-10">
       <ProductBreadcrumbs items={product.breadcrumbs} />
 
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
-        <div className="space-y-6 lg:col-span-7 lg:space-y-8">
+      <div className="grid grid-cols-1 items-start gap-5 sm:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
+        {/* Mobile: gallery first. Desktop: left column */}
+        <div className="min-w-0 lg:col-span-7">
           <ProductGallery
             badge={
               product.status === "coming-soon"
@@ -70,9 +70,10 @@ export default async function ProductDetailsPage({
             }
             images={product.gallery}
           />
-          <ProductSupportPanel product={product} className="hidden lg:block" />
+          <ProductSupportPanel product={product} className="mt-6 hidden lg:mt-8 lg:block" />
         </div>
-        <div className="lg:col-span-5">
+
+        <div className="min-w-0 lg:col-span-5">
           <ProductInfo product={product} />
         </div>
       </div>

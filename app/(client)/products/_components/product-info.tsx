@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,6 +11,11 @@ import { cn } from "@/lib/utils";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { useCart } from "../../_providers/cart-provider";
+import {
+  getBuyQuantity,
+  setBuyQuantity,
+  subscribeBuyQuantity,
+} from "./buy-quantity-store";
 import { ProductSupportPanel } from "./product-support-panel";
 
 function formatPrice(value: number) {
@@ -27,9 +32,17 @@ const TRUST_BADGES = [
 export function ProductInfo({ product }: { product: ProductDetail }) {
   const router = useRouter();
   const { addItem } = useCart();
-  const [quantity, setQuantity] = useState(1);
+  const quantity = useSyncExternalStore(
+    subscribeBuyQuantity,
+    getBuyQuantity,
+    () => 1,
+  );
   const [justAdded, setJustAdded] = useState(false);
   const isComingSoon = product.status === "coming-soon";
+
+  useEffect(() => {
+    setBuyQuantity(1);
+  }, [product.slug]);
 
   function handleAddToCart() {
     const ok = addItem(product.slug, quantity, { openDrawer: true });
@@ -53,36 +66,38 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
 
   return (
     <div id="buy-box" className="flex flex-col">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="font-label-md tracking-[0.2em] text-primary uppercase">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <span className="text-[11px] font-semibold tracking-[0.12em] text-primary uppercase sm:text-sm sm:tracking-[0.18em]">
           {product.tagline}
         </span>
         {product.rating ? (
-          <div className="flex items-center gap-1 text-tertiary">
+          <div className="flex shrink-0 items-center gap-1 text-tertiary">
             <MaterialIcon name="star" filled className="text-sm" />
-            <span className="text-label-sm text-outline">
-              {product.rating.value.toFixed(1)} ({product.rating.count} রিভিউ)
+            <span className="text-[11px] text-outline sm:text-label-sm">
+              {product.rating.value.toFixed(1)} ({product.rating.count})
             </span>
           </div>
         ) : null}
       </div>
 
-      <h1 className="mb-4 font-display-lg text-on-background">{product.title}</h1>
+      <h1 className="mb-3 text-[1.625rem] leading-tight font-semibold tracking-tight text-on-background sm:mb-4 sm:text-[2rem] lg:text-[2.25rem] xl:text-[2.5rem]">
+        {product.title}
+      </h1>
 
-      <p className="mb-6 text-body-md leading-relaxed text-on-surface-variant">
+      <p className="mb-5 text-sm leading-relaxed text-on-surface-variant sm:mb-6 sm:text-base">
         {product.description}
       </p>
 
-      <div className="mb-6 flex flex-wrap items-baseline gap-3">
+      <div className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 sm:mb-6">
         {product.unitLabel ? (
-          <span className="text-sm text-muted-foreground">{product.unitLabel}</span>
+          <span className="text-xs text-muted-foreground sm:text-sm">{product.unitLabel}</span>
         ) : null}
-        <span className="font-headline-md text-on-background">
+        <span className="text-2xl font-semibold tracking-tight text-on-background sm:text-3xl">
           {formatPrice(product.price)}
         </span>
         {product.compareAtPrice ? (
           <>
-            <span className="text-lg text-muted-foreground line-through">
+            <span className="text-base text-muted-foreground line-through sm:text-lg">
               {formatPrice(product.compareAtPrice)}
             </span>
             {discountPct ? (
@@ -90,19 +105,22 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             ) : null}
           </>
         ) : null}
-        <span className="rounded-full bg-surface-container px-3 py-1 font-label-md text-outline">
+        <span className="rounded-full bg-surface-container px-2.5 py-1 text-[11px] font-semibold text-outline sm:px-3 sm:text-sm">
           {isComingSoon ? "প্রত্যাশিত মূল্য" : product.stockLabel}
         </span>
       </div>
 
       {product.keyFeatures?.length ? (
-        <ul className="mb-6 space-y-3">
+        <ul className="mb-5 space-y-2.5 sm:mb-6 sm:space-y-3">
           {product.keyFeatures.map((feature) => (
-            <li key={feature} className="flex items-start gap-3 text-body-md text-on-surface">
+            <li
+              key={feature}
+              className="flex items-start gap-2.5 text-sm text-on-surface sm:gap-3 sm:text-base"
+            >
               <MaterialIcon
                 name="check_circle"
                 filled
-                className="mt-0.5 shrink-0 text-[18px] text-primary"
+                className="mt-0.5 shrink-0 text-[16px] text-primary sm:text-[18px]"
               />
               {feature}
             </li>
@@ -110,26 +128,31 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </ul>
       ) : null}
 
-      <div className="mb-6 flex flex-wrap gap-x-6 gap-y-3 rounded-2xl bg-surface-container-low p-4">
+      <div className="mb-5 grid grid-cols-2 gap-2.5 rounded-xl bg-surface-container-low p-3 sm:mb-6 sm:gap-x-6 sm:gap-y-3 sm:rounded-2xl sm:p-4">
         {TRUST_BADGES.map((badge) => (
           <div
             key={badge.label}
-            className="flex items-center gap-2 text-sm text-on-surface-variant"
+            className="flex items-center gap-1.5 text-[11px] leading-snug text-on-surface-variant sm:gap-2 sm:text-sm"
           >
-            <MaterialIcon name={badge.icon} className="text-[20px] text-primary" />
-            {badge.label}
+            <MaterialIcon
+              name={badge.icon}
+              className="shrink-0 text-[18px] text-primary sm:text-[20px]"
+            />
+            <span>{badge.label}</span>
           </div>
         ))}
       </div>
 
       {product.suitableFor?.length ? (
-        <div className="mb-8">
-          <label className="mb-3 block font-label-md text-on-background">কার জন্য উপযোগী</label>
+        <div className="mb-6 sm:mb-8">
+          <label className="mb-2.5 block text-sm font-semibold text-on-background sm:mb-3">
+            কার জন্য উপযোগী
+          </label>
           <div className="flex flex-wrap gap-2">
             {product.suitableFor.map((item) => (
               <span
                 key={item}
-                className="rounded-full bg-surface-container px-3 py-1.5 text-label-sm text-on-surface-variant"
+                className="rounded-full bg-surface-container px-2.5 py-1 text-[11px] text-on-surface-variant sm:px-3 sm:py-1.5 sm:text-label-sm"
               >
                 {item}
               </span>
@@ -139,12 +162,12 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
       ) : null}
 
       {isComingSoon ? (
-        <div className="mb-8 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-6">
+        <div className="mb-6 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 sm:mb-8 sm:p-6">
           <div className="mb-3 flex items-center gap-2 text-primary">
             <MaterialIcon name="hourglass_top" />
-            <span className="font-label-md tracking-widest uppercase">কামিং সুন</span>
+            <span className="text-sm font-semibold tracking-widest uppercase">কামিং সুন</span>
           </div>
-          <p className="mb-5 text-body-md text-on-surface-variant">
+          <p className="mb-4 text-sm text-on-surface-variant sm:mb-5 sm:text-base">
             এই প্রোডাক্টটি শীঘ্রই স্টকে আসছে। আগে থেকে জানতে বা প্রি-বুকিংয়ে আগ্রহী হলে আমাদের সাথে
             যোগাযোগ করুন।
           </p>
@@ -152,7 +175,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             href="/contact-us"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "h-auto w-full rounded-full py-5 text-label-md shadow-xl",
+              "hidden h-auto w-full rounded-full py-4 text-sm shadow-xl lg:inline-flex lg:py-5",
             )}
           >
             <MaterialIcon name="chat" className="mr-2 text-[20px]" />
@@ -161,23 +184,25 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </div>
       ) : (
         <>
-          <div className="mb-6 flex items-center gap-4">
-            <label className="font-label-md text-on-background">পরিমাণ</label>
+          <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
+            <label className="text-sm font-semibold text-on-background">পরিমাণ</label>
             <div className="inline-flex items-center rounded-full border border-outline-variant/40">
               <button
                 type="button"
-                className="flex size-10 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="flex size-9 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40 sm:size-10"
+                onClick={() => setBuyQuantity(quantity - 1)}
                 disabled={quantity <= 1}
                 aria-label="পরিমাণ কমান"
               >
                 <MaterialIcon name="remove" className="text-[18px]" />
               </button>
-              <span className="w-10 text-center font-label-md text-on-surface">{quantity}</span>
+              <span className="w-9 text-center text-sm font-semibold text-on-surface sm:w-10">
+                {quantity}
+              </span>
               <button
                 type="button"
-                className="flex size-10 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40"
-                onClick={() => setQuantity((q) => Math.min(5, q + 1))}
+                className="flex size-9 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40 sm:size-10"
+                onClick={() => setBuyQuantity(quantity + 1)}
                 disabled={quantity >= 5}
                 aria-label="পরিমাণ বাড়ান"
               >
@@ -186,7 +211,8 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             </div>
           </div>
 
-          <div className="mb-8 flex flex-col gap-4 lg:mb-0">
+          {/* Desktop CTAs — mobile uses sticky buy bar */}
+          <div className="mb-0 hidden flex-col gap-3 lg:mb-0 lg:flex lg:gap-4">
             <Button
               type="button"
               onClick={handleAddToCart}
@@ -210,8 +236,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </>
       )}
 
-      {/* Mobile/tablet: keep support info after CTA so buy actions stay high */}
-      <ProductSupportPanel product={product} className="mt-8 lg:hidden" />
+      <ProductSupportPanel product={product} className="mt-6 sm:mt-8 lg:hidden" />
     </div>
   );
 }

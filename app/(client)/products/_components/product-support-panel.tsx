@@ -20,26 +20,26 @@ export function ProductSupportPanel({ product, className }: ProductSupportPanelP
       {specs.length ? (
         <section
           className={cn(
-            "rounded-2xl border border-outline-variant/35 bg-surface-container-lowest p-4 sm:p-5",
+            "rounded-xl border border-outline-variant/35 bg-surface-container-lowest p-3.5 sm:rounded-2xl sm:p-5",
             "dark:border-white/10 dark:bg-surface-container",
           )}
         >
-          <div className="mb-4 flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <MaterialIcon name={isFashion ? "checkroom" : "tune"} className="text-[18px]" />
+          <div className="mb-3 flex items-center gap-2 sm:mb-4">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary sm:size-8">
+              <MaterialIcon name={isFashion ? "checkroom" : "tune"} className="text-[16px] sm:text-[18px]" />
             </span>
             <h2 className="text-sm font-semibold text-on-surface sm:text-base">
               {isFashion ? "ফেব্রিক ও স্পেক" : "স্পেসিফিকেশন"}
             </h2>
           </div>
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
             {specs.map((item) => (
               <div
                 key={item.label}
-                className="rounded-xl bg-surface-container-low/90 px-3 py-3 dark:bg-background/35"
+                className="rounded-lg bg-surface-container-low/90 px-3 py-2.5 sm:rounded-xl sm:py-3 dark:bg-background/35"
               >
                 <p className="text-[11px] text-outline sm:text-label-sm">{item.label}</p>
-                <p className="mt-1 text-xs font-semibold leading-snug text-on-surface sm:text-sm">
+                <p className="mt-1 text-xs font-semibold leading-snug wrap-break-word text-on-surface sm:text-sm">
                   {item.value}
                 </p>
               </div>
