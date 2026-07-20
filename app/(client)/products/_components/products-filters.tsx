@@ -187,8 +187,8 @@ export function ProductsFilters({
   return (
     <aside
       className={cn(
-        "custom-scrollbar sticky top-24 hidden h-fit max-h-[calc(100vh-7rem)] w-60 shrink-0 overflow-y-auto xl:w-64 lg:block",
-        "rounded-2xl border border-outline-variant/35 bg-surface-container-lowest p-5",
+        "custom-scrollbar sticky top-24 hidden h-fit max-h-[calc(100vh-7rem)] w-56 shrink-0 overflow-y-auto xl:w-64 lg:block",
+        "rounded-2xl border border-outline-variant/35 bg-surface-container-lowest p-4 xl:p-5",
         "shadow-[0_8px_30px_rgba(6,47,44,0.04)] dark:border-white/10 dark:bg-surface-container dark:shadow-none",
         className,
       )}
@@ -210,16 +210,25 @@ export function ProductsMobileFilters({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[min(100%,20rem)] border-outline-variant/30 bg-surface-container-lowest p-0 dark:border-white/10 dark:bg-surface-container"
+        className="flex h-full w-[min(100%,20rem)] flex-col gap-0 border-outline-variant/30 bg-surface-container-lowest p-0 dark:border-white/10 dark:bg-surface-container"
       >
-        <SheetHeader className="border-b border-outline-variant/25 px-5 py-4 text-left dark:border-white/10">
+        <SheetHeader className="shrink-0 border-b border-outline-variant/25 px-4 py-4 text-left sm:px-5 dark:border-white/10">
           <SheetTitle className="text-on-surface">ফিল্টার</SheetTitle>
           <SheetDescription className="text-on-surface-variant">
             ক্যাটাগরি, দাম ও এভেইলেবিলিটি দিয়ে সীমিত করুন
           </SheetDescription>
         </SheetHeader>
-        <div className="custom-scrollbar overflow-y-auto px-5 py-5">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
           <FilterBody {...filterProps} />
+        </div>
+        <div className="shrink-0 border-t border-outline-variant/25 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-white/10">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          >
+            রেজাল্ট দেখুন
+          </button>
         </div>
       </SheetContent>
     </Sheet>

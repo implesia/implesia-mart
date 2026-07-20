@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 
 export default function ProductsPage() {
   return (
-    <main className="w-full pt-16 sm:pt-20">
-      <Container className="px-4 sm:px-6 lg:px-8">
-        <div className="w-full py-8 lg:py-10">
+    <main className="w-full overflow-x-hidden pt-16 sm:pt-20">
+      <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
+        <div className="w-full py-5 sm:py-8 lg:py-10">
           <ProductBreadcrumbs
             items={[{ label: "হোম", href: "/" }, { label: "সব প্রোডাক্ট" }]}
           />

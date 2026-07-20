@@ -51,15 +51,15 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <article
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-2xl",
+        "group relative flex h-full flex-col overflow-hidden rounded-xl sm:rounded-2xl",
         "bg-surface-container-lowest dark:bg-surface-container",
         "ring-1 ring-outline-variant/30 dark:ring-white/10",
-        "transition-[transform,box-shadow,ring-color] duration-300 ease-out",
-        "hover:-translate-y-1.5 hover:ring-primary/35",
-        "hover:shadow-[0_18px_44px_rgba(6,47,44,0.12)] dark:hover:shadow-[0_18px_44px_rgba(0,0,0,0.35)]",
+        "shadow-[0_4px_16px_rgba(6,47,44,0.03)] dark:shadow-none",
+        "transition-[box-shadow,ring-color] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "hover:ring-primary/30",
+        "hover:shadow-[0_12px_32px_rgba(6,47,44,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.28)]",
       )}
     >
-      {/* Media */}
       <Link
         href={`/products/${product.slug}`}
         className="relative block aspect-4/5 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
@@ -76,22 +76,21 @@ export function ProductCard({ product }: ProductCardProps) {
           alt={product.imageAlt}
           fill
           className={cn(
-            "relative z-[1] object-contain p-3 transition-transform duration-500 ease-out group-hover:scale-[1.04] sm:p-4",
+            "relative z-[1] object-contain p-2.5 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02] sm:p-3.5 md:p-4",
             isComingSoon && "opacity-55 grayscale-[40%]",
           )}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
         />
 
-        {/* Top badges */}
-        <div className="absolute top-2.5 left-2.5 z-10 flex max-w-[calc(100%-1.25rem)] flex-wrap gap-1.5">
+        <div className="absolute top-2 left-2 z-10 flex max-w-[calc(100%-2.75rem)] flex-wrap gap-1 sm:top-2.5 sm:left-2.5 sm:gap-1.5">
           {isComingSoon ? (
-            <span className="rounded-full bg-on-surface/85 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white uppercase backdrop-blur-sm">
+            <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white uppercase backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
               কামিং সুন
             </span>
           ) : product.badge ? (
             <span
               className={cn(
-                "rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase shadow-sm",
+                "rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-wide uppercase shadow-sm sm:px-2.5 sm:py-1 sm:text-[10px]",
                 product.badge === "Best Seller"
                   ? "bg-warm-gold text-on-surface"
                   : "bg-primary text-on-primary",
@@ -103,32 +102,31 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {discountPct ? (
-          <span className="absolute top-2.5 right-2.5 z-10 rounded-full bg-red-500 px-2 py-1 text-[10px] font-bold text-white shadow-sm">
+          <span className="absolute top-2 right-2 z-10 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm sm:top-2.5 sm:right-2.5 sm:px-2 sm:py-1 sm:text-[10px]">
             -{discountPct}%
           </span>
         ) : null}
 
-        {/* Bottom media cue */}
-        <div className="absolute inset-x-0 bottom-0 z-10 bg-linear-to-t from-black/45 via-black/10 to-transparent px-2.5 pb-2.5 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:px-3 sm:pb-3">
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-on-surface shadow-sm dark:bg-surface-container/95 dark:text-on-surface">
+        {/* Desktop hover cue only — touch devices use the card CTA */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 hidden bg-linear-to-t from-black/40 via-black/8 to-transparent px-3 pb-3 pt-8 opacity-0 transition-opacity duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-100 md:block">
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-on-surface shadow-sm dark:bg-surface-container/95">
             <MaterialIcon name="visibility" className="text-[14px] text-primary" />
             বিস্তারিত দেখুন
           </span>
         </div>
       </Link>
 
-      {/* Content */}
-      <div className="flex flex-1 flex-col gap-2.5 p-3.5 sm:gap-3 sm:p-4">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary sm:text-[11px]">
+      <div className="flex flex-1 flex-col gap-2 p-2.5 sm:gap-2.5 sm:p-3.5 md:gap-3 md:p-4">
+        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary sm:px-2 sm:text-[10px] md:text-[11px]">
             {categoryLabels[product.categoryId]}
           </span>
           {isFashion ? (
-            <span className="rounded-full bg-warm-gold/15 px-2 py-0.5 text-[10px] font-semibold text-on-surface sm:text-[11px]">
+            <span className="rounded-full bg-warm-gold/15 px-1.5 py-0.5 text-[9px] font-semibold text-on-surface sm:px-2 sm:text-[10px] md:text-[11px]">
               হাতে তৈরি
             </span>
           ) : (
-            <span className="rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-medium text-on-surface-variant sm:text-[11px] dark:bg-background/40">
+            <span className="rounded-full bg-surface-container px-1.5 py-0.5 text-[9px] font-medium text-on-surface-variant sm:px-2 sm:text-[10px] md:text-[11px] dark:bg-background/40">
               COD
             </span>
           )}
@@ -136,27 +134,27 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <div className="min-w-0">
           <Link href={`/products/${product.slug}`} className="block">
-            <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-on-surface transition-colors group-hover:text-primary sm:text-[15px]">
+            <h3 className="line-clamp-2 text-[13px] font-semibold leading-snug text-on-surface transition-colors group-hover:text-primary sm:text-sm md:text-[15px]">
               {product.title}
             </h3>
           </Link>
-          <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-on-surface-variant">
+          <p className="mt-0.5 line-clamp-1 text-[11px] leading-relaxed text-on-surface-variant sm:mt-1 sm:text-xs">
             {product.subtitle}
           </p>
         </div>
 
-        <div className="mt-auto space-y-3 pt-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <div className="mt-auto space-y-2 pt-0.5 sm:space-y-2.5 sm:pt-1 md:space-y-3">
+          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 sm:gap-x-2">
             {product.unitLabel ? (
-              <span className="text-[11px] font-medium text-on-surface-variant">
+              <span className="text-[10px] font-medium text-on-surface-variant sm:text-[11px]">
                 {product.unitLabel}
               </span>
             ) : null}
-            <span className="text-lg font-bold tabular-nums text-primary sm:text-xl">
+            <span className="text-base font-bold tabular-nums text-primary sm:text-lg md:text-xl">
               {formatPrice(product.price)}
             </span>
             {product.compareAtPrice ? (
-              <span className="text-xs tabular-nums text-on-surface-variant line-through">
+              <span className="text-[11px] tabular-nums text-on-surface-variant line-through sm:text-xs">
                 {formatPrice(product.compareAtPrice)}
               </span>
             ) : null}
@@ -166,30 +164,34 @@ export function ProductCard({ product }: ProductCardProps) {
             <Link
               href={`/products/${product.slug}`}
               className={cn(
-                "inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-semibold",
+                "inline-flex h-9 w-full items-center justify-center gap-1 rounded-lg text-xs font-semibold sm:h-10 sm:gap-1.5 sm:rounded-xl sm:text-sm",
                 "border border-outline-variant/40 text-primary",
                 "transition-colors hover:border-primary/40 hover:bg-primary/5",
                 "dark:border-white/12",
               )}
             >
-              বিস্তারিত দেখুন
-              <MaterialIcon name="arrow_forward" className="text-[16px]" />
+              <span className="sm:hidden">বিস্তারিত</span>
+              <span className="hidden sm:inline">বিস্তারিত দেখুন</span>
+              <MaterialIcon name="arrow_forward" className="text-[14px] sm:text-[16px]" />
             </Link>
           ) : (
             <Button
               type="button"
               onClick={handleAddToCart}
               className={cn(
-                "h-10 w-full rounded-xl text-sm font-semibold shadow-sm",
-                "transition-transform active:scale-[0.98]",
+                "h-9 w-full rounded-lg text-xs font-semibold shadow-sm sm:h-10 sm:rounded-xl sm:text-sm",
+                "transition-transform duration-200 ease-out active:scale-[0.99]",
                 justAdded && "bg-primary/90",
               )}
             >
               <MaterialIcon
                 name={justAdded ? "check_circle" : "add_shopping_cart"}
-                className="mr-1.5 text-[18px]"
+                className="mr-1 text-[16px] sm:mr-1.5 sm:text-[18px]"
               />
-              {justAdded ? "যোগ হয়েছে" : "কার্টে যোগ করুন"}
+              <span className="sm:hidden">{justAdded ? "যোগ" : "কার্টে"}</span>
+              <span className="hidden sm:inline">
+                {justAdded ? "যোগ হয়েছে" : "কার্টে যোগ করুন"}
+              </span>
             </Button>
           )}
         </div>

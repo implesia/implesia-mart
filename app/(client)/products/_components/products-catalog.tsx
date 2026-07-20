@@ -1,8 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  clampPage,
+  DEFAULT_PAGE_SIZE,
+  getPageRangeMeta,
+  getTotalPages,
+  paginateItems,
+} from "@/lib/pagination";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { Pagination } from "../../_components/common/pagination";
 import {
   categoryLabels,
   PRICE_FILTER_MAX,
@@ -18,6 +27,8 @@ import { ProductsToolbar } from "./products-toolbar";
 
 type SortId = (typeof productFilters.sortOptions)[number]["id"];
 type AvailabilityId = ProductStatus;
+
+const PRODUCTS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function sortProducts(list: Product[], sort: SortId): Product[] {
   const next = [...list];
@@ -60,6 +71,8 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
   const [categories, setCategories] = useState<ProductCategoryId[]>(allCategoryIds);
   const [sort, setSort] = useState<SortId>("popularity");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const catalogTopRef = useRef<HTMLElement | null>(null);
 
   const filteredProducts = useMemo(() => {
     const [minPrice, maxPrice] = priceRange;
@@ -79,6 +92,29 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
 
     return sortProducts(matched, sort);
   }, [availability, categories, priceRange, products, sort]);
+
+  const totalPages = getTotalPages(filteredProducts.length, PRODUCTS_PAGE_SIZE);
+  const safePage = clampPage(page, totalPages);
+
+  const paginatedProducts = useMemo(
+    () => paginateItems(filteredProducts, safePage, PRODUCTS_PAGE_SIZE),
+    [filteredProducts, safePage],
+  );
+
+  const range = getPageRangeMeta(filteredProducts.length, safePage, PRODUCTS_PAGE_SIZE);
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [availability, categories, priceRange, sort]);
+
+  function handlePageChange(nextPage: number) {
+    setPage(nextPage);
+    catalogTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const toggleAvailability = (id: AvailabilityId) => {
     setAvailability((prev) =>
@@ -105,6 +141,7 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
     setAvailability(["available", "coming-soon"]);
     setCategories(allCategoryIds);
     setSort("popularity");
+    setPage(1);
   };
 
   const filterControls = {
@@ -118,15 +155,19 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
   };
 
   const totalLabel =
-    filteredProducts.length === products.length
-      ? `সব ${filteredProducts.length}টি পণ্য দেখানো হচ্ছে`
-      : `${filteredProducts.length}টি পণ্য দেখানো হচ্ছে (মোট ${products.length}টি)`;
+    filteredProducts.length === 0
+      ? "কোনো পণ্য পাওয়া যায়নি"
+      : filteredProducts.length === products.length
+        ? `${range.start}–${range.end} দেখানো হচ্ছে (মোট ${range.total}টি)`
+        : `${range.start}–${range.end} দেখানো হচ্ছে (ফিল্টারড ${range.total}টি / মোট ${products.length}টি)`;
+
+  const paginationSummary = `${range.start}–${range.end} দেখানো হচ্ছে · মোট ${range.total}টি`;
 
   const pageTitle =
     categories.length === 1 ? categoryLabels[categories[0]] : "সব প্রোডাক্ট";
 
   return (
-    <div className="flex w-full gap-6 lg:gap-8">
+    <div className="flex w-full flex-col gap-0 lg:flex-row lg:items-start lg:gap-7 xl:gap-8">
       <ProductsFilters {...filterControls} />
       <ProductsMobileFilters
         open={mobileFiltersOpen}
@@ -134,7 +175,7 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
         {...filterControls}
       />
 
-      <section className="min-w-0 flex-1">
+      <section ref={catalogTopRef} className="min-w-0 w-full flex-1 scroll-mt-20 sm:scroll-mt-24">
         <ProductsToolbar
           title={pageTitle}
           totalLabel={totalLabel}
@@ -146,13 +187,25 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
         />
 
         {filteredProducts.length > 0 ? (
-          <ProductsGrid products={filteredProducts} />
+          <>
+            <ProductsGrid products={paginatedProducts} />
+            <Pagination
+              className="mt-8 sm:mt-10"
+              page={safePage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              summary={paginationSummary}
+              ariaLabel="প্রোডাক্ট পেজিনেশন"
+            />
+          </>
         ) : (
-          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low px-6 py-16 text-center dark:border-white/10">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <MaterialIcon name="search_off" className="text-[28px]" />
+          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low px-4 py-12 text-center dark:border-white/10 sm:px-6 sm:py-16">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary sm:size-14">
+              <MaterialIcon name="search_off" className="text-[24px] sm:text-[28px]" />
             </div>
-            <p className="text-lg font-semibold text-on-background">কোনো পণ্য পাওয়া যায়নি</p>
+            <p className="text-base font-semibold text-on-background sm:text-lg">
+              কোনো পণ্য পাওয়া যায়নি
+            </p>
             <p className="mt-2 text-sm text-on-surface-variant">
               ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।
             </p>
