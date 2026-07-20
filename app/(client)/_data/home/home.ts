@@ -194,6 +194,11 @@ export const organicHighlight = {
   cta: "সব প্রোডাক্ট দেখুন",
   ctaHref: "/products",
   storeBadge: "কোয়ালিটি ভেরিফাইড স্টোর",
+  stats: [
+    { value: "৬৪", label: "জেলায় ডেলিভারি" },
+    { value: "COD", label: "ক্যাশ অন ডেলিভারি" },
+    { value: "৩ দিন", label: "ইজি রিটার্ন" },
+  ],
   bullets: [
     {
       icon: "payments" as const,
@@ -220,18 +225,22 @@ export const organicHighlight = {
     {
       src: "/images/products/lamp/lamp-5.jpg",
       alt: "সানসেট প্রজেকশন ল্যাম্প",
+      label: "বেস্ট সেলার",
     },
     {
-      src: "/images/products/selfie-stand/stand-1.jpg",
+      src: "/images/products/selfie-stand/stand-5.jpg",
       alt: "AI ফেস ট্র্যাকিং ফোন হোল্ডার",
+      label: "নতুন",
     },
     {
       src: "/images/products/baby-products/wedding-dress.jpeg",
       alt: "কাস্টম উইমেন্স গাউন",
+      label: "কাস্টম",
     },
     {
-      src: "/images/products/power-bank/power-bank.jpg",
-      alt: "স্লিম পাওয়ার ব্যাংক",
+      src: "/images/products/earbuts/earbuts.jpg",
+      alt: "TWS ওয়্যারলেস ইয়ারবাডস",
+      label: "গ্যাজেট",
     },
   ],
 };
