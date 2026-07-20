@@ -6,9 +6,9 @@ import { useSyncExternalStore } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { MaterialIcon } from "../common/material-icon";
-import { Container } from "../common/container";
 import { flashSale } from "../../_data/home/home";
+import { Container } from "../common/container";
+import { MaterialIcon } from "../common/material-icon";
 
 const SALE_DURATION_SEC = 8 * 60 * 60;
 const STORAGE_KEY = "implesia.flashSale.endsAt";
@@ -35,11 +35,11 @@ function subscribeToCountdown(onStoreChange: () => void) {
 
 function TimeUnit({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex min-w-17 flex-1 flex-col items-center rounded-xl border border-white/15 bg-white/10 px-2.5 py-2.5 backdrop-blur-sm sm:min-w-20 sm:flex-none sm:rounded-2xl sm:px-4 sm:py-3">
-      <span className="font-mono text-xl font-bold tabular-nums tracking-tight text-white sm:text-2xl md:text-3xl">
+    <div className="flex min-w-0 flex-1 flex-col items-center rounded-2xl border border-white/12 bg-white/10 px-2.5 py-2.5 backdrop-blur-md sm:min-w-[4.75rem] sm:flex-none sm:px-3.5 sm:py-3">
+      <span className="font-mono text-xl font-semibold tabular-nums tracking-tight text-white sm:text-2xl lg:text-[1.75rem]">
         {value}
       </span>
-      <span className="mt-0.5 text-[10px] font-semibold tracking-[0.12em] text-white/65 uppercase sm:text-[11px]">
+      <span className="mt-0.5 text-[10px] font-medium tracking-[0.14em] text-white/55 uppercase sm:text-[11px]">
         {label}
       </span>
     </div>
@@ -58,66 +58,99 @@ export function FlashSaleSection() {
   const seconds = String(timeLeft % 60).padStart(2, "0");
 
   return (
-    <section className="py-10 sm:py-14 lg:py-xl">
+    <section className="py-12 sm:py-14 lg:py-20">
       <Container className="px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            "relative grid overflow-hidden rounded-2xl sm:rounded-3xl lg:rounded-[1.75rem]",
+            "relative grid overflow-hidden rounded-[1.35rem] sm:rounded-[1.75rem]",
             "grid-cols-1 lg:grid-cols-12",
             "bg-[#062f2c] dark:bg-[#041f1d]",
             "ring-1 ring-black/10 dark:ring-primary/15",
-            "shadow-[0_20px_50px_rgba(6,47,44,0.18)] dark:shadow-[0_24px_56px_rgba(0,0,0,0.45)]",
+            "shadow-[0_24px_60px_-20px_rgba(6,47,44,0.35)]",
           )}
         >
-          {/* Soft glow accents */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_0%_0%,rgba(43,192,181,0.35),transparent_55%),radial-gradient(ellipse_60%_50%_at_40%_100%,rgba(245,179,1,0.12),transparent_50%)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/25 to-transparent" />
+          {/* Atmosphere */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_65%_at_0%_0%,rgba(43,192,181,0.32),transparent_55%),radial-gradient(ellipse_55%_50%_at_100%_100%,rgba(245,179,1,0.14),transparent_50%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
+          />
 
-          {/* Image — first on mobile for visual impact */}
-          <div className="relative order-1 flex min-h-[240px] w-full items-center justify-center bg-[#0a3d39] sm:min-h-[300px] lg:order-2 lg:col-span-6 lg:min-h-full">
-            <div className="relative aspect-4/3 w-full max-h-[320px] sm:max-h-[380px] lg:absolute lg:inset-0 lg:max-h-none lg:aspect-auto">
-              <Image
-                src={flashSale.imageSrc}
-                alt={flashSale.imageAlt}
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-contain object-center p-3 sm:p-5 lg:p-6"
-                priority={false}
-              />
+          {/* Product stage — first on mobile */}
+          <div className="relative order-1 flex min-h-[220px] items-center justify-center sm:min-h-[280px] lg:order-2 lg:col-span-6 lg:min-h-[420px]">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-[18%] rounded-full bg-[radial-gradient(circle,rgba(245,179,1,0.28),rgba(43,192,181,0.12)_45%,transparent_70%)] blur-2xl"
+            />
+            <div className="relative aspect-square w-[78%] max-w-[340px] sm:w-[70%] sm:max-w-[380px] lg:absolute lg:inset-8 lg:aspect-auto lg:w-auto lg:max-w-none xl:inset-10">
+              <div className="relative h-full w-full overflow-hidden rounded-[1.25rem] bg-white/5 ring-1 ring-white/10 backdrop-blur-[2px] sm:rounded-[1.5rem]">
+                <Image
+                  src={flashSale.imageSrc}
+                  alt={flashSale.imageAlt}
+                  fill
+                  sizes="(max-width: 1024px) 80vw, 42vw"
+                  className="object-contain object-center p-5 sm:p-7 lg:p-8"
+                />
+              </div>
             </div>
-            {/* Soft edge blend only — doesn't hide the product */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-16 bg-linear-to-r from-[#062f2c]/70 to-transparent lg:block" />
           </div>
 
           {/* Copy */}
-          <div className="relative order-2 z-10 flex flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:order-1 lg:col-span-6 lg:px-10 lg:py-12 xl:px-14 xl:py-14">
-            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-sm sm:mb-5">
-              <span className="size-2 animate-pulse rounded-full bg-warm-gold" />
-              <span className="text-[11px] font-semibold tracking-[0.18em] text-white uppercase sm:text-xs sm:tracking-[0.22em]">
+          <div className="relative order-2 z-10 flex flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:order-1 lg:col-span-6 lg:px-10 lg:py-12 xl:px-12 xl:py-14">
+            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/12 bg-white/10 px-3 py-1.5 backdrop-blur-md sm:mb-5">
+              <span className="size-1.5 animate-pulse rounded-full bg-warm-gold" />
+              <span className="text-[11px] font-semibold tracking-[0.16em] text-white/90 uppercase sm:text-xs">
                 {flashSale.badge}
               </span>
             </div>
 
-            <h2 className="mb-3 max-w-[16ch] text-[1.65rem] leading-snug font-bold text-white sm:mb-4 sm:max-w-none sm:text-[2.15rem] sm:leading-[1.15] lg:text-[2.35rem] xl:text-[2.6rem]">
-              <span className="block">{flashSale.titleLines[0]}</span>
-              <span className="mt-1 block text-white/95">{flashSale.titleLines[1]}</span>
-            </h2>
+            <p className="mb-2 text-xs font-medium tracking-wide text-primary-fixed/90 sm:text-sm">
+              {flashSale.eyebrow}
+            </p>
 
-            <p className="mb-6 max-w-md text-sm leading-relaxed text-white/70 sm:mb-8 sm:text-[0.95rem]">
+            <h2 className="mb-2 max-w-[18ch] text-[1.75rem] leading-[1.15] font-semibold tracking-tight text-white sm:mb-3 sm:max-w-none sm:text-4xl sm:leading-[1.12] lg:text-[2.45rem]">
+              {flashSale.title}
+            </h2>
+            <p className="mb-4 text-sm font-semibold text-warm-gold sm:text-base">
+              {flashSale.highlight}
+            </p>
+
+            <p className="mb-5 max-w-md text-sm leading-relaxed text-white/65 sm:mb-6 sm:text-[0.95rem]">
               {flashSale.description}
             </p>
 
+            {/* Price — typographic */}
+            <div className="mb-6 flex flex-wrap items-end gap-x-3 gap-y-1 sm:mb-7">
+              <span className="text-2xl font-semibold tabular-nums text-white sm:text-3xl">
+                {flashSale.priceLabel}
+              </span>
+              {flashSale.compareAtLabel ? (
+                <span className="pb-1 text-sm text-white/40 line-through tabular-nums sm:text-base">
+                  {flashSale.compareAtLabel}
+                </span>
+              ) : null}
+            </div>
+
             <div
-              className="mb-7 flex w-full max-w-sm items-stretch gap-2 sm:mb-9 sm:gap-3"
+              className="mb-6 flex w-full max-w-sm items-stretch gap-2 sm:mb-8 sm:gap-2.5"
               aria-live="polite"
               aria-label="অফার শেষ হতে বাকি সময়"
             >
               <TimeUnit value={hours} label="ঘণ্টা" />
-              <span className="hidden self-center text-xl font-bold text-white/35 sm:inline" aria-hidden>
+              <span
+                className="hidden self-center text-lg font-semibold text-white/30 sm:inline"
+                aria-hidden
+              >
                 :
               </span>
               <TimeUnit value={minutes} label="মিনিট" />
-              <span className="hidden self-center text-xl font-bold text-white/35 sm:inline" aria-hidden>
+              <span
+                className="hidden self-center text-lg font-semibold text-white/30 sm:inline"
+                aria-hidden
+              >
                 :
               </span>
               <TimeUnit value={seconds} label="সেকেন্ড" />
@@ -127,18 +160,23 @@ export function FlashSaleSection() {
               <Link
                 href={flashSale.ctaHref}
                 className={cn(
-                  "inline-flex w-full items-center justify-center rounded-full bg-white px-7 py-3.5 text-sm font-semibold tracking-wider text-[#062f2c] uppercase transition-all sm:w-auto sm:px-9 sm:py-4",
-                  "hover:bg-warm-gold hover:text-[#062f2c] hover:shadow-[0_12px_28px_rgba(245,179,1,0.35)]",
+                  "inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-7 text-sm font-semibold text-[#062f2c] transition-all sm:w-auto",
+                  "hover:bg-warm-gold hover:shadow-[0_12px_28px_rgba(245,179,1,0.3)]",
                   "active:scale-[0.98]",
                 )}
               >
                 {flashSale.cta}
                 <MaterialIcon name="arrow_forward" className="ml-2 text-[18px]" />
               </Link>
-              <p className="text-center text-xs text-white/55 sm:text-left">
-                ক্যাশ অন ডেলিভারি · সারাদেশে
-              </p>
+              <Link
+                href={flashSale.secondaryCta.href}
+                className="inline-flex h-12 w-full items-center justify-center rounded-full px-4 text-sm font-semibold text-white/80 transition-colors hover:text-white sm:w-auto"
+              >
+                {flashSale.secondaryCta.label}
+              </Link>
             </div>
+
+            <p className="mt-4 text-xs text-white/45 sm:mt-5">{flashSale.trustNote}</p>
           </div>
         </div>
       </Container>

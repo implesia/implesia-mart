@@ -168,65 +168,70 @@ export const bestSellingProducts: BestSellingProduct[] = BEST_SELLING_SLUGS.map(
 );
 
 export const flashSale = {
-  titleLines: ["৩৩% পর্যন্ত ছাড়ে", "সানসেট প্রজেকশন ল্যাম্প"],
+  eyebrow: "লিমিটেড অফার",
+  title: "সানসেট ল্যাম্পে এখনই ছাড়",
+  highlight: "৩৩% পর্যন্ত সেভ",
   description:
-    "সীমিত সময়ের অফার — ক্যাশ অন ডেলিভারিতে অর্ডার করুন, ঘরে বসেই পৌঁছে যাবে।",
-  badge: "লিমিটেড টাইম অফার",
-  cta: "এখনই কিনুন",
+    "সীমিত সময়ের অফার — ক্যাশ অন ডেলিভারিতে অর্ডার করুন, সারাদেশে ঘরে বসেই পৌঁছে যাবে।",
+  badge: "আজকের ডিল",
+  cta: "এখনই অর্ডার",
   ctaHref: `/products/${sunsetLamp.slug}`,
-  imageSrc: "/images/products/lamp/lamp-1.jpg",
-  imageAlt: "সানসেট প্রজেকশন ল্যাম্পের অ্যাম্বিয়েন্ট লাইট ইফেক্ট",
+  secondaryCta: { label: "বিস্তারিত দেখুন", href: `/products/${sunsetLamp.slug}` },
+  priceLabel: money(sunsetLamp.price),
+  compareAtLabel: sunsetLamp.compareAtPrice
+    ? money(sunsetLamp.compareAtPrice)
+    : undefined,
+  imageSrc: "/images/products/lamp/lamp-5.jpg",
+  imageAlt: sunsetLamp.imageAlt,
+  trustNote: "ক্যাশ অন ডেলিভারি · সারাদেশে",
 };
 
 export const organicHighlight = {
   kicker: "আমাদের প্রতিশ্রুতি",
   title: "কেন ইমপ্লেসিয়া মার্ট থেকে কিনবেন?",
   description:
-    "আমরা বিশ্বাস করি, সেরা শপিং এক্সপেরিয়েন্স মানে নিশ্চিন্তে অর্ডার করা। প্রতিটি প্রোডাক্ট মান যাচাই করে বাছাই করা হয়, ক্যাশ অন ডেলিভারিতে ঘরে বসেই পাবেন সারাদেশে, আর কোনো সমস্যা হলে সহজ রিটার্নের সুবিধাও থাকছে।",
+    "কোয়ালিটি চেকড প্রোডাক্ট, সারাদেশে ক্যাশ অন ডেলিভারি আর সহজ রিটার্ন — নিশ্চিন্তে অর্ডার করুন।",
   cta: "সব প্রোডাক্ট দেখুন",
   ctaHref: "/products",
+  storeBadge: "কোয়ালিটি ভেরিফাইড স্টোর",
   bullets: [
     {
       icon: "payments" as const,
-      label: "ক্যাশ অন ডেলিভারি — আগে টাকা লাগবে না",
       title: "ক্যাশ অন ডেলিভারি",
-      detail: "আগে টাকা লাগবে না — পণ্য হাতে পেয়ে পেমেন্ট",
+      detail: "হাতে পেয়ে যাচাই করে তারপর পেমেন্ট",
     },
     {
       icon: "local_shipping" as const,
-      label: "সারাদেশে দ্রুত ডেলিভারি",
       title: "সারাদেশে ডেলিভারি",
-      detail: "ঢাকা ও জেলায় দ্রুত, নির্ভরযোগ্য শিপিং",
+      detail: "ঢাকাসহ ৬৪ জেলায় নির্ভরযোগ্য শিপিং",
     },
     {
       icon: "verified" as const,
-      label: "প্রতিটি প্রোডাক্ট কোয়ালিটি চেকড",
       title: "কোয়ালিটি চেকড",
       detail: "প্রতিটি প্রোডাক্ট যাচাই করে পাঠানো হয়",
     },
     {
       icon: "assignment_return" as const,
-      label: "৩ দিনের ইজি রিটার্ন",
       title: "৩ দিনের ইজি রিটার্ন",
-      detail: "সমস্যা হলে সহজেই রিটার্ন করতে পারবেন",
+      detail: "সমস্যা হলে সহজেই রিটার্ন বা এক্সচেঞ্জ",
     },
   ],
   images: [
     {
-      src: "/images/products/lamp/lamp-1.jpg",
-      alt: "সানসেট ল্যাম্প — মুড লাইটিং",
+      src: "/images/products/lamp/lamp-5.jpg",
+      alt: "সানসেট প্রজেকশন ল্যাম্প",
     },
     {
-      src: "/images/products/selfie-stand/stand-3.jpg",
-      alt: "AI সেলফি স্ট্যান্ড",
+      src: "/images/products/selfie-stand/stand-1.jpg",
+      alt: "AI ফেস ট্র্যাকিং ফোন হোল্ডার",
     },
     {
-      src: "/images/products/lamp/lamp-2.jpg",
-      alt: "সানসেট ল্যাম্প ডিটেইল",
+      src: "/images/products/baby-products/wedding-dress.jpeg",
+      alt: "কাস্টম উইমেন্স গাউন",
     },
     {
-      src: "/images/products/selfie-stand/stand-2.jpg",
-      alt: "সেলফি স্ট্যান্ড সেটআপ",
+      src: "/images/products/power-bank/power-bank.jpg",
+      alt: "স্লিম পাওয়ার ব্যাংক",
     },
   ],
 };
@@ -240,45 +245,41 @@ export const testimonials = [
       "রুমটা একদম অন্যরকম লাগে এখন। রাতে লাইট জ্বালালে কালারগুলো খুব সুন্দর। ক্যাশ অন ডেলিভারিতে নিয়ে দেখে টাকা দিয়েছি — কোনো ঝামেলা হয়নি।",
     name: "রাফিয়া আহমেদ",
     location: "ধানমন্ডি, ঢাকা",
-    timeAgo: "২ সপ্তাহ আগে",
     initials: "রা",
-    accent: "#2bc0b5",
+    accent: "#0d9488",
   },
   {
     id: "2",
     rating: 5,
-    product: "AI সেলফি স্ট্যান্ড",
+    product: "AI ফোন হোল্ডার",
     quote:
       "রিলস বানানোর জন্য নিয়েছিলাম। মুখ ঘোরালেও ক্যামেরা ফলো করে, হাত ছাড়াই রেকর্ড করা যায়। ডেলিভারিও দ্রুত পেয়েছি।",
     name: "তৌফিক হোসেন",
     location: "মিরপুর, ঢাকা",
-    timeAgo: "১০ দিন আগে",
     initials: "তৌ",
-    accent: "#0d5c56",
+    accent: "#0f766e",
   },
   {
     id: "3",
-    rating: 4,
-    product: "সানসেট ল্যাম্প",
+    rating: 5,
+    product: "কাস্টম গাউন",
     quote:
-      "ফেসবুক অ্যাড দেখে অর্ডার করেছিলাম, প্রথমে একটু ভয় ছিল। প্রোডাক্ট ভালোই — শুধু ক্যাবলটা একটু ছোট মনে হয়েছে। মোটের ওপর সন্তুষ্ট।",
+      "বিয়ের অনুষ্ঠানের জন্য কাস্টম গাউন অর্ডার করেছিলাম। মাপ পারফেক্ট, এমব্রয়ডারিও সুন্দর। হোয়াটসঅ্যাপে ডিজাইন কনফার্ম করা সহজ ছিল।",
     name: "সাদিয়া ইসলাম",
     location: "চট্টগ্রাম",
-    timeAgo: "৩ সপ্তাহ আগে",
     initials: "সা",
-    accent: "#4c5e7d",
+    accent: "#b45309",
   },
   {
     id: "4",
     rating: 5,
-    product: "AI সেলফি স্ট্যান্ড",
+    product: "AI ফোন হোল্ডার",
     quote:
       "অনলাইন ক্লাস নেই, তাই হোল্ডারটা কিনেছি। ব্লুটুথ রিমোট দিয়ে ছবি তোলাও সহজ। কোয়ালিটি দামের চেয়ে ভালো লেগেছে।",
     name: "ইমরান খান",
     location: "সিলেট",
-    timeAgo: "১ মাস আগে",
     initials: "ইম",
-    accent: "#1a6b64",
+    accent: "#115e59",
   },
   {
     id: "5",
@@ -288,21 +289,19 @@ export const testimonials = [
       "বান্ধবীকে বার্থডে গিফট দিয়েছি। প্যাকেজিং সুন্দর ছিল, রিমোট দিয়ে কালার চেঞ্জ করতেও পছন্দ হয়েছে তার। আবার অর্ডার করব।",
     name: "নুসরাত জাহান",
     location: "উত্তরা, ঢাকা",
-    timeAgo: "৫ দিন আগে",
     initials: "নু",
     accent: "#c4870a",
   },
   {
     id: "6",
-    rating: 4,
-    product: "AI সেলফি স্ট্যান্ড",
+    rating: 5,
+    product: "বেবি পার্টি ফ্রক",
     quote:
-      "ট্র্যাকিং স্পিড ভালো, স্ট্যান্ডও মজবুত। ব্যাটারি আর একটু বেশি চললে পারফেক্ট হতো। তবু রোজ ব্যবহার করি।",
+      "মেয়ের জন্মদিনের জন্য কাস্টম ফ্রক করেছি। কালার ও ডিজাইন ঠিক যেমন চেয়েছিলাম। ডেলিভারি সময়মতো পেয়েছি।",
     name: "মাহি চৌধুরী",
     location: "রাজশাহী",
-    timeAgo: "২ মাস আগে",
     initials: "মা",
-    accent: "#3d6b8a",
+    accent: "#be185d",
   },
 ] as const;
 
