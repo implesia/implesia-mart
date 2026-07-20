@@ -11,6 +11,7 @@ type ProductSupportPanelProps = {
 export function ProductSupportPanel({ product, className }: ProductSupportPanelProps) {
   const specs = product.materialDetails?.slice(0, 4) ?? [];
   const delivery = product.delivery ?? [];
+  const isFashion = product.categoryId === "fashion";
 
   if (!specs.length && !delivery.length) return null;
 
@@ -25,9 +26,11 @@ export function ProductSupportPanel({ product, className }: ProductSupportPanelP
         >
           <div className="mb-4 flex items-center gap-2">
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <MaterialIcon name="tune" className="text-[18px]" />
+              <MaterialIcon name={isFashion ? "checkroom" : "tune"} className="text-[18px]" />
             </span>
-            <h2 className="text-sm font-semibold text-on-surface sm:text-base">স্পেসিফিকেশন</h2>
+            <h2 className="text-sm font-semibold text-on-surface sm:text-base">
+              {isFashion ? "ফেব্রিক ও স্পেক" : "স্পেসিফিকেশন"}
+            </h2>
           </div>
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {specs.map((item) => (

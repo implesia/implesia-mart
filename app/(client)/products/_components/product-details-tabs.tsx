@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
+import { ProductSpecifications } from "./product-specifications";
 
 function Stars({ value }: { value: number }) {
   return (
@@ -23,8 +24,6 @@ function Stars({ value }: { value: number }) {
 }
 
 export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
-  const materialDetails = product.materialDetails ?? [];
-  const whatsInBox = product.whatsInBox ?? [];
   const howToUse = product.howToUse ?? [];
   const suitableFor = product.suitableFor ?? [];
   const faqs = product.faqs ?? [];
@@ -204,42 +203,7 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
             ) : null}
 
             {activeTab === "specifications" ? (
-              <div className="space-y-10">
-                {whatsInBox.length ? (
-                  <div>
-                    <h3 className="mb-4 font-headline-sm text-on-background">বক্সে যা থাকবে</h3>
-                    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {whatsInBox.map((item) => (
-                        <li
-                          key={item}
-                          className="flex items-center gap-3 rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-body-md text-on-surface"
-                        >
-                          <MaterialIcon
-                            name="inventory_2"
-                            className="shrink-0 text-[20px] text-primary"
-                          />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-
-                <div>
-                  <h3 className="mb-4 font-headline-sm text-on-background">টেকনিক্যাল স্পেক</h3>
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    {materialDetails.map((item) => (
-                      <div
-                        key={item.label}
-                        className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-6"
-                      >
-                        <p className="text-label-sm text-outline">{item.label}</p>
-                        <p className="mt-1 font-label-md text-on-surface">{item.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <ProductSpecifications product={product} />
             ) : null}
 
             {activeTab === "faq" && faqs.length ? (
@@ -247,7 +211,7 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                 <div className="mb-6">
                   <h3 className="font-headline-sm text-on-background">সাধারণ জিজ্ঞাসা</h3>
                   <p className="mt-2 text-body-md text-on-surface-variant">
-                    অর্ডারের আগে যে প্রশ্নগুলো বেশি আসে।
+                    অর্ডার, ডেলিভারি, ব্যবহার ও কেয়ার — যে প্রশ্নগুলো বেশি আসে, তার উত্তর।
                   </p>
                 </div>
                 {faqs.map((faq) => (
