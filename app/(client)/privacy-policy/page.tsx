@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "গোপনীয়তা নীতি",
   description:
     "ইমপ্লেসিয়া মার্ট — আপনার ব্যক্তিগত তথ্য কীভাবে সংগ্রহ, ব্যবহার ও সুরক্ষিত রাখা হয় তা জানুন।",
+  alternates: { canonical: "/privacy-policy" },
 };
 
 export default function PrivacyPolicyPage() {

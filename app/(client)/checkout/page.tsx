@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
+
 import { CheckoutView } from "./_components/checkout-view";
+
+export const metadata: Metadata = {
+  title: "চেকআউট",
+  robots: { index: false, follow: true },
+};
 
 type CheckoutPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 import { WhatsAppIcon } from "../../_components/common/brand-icons";
 import { Container } from "../../_components/common/container";
+import { JsonLd } from "../../_components/common/json-ld";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { WHATSAPP_HREF } from "../../_data/contact/contact";
 import {
@@ -18,6 +19,7 @@ import {
 } from "../../_data/blogs/blogs";
 import { BlogContent } from "../_components/blog-content";
 import { BlogRelatedPosts, BlogRelatedProducts } from "../_components/blog-related";
+import { absoluteUrl, bengaliDateToIso, SITE_NAME } from "@/lib/seo";
 
 export function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }));
@@ -32,9 +34,29 @@ export async function generateMetadata({
   const post = getBlogPostBySlug(slug);
   if (!post) return { title: "ব্লগ" };
 
+  const url = `/blogs/${post.slug}`;
+
   return {
     title: post.title,
     description: post.excerpt,
+    keywords: post.tags,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      title: post.title,
+      description: post.excerpt,
+      images: [{ url: post.coverImage, alt: post.coverAlt, width: 1200, height: 675 }],
+      authors: [post.author],
+      publishedTime: bengaliDateToIso(post.publishedAt),
+      tags: post.tags,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+      images: [post.coverImage],
+    },
   };
 }
 
@@ -53,8 +75,39 @@ export default async function BlogDetailPage({
     .map((block, idx) => (block.type === "heading" ? { id: `section-${idx}`, text: block.text } : null))
     .filter(Boolean) as { id: string; text: string }[];
 
+  const postUrl = absoluteUrl(`/blogs/${post.slug}`);
+  const publishedIso = bengaliDateToIso(post.publishedAt);
+
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt,
+    image: [absoluteUrl(post.coverImage)],
+    author: { "@type": "Organization", name: post.author },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      logo: { "@type": "ImageObject", url: absoluteUrl("/images/common/logo.png") },
+    },
+    mainEntityOfPage: { "@type": "WebPage", "@id": postUrl },
+    ...(publishedIso ? { datePublished: publishedIso, dateModified: publishedIso } : {}),
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: "ব্লগ", item: absoluteUrl("/blogs") },
+      { "@type": "ListItem", position: 3, name: post.title, item: postUrl },
+    ],
+  };
+
   return (
     <main className="w-full overflow-x-hidden bg-background pt-16 text-on-surface sm:pt-20">
+      <JsonLd data={articleJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       {/* Article hero band */}
       <section className="w-full border-b border-outline-variant/25 bg-surface-container-low/40 dark:border-white/8 dark:bg-surface-container/40">
         <Container className="w-full px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">

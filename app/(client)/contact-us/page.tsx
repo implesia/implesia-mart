@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
+
 import { Container } from "../_components/common/container";
 import { ContactDetails } from "./_components/contact-details";
 import { ContactFaq } from "./_components/contact-faq";
 import { ContactForm } from "./_components/contact-form";
 import { ContactHero } from "./_components/contact-hero";
 import { ContactSupport } from "./_components/contact-support";
+
+export const metadata: Metadata = {
+  title: "যোগাযোগ করুন",
+  description:
+    "ইমপ্লেসিয়া মার্টের সাথে যোগাযোগ করুন — কল, হোয়াটসঅ্যাপ, ইমেইল বা মেসেজ ফর্মের মাধ্যমে অর্ডার, ডেলিভারি বা প্রোডাক্ট নিয়ে সাহায্য পান।",
+  alternates: { canonical: "/contact-us" },
+};
 
 export default function ContactUsPage() {
   return (
