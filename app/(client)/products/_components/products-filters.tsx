@@ -9,6 +9,7 @@ import {
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   productFilters,
+  type ProductCategoryId,
   type ProductStatus,
 } from "../../_data/products/products";
 
@@ -18,6 +19,8 @@ type ProductsFiltersProps = {
   onPriceRangeChange: (range: [number, number]) => void;
   availability: ProductStatus[];
   onAvailabilityToggle: (id: ProductStatus) => void;
+  categories: ProductCategoryId[];
+  onCategoryToggle: (id: ProductCategoryId) => void;
   onReset: () => void;
 };
 
@@ -32,6 +35,8 @@ export function ProductsFilters({
   onPriceRangeChange,
   availability,
   onAvailabilityToggle,
+  categories,
+  onCategoryToggle,
   onReset,
 }: ProductsFiltersProps) {
   return (
@@ -58,6 +63,39 @@ export function ProductsFilters({
       </div>
 
       <div className="flex flex-col gap-6">
+        <section>
+          <div className="mb-3 flex items-center gap-2 text-primary">
+            <MaterialIcon name="category" className="text-[20px]" />
+            <span className="text-xs font-semibold tracking-wider uppercase">ক্যাটাগরি</span>
+          </div>
+          <div className="space-y-2 px-1">
+            {productFilters.categories.map((option) => {
+              const checked = categories.includes(option.id);
+              return (
+                <label
+                  key={option.id}
+                  className="group flex cursor-pointer items-center gap-3"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => onCategoryToggle(option.id)}
+                  />
+                  <span
+                    className={cn(
+                      "text-sm transition-colors",
+                      checked
+                        ? "font-medium text-foreground"
+                        : "text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    {option.label}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </section>
+
         <section>
           <div className="mb-3 flex items-center gap-2 text-primary">
             <MaterialIcon name="payments" className="text-[20px]" />

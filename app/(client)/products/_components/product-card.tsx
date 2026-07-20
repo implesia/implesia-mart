@@ -112,6 +112,9 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{product.subtitle}</p>
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:gap-2">
+          {product.unitLabel ? (
+            <span className="text-xs text-muted-foreground">{product.unitLabel}</span>
+          ) : null}
           <span className="text-base font-bold text-primary sm:text-lg">
             {formatPrice(product.price)}
           </span>

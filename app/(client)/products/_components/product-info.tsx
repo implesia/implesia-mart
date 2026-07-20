@@ -74,6 +74,9 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
       </p>
 
       <div className="mb-6 flex flex-wrap items-baseline gap-3">
+        {product.unitLabel ? (
+          <span className="text-sm text-muted-foreground">{product.unitLabel}</span>
+        ) : null}
         <span className="font-headline-md text-on-background">
           {formatPrice(product.price)}
         </span>

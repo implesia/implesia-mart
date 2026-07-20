@@ -7,6 +7,7 @@ import {
   PRICE_FILTER_MIN,
   productFilters,
   type Product,
+  type ProductCategoryId,
   type ProductStatus,
 } from "../../_data/products/products";
 import { ProductsFilters } from "./products-filters";
@@ -53,6 +54,8 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
     "available",
     "coming-soon",
   ]);
+  const allCategoryIds = productFilters.categories.map((c) => c.id) as ProductCategoryId[];
+  const [categories, setCategories] = useState<ProductCategoryId[]>(allCategoryIds);
   const [sort, setSort] = useState<SortId>("popularity");
 
   const filteredProducts = useMemo(() => {
@@ -64,17 +67,20 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
           ? false
           : availability.includes(product.status);
 
+      const matchesCategory =
+        categories.length === 0 ? false : categories.includes(product.categoryId);
+
       const matchesMin = product.price >= minPrice;
       const matchesMax =
         maxPrice >= PRICE_FILTER_MAX
           ? true
           : product.price <= maxPrice;
 
-      return matchesAvailability && matchesMin && matchesMax;
+      return matchesAvailability && matchesCategory && matchesMin && matchesMax;
     });
 
     return sortProducts(matched, sort);
-  }, [availability, priceRange, products, sort]);
+  }, [availability, categories, priceRange, products, sort]);
 
   const toggleAvailability = (id: AvailabilityId) => {
     setAvailability((prev) =>
@@ -82,9 +88,16 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
     );
   };
 
+  const toggleCategory = (id: ProductCategoryId) => {
+    setCategories((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
   const resetFilters = () => {
     setPriceRange([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
     setAvailability(["available", "coming-soon"]);
+    setCategories(allCategoryIds);
     setSort("popularity");
   };
 
@@ -100,6 +113,8 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
         onPriceRangeChange={setPriceRange}
         availability={availability}
         onAvailabilityToggle={toggleAvailability}
+        categories={categories}
+        onCategoryToggle={toggleCategory}
         onReset={resetFilters}
       />
 

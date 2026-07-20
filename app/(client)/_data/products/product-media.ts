@@ -33,6 +33,7 @@ export type ProductMedia = {
 
 const lamp = (file: string) => `/images/products/lamp/${file}`;
 const stand = (file: string) => `/images/products/selfie-stand/${file}`;
+const dress = (file: string) => `/images/products/baby-products/${file}`;
 
 export const productMediaById = {
   "sunset-lamp": {
@@ -163,6 +164,56 @@ export const productMediaById = {
     authenticity: {
       src: "https://placehold.co/900x900/4c5e7d/ffffff.png?text=Galaxy%20Humidifier&font=roboto",
       alt: "গ্যালাক্সি হিউমিডিফায়ার — প্রিভিউ",
+    },
+  },
+  "custom-baby-frock": {
+    primary: dress("baby-frock-with-baby.jpeg"),
+    gallery: [
+      { src: dress("baby-frock-with-baby.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পরিহিত অবস্থায়" },
+      { src: dress("baby-ground-frog.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পিংক" },
+      { src: dress("baby-ground-frog-2.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — গ্লিটার ফিনিশ" },
+      { src: dress("baby-ground-frog-3.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — বো ডিটেইল" },
+      { src: dress("baby-ground-frog-new.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — পাফ স্লিভ ডিজাইন" },
+      { src: dress("baby-ground-frog-more.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — কালার অপশন" },
+      { src: dress("baby-frock.jpeg"), alt: "কাস্টম বেবি পার্টি ফ্রক — গোল্ড বেল্ট ডিটেইল" },
+    ],
+    authenticity: {
+      src: dress("baby-ground-frog-3.jpeg"),
+      alt: "নিজ হাতে তৈরি ও কোয়ালিটি চেক করা বেবি ফ্রক",
+    },
+  },
+  "womens-gorgeous-gown": {
+    primary: dress("wedding-dress.jpeg"),
+    gallery: [
+      {
+        src: dress("wedding-dress.jpeg"),
+        alt: "গর্জিয়াস উইমেন্স গাউন — এমব্রয়ডারি ডিটেইল",
+      },
+    ],
+    authenticity: {
+      src: dress("wedding-dress.jpeg"),
+      alt: "নিজ হাতে তৈরি ও কোয়ালিটি চেক করা উইমেন্স গাউন",
+    },
+  },
+  "baby-jama-pant-set": {
+    primary: dress("baby-jama-pant.jpeg"),
+    gallery: [
+      { src: dress("baby-jama-pant.jpeg"), alt: "বেবি কমফোর্ট টপ-শর্ট সেট — কালার অপশন" },
+    ],
+    authenticity: {
+      src: dress("baby-jama-pant.jpeg"),
+      alt: "নিজ হাতে তৈরি ও কোয়ালিটি চেক করা টপ-শর্ট সেট",
+    },
+  },
+  "baby-daily-frock": {
+    primary: dress("3-quater-ground-frog.jpeg"),
+    gallery: [
+      { src: dress("3-quater-ground-frog.jpeg"), alt: "উইমেন্স ডেইলি ওয়্যার ড্রেস — পীচ কালার" },
+      { src: dress("3-quater-ground-frog2.jpeg"), alt: "উইমেন্স ডেইলি ওয়্যার ড্রেস — রাস্ট কালার" },
+    ],
+    authenticity: {
+      src: dress("3-quater-ground-frog.jpeg"),
+      alt: "নিজ হাতে তৈরি ও কোয়ালিটি চেক করা উইমেন্স ডেইলি ওয়্যার ড্রেস",
     },
   },
 } as const satisfies Record<string, ProductMedia>;

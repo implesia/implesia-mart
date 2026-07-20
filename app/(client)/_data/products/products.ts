@@ -2,6 +2,7 @@ import { getProductMedia, type ProductMediaId } from "./product-media";
 
 export type ProductBadge = "New" | "Best Seller" | "Limited";
 export type ProductStatus = "available" | "coming-soon";
+export type ProductCategoryId = "gadgets" | "fashion";
 
 export type Product = {
   id: ProductMediaId;
@@ -15,7 +16,12 @@ export type Product = {
   imageAlt: string;
   badge?: ProductBadge;
   status: ProductStatus;
-  categoryId: "gadgets";
+  categoryId: ProductCategoryId;
+};
+
+export const categoryLabels: Record<ProductCategoryId, string> = {
+  gadgets: "ট্রেন্ডিং গ্যাজেট",
+  fashion: "গর্জিয়াস ড্রেস",
 };
 
 /**
@@ -140,13 +146,58 @@ export const products: Product[] = [
     status: "coming-soon",
     categoryId: "gadgets",
   }),
+  withMedia("custom-baby-frock", {
+    slug: "custom-baby-party-frock",
+    title: "কাস্টম বেবি পার্টি ফ্রক",
+    subtitle: "হাতে তৈরি | কাস্টম ডিজাইন ও কালার",
+    price: 1450,
+    unitLabel: "শুরু",
+    imageAlt: "হাতে তৈরি বেবি পার্টি ফ্রক",
+    badge: "New",
+    status: "available",
+    categoryId: "fashion",
+  }),
+  withMedia("womens-gorgeous-gown", {
+    slug: "custom-gorgeous-womens-gown",
+    title: "গর্জিয়াস উইমেন্স গাউন",
+    subtitle: "হাতে তৈরি | কাস্টম এমব্রয়ডারি গাউন",
+    price: 6500,
+    unitLabel: "শুরু",
+    imageAlt: "হাতে তৈরি গর্জিয়াস উইমেন্স গাউন",
+    badge: "New",
+    status: "available",
+    categoryId: "fashion",
+  }),
+  withMedia("baby-jama-pant-set", {
+    slug: "baby-comfort-top-shorts-set",
+    title: "বেবি কমফোর্ট টপ-শর্ট সেট",
+    subtitle: "হাতে তৈরি | নরম কটন-লিনেন ডেইলি সেট",
+    price: 550,
+    unitLabel: "শুরু",
+    imageAlt: "হাতে তৈরি বেবি কমফোর্ট টপ-শর্ট সেট",
+    status: "available",
+    categoryId: "fashion",
+  }),
+  withMedia("baby-daily-frock", {
+    slug: "womens-daily-wear-dress",
+    title: "উইমেন্স ডেইলি ওয়্যার ড্রেস",
+    subtitle: "হাতে তৈরি | নিত্যদিনের আরামদায়ক ড্রেস",
+    price: 950,
+    unitLabel: "শুরু",
+    imageAlt: "হাতে তৈরি উইমেন্স ডেইলি ওয়্যার ড্রেস",
+    status: "available",
+    categoryId: "fashion",
+  }),
 ];
 
 export const PRICE_FILTER_MIN = 0;
-export const PRICE_FILTER_MAX = 5000;
+export const PRICE_FILTER_MAX = 8000;
 
 export const productFilters = {
-  categories: [{ id: "gadgets", label: "ট্রেন্ডিং গ্যাজেট" }],
+  categories: [
+    { id: "gadgets", label: categoryLabels.gadgets },
+    { id: "fashion", label: categoryLabels.fashion },
+  ],
   availability: [
     { id: "available", label: "এভেইলেবল" },
     { id: "coming-soon", label: "কামিং সুন" },
