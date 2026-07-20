@@ -14,63 +14,106 @@ export type HeroSlide = {
   priceLabel: string;
   compareAtLabel?: string;
   discountLabel?: string;
-  highlights: readonly string[];
   primaryCta: { label: string; href: string };
   secondaryCta: { label: string; href: string };
   imageSrc: string;
   imageAlt: string;
-  secondaryImageSrc?: string;
-  secondaryImageAlt?: string;
-  /** dual = show two product shots side-by-side (selfie stands) */
-  layout: "featured" | "dual";
-  accent: "sunset" | "selfie";
+  accent: "gold" | "teal" | "rose" | "ink";
 };
+
+function money(value: number) {
+  return `৳${value.toLocaleString("en-US")}`;
+}
+
+function discountLabel(price: number, compareAt?: number) {
+  if (!compareAt || compareAt <= price) return undefined;
+  const pct = Math.round(((compareAt - price) / compareAt) * 100);
+  return `${pct}% ছাড়`;
+}
 
 const sunsetLamp = products.find((p) => p.slug === "sunset-rainbow-projection-lamp")!;
 const selfieStand = products.find((p) => p.slug === "ai-face-tracking-phone-holder")!;
+const womensGown = products.find((p) => p.slug === "custom-gorgeous-womens-gown")!;
+const babyFrock = products.find((p) => p.slug === "custom-baby-party-frock")!;
+const powerBank = products.find((p) => p.slug === "slim-power-bank-10000mah")!;
 
 export const heroSlides: HeroSlide[] = [
   {
-    id: "sunset-lamp",
-    eyebrow: "ট্রেন্ডিং গ্যাজেট",
-    title: "রুম আলোকিত করুন সানসেট ল্যাম্পে",
+    id: sunsetLamp.slug,
+    eyebrow: "বেস্ট সেলার গ্যাজেট",
+    title: "সানসেট ল্যাম্পে বদলে যাক রুমের মুড",
     description:
-      "রেইনবো ও সানসেট কালারে রুমের পরিবেশ বদলে দিন সেকেন্ডেই — ক্যাশ অন ডেলিভারিতে।",
-    priceLabel: `৳${sunsetLamp.price.toLocaleString("en-US")}`,
+      "ওয়ার্ম প্রজেকশন লাইটে ঘর, ডেস্ক বা কনটেন্ট শট — এক ল্যাম্পেই প্রিমিয়াম অ্যামবিয়েন্স।",
+    priceLabel: money(sunsetLamp.price),
     compareAtLabel: sunsetLamp.compareAtPrice
-      ? `৳${sunsetLamp.compareAtPrice.toLocaleString("en-US")}`
+      ? money(sunsetLamp.compareAtPrice)
       : undefined,
-    discountLabel: "৩৩% ছাড়",
-    highlights: ["১৬ কালার মোড", "রিমোট কন্ট্রোল", "USB পাওয়ার্ড"],
-    primaryCta: { label: "অর্ডার করুন", href: `/products/${sunsetLamp.slug}` },
+    discountLabel: discountLabel(sunsetLamp.price, sunsetLamp.compareAtPrice),
+    primaryCta: { label: "এখনই অর্ডার", href: `/products/${sunsetLamp.slug}` },
     secondaryCta: { label: "সব গ্যাজেট", href: "/products" },
     imageSrc: "/images/products/lamp/lamp-5.jpg",
-    imageAlt: "সানসেট প্রজেকশন ল্যাম্প কালেকশন",
-    secondaryImageSrc: "/images/products/lamp/lamp-1.jpg",
-    secondaryImageAlt: "সানসেট ল্যাম্পের অ্যাম্বিয়েন্ট প্রজেকশন",
-    layout: "featured",
-    accent: "sunset",
+    imageAlt: sunsetLamp.imageAlt,
+    accent: "gold",
   },
   {
-    id: "selfie-stand",
-    eyebrow: "সেলফি স্ট্যান্ড",
-    title: "হাত ছাড়াই রেকর্ড করুন স্মার্ট স্ট্যান্ডে",
+    id: selfieStand.slug,
+    eyebrow: "নতুন অ্যাডিশন",
+    title: "AI ট্র্যাকিংয়ে একাই প্রো শুট",
     description:
-      "সেলফি স্টিক + ট্রাইপড + LED লাইট — লাইভ, রিলস আর ভ্লগিং এখন আরও সহজ।",
-    priceLabel: `৳${selfieStand.price.toLocaleString("en-US")}`,
+      "ফেস ট্র্যাকিং হোল্ডার আপনাকে ফ্রেমে রাখে — রিলস, ভ্লগ ও লাইভ এখন হাতমুক্ত।",
+    priceLabel: money(selfieStand.price),
     compareAtLabel: selfieStand.compareAtPrice
-      ? `৳${selfieStand.compareAtPrice.toLocaleString("en-US")}`
+      ? money(selfieStand.compareAtPrice)
       : undefined,
-    discountLabel: "২০% ছাড়",
-    highlights: ["ট্রাইপড মোড", "ব্লুটুথ রিমোট", "LED ফিল লাইট"],
+    discountLabel: discountLabel(selfieStand.price, selfieStand.compareAtPrice),
     primaryCta: { label: "অর্ডার করুন", href: `/products/${selfieStand.slug}` },
-    secondaryCta: { label: "বিস্তারিত দেখুন", href: `/products/${selfieStand.slug}` },
+    secondaryCta: { label: "বিস্তারিত", href: `/products/${selfieStand.slug}` },
     imageSrc: "/images/products/selfie-stand/stand-1.jpg",
-    imageAlt: "সেলফি স্ট্যান্ড — ট্রাইপড মোড",
-    secondaryImageSrc: "/images/products/selfie-stand/stand-2.jpg",
-    secondaryImageAlt: "সেলফি স্ট্যান্ড — এক্সটেন্ডেড ভিউ",
-    layout: "dual",
-    accent: "selfie",
+    imageAlt: selfieStand.imageAlt,
+    accent: "teal",
+  },
+  {
+    id: womensGown.slug,
+    eyebrow: "হাতে তৈরি ফ্যাশন",
+    title: "অনুষ্ঠানের জন্য কাস্টম গাউন",
+    description:
+      "মাপ ও ডিজাইন অনুযায়ী এমব্রয়ডারি গাউন — স্পেশাল ডে-তে নিজের লুক নিজেই নির্ধারণ করুন।",
+    priceLabel: `শুরু ${money(womensGown.price)}`,
+    primaryCta: { label: "কাস্টম অর্ডার", href: `/products/${womensGown.slug}` },
+    secondaryCta: { label: "সব ড্রেস", href: "/products" },
+    imageSrc: womensGown.imageSrc,
+    imageAlt: womensGown.imageAlt,
+    accent: "rose",
+  },
+  {
+    id: babyFrock.slug,
+    eyebrow: "কাস্টম বেবি ওয়্যার",
+    title: "পার্টির জন্য বেবি ফ্রক",
+    description:
+      "কালার, ডিটেইল ও মাপ কাস্টমাইজ করে হাতে তৈরি — ছোট্ট তারকার পার্টি লুক সম্পূর্ণ।",
+    priceLabel: `শুরু ${money(babyFrock.price)}`,
+    primaryCta: { label: "অর্ডার করুন", href: `/products/${babyFrock.slug}` },
+    secondaryCta: { label: "যোগাযোগ", href: "/contact-us" },
+    imageSrc: babyFrock.imageSrc,
+    imageAlt: babyFrock.imageAlt,
+    accent: "rose",
+  },
+  {
+    id: powerBank.slug,
+    eyebrow: "শীঘ্রই আসছে",
+    title: "স্লিম পাওয়ার ব্যাংক ১০,০০০mAh",
+    description:
+      "হালকা ডিজাইন, ফাস্ট চার্জিং সাপোর্ট — দৈনন্দিন ব্যাটারি ব্যাকআপের স্মার্ট সমাধান।",
+    priceLabel: money(powerBank.price),
+    compareAtLabel: powerBank.compareAtPrice
+      ? money(powerBank.compareAtPrice)
+      : undefined,
+    discountLabel: discountLabel(powerBank.price, powerBank.compareAtPrice),
+    primaryCta: { label: "প্রোডাক্ট দেখুন", href: `/products/${powerBank.slug}` },
+    secondaryCta: { label: "সব প্রোডাক্ট", href: "/products" },
+    imageSrc: powerBank.imageSrc,
+    imageAlt: powerBank.imageAlt,
+    accent: "ink",
   },
 ];
 
