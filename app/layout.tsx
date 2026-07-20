@@ -4,6 +4,7 @@ import "./globals.css";
 import { CartDrawer } from "./(client)/_components/cart/cart-drawer";
 import Header from "./(client)/_components/common/header";
 import Footer from "./(client)/_components/common/footer";
+import { FloatingActions } from "./(client)/_components/common/floating-actions";
 import { CartProvider } from "./(client)/_providers/cart-provider";
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
 
@@ -53,6 +54,7 @@ export default function RootLayout({
             {children}
             <Footer />
             <CartDrawer />
+            <FloatingActions />
           </CartProvider>
         </ThemeProvider>
       </body>

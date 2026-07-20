@@ -26,7 +26,13 @@ export type ContactFaqItem = {
 export const WHATSAPP_NUMBER = "8801516527932";
 const WHATSAPP_DEFAULT_MESSAGE =
   "হ্যালো, আমি ইমপ্লেসিয়া মার্ট সম্পর্কে জানতে চাই।";
-const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_DEFAULT_MESSAGE)}`;
+
+export function getWhatsAppHref(message = WHATSAPP_DEFAULT_MESSAGE) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+export const WHATSAPP_HREF = getWhatsAppHref();
+
 
 export const contactCopy = {
   hero: {

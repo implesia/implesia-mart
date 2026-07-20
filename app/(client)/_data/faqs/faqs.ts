@@ -6,72 +6,181 @@ export type FaqCategory = {
 
 export type FaqItem = {
   id: string;
+  categoryId: string;
   question: string;
   answer: string;
-  defaultOpen?: boolean;
 };
 
 export const faqsCopy = {
   hero: {
-    title: "How can we help you today?",
-    placeholder: "Search for questions, orders, or policies...",
-    trending: ["Track Shipment", "Return Policy", "Gift Cards"],
+    eyebrow: "সাহায্য কেন্দ্র",
+    title: "আজ কীভাবে সাহায্য করতে পারি?",
+    subtitle:
+      "অর্ডার, ডেলিভারি, পেমেন্ট বা প্রোডাক্ট নিয়ে সাধারণ প্রশ্নের উত্তর এখানে পাবেন। খুঁজে না পেলে সরাসরি যোগাযোগ করুন।",
+    placeholder: "প্রশ্ন খুঁজুন — যেমন: রিটার্ন, ডেলিভারি, সাইজ...",
+    trendingLabel: "জনপ্রিয়",
+    trending: ["অর্ডার ট্র্যাক", "রিটার্ন পলিসি", "ক্যাশ অন ডেলিভারি", "কাস্টম ড্রেস"],
   },
   sidebar: {
-    title: "Help Center",
-    subtitle: "Find answers quickly",
-    categories: [
-      { id: "orders", label: "Orders & Returns", icon: "package" },
-      { id: "shipping", label: "Shipping Info", icon: "local_shipping" },
-      { id: "sizing", label: "Sizing Guide", icon: "straighten" },
-      { id: "care", label: "Product Care", icon: "auto_fix_high" },
-      { id: "contact", label: "Contact Us", icon: "mail" },
-    ] satisfies FaqCategory[],
+    title: "ক্যাটাগরি",
+    subtitle: "বিষয় অনুযায়ী দেখুন",
+    allLabel: "সব প্রশ্ন",
   },
-  content: {
-    title: "Orders & Delivery",
+  categories: [
+    { id: "orders", label: "অর্ডার ও রিটার্ন", icon: "package_2" },
+    { id: "shipping", label: "শিপিং ও ডেলিভারি", icon: "local_shipping" },
+    { id: "payment", label: "পেমেন্ট", icon: "payments" },
+    { id: "products", label: "প্রোডাক্ট ও সাইজ", icon: "checkroom" },
+    { id: "care", label: "যত্ন ও ব্যবহার", icon: "auto_fix_high" },
+  ] satisfies FaqCategory[],
+  callout: {
+    eyebrow: "গুরুত্বপূর্ণ তথ্য",
+    body: "ঢাকার ভেতরে সাধারণত ২৪–৪৮ ঘণ্টা এবং ঢাকার বাইরে ২৪–৭২ ঘণ্টার মধ্যে ডেলিভারি করা হয়। কাস্টম ড্রেসের ক্ষেত্রে স্টিচিংয়ের পর ৩–৭ কর্মদিবস লাগতে পারে।",
+  },
+  empty: {
+    title: "কোনো ফলাফল পাওয়া যায়নি",
+    body: "অন্য কীওয়ার্ড দিয়ে খুঁজুন, অথবা ক্যাটাগরি বদলিয়ে দেখুন। প্রয়োজনে আমাদের সাথে সরাসরি যোগাযোগ করুন।",
+  },
+  items: [
+    // Orders & returns
+    {
+      id: "track-order",
+      categoryId: "orders",
+      question: "আমার অর্ডার কীভাবে ট্র্যাক করব?",
+      answer:
+        "অর্ডার কনফার্ম হওয়ার পর আমরা ফোন/মেসেজে আপডেট দিই। ডেলিভারি ম্যান বের হলে কুরিয়ারের ট্র্যাকিং তথ্যও শেয়ার করা হয়। যেকোনো সময় হোয়াটসঅ্যাপ বা কলে অর্ডার নম্বর দিয়ে স্ট্যাটাস জানতে পারবেন।",
+    },
+    {
+      id: "cancel-order",
+      categoryId: "orders",
+      question: "অর্ডার ক্যানসেল করা যাবে?",
+      answer:
+        "প্রোডাক্ট প্যাকিং/শিপমেন্ট শুরু হওয়ার আগে ক্যানসেল করা যায়। দ্রুত হোয়াটসঅ্যাপ বা কলে জানালে আমরা সাহায্য করি। শিপমেন্ট শুরু হয়ে গেলে ক্যানসেল সম্ভব নাও হতে পারে।",
+    },
+    {
+      id: "return-policy",
+      categoryId: "orders",
+      question: "রিটার্ন পলিসি কী?",
+      answer:
+        "ডেলিভারির পর ৩ দিনের মধ্যে প্রোডাক্ট ডিফেক্ট বা ভিন্ন হলে ইজি রিটার্ন/রিপ্লেসমেন্ট করা যায়। প্রোডাক্ট অব্যবহৃত ও আসল অবস্থায় থাকতে হবে। কাস্টম মেড ড্রেসে সাইজ/ডিজাইন পছন্দ না হওয়ার কারণে রিটার্ন সীমিত।",
+    },
+    {
+      id: "wrong-item",
+      categoryId: "orders",
+      question: "ভুল প্রোডাক্ট পেলে কী করব?",
+      answer:
+        "অবিলম্বে ছবিসহ হোয়াটসঅ্যাপ বা কলে জানান। যাচাই করে আমরা দ্রুত এক্সচেঞ্জ বা সমাধান করে দিই — আপনাকে অতিরিক্ত ঝামেলায় পড়তে হবে না।",
+    },
+    // Shipping
+    {
+      id: "delivery-time",
+      categoryId: "shipping",
+      question: "ডেলিভারি পেতে কতদিন লাগে?",
+      answer:
+        "স্টক থাকা গ্যাজেট/প্রোডাক্টে ঢাকায় ২৪–৪৮ ঘণ্টা, ঢাকার বাইরে সাধারণত ২৪–৭২ ঘণ্টা। কাস্টম ড্রেস ডিজাইন কনফার্মের পর ৩–৭ কর্মদিবসে তৈরি করে ডেলিভারি করা হয়।",
+    },
+    {
+      id: "delivery-area",
+      categoryId: "shipping",
+      question: "সারাদেশে ডেলিভারি হয়?",
+      answer:
+        "হ্যাঁ, আমরা সারা বাংলাদেশে (৬৪ জেলা) ডেলিভারি দিই। আপনার এলাকার নির্দিষ্ট সময় কুরিয়ার নেটওয়ার্কের ওপর নির্ভর করে সামান্য ভিন্ন হতে পারে।",
+    },
+    {
+      id: "shipping-cost",
+      categoryId: "shipping",
+      question: "ডেলিভারি চার্জ কত?",
+      answer:
+        "ডেলিভারি চার্জ লোকেশন ও অর্ডার অনুযায়ী নির্ধারিত হয়। চেকআউটে বা অর্ডার কনফার্মের সময় স্পষ্টভাবে জানিয়ে দেওয়া হয় — আগে থেকে লুকানো চার্জ নেই।",
+    },
+    {
+      id: "same-day",
+      categoryId: "shipping",
+      question: "সেম-ডে ডেলিভারি আছে?",
+      answer:
+        "নির্দিষ্ট এলাকায় এবং সকালের মধ্যে অর্ডার হলে সেম-ডে/দ্রুত ডেলিভারির চেষ্টা করা হয়। এলাকা ও স্টক সাপেক্ষে অপশনটি কনফার্মের সময় জানানো হয়।",
+    },
+    // Payment
+    {
+      id: "cod",
+      categoryId: "payment",
+      question: "ক্যাশ অন ডেলিভারি করা যায়?",
+      answer:
+        "হ্যাঁ। প্রোডাক্ট হাতে পাওয়ার পর টাকা পরিশোধ করতে পারবেন। আগে থেকে অনলাইন পেমেন্ট বাধ্যতামূলক নয়।",
+    },
+    {
+      id: "advance-payment",
+      categoryId: "payment",
+      question: "অ্যাডভান্স পেমেন্ট লাগবে কি?",
+      answer:
+        "সাধারণ অর্ডারে সাধারণত লাগে না। বিশেষ কাস্টম/হাই-ভ্যালু অর্ডারে প্রয়োজনে আংশিক অ্যাডভান্স চাওয়া হতে পারে — আগেই জানিয়ে দেওয়া হবে।",
+    },
+    {
+      id: "payment-methods",
+      categoryId: "payment",
+      question: "কোন কোন পেমেন্ট মেথড সাপোর্ট করে?",
+      answer:
+        "মূলত ক্যাশ অন ডেলিভারি চালু আছে। অন্য পদ্ধতি (বিকাশ/নগদ ইত্যাদি) প্রয়োজন হলে অর্ডারের সময় মেসেজে জানালে গাইড করে দেওয়া হয়।",
+    },
+    // Products & sizing
+    {
+      id: "custom-dress",
+      categoryId: "products",
+      question: "কাস্টম ড্রেস কীভাবে অর্ডার করব?",
+      answer:
+        "সাইট থেকে অর্ডার করুন অথবা হোয়াটসঅ্যাপে ডিজাইন/ছবি পাঠান। আমরা মাপ, কালার ও ডিজাইন কনফার্ম করে স্টিচিং শুরু করি। মেজারমেন্ট গাইডও মেসেজে পাঠিয়ে দিই।",
+    },
+    {
+      id: "size-guide",
+      categoryId: "products",
+      question: "সাইজ না জানলে কী করব?",
+      answer:
+        "বাচ্চার বয়স বা বডি মেজারমেন্ট (বাস্ট, ওয়েস্ট, হিপ, লেংথ) জানালেই চলবে। দ্বিধা থাকলে হোয়াটসঅ্যাপে ছবি/রেফারেন্স পাঠালে আমরা সাজেস্ট করে দিই।",
+    },
+    {
+      id: "gadget-compatibility",
+      categoryId: "products",
+      question: "গ্যাজেটগুলো কোন ফোনে চলবে?",
+      answer:
+        "অধিকাংশ গ্যাজেট Android ও iOS স্মার্টফোনের সাথে কম্প্যাটিবল। নির্দিষ্ট মডেলের স্পেক প্রোডাক্ট পেজের স্পেসিফিকেশন ট্যাবে দেওয়া আছে।",
+    },
+    {
+      id: "stock",
+      categoryId: "products",
+      question: "কামিং সুন প্রোডাক্ট কখন পাওয়া যাবে?",
+      answer:
+        "স্টকে এলে পেজে অর্ডার অপশন চালু হয়। আগে জানতে হোয়াটসঅ্যাপে আগ্রহ জানিয়ে রাখতে পারেন — লঞ্চের খবর শেয়ার করা হয়।",
+    },
+    // Care
+    {
+      id: "dress-care",
+      categoryId: "care",
+      question: "ড্রেস কীভাবে পরিষ্কার করব?",
+      answer:
+        "হালকা ডিটারজেন্টে হাত দিয়ে ধোয়া ভালো। গ্লিটার/এমব্রয়ডারি অংশে ঘষাঘষি এড়িয়ে ছায়ায় শুকান। ভারী এমব্রয়ডারি গাউনে ড্রাই ক্লিন প্রেফার্ড। বিস্তারিত কেয়ার কার্ড প্যাকেজে থাকে।",
+    },
+    {
+      id: "gadget-care",
+      categoryId: "care",
+      question: "গ্যাজেট ব্যবহারের সময় কী খেয়াল রাখব?",
+      answer:
+        "অতিরিক্ত গরম/ভেজা জায়গায় রাখবেন না। চার্জিংয়ে সাপোর্টেড ক্যাবল/অ্যাডাপ্টার ব্যবহার করুন। ওয়াটারপ্রুফ নয় এমন ডিভাইস পানিতে ডোবাবেন না — স্পেক পেজে দেখুন।",
+    },
+    {
+      id: "warranty",
+      categoryId: "care",
+      question: "ওয়ারেন্টি বা ডিফেক্ট সাপোর্ট আছে?",
+      answer:
+        "ম্যানুফ্যাকচারিং ডিফেক্ট থাকলে কাস্টমার সাপোর্টের মাধ্যমে সমাধান/রিপ্লেসমেন্ট দেওয়া হয়। ব্যবহারজনিত ক্ষতি ওয়ারেন্টির বাইরে থাকতে পারে।",
+    },
+  ] satisfies FaqItem[],
+  helpCta: {
+    title: "এখনও সাহায্য দরকার?",
     subtitle:
-      "Everything you need to know about your purchase journey from checkout to your doorstep.",
-    callout: {
-      eyebrow: "Top Priority Info",
-      body:
-        "Standard international shipping is currently experiencing delays of up to 48 hours due to high seasonal demand. Expedited services remain unaffected.",
-    },
-    items: [
-      {
-        id: "track-order",
-        question: "How can I track my boutique order?",
-        answer:
-          'Once your order has been dispatched, you will receive a confirmation email containing your tracking number and a link to the courier\'s website. You can also view your tracking details in your Account Dashboard under "Recent Orders".',
-        defaultOpen: true,
-      },
-      {
-        id: "same-day",
-        question: "Do you offer same-day delivery?",
-        answer:
-          "Same-day delivery is available for select metropolitan areas if the order is placed before 10:00 AM local time. This option will be presented at checkout if your delivery address qualifies.",
-      },
-      {
-        id: "change-address",
-        question: "Can I change my shipping address after purchase?",
-        answer:
-          "We process orders rapidly to ensure timely delivery. Address changes can only be made within 1 hour of placing your order. Please contact Support immediately for assistance.",
-      },
-      {
-        id: "returns-window",
-        question: "What is your returns window for luxury items?",
-        answer:
-          "We offer a complimentary 30-day return window for all items, provided they are in their original, unworn condition with all security tags intact.",
-      },
-    ] satisfies FaqItem[],
-    helpCta: {
-      title: "Still need help?",
-      subtitle:
-        "Our concierge team is available 24/7 to assist with any inquiries regarding your experience.",
-      button: "Contact Support",
-      email: "implesiaitltd@gmail.com",
-      phone: "+880 1516-527932",
-    },
+      "আমাদের টিম অর্ডার, ডেলিভারি ও প্রোডাক্ট নিয়ে দ্রুত সাহায্য করতে প্রস্তুত।",
+    button: "যোগাযোগ করুন",
+    whatsapp: "হোয়াটসঅ্যাপে চ্যাট",
+    email: "implesiaitltd@gmail.com",
+    phone: "+880 1516-527932",
   },
 } as const;
-
