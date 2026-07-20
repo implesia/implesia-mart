@@ -12,7 +12,9 @@ import { faqSections } from "./(client)/_data/home/home";
 import { DEFAULT_DESCRIPTION, DEFAULT_TITLE } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: DEFAULT_TITLE,
+  /* Absolute form bypasses the root layout's "%s | Site Name" template,
+   * since DEFAULT_TITLE is already the fully-formed home page title. */
+  title: { absolute: DEFAULT_TITLE },
   description: DEFAULT_DESCRIPTION,
   alternates: { canonical: "/" },
   openGraph: {

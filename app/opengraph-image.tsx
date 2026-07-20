@@ -1,18 +1,12 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { ImageResponse } from "next/og";
+import { OG_LOGO_DATA_URL } from "@/lib/og-assets";
 
 export const alt = "Implesia Mart — Trending Gadgets & Handmade Custom Dresses";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 /** Site-wide social share card. Individual product/blog pages override this with their own image. */
-export default async function OpengraphImage() {
-  const logoData = await readFile(
-    join(process.cwd(), "public/images/common/logo-white.png"),
-  );
-  const logoSrc = `data:image/png;base64,${logoData.toString("base64")}`;
-
+export default function OpengraphImage() {
   return new ImageResponse(
     (
       <div
@@ -23,13 +17,14 @@ export default async function OpengraphImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "radial-gradient(ellipse 80% 65% at 15% 10%, rgba(43,192,181,0.4), transparent 55%), #062f2c",
+          backgroundColor: "#062f2c",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 65% at 15% 10%, rgba(43,192,181,0.4), transparent 55%)",
           position: "relative",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoSrc} width={440} height={110} alt="" />
+        <img src={OG_LOGO_DATA_URL} width={440} height={110} alt="" />
         <div
           style={{
             marginTop: 36,
