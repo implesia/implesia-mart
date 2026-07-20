@@ -14,7 +14,7 @@ type CheckoutShippingFormProps = {
 };
 
 const fieldClass =
-  "h-12 rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 text-body-md shadow-none focus-visible:border-primary focus-visible:ring-primary/20";
+  "h-11 rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 text-sm shadow-none focus-visible:border-primary focus-visible:ring-primary/20 sm:h-12 sm:text-base";
 
 function FieldLabel({
   htmlFor,
@@ -26,7 +26,10 @@ function FieldLabel({
   required?: boolean;
 }) {
   return (
-    <label htmlFor={htmlFor} className="mb-2 block font-label-md text-on-surface">
+    <label
+      htmlFor={htmlFor}
+      className="mb-1.5 block text-sm font-medium text-on-surface sm:mb-2"
+    >
       {children}
       {required ? <span className="ml-0.5 text-red-500">*</span> : null}
     </label>
@@ -35,7 +38,7 @@ function FieldLabel({
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1.5 text-label-sm text-red-500">{message}</p>;
+  return <p className="mt-1.5 text-xs text-red-500 sm:text-sm">{message}</p>;
 }
 
 export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
@@ -44,24 +47,26 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
   return (
     <section
       className={cn(
-        "rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 sm:p-8",
+        "rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4 sm:p-6 lg:p-8",
         className,
       )}
     >
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <MaterialIcon name="local_shipping" className="text-[22px]" />
+      <div className="mb-5 flex items-start gap-3 sm:mb-6">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:size-10">
+          <MaterialIcon name="local_shipping" className="text-[20px] sm:text-[22px]" />
         </span>
-        <div>
-          <h2 className="font-headline-sm text-on-surface">{checkoutCopy.shippingTitle}</h2>
-          <p className="mt-1 text-body-md text-on-surface-variant">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold tracking-tight text-on-surface sm:text-xl">
+            {checkoutCopy.shippingTitle}
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-on-surface-variant sm:text-base">
             {checkoutCopy.shippingHint}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+        <div className="min-w-0">
           <FieldLabel htmlFor="checkout-name" required>
             পুরো নাম
           </FieldLabel>
@@ -78,7 +83,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <FieldError message={errors.name} />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <FieldLabel htmlFor="checkout-phone" required>
             মোবাইল নম্বর
           </FieldLabel>
@@ -97,7 +102,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <FieldError message={errors.phone} />
         </div>
 
-        <div className="md:col-span-2">
+        <div className="min-w-0 sm:col-span-2">
           <FieldLabel htmlFor="checkout-email">ইমেইল (ঐচ্ছিক)</FieldLabel>
           <Input
             id="checkout-email"
@@ -113,7 +118,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <FieldError message={errors.email} />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <FieldLabel htmlFor="checkout-district" required>
             জেলা
           </FieldLabel>
@@ -129,7 +134,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <FieldError message={errors.district} />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <FieldLabel htmlFor="checkout-area" required>
             এলাকা / থানা
           </FieldLabel>
@@ -145,7 +150,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <FieldError message={errors.area} />
         </div>
 
-        <div className="md:col-span-2">
+        <div className="min-w-0 sm:col-span-2">
           <FieldLabel htmlFor="checkout-address" required>
             সম্পূর্ণ ঠিকানা
           </FieldLabel>
@@ -157,7 +162,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
             value={shipping.address}
             onChange={(e) => setShippingField("address", e.target.value)}
             className={cn(
-              "min-h-[96px] resize-none rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 py-3 text-body-md shadow-none focus-visible:border-primary focus-visible:ring-primary/20",
+              "min-h-[88px] resize-none rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 py-3 text-sm shadow-none focus-visible:border-primary focus-visible:ring-primary/20 sm:min-h-[96px] sm:text-base",
               errors.address && "border-red-400",
             )}
             aria-invalid={Boolean(errors.address)}
@@ -165,7 +170,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <FieldError message={errors.address} />
         </div>
 
-        <div className="md:col-span-2">
+        <div className="min-w-0 sm:col-span-2">
           <FieldLabel htmlFor="checkout-notes">অর্ডার নোট (ঐচ্ছিক)</FieldLabel>
           <Textarea
             id="checkout-notes"
@@ -174,7 +179,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
             placeholder="ডেলিভারি সংক্রান্ত কোনো বিশেষ নির্দেশনা থাকলে লিখুন"
             value={shipping.notes}
             onChange={(e) => setShippingField("notes", e.target.value)}
-            className="min-h-[72px] resize-none rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 py-3 text-body-md shadow-none focus-visible:border-primary focus-visible:ring-primary/20"
+            className="min-h-[68px] resize-none rounded-xl border-outline-variant/40 bg-surface-container-lowest px-3.5 py-3 text-sm shadow-none focus-visible:border-primary focus-visible:ring-primary/20 sm:min-h-[72px] sm:text-base"
           />
         </div>
       </div>

@@ -35,17 +35,22 @@ export function CheckoutPaymentMethod({ className }: CheckoutPaymentMethodProps)
   return (
     <section
       className={cn(
-        "rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 sm:p-8",
+        "rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4 sm:p-6 lg:p-8",
         className,
       )}
     >
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <MaterialIcon name="account_balance_wallet" className="text-[22px]" />
+      <div className="mb-5 flex items-start gap-3 sm:mb-6">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:size-10">
+          <MaterialIcon
+            name="account_balance_wallet"
+            className="text-[20px] sm:text-[22px]"
+          />
         </span>
-        <div>
-          <h2 className="font-headline-sm text-on-surface">{checkoutCopy.paymentTitle}</h2>
-          <p className="mt-1 text-body-md text-on-surface-variant">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold tracking-tight text-on-surface sm:text-xl">
+            {checkoutCopy.paymentTitle}
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-on-surface-variant sm:text-base">
             {checkoutCopy.paymentHint}
           </p>
         </div>
@@ -67,7 +72,7 @@ export function CheckoutPaymentMethod({ className }: CheckoutPaymentMethodProps)
             <label
               key={item.id}
               className={cn(
-                "relative flex cursor-pointer gap-4 rounded-2xl border p-4 transition-all duration-200 sm:p-5",
+                "relative flex cursor-pointer gap-3 rounded-2xl border p-3.5 transition-all duration-200 sm:gap-4 sm:p-5",
                 disabled && "cursor-not-allowed opacity-60",
                 selected && !disabled
                   ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(43,192,181,0.25)]"
@@ -77,26 +82,28 @@ export function CheckoutPaymentMethod({ className }: CheckoutPaymentMethodProps)
               <RadioGroupItem
                 value={item.id}
                 disabled={disabled}
-                className="mt-1"
+                className="mt-0.5 shrink-0 sm:mt-1"
               />
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-container-lowest text-primary ring-1 ring-outline-variant/20">
-                <MaterialIcon name={item.icon} className="text-[22px]" />
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-container-lowest text-primary ring-1 ring-outline-variant/20 sm:size-11">
+                <MaterialIcon name={item.icon} className="text-[18px] sm:text-[22px]" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="font-label-md text-on-surface">{item.title}</span>
+                <span className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <span className="text-sm font-semibold text-on-surface sm:text-base">
+                    {item.title}
+                  </span>
                   {item.badge ? (
-                    <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-label-sm text-primary">
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary sm:px-2.5 sm:text-xs">
                       {item.badge}
                     </span>
                   ) : null}
                   {disabled ? (
-                    <span className="rounded-full bg-surface-container px-2.5 py-0.5 text-label-sm text-outline">
+                    <span className="rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-semibold text-outline sm:px-2.5 sm:text-xs">
                       শীঘ্রই
                     </span>
                   ) : null}
                 </span>
-                <span className="mt-1 block text-body-md text-on-surface-variant">
+                <span className="mt-1 block text-xs leading-relaxed text-on-surface-variant sm:text-sm sm:text-base">
                   {item.description}
                 </span>
               </span>

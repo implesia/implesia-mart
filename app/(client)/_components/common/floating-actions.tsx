@@ -37,8 +37,9 @@ export function FloatingActions() {
   const reducedMotion = usePrefersReducedMotion();
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  const hasMobileBottomBar =
-    pathname === "/checkout" || /^\/products\/[^/]+$/.test(pathname);
+  const isCheckout = pathname === "/checkout";
+  const isProductDetail = /^\/products\/[^/]+$/.test(pathname);
+  const hasMobileBottomBar = isCheckout || isProductDetail;
 
   useEffect(() => {
     let ticking = false;
@@ -68,13 +69,13 @@ export function FloatingActions() {
     <div
       className={cn(
         "pointer-events-none fixed right-3 z-[45] flex flex-col-reverse items-end gap-2.5 sm:right-5 sm:gap-3",
-        // Default clearance; lift on pages with sticky bottom bars (mobile only)
-        hasMobileBottomBar
+        isCheckout
           ? "bottom-[5.75rem] lg:bottom-6"
-          : "bottom-5 sm:bottom-6",
+          : isProductDetail
+            ? "bottom-[5.75rem] lg:bottom-6"
+            : "bottom-5 sm:bottom-6",
       )}
       style={{
-        // Keep clear of iOS home indicator when no sticky bar
         paddingBottom: hasMobileBottomBar
           ? undefined
           : "env(safe-area-inset-bottom, 0px)",
