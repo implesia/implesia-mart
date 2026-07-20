@@ -59,14 +59,14 @@ export default function Header() {
       "inline-flex items-center whitespace-nowrap text-[13px] font-medium tracking-tight transition-colors duration-200 xl:text-sm",
       href === activeHref
         ? "border-b-2 border-primary pb-0.5 text-primary"
-        : "text-neutral-600 hover:text-primary dark:text-neutral-400 dark:hover:text-primary",
+        : "text-on-surface-variant hover:text-primary",
     );
 
   return (
     <header>
       <nav
-        className="fixed top-0 z-50 w-full border-b border-neutral-200/60 bg-white/85 shadow-sm backdrop-blur-xl dark:border-neutral-800/60 dark:bg-slate-900/85"
-        aria-label="প্রধান নেভিগেশন"
+        className="fixed top-0 z-50 w-full border-b border-outline-variant/35 bg-surface-container-lowest/95 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-surface-container/95"
+        aria-label="Main navigation"
       >
         <Container className="flex h-16 w-full min-w-0 items-center justify-between gap-2 px-4 sm:h-20 sm:gap-3 sm:px-6 lg:gap-4 lg:px-8">
           {/* Logo — light navy mark / white mark in dark mode */}
@@ -97,9 +97,9 @@ export default function Header() {
                 className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-outline"
               />
               <Input
-                placeholder="সার্চ করুন..."
+                placeholder="Search..."
                 className="h-10 w-44 rounded-full border-0 bg-surface-container-low py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 2xl:w-56"
-                aria-label="প্রোডাক্ট সার্চ"
+                aria-label="Search products"
               />
             </div>
 
@@ -107,7 +107,7 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className="hidden size-10 text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex xl:hidden"
-              aria-label="সার্চ"
+              aria-label="Search"
             >
               <MaterialIcon name="search" className="text-[22px]" />
             </Button>
@@ -118,7 +118,7 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className="hidden size-11 text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex"
-              aria-label="অ্যাকাউন্ট"
+              aria-label="Account"
             >
               <MaterialIcon name="account_circle" className="text-[24px]" />
             </Button>
@@ -129,7 +129,7 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className="size-10 text-primary hover:bg-primary/5 hover:text-primary lg:hidden"
-              aria-label={mobileOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
               aria-controls={menuId}
               onClick={() => setMobileOpen((open) => !open)}
@@ -158,24 +158,24 @@ export default function Header() {
             "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300",
             mobileOpen ? "opacity-100" : "opacity-0",
           )}
-          aria-label="মেনু বন্ধ করুন"
+          aria-label="Close menu"
           onClick={() => setMobileOpen(false)}
         />
 
         <aside
           className={cn(
-            "absolute top-0 right-0 flex h-full w-[min(100vw-2.5rem,22rem)] max-w-full flex-col bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-slate-950",
+            "absolute top-0 right-0 flex h-full w-[min(100vw-2.5rem,22rem)] max-w-full flex-col bg-surface-container-lowest shadow-2xl transition-transform duration-300 ease-out dark:bg-surface-container",
             "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
             mobileOpen ? "translate-x-0" : "translate-x-full",
           )}
           role="dialog"
           aria-modal="true"
-          aria-label="মোবাইল মেনু"
+          aria-label="Mobile menu"
         >
-          <div className="flex items-center justify-between gap-3 border-b border-neutral-200/60 px-4 py-3.5 sm:px-5 dark:border-neutral-800/60">
+          <div className="flex items-center justify-between gap-3 border-b border-outline-variant/35 px-4 py-3.5 sm:px-5 dark:border-white/10">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[0.18em] text-outline uppercase">
-                মেনু
+                Menu
               </p>
               <p className="truncate text-sm font-semibold text-on-surface">
                 {SITE_NAME}
@@ -185,7 +185,7 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className="size-10 shrink-0"
-              aria-label="মেনু বন্ধ করুন"
+              aria-label="Close menu"
               onClick={() => setMobileOpen(false)}
             >
               <MaterialIcon name="close" className="text-[24px]" />
@@ -199,13 +199,13 @@ export default function Header() {
                 className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-outline"
               />
               <Input
-                placeholder="প্রোডাক্ট সার্চ করুন..."
+                placeholder="Search products..."
                 className="h-11 w-full rounded-full border-0 bg-surface-container-low py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                aria-label="প্রোডাক্ট সার্চ"
+                aria-label="Search products"
               />
             </div>
 
-            <nav className="space-y-1" aria-label="মোবাইল লিঙ্ক">
+            <nav className="space-y-1" aria-label="Mobile links">
               {headerNav.map((item) => {
                 const active = item.href === activeHref;
                 return (
@@ -241,7 +241,7 @@ export default function Header() {
               />
               <Button variant="outline" className="h-11 rounded-full text-sm">
                 <MaterialIcon name="account_circle" className="mr-1.5 text-[18px]" />
-                অ্যাকাউন্ট
+                Account
               </Button>
             </div>
 

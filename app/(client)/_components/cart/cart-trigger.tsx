@@ -32,7 +32,7 @@ export function CartTrigger({
         }}
       >
         <MaterialIcon name="shopping_cart" className="mr-1.5 text-[18px]" />
-        কার্ট
+        Cart
         {count > 0 ? (
           <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">
             {count > 99 ? "99+" : count}
@@ -51,7 +51,7 @@ export function CartTrigger({
         "relative size-10 text-primary hover:bg-primary/5 hover:text-primary lg:size-11",
         className,
       )}
-      aria-label={count > 0 ? `শপিং কার্ট, ${count} টি আইটেম` : "শপিং কার্ট"}
+      aria-label={count > 0 ? `Shopping cart, ${count} items` : "Shopping cart"}
       onClick={openCart}
     >
       <MaterialIcon name="shopping_cart" className="text-[22px] lg:text-[24px]" />

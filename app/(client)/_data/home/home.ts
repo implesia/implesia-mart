@@ -3,7 +3,7 @@ import { products } from "../products/products";
 export const SITE_NAME = "Implesia Mart";
 
 export const navLinks = [
-  { href: "/products", label: "ট্রেন্ডিং গ্যাজেট", active: true },
+  { href: "/products", label: "Trending Gadgets", active: true },
 ] as const;
 
 export type HeroSlide = {
