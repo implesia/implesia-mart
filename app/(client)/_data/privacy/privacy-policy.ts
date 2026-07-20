@@ -21,136 +21,145 @@ export type PrivacyRight = {
   description: string;
 };
 
+export type PrivacyBadge = {
+  icon: string;
+  label: string;
+};
+
 export const privacyPolicyCopy = {
-  lastUpdated: "Oct 2023",
+  lastUpdated: "জুলাই ২০২৬",
   hero: {
-    title: "Privacy Policy",
+    eyebrow: "গোপনীয়তা নীতি",
+    title: "আপনার তথ্য, আমাদের দায়িত্ব",
     subtitle:
-      "Your data is protected and handled with care. We value the trust you place in Implesia Mart.",
+      "ইমপ্লেসিয়া মার্টে আপনার ব্যক্তিগত তথ্য সুরক্ষিত রাখা আমাদের অগ্রাধিকার। অর্ডার থেকে সাপোর্ট পর্যন্ত কী সংগ্রহ করি ও কীভাবে ব্যবহার করি — সব স্বচ্ছভাবে জানুন।",
   },
-  nav: [
-    { id: "introduction", label: "Introduction", icon: "info" },
-    { id: "collection", label: "Data Collection", icon: "database" },
-    { id: "usage", label: "How We Use Data", icon: "query_stats" },
-    { id: "cookies", label: "Cookies Policy", icon: "cookie" },
-    { id: "rights", label: "Your Rights", icon: "gavel" },
-  ] satisfies PrivacyNavItem[],
-  sections: {
-    introduction: {
-      title: "1. Introduction",
-      paragraphs: [
-        "At Implesia Mart, your privacy is not just a policy—it is a core value of our business. Whether you are browsing our collections or placing an order, we are committed to maintaining the trust and confidence of our customers.",
-        "In this Privacy Policy, we provide detailed information on when and why we collect personal information, how we use it, the limited conditions under which we may disclose it to others, and how we keep it secure.",
-      ],
-    },
-    collection: {
-      title: "2. Information We Collect",
-      cards: [
-        {
-          icon: "person_search",
-          title: "Personal Data",
-          description:
-            "Name, email, phone number, and shipping address provided during checkout or account creation.",
-        },
-        {
-          icon: "devices",
-          title: "Technical Info",
-          description:
-            "IP address, device type, browser identifiers, and operating system information.",
-        },
-        {
-          icon: "shopping_cart_checkout",
-          title: "Order Details",
-          description:
-            "Historical purchase data, product preferences, and transactional records.",
-        },
-      ] satisfies PrivacyInfoCard[],
-    },
-    usage: {
-      title: "3. How We Use Information",
-      items: [
-        {
-          title: "Order Fulfillment",
-          description:
-            "To process your transactions and deliver your products to your doorstep.",
-        },
-        {
-          title: "Personalization",
-          description:
-            "To tailor editorial content and product recommendations to your tastes.",
-        },
-        {
-          title: "Support",
-          description:
-            "To provide customer service and handle returns or inquiries effectively.",
-        },
-      ] satisfies PrivacyUseItem[],
-    },
+  nav: {
+    title: "নীতিমালা",
+    subtitle: `সর্বশেষ আপডেট: জুলাই ২০২৬`,
+    items: [
+      { id: "introduction", label: "ভূমিকা", icon: "info" },
+      { id: "collection", label: "তথ্য সংগ্রহ", icon: "database" },
+      { id: "usage", label: "ব্যবহার ও সুরক্ষা", icon: "query_stats" },
+      { id: "sharing", label: "শেয়ারিং ও কুকি", icon: "share" },
+      { id: "rights", label: "আপনার অধিকার", icon: "gavel" },
+      { id: "support", label: "যোগাযোগ", icon: "support_agent" },
+    ] satisfies PrivacyNavItem[],
+  },
+  introduction: {
+    heading: "ভূমিকা",
+    paragraphs: [
+      "ইমপ্লেসিয়া মার্টে আপনার গোপনীয়তা শুধু একটি নথি নয় — এটি আমাদের ব্যবসার মূল মূল্যবোধ। আপনি যখন আমাদের প্রোডাক্ট ব্রাউজ করেন বা অর্ডার দেন, আমরা আপনার বিশ্বাস রক্ষা করতে প্রতিশ্রুতিবদ্ধ।",
+      "এই নীতিতে বলা আছে আমরা কখন ও কেন ব্যক্তিগত তথ্য সংগ্রহ করি, কীভাবে ব্যবহার করি, কোন সীমিত ক্ষেত্রে অন্যদের সাথে শেয়ার করতে পারি এবং কীভাবে তা সুরক্ষিত রাখি।",
+    ],
+  },
+  collection: {
+    heading: "যে তথ্য আমরা সংগ্রহ করি",
+    intro: "সেবা দেওয়ার জন্য প্রয়োজনীয় তথ্যই সংগ্রহ করা হয় — অপ্রয়োজনীয় কিছু চাওয়া হয় না।",
+    cards: [
+      {
+        icon: "person_search",
+        title: "ব্যক্তিগত তথ্য",
+        description:
+          "চেকআউট বা যোগাযোগের সময় দেওয়া নাম, ফোন নম্বর, ইমেইল ও শিপিং ঠিকানা।",
+      },
+      {
+        icon: "devices",
+        title: "প্রযুক্তিগত তথ্য",
+        description:
+          "ডিভাইস ধরন, ব্রাউজার, আইপি ঠিকানা ও সাইট ব্যবহারের সাধারণ তথ্য — সাইট উন্নত করতে।",
+      },
+      {
+        icon: "shopping_cart_checkout",
+        title: "অর্ডারের বিবরণ",
+        description:
+          "কেনা প্রোডাক্ট, অর্ডার ইতিহাস ও লেনদেনের রেকর্ড — ডেলিভারি ও সাপোর্টের জন্য।",
+      },
+    ] satisfies PrivacyInfoCard[],
+  },
+  usage: {
+    heading: "তথ্য কীভাবে ব্যবহার করি",
+    intro: "আপনার তথ্য শুধু সেবা ও অভিজ্ঞতা উন্নত করতে ব্যবহার করা হয়।",
+    items: [
+      {
+        title: "অর্ডার সম্পন্ন করা",
+        description: "অর্ডার প্রসেস, প্যাকিং ও নির্ভরযোগ্য ডেলিভারির জন্য।",
+      },
+      {
+        title: "কাস্টমার সাপোর্ট",
+        description: "প্রশ্ন, রিটার্ন, এক্সচেঞ্জ বা অর্ডার আপডেটে দ্রুত সাহায্য করতে।",
+      },
+      {
+        title: "অভিজ্ঞতা উন্নয়ন",
+        description: "প্রোডাক্ট সুপারিশ ও সাইট ব্যবহার আরও সহজ করতে (প্রয়োজনে)।",
+      },
+      {
+        title: "নিরাপত্তা ও জালিয়াতি প্রতিরোধ",
+        description: "অস্বাভাবিক অর্ডার বা অপব্যবহার শনাক্ত ও প্রতিরোধ করতে।",
+      },
+    ] satisfies PrivacyUseItem[],
     protection: {
-      title: "State-of-the-Art Protection",
-      body:
-        "We utilize industry-leading encryption and security protocols. Your data is encrypted both in transit and at rest using AES-256 standards.",
+      title: "তথ্য সুরক্ষা",
+      body: "আমরা নিরাপদ সংযোগ ও যুক্তিসঙ্গত প্রযুক্তিগত ব্যবস্থা ব্যবহার করি যাতে আপনার তথ্য অননুমোদিত প্রবেশ থেকে সুরক্ষিত থাকে।",
       badges: [
-        { icon: "lock", label: "256-bit SSL" },
-        { icon: "shield", label: "PCI Compliant" },
-        { icon: "key", label: "End-to-End Encryption" },
-      ],
+        { icon: "lock", label: "সুরক্ষিত সংযোগ" },
+        { icon: "shield", label: "সীমিত অ্যাক্সেস" },
+        { icon: "verified_user", label: "বিশ্বস্ত পার্টনার" },
+      ] satisfies PrivacyBadge[],
     },
-    sharing: {
-      title: "4. Sharing Information",
-      body:
-        "We do not sell your personal data to third parties for marketing purposes. Your information is only shared with trusted partners essential for operations, such as:",
-      chips: ["Logistics Partners", "Payment Processors", "Cloud Infrastructure"],
-    },
+  },
+  sharing: {
+    heading: "তথ্য শেয়ারিং",
+    body: "আমরা আপনার ব্যক্তিগত তথ্য মার্কেটিংয়ের জন্য তৃতীয় পক্ষের কাছে বিক্রি করি না। শুধু সেবা চালানোর জন্য প্রয়োজনীয় বিশ্বস্ত পার্টনারদের সাথে সীমিত তথ্য শেয়ার করা হয়:",
+    chips: ["কুরিয়ার / লজিস্টিক্স", "পেমেন্ট সহায়ক", "হোস্টিং / ক্লাউড"],
     cookies: {
-      title: "5. Cookies & Tracking",
-      quote: "We use cookies to ensure that we give you the best experience on our website.",
-      body:
-        "Our platform uses session management cookies to keep you logged in and analytics cookies to understand how visitors interact with our site. You can manage preferences through your browser settings.",
+      title: "কুকি ও ট্র্যাকিং",
+      quote: "সাইটের অভিজ্ঞতা ভালো রাখতে আমরা প্রয়োজনীয় কুকি ব্যবহার করি।",
+      body: "সেশন পরিচালনা ও সাইট ব্যবহার বোঝার জন্য কুকি ব্যবহার হতে পারে। ব্রাউজার সেটিংস থেকে কুকি নিয়ন্ত্রণ করতে পারবেন; কিছু ফিচার সীমিত হতে পারে।",
     },
-    rights: {
-      title: "6. Your Legal Rights",
-      items: [
-        {
-          icon: "visibility",
-          title: "Right to Access",
-          description: "Request a copy of the personal information we hold about you.",
-        },
-        {
-          icon: "edit",
-          title: "Right to Correction",
-          description: "Correct any inaccurate or incomplete data we maintain.",
-        },
-        {
-          icon: "delete",
-          title: "Right to Deletion",
-          description:
-            'The "Right to be Forgotten" allows you to request removal of your personal data.',
-        },
-        {
-          icon: "block",
-          title: "Right to Object",
-          description:
-            "Object to the processing of your data for specific purposes like direct marketing.",
-        },
-      ] satisfies PrivacyRight[],
+  },
+  rights: {
+    heading: "আপনার অধিকার",
+    intro: "আপনার তথ্য সম্পর্কে আপনার নিয়ন্ত্রণ আছে — অনুরোধ জানালে আমরা সাহায্য করব।",
+    items: [
+      {
+        icon: "visibility",
+        title: "দেখার অধিকার",
+        description: "আমাদের কাছে থাকা আপনার ব্যক্তিগত তথ্যের কপি চাইতে পারেন।",
+      },
+      {
+        icon: "edit",
+        title: "সংশোধনের অধিকার",
+        description: "ভুল বা অসম্পূর্ণ তথ্য সংশোধন করতে বলতে পারেন।",
+      },
+      {
+        icon: "delete",
+        title: "মুছে ফেলার অধিকার",
+        description:
+          "আইনি বাধ্যবাধকতা না থাকলে আপনার তথ্য মুছে ফেলার অনুরোধ করতে পারেন।",
+      },
+      {
+        icon: "block",
+        title: "আপত্তির অধিকার",
+        description: "নির্দিষ্ট ব্যবহার (যেমন মার্কেটিং) থেকে বিরত থাকতে বলতে পারেন।",
+      },
+    ] satisfies PrivacyRight[],
+    retention: {
+      title: "তথ্য রাখার সময়সীমা",
+      body: "সেবা দেওয়া ও আইনি বাধ্যবাধকতা পূরণের জন্য যতদিন প্রয়োজন, ততদিনই তথ্য রাখা হয়।",
     },
-    retentionUpdates: {
-      retentionTitle: "Data Retention",
-      retentionBody:
-        "We retain your information only for as long as necessary to provide services and comply with legal obligations.",
-      updatesTitle: "Policy Updates",
-      updatesBody:
-        "We may update this policy. Users will be notified of significant changes to our data handling practices.",
+    updates: {
+      title: "নীতি আপডেট",
+      body: "প্রয়োজনে এই নীতি আপডেট হতে পারে। গুরুত্বপূর্ণ পরিবর্তন হলে সাইট বা যোগাযোগ মাধ্যমে জানানোর চেষ্টা করা হবে।",
     },
-    support: {
-      title: "Still Have Questions?",
-      body:
-        "Our privacy team is here to assist you with any inquiries regarding your data.",
-      email: "implesiaitltd@gmail.com",
-      phone: "+880 1516-527932",
-      cta: "CONTACT US",
-    },
+  },
+  support: {
+    title: "গোপনীয়তা নিয়ে প্রশ্ন আছে?",
+    subtitle:
+      "আপনার তথ্য বা এই নীতি নিয়ে যেকোনো জিজ্ঞাসায় আমাদের টিম সাহায্য করতে প্রস্তুত।",
+    phone: "+880 1516-527932",
+    email: "implesiaitltd@gmail.com",
+    cta: "যোগাযোগ করুন",
+    whatsapp: "হোয়াটসঅ্যাপে চ্যাট",
   },
 } as const;
-
