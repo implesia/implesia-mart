@@ -8,7 +8,11 @@ import { CartProvider } from "./(client)/_providers/cart-provider";
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
 
 export const metadata: Metadata = {
-  title: "Implesia Mart | Premium Multi-Category Shopping",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  title: {
+    default: "Implesia Mart | Premium Multi-Category Shopping",
+    template: "%s | Implesia Mart",
+  },
   description:
     "Premium multi-category shopping across fabrics, electronics, and organic lifestyle.",
 };

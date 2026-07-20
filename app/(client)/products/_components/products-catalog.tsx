@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 
+import { MaterialIcon } from "../../_components/common/material-icon";
 import {
+  categoryLabels,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   productFilters,
@@ -10,7 +12,7 @@ import {
   type ProductCategoryId,
   type ProductStatus,
 } from "../../_data/products/products";
-import { ProductsFilters } from "./products-filters";
+import { ProductsFilters, ProductsMobileFilters } from "./products-filters";
 import { ProductsGrid } from "./products-grid";
 import { ProductsToolbar } from "./products-toolbar";
 
@@ -57,24 +59,20 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
   const allCategoryIds = productFilters.categories.map((c) => c.id) as ProductCategoryId[];
   const [categories, setCategories] = useState<ProductCategoryId[]>(allCategoryIds);
   const [sort, setSort] = useState<SortId>("popularity");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const filteredProducts = useMemo(() => {
     const [minPrice, maxPrice] = priceRange;
 
     const matched = products.filter((product) => {
       const matchesAvailability =
-        availability.length === 0
-          ? false
-          : availability.includes(product.status);
+        availability.length === 0 ? false : availability.includes(product.status);
 
       const matchesCategory =
         categories.length === 0 ? false : categories.includes(product.categoryId);
 
       const matchesMin = product.price >= minPrice;
-      const matchesMax =
-        maxPrice >= PRICE_FILTER_MAX
-          ? true
-          : product.price <= maxPrice;
+      const matchesMax = maxPrice >= PRICE_FILTER_MAX ? true : product.price <= maxPrice;
 
       return matchesAvailability && matchesCategory && matchesMin && matchesMax;
     });
@@ -94,6 +92,14 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
     );
   };
 
+  const selectCategoryChip = (id: ProductCategoryId | "all") => {
+    if (id === "all") {
+      setCategories(allCategoryIds);
+      return;
+    }
+    setCategories([id]);
+  };
+
   const resetFilters = () => {
     setPriceRange([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
     setAvailability(["available", "coming-soon"]);
@@ -101,38 +107,53 @@ export function ProductsCatalog({ products }: ProductsCatalogProps) {
     setSort("popularity");
   };
 
+  const filterControls = {
+    priceRange,
+    onPriceRangeChange: setPriceRange,
+    availability,
+    onAvailabilityToggle: toggleAvailability,
+    categories,
+    onCategoryToggle: toggleCategory,
+    onReset: resetFilters,
+  };
+
   const totalLabel =
     filteredProducts.length === products.length
       ? `সব ${filteredProducts.length}টি পণ্য দেখানো হচ্ছে`
       : `${filteredProducts.length}টি পণ্য দেখানো হচ্ছে (মোট ${products.length}টি)`;
 
+  const pageTitle =
+    categories.length === 1 ? categoryLabels[categories[0]] : "সব প্রোডাক্ট";
+
   return (
     <div className="flex w-full gap-6 lg:gap-8">
-      <ProductsFilters
-        priceRange={priceRange}
-        onPriceRangeChange={setPriceRange}
-        availability={availability}
-        onAvailabilityToggle={toggleAvailability}
-        categories={categories}
-        onCategoryToggle={toggleCategory}
-        onReset={resetFilters}
+      <ProductsFilters {...filterControls} />
+      <ProductsMobileFilters
+        open={mobileFiltersOpen}
+        onOpenChange={setMobileFiltersOpen}
+        {...filterControls}
       />
 
       <section className="min-w-0 flex-1">
         <ProductsToolbar
+          title={pageTitle}
           totalLabel={totalLabel}
           sort={sort}
           onSortChange={setSort}
+          categories={categories}
+          onCategorySelect={selectCategoryChip}
+          onOpenMobileFilters={() => setMobileFiltersOpen(true)}
         />
 
         {filteredProducts.length > 0 ? (
           <ProductsGrid products={filteredProducts} />
         ) : (
-          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low px-6 py-16 text-center">
-            <p className="text-lg font-semibold text-on-background">
-              কোনো পণ্য পাওয়া যায়নি
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low px-6 py-16 text-center dark:border-white/10">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <MaterialIcon name="search_off" className="text-[28px]" />
+            </div>
+            <p className="text-lg font-semibold text-on-background">কোনো পণ্য পাওয়া যায়নি</p>
+            <p className="mt-2 text-sm text-on-surface-variant">
               ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।
             </p>
             <button
