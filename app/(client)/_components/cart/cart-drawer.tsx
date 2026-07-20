@@ -82,7 +82,7 @@ export function CartDrawer() {
                       src={item.imageSrc}
                       alt={item.imageAlt}
                       fill
-                      className="object-cover"
+                      className="object-contain p-1.5"
                       sizes="80px"
                     />
                   </div>

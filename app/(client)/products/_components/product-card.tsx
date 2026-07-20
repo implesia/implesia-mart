@@ -56,7 +56,7 @@ export function ProductCard({ product }: ProductCardProps) {
           alt={product.imageAlt}
           fill
           className={cn(
-            "object-cover transition-transform duration-500 group-hover:scale-105",
+            "object-contain p-3 transition-transform duration-500 group-hover:scale-105 sm:p-4",
             isComingSoon && "opacity-60 grayscale-35",
           )}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"

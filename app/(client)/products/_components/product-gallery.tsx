@@ -61,7 +61,7 @@ export function ProductGallery({
               alt={active.alt}
               width={1400}
               height={1400}
-              className="h-[320px] w-full object-contain object-center p-4 transition-transform duration-700 ease-in-out sm:h-[420px] md:h-[520px] md:object-cover md:p-0 lg:h-[640px]"
+              className="h-[320px] w-full object-contain object-center p-4 transition-transform duration-700 ease-in-out sm:h-[420px] md:h-[520px] lg:h-[640px]"
               priority={activeIndex === 0}
             />
           )}
@@ -104,7 +104,7 @@ export function ProductGallery({
                   alt={item.alt}
                   width={96}
                   height={96}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain p-1"
                 />
 
                 {item.type === "video" ? (

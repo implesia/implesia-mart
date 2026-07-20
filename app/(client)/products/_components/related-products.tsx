@@ -60,7 +60,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                   alt={p.imageAlt}
                   fill
                   className={cn(
-                    "object-cover transition-transform duration-700 group-hover:scale-110",
+                    "object-contain p-4 transition-transform duration-700 group-hover:scale-110",
                     isComingSoon && "opacity-60 grayscale-[35%]",
                   )}
                   sizes="(max-width: 768px) 100vw, 25vw"
