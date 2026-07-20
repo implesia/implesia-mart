@@ -1,5 +1,6 @@
 import { AboutHero } from "./_components/about-hero";
 import { BrandStory } from "./_components/brand-story";
+import { CustomDresses } from "./_components/custom-dresses";
 import { HowItWorks } from "./_components/how-it-works";
 import { MissionVision } from "./_components/mission-vision";
 import { ShopCta } from "./_components/shop-cta";
@@ -12,6 +13,7 @@ export default function AboutUsPage() {
       <AboutHero />
       <StatsBar />
       <BrandStory />
+      <CustomDresses />
       <MissionVision />
       <TrustBadges />
       <HowItWorks />
