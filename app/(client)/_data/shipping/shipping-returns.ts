@@ -4,158 +4,194 @@ export type ShippingTimeline = {
 };
 
 export type ShippingFeatureCard = {
+  icon: string;
   eyebrow: string;
   title: string;
-  subtitle: string;
   body: string;
   variant?: "default" | "primary";
 };
 
 export type PaymentCard = {
   icon: string;
-  badge: { label: string; variant: "success" | "muted" };
+  badge: string;
   title: string;
   body: string;
   footnote?: string;
 };
 
-export type ReturnRule = string;
-
 export type SpecialNote = {
   icon: string;
   title: string;
   body: string;
-  tone: "tertiary" | "secondary" | "primary";
 };
 
-export type MiniFaq = {
+export type MiniFaqItem = {
+  id: string;
   q: string;
   a: string;
 };
 
+export type NavItem = {
+  id: string;
+  label: string;
+  icon: string;
+};
+
 export const shippingReturnsCopy = {
   hero: {
-    title: "Shipping & Returns",
+    eyebrow: "শিপিং ও রিটার্ন",
+    title: "স্বচ্ছ নীতি, নির্ভরযোগ্য ডেলিভারি",
     subtitle:
-      "Fast delivery, easy returns, and transparent policies designed for your convenience.",
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAbWmaXZBxuMrKMimhgVMY0711a2gK9ouYDOPRkPsJpT2w1ffMqiyc87ovTTwD1PhFEUwmSdxGSiQ4ZSVpw-bxBnDVOzwF3j17SsHUWYeP6Zw18k8ShbDcSulfHhKFIFMcSl97lyYSXfyTQ9HGbURkityqlzbEM4fZbDVYhgSRnXztn7CWwzCjfOQhWfU90Oyt4fYs0WLrioURPHHcaQrRGEHAdwq1BqZfnDF1cCHFiMff7182qQ4UU8ZuQ_3P5J3wKm6zDapgCow",
-    imageAlt: "Modern logistics warehouse symbolizing efficient shipping operations",
+      "সারাদেশে ডেলিভারি, ক্যাশ অন ডেলিভারি এবং সহজ রিটার্ন — অর্ডার থেকে হাতে পাওয়া পর্যন্ত সবকিছু পরিষ্কার ও সহজ।",
   },
   nav: {
-    title: "Customer Care",
-    subtitle: "Policy & Information",
+    title: "নীতিমালা",
+    subtitle: "বিষয় অনুযায়ী দেখুন",
     items: [
-      { id: "shipping", label: "Shipping Policy", icon: "local_shipping" },
-      { id: "payment", label: "Payment Methods", icon: "payments" },
-      { id: "returns", label: "Returns & Exchanges", icon: "keyboard_return" },
-      { id: "refund", label: "Refund Process", icon: "receipt_long" },
-      { id: "support", label: "Support Center", icon: "help_outline" },
-    ],
+      { id: "shipping", label: "শিপিং তথ্য", icon: "local_shipping" },
+      { id: "payment", label: "পেমেন্ট পদ্ধতি", icon: "payments" },
+      { id: "returns", label: "রিটার্ন ও এক্সচেঞ্জ", icon: "assignment_return" },
+      { id: "refund", label: "রিফান্ড প্রক্রিয়া", icon: "receipt_long" },
+      { id: "support", label: "সাপোর্ট", icon: "support_agent" },
+    ] satisfies NavItem[],
   },
   shipping: {
-    heading: "Shipping Information",
+    heading: "শিপিং তথ্য",
+    intro: "স্টক থাকা প্রোডাক্ট দ্রুত পাঠানো হয়; কাস্টম ড্রেসে স্টিচিংয়ের পর ডেলিভারি শুরু হয়।",
     cards: [
       {
-        eyebrow: "Domestic Delivery",
-        title: "Nationwide Coverage",
-        subtitle: "We deliver to every corner",
-        body: "We deliver to every corner of the country using our premium logistics partners.",
+        icon: "public",
+        eyebrow: "কভারেজ",
+        title: "সারাদেশে ডেলিভারি",
+        body: "ঢাকাসহ সারা বাংলাদেশে (৬৪ জেলা) নির্ভরযোগ্য কুরিয়ারের মাধ্যমে ডেলিভারি করা হয়।",
         variant: "default",
       },
       {
-        eyebrow: "Premium Benefit",
-        title: "Free Delivery",
-        subtitle: "Orders over $500",
-        body: "Enjoy complimentary shipping on all orders exceeding $500. Applied automatically at checkout.",
+        icon: "payments",
+        eyebrow: "সুবিধা",
+        title: "ক্যাশ অন ডেলিভারি",
+        body: "প্রোডাক্ট হাতে পাওয়ার পর টাকা পরিশোধ করুন — আগে থেকে পেমেন্ট বাধ্যতামূলক নয়।",
         variant: "primary",
       },
     ] satisfies ShippingFeatureCard[],
-    timelinesTitle: "Delivery Timelines",
+    timelinesTitle: "ডেলিভারি সময়সূচি",
     timelines: [
-      { label: "Inside City Limits", value: "1 - 3 Days" },
-      { label: "Outside City / Regional", value: "3 - 5 Days" },
+      { label: "ঢাকার ভেতরে", value: "২৪–৪৮ ঘণ্টা" },
+      { label: "ঢাকার বাইরে", value: "২৪–৭২ ঘণ্টা" },
+      { label: "কাস্টম ড্রেস (স্টিচিংসহ)", value: "৩–৭ কর্মদিবস" },
     ] satisfies ShippingTimeline[],
-    express: {
-      title: "Express Processing",
-      body: "All orders are processed and dispatched within 24 hours of confirmation.",
-      icon: "bolt",
-    },
-  },
-  payment: {
-    heading: "Payment Methods",
-    cards: [
+    notes: [
       {
-        icon: "credit_card",
-        badge: { label: "SECURE", variant: "success" },
-        title: "Online Payment",
-        body: "Safe and encrypted checkout. All major cards accepted.",
+        icon: "bolt",
+        title: "দ্রুত প্রসেসিং",
+        body: "স্টক থাকা অর্ডার সাধারণত কনফার্মের পর দ্রুত প্যাক করে পাঠানোর চেষ্টা করা হয়।",
       },
       {
+        icon: "design_services",
+        title: "কাস্টম অর্ডার",
+        body: "মাপ/ডিজাইন কনফার্ম হওয়ার পর স্টিচিং শুরু হয়; তারপর সারাদেশে ডেলিভারি করা হয়।",
+      },
+    ],
+  },
+  payment: {
+    heading: "পেমেন্ট পদ্ধতি",
+    intro: "পেমেন্ট সহজ ও স্বচ্ছ — চেকআউট বা অর্ডার কনফার্মের সময় সব চার্জ জানিয়ে দেওয়া হয়।",
+    cards: [
+      {
         icon: "handshake",
-        badge: { label: "LOCAL", variant: "muted" },
-        title: "Cash on Delivery",
-        body: "Pay conveniently when your package arrives at your doorstep.",
-        footnote: "Available Nationwide",
+        badge: "জনপ্রিয়",
+        title: "ক্যাশ অন ডেলিভারি",
+        body: "প্রোডাক্ট হাতে পেয়ে যাচাই করার পর টাকা দিন। সারাদেশে উপলব্ধ।",
+        footnote: "সবচেয়ে নিরাপদ ও সহজ অপশন",
+      },
+      {
+        icon: "account_balance_wallet",
+        badge: "অনুরোধে",
+        title: "মোবাইল ব্যাংকিং",
+        body: "প্রয়োজনে বিকাশ/নগদ ইত্যাদি গাইড করে দেওয়া হয় — অর্ডারের সময় মেসেজে জানান।",
+        footnote: "কাস্টম/বিশেষ অর্ডারে প্রযোজ্য হতে পারে",
       },
     ] satisfies PaymentCard[],
   },
   returns: {
-    heading: "Returns & Exchanges",
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB-B6z4y42cJf6VMXxlGhM9ZLjvQDdMPcHzYIHAevJzP947AHix6uJQ_VFNG6dLdnaBM6whh9Cjd2VtHgBIOJu43Q5Oe6jD03vr_c_zGxgkS3c_fBMdmbwZSyyLVix9v18MwRoxY5wacIl6Yl_t2N5LbPZdlusq-mBCQm7aFbqJ1KkNorz-Q-0RjGnWIRwsJyJmuXOosLhyVw_jk83sskhxUHPrBHE1NhJW1cjGrgqZ6gCyt3EuOULPObGqfYzcIb0hFiGc4mtcaw",
-    imageAlt: "Minimalist luxury packaging emphasizing premium return standards",
-    eligibilityTitle: "7-Day Eligibility",
+    heading: "রিটার্ন ও এক্সচেঞ্জ",
+    eligibilityTitle: "৩ দিনের ইজি রিটার্ন",
+    eligibilityBody:
+      "ডেলিভারির পর ৩ দিনের মধ্যে প্রোডাক্ট ডিফেক্ট বা ভিন্ন হলে সহজে রিটার্ন বা রিপ্লেসমেন্ট করা যায়।",
     rules: [
-      "Items must be returned within 7 days of delivery.",
-      "Products must be unused and in original condition.",
-      "All original tags and packaging must be intact.",
-    ] satisfies ReturnRule[],
+      "প্রোডাক্ট অব্যবহৃত ও আসল অবস্থায় থাকতে হবে।",
+      "সম্ভব হলে আসল প্যাকেজিং ও অ্যাকসেসরিজসহ ফেরত দিন।",
+      "ডিফেক্ট/ভুল আইটেমের ছবিসহ দ্রুত সাপোর্টে জানান।",
+      "কাস্টম মেড ড্রেসে সাইজ/ডিজাইন পছন্দ না হওয়ার কারণে রিটার্ন সীমিত।",
+    ],
     special: [
       {
-        tone: "tertiary",
-        icon: "restaurant",
-        title: "Organic Food",
-        body: "Non-returnable due to health and safety regulations.",
-      },
-      {
-        tone: "secondary",
         icon: "devices",
-        title: "Electronics",
-        body: "Includes standard 1-year manufacturer warranty from date of purchase.",
+        title: "গ্যাজেট",
+        body: "ম্যানুফ্যাকচারিং ডিফেক্টে সাপোর্ট/রিপ্লেসমেন্ট দেওয়া হয়। ব্যবহারজনিত ক্ষতি আলাদা বিবেচ্য।",
       },
       {
-        tone: "primary",
-        icon: "apparel",
-        title: "Clothing",
-        body: "Size exchanges are available subject to stock availability.",
+        icon: "checkroom",
+        title: "ড্রেস / ফ্যাশন",
+        body: "ডিফেক্ট সেলাই বা ফেব্রিকে সমস্যা থাকলে সমাধান করা হয়। কাস্টম পিসে এক্সচেঞ্জ সীমিত।",
+      },
+      {
+        icon: "info",
+        title: "যা রিটার্নযোগ্য নয়",
+        body: "ব্যবহৃত, ক্ষতিগ্রস্ত বা কাস্টমারের ভুলে অর্ডার করা আইটেম সাধারণত রিটার্নযোগ্য নয়।",
       },
     ] satisfies SpecialNote[],
   },
+  refund: {
+    heading: "রিফান্ড প্রক্রিয়া",
+    steps: [
+      {
+        title: "অনুরোধ জানান",
+        body: "হোয়াটসঅ্যাপ বা কলে অর্ডার নম্বরসহ রিটার্ন/রিফান্ডের কারণ জানান।",
+      },
+      {
+        title: "যাচাই",
+        body: "প্রোডাক্ট ফেরত এলে আমাদের টিম কন্ডিশন ও ডিফেক্ট যাচাই করে।",
+      },
+      {
+        title: "সমাধান",
+        body: "রিপ্লেসমেন্ট অথবা প্রযোজ্য ক্ষেত্রে রিফান্ড — পদ্ধতি আগেই জানিয়ে দেওয়া হয়।",
+      },
+    ],
+    note: "ক্যাশ অন ডেলিভারি অর্ডারে রিফান্ড সাধারণত এক্সচেঞ্জ/রিপ্লেসমেন্ট অগ্রাধিকার পায়; নগদ ফেরত কেসের ভিত্তিতে সাজানো হয়।",
+  },
   support: {
-    title: "Need Further Assistance?",
+    title: "আরও সাহায্য দরকার?",
     subtitle:
-      "Our dedicated support team is here to help you with tracking, returns, or any policy questions.",
+      "অর্ডার ট্র্যাকিং, রিটার্ন বা নীতিমালা নিয়ে যেকোনো প্রশ্নে আমাদের টিম সাহায্য করতে প্রস্তুত।",
     phone: "+880 1516-527932",
     email: "implesiaitltd@gmail.com",
-    cta: "Visit Contact Us Page",
+    cta: "যোগাযোগ করুন",
+    whatsapp: "হোয়াটসঅ্যাপে চ্যাট",
   },
   miniFaq: {
-    title: "Frequently Asked Questions",
+    title: "সংক্ষিপ্ত প্রশ্নোত্তর",
     items: [
       {
-        q: "How can I track my order?",
-        a: "Tracking details are sent via SMS and email immediately after dispatch.",
+        id: "track",
+        q: "অর্ডার কীভাবে ট্র্যাক করব?",
+        a: "শিপমেন্টের পর ফোন/মেসেজে আপডেট দেওয়া হয়। অর্ডার নম্বর দিয়ে যেকোনো সময় জানতে পারবেন।",
       },
       {
-        q: "Missing delivery?",
-        a: "If your package hasn't arrived within the timeline, please contact support within 48 hours.",
+        id: "delay",
+        q: "ডেলিভারি দেরি হলে কী করব?",
+        a: "নির্ধারিত সময় পেরিয়ে গেলে ৪৮ ঘণ্টার মধ্যে সাপোর্টে যোগাযোগ করুন — আমরা স্ট্যাটাস চেক করে জানাব।",
       },
       {
-        q: "Weekend deliveries?",
-        a: "We currently deliver Monday through Saturday. Sunday deliveries are not available.",
+        id: "weekend",
+        q: "সপ্তাহান্তে ডেলিভারি হয়?",
+        a: "কুরিয়ার নেটওয়ার্ক অনুযায়ী শনিবার পর্যন্ত ডেলিভারি হতে পারে; শুক্রবারে বিলম্ব হতে পারে।",
       },
-    ] satisfies MiniFaq[],
+      {
+        id: "custom-return",
+        q: "কাস্টম ড্রেস রিটার্ন করা যায়?",
+        a: "সাইজ/ডিজাইন পছন্দ না হলে সাধারণত নয়। তবে সেলাই বা ফেব্রিক ডিফেক্ট থাকলে অবশ্যই সমাধান করা হয়।",
+      },
+    ] satisfies MiniFaqItem[],
   },
 } as const;
-
