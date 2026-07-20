@@ -246,7 +246,7 @@ export function PrivacyPolicyView() {
               <p className="mb-4 text-sm leading-relaxed text-on-surface-variant sm:text-base">
                 {copy.sharing.body}
               </p>
-              <div className="mb-6 flex flex-wrap gap-2 sm:mb-8">
+              <div className="flex flex-wrap gap-2">
                 {copy.sharing.chips.map((chip) => (
                   <span
                     key={chip}
@@ -255,19 +255,6 @@ export function PrivacyPolicyView() {
                     {chip}
                   </span>
                 ))}
-              </div>
-
-              <div className="rounded-xl border border-outline-variant/35 bg-surface-container-lowest p-4 sm:rounded-2xl sm:p-6 dark:border-white/10 dark:bg-surface-container">
-                <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-on-surface sm:text-lg">
-                  <MaterialIcon name="cookie" className="text-[22px] text-primary" />
-                  {copy.sharing.cookies.title}
-                </h3>
-                <p className="mb-3 border-l-4 border-primary pl-4 text-sm leading-relaxed text-on-surface-variant italic sm:text-base">
-                  “{copy.sharing.cookies.quote}”
-                </p>
-                <p className="text-sm leading-relaxed text-on-surface-variant">
-                  {copy.sharing.cookies.body}
-                </p>
               </div>
             </section>
 

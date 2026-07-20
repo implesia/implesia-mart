@@ -41,7 +41,7 @@ export const privacyPolicyCopy = {
       { id: "introduction", label: "ভূমিকা", icon: "info" },
       { id: "collection", label: "তথ্য সংগ্রহ", icon: "database" },
       { id: "usage", label: "ব্যবহার ও সুরক্ষা", icon: "query_stats" },
-      { id: "sharing", label: "শেয়ারিং ও কুকি", icon: "share" },
+      { id: "sharing", label: "তথ্য শেয়ারিং", icon: "share" },
       { id: "rights", label: "আপনার অধিকার", icon: "gavel" },
       { id: "support", label: "যোগাযোগ", icon: "support_agent" },
     ] satisfies PrivacyNavItem[],
@@ -112,11 +112,6 @@ export const privacyPolicyCopy = {
     heading: "তথ্য শেয়ারিং",
     body: "আমরা আপনার ব্যক্তিগত তথ্য মার্কেটিংয়ের জন্য তৃতীয় পক্ষের কাছে বিক্রি করি না। শুধু সেবা চালানোর জন্য প্রয়োজনীয় বিশ্বস্ত পার্টনারদের সাথে সীমিত তথ্য শেয়ার করা হয়:",
     chips: ["কুরিয়ার / লজিস্টিক্স", "পেমেন্ট সহায়ক", "হোস্টিং / ক্লাউড"],
-    cookies: {
-      title: "কুকি ও ট্র্যাকিং",
-      quote: "সাইটের অভিজ্ঞতা ভালো রাখতে আমরা প্রয়োজনীয় কুকি ব্যবহার করি।",
-      body: "সেশন পরিচালনা ও সাইট ব্যবহার বোঝার জন্য কুকি ব্যবহার হতে পারে। ব্রাউজার সেটিংস থেকে কুকি নিয়ন্ত্রণ করতে পারবেন; কিছু ফিচার সীমিত হতে পারে।",
-    },
   },
   rights: {
     heading: "আপনার অধিকার",
