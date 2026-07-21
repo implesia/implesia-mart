@@ -11,16 +11,7 @@
     "not_found_handling": "none",
     "binding": "ASSETS"
   },
-  "cache": {
-    "enabled": true
-  },
   "images": {
     "binding": "IMAGES"
-  },
-  "kv_namespaces": [
-    {
-      "binding": "VINEXT_KV_CACHE",
-      "id": "<your-kv-namespace-id>"
-    }
-  ]
+  }
 }
