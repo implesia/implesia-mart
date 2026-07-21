@@ -161,7 +161,7 @@ export const products: Product[] = [
     slug: "custom-gorgeous-womens-gown",
     title: "গর্জিয়াস উইমেন্স গাউন",
     subtitle: "হাতে তৈরি | কাস্টম এমব্রয়ডারি গাউন",
-    price: 6500,
+    price: 15000,
     unitLabel: "শুরু",
     imageAlt: "হাতে তৈরি গর্জিয়াস উইমেন্স গাউন",
     badge: "New",
