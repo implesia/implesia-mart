@@ -68,6 +68,10 @@ export function ProductGallery({
               alt={active.alt}
               fill
               className="object-contain object-center p-2 sm:p-3"
+              /* Inline style required: vinext's next/image shim injects
+               * objectFit: "cover" inline on fill images, which beats the
+               * Tailwind class. Explicit style wins over the shim default. */
+              style={{ objectFit: "contain", objectPosition: "center" }}
               priority={activeIndex === 0}
               sizes="(max-width: 1024px) 100vw, 55vw"
             />
