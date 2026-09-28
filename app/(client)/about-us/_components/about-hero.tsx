@@ -13,29 +13,26 @@ export function AboutHero({ className }: { className?: string }) {
   const { hero } = aboutCopy;
 
   return (
-    <section className={cn("w-full pb-5 sm:pb-6 lg:pb-7", className)}>
-      <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
+    <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            "relative w-full overflow-hidden rounded-2xl sm:rounded-3xl",
+            "relative w-full overflow-hidden rounded-2xl",
             "grid grid-cols-1 lg:grid-cols-12",
-            "bg-[#062f2c]",
-            "ring-1 ring-black/10",
-            "shadow-[0_12px_32px_rgba(6,47,44,0.12)]",
+            "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
           )}
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_0%_0%,rgba(43,192,181,0.35),transparent_55%),radial-gradient(ellipse_60%_50%_at_100%_100%,rgba(245,179,1,0.14),transparent_50%)]"
+            className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
           />
 
-          <div className="relative z-10 flex flex-col justify-center px-4 py-6 sm:px-7 sm:py-8 lg:col-span-7 lg:px-10 lg:py-10 xl:px-12">
-            <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide text-white/90">
-              <span className="size-1.5 shrink-0 rounded-full bg-warm-gold" />
+          <div className="relative z-10 flex flex-col justify-center px-4 py-6 sm:px-7 sm:py-8 lg:col-span-7 lg:px-8 lg:py-10">
+            <p className="mb-1.5 text-[11px] font-medium tracking-wide text-primary sm:text-xs">
               {hero.eyebrow}
-            </span>
+            </p>
 
-            <h1 className="mb-3 text-xl leading-tight font-semibold text-white sm:mb-4 sm:text-3xl lg:text-[2.35rem]">
+            <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-white sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
               {hero.title}
             </h1>
 
@@ -43,24 +40,17 @@ export function AboutHero({ className }: { className?: string }) {
               {hero.subtitle}
             </p>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:gap-3">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
               <Link
                 href={hero.primaryCta.href}
-                className={cn(
-                  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold sm:px-6",
-                  "bg-warm-gold text-on-surface",
-                  "transition-colors hover:bg-warm-gold/90 active:scale-[0.98]",
-                )}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80 sm:h-10"
               >
                 {hero.primaryCta.label}
                 <MaterialIcon name="arrow_forward" className="text-[18px]" />
               </Link>
               <Link
                 href={hero.secondaryCta.href}
-                className={cn(
-                  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-white/20 px-5 text-sm font-semibold text-white sm:px-6",
-                  "transition-colors hover:bg-white/10",
-                )}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
                 {hero.secondaryCta.label}
               </Link>
@@ -68,7 +58,7 @@ export function AboutHero({ className }: { className?: string }) {
           </div>
 
           <div className="relative grid grid-cols-2 gap-2 p-4 sm:gap-3 sm:p-6 lg:col-span-5 lg:p-7">
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/15 sm:rounded-2xl">
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
               <Image
                 src={hero.imageSrc}
                 alt={hero.imageAlt}
@@ -78,7 +68,7 @@ export function AboutHero({ className }: { className?: string }) {
                 className="object-cover"
               />
             </div>
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/15 sm:rounded-2xl">
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
               <Image
                 src={hero.secondaryImageSrc}
                 alt={hero.secondaryImageAlt}

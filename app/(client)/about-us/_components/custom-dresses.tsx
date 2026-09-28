@@ -11,14 +11,14 @@ export function CustomDresses({ className }: { className?: string }) {
   const { customDresses } = aboutCopy;
 
   return (
-    <section className={cn("w-full py-6 sm:py-8 lg:py-10", className)}>
-      <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
+    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-10">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:col-span-7">
             {customDresses.gallery.map((image) => (
               <div
                 key={image.src}
-                className="group relative aspect-4/5 overflow-hidden rounded-xl ring-1 ring-neutral-200 sm:rounded-2xl"
+                className="group relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white"
               >
                 <Image
                   src={image.src}
@@ -32,12 +32,11 @@ export function CustomDresses({ className }: { className?: string }) {
           </div>
 
           <div className="lg:col-span-5">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-primary uppercase">
-              <span aria-hidden className="h-px w-5 bg-warm-gold" />
+            <p className="text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">
               {customDresses.kicker}
-            </span>
+            </p>
 
-            <h2 className="mt-3 text-xl leading-tight font-semibold text-neutral-950 sm:text-2xl lg:text-[1.85rem]">
+            <h2 className="mt-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
               {customDresses.title}
             </h2>
 
@@ -45,7 +44,7 @@ export function CustomDresses({ className }: { className?: string }) {
               {customDresses.subtitle}
             </p>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:gap-4">
+            <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
               {customDresses.features.map((feature) => (
                 <div key={feature.title} className="flex items-start gap-2.5">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -67,9 +66,8 @@ export function CustomDresses({ className }: { className?: string }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold sm:px-6",
-                  "bg-warm-gold text-on-surface",
-                  "transition-colors hover:bg-warm-gold/90 active:scale-[0.98]",
+                  "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold",
+                  "bg-primary text-on-primary transition-colors hover:bg-primary/80",
                 )}
               >
                 {customDresses.primaryCta.label}
@@ -78,9 +76,8 @@ export function CustomDresses({ className }: { className?: string }) {
               <Link
                 href={customDresses.secondaryCta.href}
                 className={cn(
-                  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold sm:px-6",
-                  "border border-neutral-200 bg-white text-neutral-950",
-                  "transition-colors hover:border-primary/40 hover:text-primary",
+                  "inline-flex h-10 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-950",
+                  "transition-colors hover:border-neutral-400",
                 )}
               >
                 {customDresses.secondaryCta.label}

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function AboutUsPage() {
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
-      <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div className="w-full pt-3 sm:pt-4 lg:pt-5">
           <ProductBreadcrumbs
             items={[
