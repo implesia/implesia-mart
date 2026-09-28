@@ -245,72 +245,53 @@ export const organicHighlight = {
   ],
 };
 
+/**
+ * Customer review screenshots. Drop the image at `imageSrc`
+ * (under `public/`) and it shows in the home review wall.
+ * Suggested crop: a phone chat or comment screenshot, portrait.
+ */
 export const testimonials = [
   {
-    id: "1",
-    rating: 5,
+    id: "sunset-lamp-1",
+    imageSrc: "/images/reviews/sunset-lamp-1.jpg",
+    imageAlt: "সানসেট ল্যাম্পের কাস্টমার রিভিউ স্ক্রিনশট",
     product: "সানসেট ল্যাম্প",
-    quote:
-      "রুমটা একদম অন্যরকম লাগে এখন। রাতে লাইট জ্বালালে কালারগুলো খুব সুন্দর। ক্যাশ অন ডেলিভারিতে নিয়ে দেখে টাকা দিয়েছি — কোনো ঝামেলা হয়নি।",
-    name: "রাফিয়া আহমেদ",
-    location: "ধানমন্ডি, ঢাকা",
-    initials: "রা",
-    accent: "#0d9488",
+    channel: "WhatsApp",
   },
   {
-    id: "2",
-    rating: 5,
+    id: "phone-holder-1",
+    imageSrc: "/images/reviews/phone-holder-1.jpg",
+    imageAlt: "এআই ফোন হোল্ডারের কাস্টমার রিভিউ স্ক্রিনশট",
     product: "AI ফোন হোল্ডার",
-    quote:
-      "রিলস বানানোর জন্য নিয়েছিলাম। মুখ ঘোরালেও ক্যামেরা ফলো করে, হাত ছাড়াই রেকর্ড করা যায়। ডেলিভারিও দ্রুত পেয়েছি।",
-    name: "তৌফিক হোসেন",
-    location: "মিরপুর, ঢাকা",
-    initials: "তৌ",
-    accent: "#0f766e",
+    channel: "Messenger",
   },
   {
-    id: "3",
-    rating: 5,
+    id: "gown-1",
+    imageSrc: "/images/reviews/gown-1.jpg",
+    imageAlt: "কাস্টম গাউনের কাস্টমার রিভিউ স্ক্রিনশট",
     product: "কাস্টম গাউন",
-    quote:
-      "বিয়ের অনুষ্ঠানের জন্য কাস্টম গাউন অর্ডার করেছিলাম। মাপ পারফেক্ট, এমব্রয়ডারিও সুন্দর। হোয়াটসঅ্যাপে ডিজাইন কনফার্ম করা সহজ ছিল।",
-    name: "সাদিয়া ইসলাম",
-    location: "চট্টগ্রাম",
-    initials: "সা",
-    accent: "#b45309",
+    channel: "WhatsApp",
   },
   {
-    id: "4",
-    rating: 5,
+    id: "phone-holder-2",
+    imageSrc: "/images/reviews/phone-holder-2.jpg",
+    imageAlt: "এআই ফোন হোল্ডারের আরেকটি কাস্টমার রিভিউ স্ক্রিনশট",
     product: "AI ফোন হোল্ডার",
-    quote:
-      "অনলাইন ক্লাস নেই, তাই হোল্ডারটা কিনেছি। ব্লুটুথ রিমোট দিয়ে ছবি তোলাও সহজ। কোয়ালিটি দামের চেয়ে ভালো লেগেছে।",
-    name: "ইমরান খান",
-    location: "সিলেট",
-    initials: "ইম",
-    accent: "#115e59",
+    channel: "WhatsApp",
   },
   {
-    id: "5",
-    rating: 5,
+    id: "sunset-lamp-2",
+    imageSrc: "/images/reviews/sunset-lamp-2.jpg",
+    imageAlt: "সানসেট ল্যাম্পের আরেকটি কাস্টমার রিভিউ স্ক্রিনশট",
     product: "সানসেট ল্যাম্প",
-    quote:
-      "বান্ধবীকে বার্থডে গিফট দিয়েছি। প্যাকেজিং সুন্দর ছিল, রিমোট দিয়ে কালার চেঞ্জ করতেও পছন্দ হয়েছে তার। আবার অর্ডার করব।",
-    name: "নুসরাত জাহান",
-    location: "উত্তরা, ঢাকা",
-    initials: "নু",
-    accent: "#c4870a",
+    channel: "Messenger",
   },
   {
-    id: "6",
-    rating: 5,
+    id: "baby-frock-1",
+    imageSrc: "/images/reviews/baby-frock-1.jpg",
+    imageAlt: "বেবি পার্টি ফ্রকের কাস্টমার রিভিউ স্ক্রিনশট",
     product: "বেবি পার্টি ফ্রক",
-    quote:
-      "মেয়ের জন্মদিনের জন্য কাস্টম ফ্রক করেছি। কালার ও ডিজাইন ঠিক যেমন চেয়েছিলাম। ডেলিভারি সময়মতো পেয়েছি।",
-    name: "মাহি চৌধুরী",
-    location: "রাজশাহী",
-    initials: "মা",
-    accent: "#be185d",
+    channel: "WhatsApp",
   },
 ] as const;
 

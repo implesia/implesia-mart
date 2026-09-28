@@ -8,11 +8,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { cn } from "@/lib/utils";
 
+import { faqSections } from "../../_data/home/home";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
-import { faqSections } from "../../_data/home/home";
 
 const categoryIcons: Record<string, string> = {
   "অর্ডার ট্র্যাকিং": "package_2",
@@ -23,65 +22,98 @@ const categoryIcons: Record<string, string> = {
   "ডেলিভারি সময়": "schedule",
 };
 
-export function FaqSection() {
+type FaqBlock = (typeof faqSections)[number];
+
+function FaqColumn({
+  items,
+  idPrefix,
+  defaultValue,
+}: {
+  items: readonly FaqBlock[];
+  idPrefix: string;
+  defaultValue?: string;
+}) {
   return (
-    <section className="py-10 sm:py-14 lg:py-xl">
-      <Container className="px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-8 text-center sm:mb-10">
-            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-3 py-1.5 text-xs font-semibold text-warm-gold">
-              <MaterialIcon name="help" className="text-[16px]" />
-              জিজ্ঞাসা ও উত্তর
-            </span>
-            <h2 className="mb-3 font-display-lg text-2xl leading-tight text-primary sm:text-3xl lg:text-4xl">
-              প্রায়শই জিজ্ঞাসিত প্রশ্ন
-            </h2>
-            <p className="mx-auto max-w-lg text-sm leading-relaxed text-on-surface-variant sm:text-base">
-              অর্ডার, পেমেন্ট, ডেলিভারি ও রিটার্ন নিয়ে সাধারণ প্রশ্নের দ্রুত
-              উত্তর।
-            </p>
-          </div>
-
-          <Accordion
-            defaultValue={["faq-0"]}
-            className="flex flex-col gap-3"
+    <Accordion
+      defaultValue={defaultValue ? [defaultValue] : []}
+      className="flex flex-col gap-3"
+    >
+      {items.map((block) => {
+        const icon = categoryIcons[block.category] ?? "help_outline";
+        const value = `${idPrefix}-${block.category}`;
+        return (
+          <AccordionItem
+            key={value}
+            value={value}
+            className="rounded-2xl border border-neutral-200/90 bg-white px-4 not-last:border-b sm:px-5 dark:border-white/10 dark:bg-[#121816] dark:not-last:border-b"
           >
-            {faqSections.map((block, index) => {
-              const icon = categoryIcons[block.category] ?? "help_outline";
+            <AccordionTrigger className="gap-3 py-4 text-left text-sm font-semibold leading-snug text-neutral-950 hover:no-underline sm:py-[1.125rem] sm:text-[15px] dark:text-white">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700 dark:bg-white/8 dark:text-white/80">
+                <MaterialIcon name={icon} className="text-[18px]" />
+              </span>
+              <span className="min-w-0 flex-1">{block.question}</span>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 text-sm leading-relaxed text-neutral-600 sm:pb-5 sm:text-[15px] dark:text-white/70">
+              <p className="border-t border-neutral-200/80 pt-3 dark:border-white/10">
+                {block.answer}
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
+  );
+}
 
-              return (
-                <AccordionItem
-                  key={block.category}
-                  value={`faq-${index}`}
-                  className={cn(
-                    "rounded-2xl border border-outline-variant/40 bg-surface-container-lowest px-4 dark:border-white/10 dark:bg-surface-container sm:px-5",
-                  )}
-                >
-                  <AccordionTrigger className="gap-3 py-4 text-left text-sm font-semibold leading-snug text-on-surface hover:no-underline sm:py-5 sm:text-base">
-                    <span className="mr-2 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary sm:size-10">
-                      <MaterialIcon name={icon} className="text-[20px]" />
-                    </span>
-                    <span className="min-w-0 flex-1">{block.question}</span>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4 text-sm leading-relaxed text-on-surface-variant sm:pb-5 sm:text-[0.95rem]">
-                    <p className="border-t border-outline-variant/30 pt-3 dark:border-white/10">
-                      {block.answer}
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
+export function FaqSection() {
+  const columns = [
+    faqSections.filter((_, index) => index % 2 === 0),
+    faqSections.filter((_, index) => index % 2 === 1),
+  ];
 
-          <div className="mt-8 flex justify-center">
-            <Link
-              href="/faqs"
-              className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-primary ring-1 ring-primary/25 transition-colors hover:bg-primary/8"
-            >
-              আরও প্রশ্ন দেখুন
-              <MaterialIcon name="arrow_forward" className="text-[18px]" />
-            </Link>
-          </div>
+  return (
+    <section
+      className="bg-[#f7f8f8] py-6 sm:py-8 dark:bg-background"
+      aria-labelledby="home-faq-heading"
+    >
+      <Container className="px-4 sm:px-6 lg:px-8">
+        <div className="mb-8 sm:mb-10">
+          <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-white/50">
+            জিজ্ঞাসা ও উত্তর
+          </p>
+          <h2
+            id="home-faq-heading"
+            className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl dark:text-white"
+          >
+            প্রায়শই জিজ্ঞাসিত প্রশ্ন
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base dark:text-white/65">
+            অর্ডার, পেমেন্ট, ডেলিভারি ও রিটার্ন নিয়ে সাধারণ প্রশ্নের দ্রুত
+            উত্তর।
+          </p>
+        </div>
+
+        <div className="grid items-start gap-3 md:grid-cols-2 md:gap-4">
+          {columns.map((items, index) => (
+            <FaqColumn
+              key={index === 0 ? "left" : "right"}
+              items={items}
+              idPrefix={index === 0 ? "left" : "right"}
+              defaultValue={
+                index === 0 ? `left-${items[0]?.category}` : undefined
+              }
+            />
+          ))}
+        </div>
+
+        <div className="mt-8">
+          <Link
+            href="/faqs"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-950 transition-colors hover:text-neutral-600 dark:text-white dark:hover:text-white/70"
+          >
+            আরও প্রশ্ন দেখুন
+            <MaterialIcon name="arrow_forward" className="text-[18px]" />
+          </Link>
         </div>
       </Container>
     </section>

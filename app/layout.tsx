@@ -11,6 +11,7 @@ import Header from "./(client)/_components/common/header";
 import Footer from "./(client)/_components/common/footer";
 import { FloatingActions } from "./(client)/_components/common/floating-actions";
 import { CartProvider } from "./(client)/_providers/cart-provider";
+import { CategoryRailProvider } from "./(client)/_providers/category-rail-provider";
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
 import { WHATSAPP_HREF } from "./(client)/_data/contact/contact";
 import {
@@ -46,6 +47,11 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
+  },
+  icons: {
+    icon: [{ url: "/favicon.ico", type: "image/png" }],
+    shortcut: [{ url: "/favicon.ico", type: "image/png" }],
+    apple: [{ url: "/favicon.ico", type: "image/png" }],
   },
   robots: {
     index: true,
@@ -136,11 +142,13 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
           <CartProvider>
-            <Header />
-            {children}
-            <Footer />
-            <CartDrawer />
-            <FloatingActions />
+            <CategoryRailProvider>
+              <Header />
+              {children}
+              <Footer />
+              <CartDrawer />
+              <FloatingActions />
+            </CategoryRailProvider>
           </CartProvider>
         </ThemeProvider>
       </body>

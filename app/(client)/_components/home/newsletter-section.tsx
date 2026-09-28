@@ -25,7 +25,7 @@ export function NewsletterSection() {
   }
 
   return (
-    <section className="w-full py-10 sm:py-14 lg:py-xl">
+    <section className="w-full py-6 sm:py-8">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
@@ -46,7 +46,7 @@ export function NewsletterSection() {
               অফার ও আপডেট
             </p>
 
-            <h2 className="mb-3 text-2xl font-semibold leading-snug text-white sm:text-3xl lg:text-4xl">
+            <h2 className="mb-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               নতুন অফার মিস করবেন না
             </h2>
 

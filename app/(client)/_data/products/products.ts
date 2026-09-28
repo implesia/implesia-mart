@@ -209,3 +209,46 @@ export const productFilters = {
     { id: "newest", label: "নতুন সংযোজন" },
   ],
 } as const;
+
+export type ProductSortId = (typeof productFilters.sortOptions)[number]["id"];
+
+/** Cross-category homepage rails. Real categories stay on `?category=`. */
+export type CatalogView = "featured" | "latest" | "new";
+
+const CATALOG_VIEWS: readonly CatalogView[] = ["featured", "latest", "new"];
+
+export function productsHref(options?: {
+  category?: ProductCategoryId;
+  view?: CatalogView;
+}) {
+  const params = new URLSearchParams();
+  if (options?.view) params.set("view", options.view);
+  if (options?.category) params.set("category", options.category);
+  const query = params.toString();
+  return query ? `/products?${query}` : "/products";
+}
+
+export function readCatalogQuery(raw: {
+  category?: string | null;
+  view?: string | null;
+}) {
+  const category = productFilters.categories.some(
+    (item) => item.id === raw.category,
+  )
+    ? (raw.category as ProductCategoryId)
+    : undefined;
+  const view = CATALOG_VIEWS.find((item) => item === raw.view);
+  const sort: ProductSortId = view === "latest" ? "newest" : "popularity";
+  const badge: ProductBadge | undefined = view === "new" ? "New" : undefined;
+  const title = category
+    ? categoryLabels[category]
+    : view === "featured"
+      ? "Featured Products"
+      : view === "latest"
+        ? "Latest Products"
+        : view === "new"
+          ? "New Arrivals"
+          : "সব প্রোডাক্ট";
+
+  return { category, view, sort, badge, title };
+}

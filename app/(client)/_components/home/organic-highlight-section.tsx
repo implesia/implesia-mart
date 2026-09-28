@@ -10,10 +10,7 @@ import { MaterialIcon } from "../common/material-icon";
 
 export function OrganicHighlightSection() {
   return (
-    <section
-      id="why-us"
-      className="relative overflow-hidden py-12 sm:py-16 lg:py-20"
-    >
+    <section id="why-us" className="relative overflow-hidden py-6 sm:py-8">
       {/* Atmosphere */}
       <div
         aria-hidden
@@ -32,7 +29,7 @@ export function OrganicHighlightSection() {
               <span className="h-px w-6 bg-warm-gold/90" aria-hidden />
               {organicHighlight.kicker}
             </p>
-            <h2 className="text-2xl font-semibold tracking-tight text-on-background sm:text-3xl lg:text-[2.25rem] lg:leading-[1.2]">
+            <h2 className="text-2xl font-semibold tracking-tight text-on-background sm:text-3xl">
               {organicHighlight.title}
             </h2>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-on-surface-variant sm:text-base">
@@ -82,7 +79,10 @@ export function OrganicHighlightSection() {
                     "transition-colors duration-300 group-hover:bg-primary group-hover:text-on-primary",
                   )}
                 >
-                  <MaterialIcon name={item.icon} className="text-[22px] sm:text-[24px]" />
+                  <MaterialIcon
+                    name={item.icon}
+                    className="text-[22px] sm:text-[24px]"
+                  />
                 </span>
                 <span className="font-mono text-xs tabular-nums text-outline/70">
                   {String(index + 1).padStart(2, "0")}

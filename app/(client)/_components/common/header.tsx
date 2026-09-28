@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { contactCopy } from "../../_data/contact/contact";
 import { headerNav } from "../../_data/common/site-nav";
 import { productFilters } from "../../_data/products/products";
+import { useCategoryRail } from "../../_providers/category-rail-provider";
 import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
@@ -35,12 +36,24 @@ function useScrollLock(locked: boolean) {
 
 export default function Header() {
   const pathname = usePathname();
+  const { open: railOpen, toggle: toggleRail } = useCategoryRail();
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
   const menuId = useId();
   const categoriesRef = useRef<HTMLDivElement>(null);
   const mobileOpen = menuPath === pathname;
   const categoriesOpen = categoriesPath === pathname;
+  const controlsRail = pathname === "/" && isDesktop;
+  const categoriesExpanded = controlsRail ? railOpen : categoriesOpen;
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const apply = () => setIsDesktop(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
 
   useScrollLock(mobileOpen);
 
@@ -169,13 +182,19 @@ export default function Header() {
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100"
-                aria-expanded={categoriesOpen}
-                aria-haspopup="true"
-                onClick={() =>
+                aria-expanded={categoriesExpanded}
+                aria-controls={controlsRail ? "shop-categories" : undefined}
+                aria-haspopup={controlsRail ? undefined : "true"}
+                onClick={() => {
+                  if (controlsRail) {
+                    toggleRail();
+                    setCategoriesPath(null);
+                    return;
+                  }
                   setCategoriesPath((current) =>
                     current === pathname ? null : pathname,
-                  )
-                }
+                  );
+                }}
               >
                 <MaterialIcon name="apps" className="text-[18px]" />
                 Categories
@@ -183,7 +202,7 @@ export default function Header() {
                   name="expand_more"
                   className={cn(
                     "text-[18px] transition-transform",
-                    categoriesOpen && "rotate-180",
+                    categoriesExpanded && "rotate-180",
                   )}
                 />
               </button>
@@ -191,14 +210,14 @@ export default function Header() {
               <div
                 className={cn(
                   "absolute top-[calc(100%+0.5rem)] left-0 z-50 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 text-neutral-900 shadow-lg dark:border-white/10 dark:bg-[#141c1b] dark:text-white",
-                  categoriesOpen ? "block" : "hidden",
+                  categoriesOpen && !controlsRail ? "block" : "hidden",
                 )}
                 role="menu"
               >
                 {productFilters.categories.map((category) => (
                   <Link
                     key={category.id}
-                    href="/products"
+                    href={`/products?category=${category.id}`}
                     role="menuitem"
                     className="block px-3.5 py-2.5 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-white/10"
                     onClick={() => setCategoriesPath(null)}

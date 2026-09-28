@@ -58,8 +58,8 @@
   --spacing-gutter: 24px;
   --spacing-margin: 32px;
 
-  /* Site layout width — `max-w-7xl` resolves to 1720px everywhere */
-  --container-7xl: 1720px;
+  /* Site layout width — `max-w-7xl` resolves to this everywhere */
+  --container-7xl: 1440px;
 }
 
 /* Dark-mode overrides for the custom design tokens above.
@@ -375,7 +375,7 @@ details > summary {
     cursor: not-allowed;
   }
 }
- /* marquee */
+/* marquee */
 /* Infinite marquee animation */
 
 .marquee-track {
@@ -457,6 +457,11 @@ details > summary {
 .hero-swiper .swiper-slide {
   height: 100%;
   width: 100%;
+}
+
+.banner-swiper .swiper-wrapper,
+.banner-swiper .swiper-slide {
+  height: 100%;
 }
 
 /*
