@@ -127,7 +127,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           ) : (
             <span className="rounded-full bg-surface-container px-1.5 py-0.5 text-[9px] font-medium text-on-surface-variant sm:px-2 sm:text-[10px] md:text-[11px] dark:bg-background/40">
-              COD
+              ক্যাশ অন ডেলিভারি
             </span>
           )}
         </div>

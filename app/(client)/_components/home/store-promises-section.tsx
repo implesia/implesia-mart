@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import { ProductCard } from "../../products/_components/product-card";
 import { products, productsHref, type Product } from "../../_data/products/products";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
@@ -24,41 +24,34 @@ const promises = [
   {
     icon: "local_shipping",
     color: "text-orange-500",
-    label: "Fast delivery all across the country",
+    label: "সারাদেশে দ্রুত ডেলিভারি",
     href: "/shipping-returns",
   },
   {
     icon: "payments",
     color: "text-sky-500",
-    label: "Cash on Delivery",
+    label: "ক্যাশ অন ডেলিভারি",
     href: "/shipping-returns",
   },
   {
     icon: "assignment_return",
     color: "text-rose-500",
-    label: "3 Days Easy Return",
+    label: "৩ দিনের ইজি রিটার্ন",
     href: "/shipping-returns",
   },
   {
     icon: "verified_user",
     color: "text-blue-600",
-    label: "Quality Checked Products",
+    label: "কোয়ালিটি চেকড প্রোডাক্ট",
     href: "/about-us",
   },
 ] as const;
 
 const infoLinks = [
-  { href: "/about-us", icon: "apartment", label: "About Company", color: "text-sky-500" },
-  { href: "/contact-us", icon: "headset_mic", label: "Contact Us", color: "text-blue-500" },
-  { href: "/faqs", icon: "contact_support", label: "FAQ", color: "text-pink-500" },
+  { href: "/about-us", icon: "apartment", label: "আমাদের সম্পর্কে", color: "text-sky-500" },
+  { href: "/contact-us", icon: "headset_mic", label: "যোগাযোগ", color: "text-blue-500" },
+  { href: "/faqs", icon: "contact_support", label: "প্রশ্নোত্তর", color: "text-pink-500" },
 ] as const;
-
-function money(value: number) {
-  return `৳${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 function AccessoryRail({ items }: { items: Product[] }) {
   return (
@@ -68,36 +61,20 @@ function AccessoryRail({ items }: { items: Product[] }) {
           id="accessory-rail-heading"
           className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl dark:text-white"
         >
-          Trending Gadgets
+          ট্রেন্ডিং গ্যাজেট
         </h2>
         <Link
           href={productsHref({ category: "gadgets" })}
           className="inline-flex shrink-0 items-center gap-0.5 text-[13px] text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
         >
-          View All
+          সব দেখুন
           <MaterialIcon name="chevron_right" className="text-[16px]" />
         </Link>
       </div>
-      <ul className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-6 lg:gap-x-4">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {items.map((product) => (
-          <li key={product.id}>
-            <Link href={`/products/${product.slug}`} className="group block">
-              <span className="relative mx-auto block h-[118px] sm:h-[136px]">
-                <Image
-                  src={product.imageSrc}
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 42vw, 16vw"
-                  className="object-contain transition-transform duration-300 group-hover:scale-[1.04]"
-                />
-              </span>
-              <span className="mt-2 block truncate text-[13px] leading-snug text-neutral-600 dark:text-white/75">
-                {product.title}
-              </span>
-              <span className="mt-0.5 block text-sm font-medium text-neutral-950 dark:text-white">
-                {money(product.price)}
-              </span>
-            </Link>
+          <li key={product.id} className="min-w-0">
+            <ProductCard product={product} />
           </li>
         ))}
       </ul>

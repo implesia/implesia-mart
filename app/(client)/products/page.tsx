@@ -75,7 +75,7 @@ export default async function ProductsPage({
   const focused = catalog.title !== "সব প্রোডাক্ট";
 
   return (
-    <main className="w-full overflow-x-hidden">
+    <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <JsonLd data={breadcrumbJsonLd} />
       <JsonLd data={itemListJsonLd} />
       <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">

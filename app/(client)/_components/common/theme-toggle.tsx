@@ -19,8 +19,8 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       className={className}
       aria-label={
         resolvedTheme === "dark"
-          ? "Switch to light mode"
-          : "Switch to dark mode"
+          ? "লাইট মোডে যান"
+          : "ডার্ক মোডে যান"
       }
       suppressHydrationWarning
       onClick={toggle}

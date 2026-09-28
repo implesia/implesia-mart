@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import { ProductCard } from "../../products/_components/product-card";
 import { products, productsHref, type Product } from "../../_data/products/products";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
@@ -16,7 +16,6 @@ const rails: {
   title: string;
   href: string;
   slugs: string[];
-  ratedSlug?: string;
 }[] = [
   {
     id: "lights",
@@ -35,7 +34,6 @@ const rails: {
     id: "audio",
     title: "গর্জিয়াস ড্রেস",
     href: productsHref({ category: "fashion" }),
-    ratedSlug: "womens-daily-wear-dress",
     slugs: [
       "custom-gorgeous-womens-gown",
       "custom-baby-party-frock",
@@ -45,30 +43,15 @@ const rails: {
   },
 ];
 
-function money(value: number) {
-  return `৳${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-const badgeLabel = {
-  "Best Seller": "Best Seller",
-  New: "New",
-  Limited: "Limited",
-} as const;
-
 function RailCard({
   title,
   href,
   items,
-  ratedSlug,
   headingId,
 }: {
   title: string;
   href: string;
   items: Product[];
-  ratedSlug?: string;
   headingId: string;
 }) {
   return (
@@ -84,7 +67,7 @@ function RailCard({
           href={href}
           className="inline-flex shrink-0 items-center gap-0.5 text-[13px] text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
         >
-          View All
+          সব দেখুন
           <MaterialIcon name="chevron_right" className="text-[16px]" />
         </Link>
       </div>
@@ -92,51 +75,15 @@ function RailCard({
       <ul
         className={
           items.length >= 6
-            ? "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-6 lg:gap-x-4"
-            : "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-6"
+            ? "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+            : "grid grid-cols-2 gap-3 lg:grid-cols-4"
         }
       >
-        {items.map((product) => {
-          const rated = product.slug === ratedSlug;
-          return (
-            <li key={product.id}>
-              <Link href={`/products/${product.slug}`} className="group block">
-                <span className="relative mx-auto block h-[118px] sm:h-[136px]">
-                  <Image
-                    src={product.imageSrc}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 42vw, 16vw"
-                    className="object-contain transition-transform duration-300 group-hover:scale-[1.04]"
-                  />
-                  {product.badge ? (
-                    <span className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-[3px] bg-[#e10600] px-1.5 py-0.5 text-[10px] leading-none font-semibold whitespace-nowrap text-white">
-                      {badgeLabel[product.badge]}
-                    </span>
-                  ) : null}
-                </span>
-                {rated ? (
-                  <span className="mt-2 flex items-center gap-px" aria-hidden>
-                    {Array.from({ length: 5 }, (_, index) => (
-                      <MaterialIcon
-                        key={index}
-                        name="star"
-                        filled
-                        className="text-[13px] text-amber-400"
-                      />
-                    ))}
-                  </span>
-                ) : null}
-                <span className="mt-1.5 block truncate text-[13px] leading-snug text-neutral-600 dark:text-white/75">
-                  {product.title}
-                </span>
-                <span className="mt-0.5 block text-sm font-medium text-neutral-950 dark:text-white">
-                  {money(product.price)}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
+        {items.map((product) => (
+          <li key={product.id} className="min-w-0">
+            <ProductCard product={product} />
+          </li>
+        ))}
       </ul>
     </article>
   );
@@ -155,7 +102,6 @@ export function SpotlightRailsSection() {
             title={rail.title}
             href={rail.href}
             items={rail.slugs.map(productBySlug)}
-            ratedSlug={rail.ratedSlug}
             headingId={`spotlight-rail-${rail.id}`}
           />
         ))}

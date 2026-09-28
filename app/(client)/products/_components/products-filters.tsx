@@ -16,7 +16,6 @@ import {
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   productFilters,
-  type ProductCategoryId,
   type ProductStatus,
 } from "../../_data/products/products";
 
@@ -25,13 +24,10 @@ export type ProductsFilterControls = {
   onPriceRangeChange: (range: [number, number]) => void;
   availability: ProductStatus[];
   onAvailabilityToggle: (id: ProductStatus) => void;
-  categories: ProductCategoryId[];
-  onCategoryToggle: (id: ProductCategoryId) => void;
   onReset: () => void;
 };
 
 function formatTaka(value: number) {
-  if (value >= PRICE_FILTER_MAX) return `৳${PRICE_FILTER_MAX.toLocaleString("en-US")}+`;
   return `৳${value.toLocaleString("en-US")}`;
 }
 
@@ -40,8 +36,6 @@ function FilterBody({
   onPriceRangeChange,
   availability,
   onAvailabilityToggle,
-  categories,
-  onCategoryToggle,
   onReset,
 }: ProductsFilterControls) {
   return (
@@ -60,48 +54,6 @@ function FilterBody({
           রিসেট
         </button>
       </div>
-
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <MaterialIcon name="category" className="text-[16px]" />
-          </span>
-          <span className="text-xs font-semibold tracking-wider text-on-surface uppercase">
-            ক্যাটাগরি
-          </span>
-        </div>
-        <div className="space-y-1">
-          {productFilters.categories.map((option) => {
-            const checked = categories.includes(option.id);
-            return (
-              <label
-                key={option.id}
-                className={cn(
-                  "group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors",
-                  checked
-                    ? "bg-primary/8 ring-1 ring-primary/20"
-                    : "hover:bg-surface-container-low",
-                )}
-              >
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={() => onCategoryToggle(option.id)}
-                />
-                <span
-                  className={cn(
-                    "text-sm transition-colors",
-                    checked
-                      ? "font-medium text-on-surface"
-                      : "text-on-surface-variant group-hover:text-on-surface",
-                  )}
-                >
-                  {option.label}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </section>
 
       <section>
         <div className="mb-3 flex items-center gap-2">
@@ -210,12 +162,12 @@ export function ProductsMobileFilters({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="flex h-full w-[min(100%,20rem)] flex-col gap-0 border-outline-variant/30 bg-surface-container-lowest p-0 dark:border-white/10 dark:bg-surface-container"
+        className="force-light flex h-full w-[min(100%,20rem)] flex-col gap-0 border-outline-variant/30 bg-white p-0"
       >
         <SheetHeader className="shrink-0 border-b border-outline-variant/25 px-4 py-4 text-left sm:px-5 dark:border-white/10">
           <SheetTitle className="text-on-surface">ফিল্টার</SheetTitle>
           <SheetDescription className="text-on-surface-variant">
-            ক্যাটাগরি, দাম ও এভেইলেবিলিটি দিয়ে সীমিত করুন
+            দাম ও এভেইলেবিলিটি দিয়ে সীমিত করুন
           </SheetDescription>
         </SheetHeader>
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">

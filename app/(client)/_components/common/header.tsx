@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { contactCopy } from "../../_data/contact/contact";
 import { headerNav } from "../../_data/common/site-nav";
 import { productFilters } from "../../_data/products/products";
-import { useCategoryRail } from "../../_providers/category-rail-provider";
 import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
@@ -36,24 +35,12 @@ function useScrollLock(locked: boolean) {
 
 export default function Header() {
   const pathname = usePathname();
-  const { open: railOpen, toggle: toggleRail } = useCategoryRail();
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
-  const [isDesktop, setIsDesktop] = useState(false);
   const menuId = useId();
   const categoriesRef = useRef<HTMLDivElement>(null);
   const mobileOpen = menuPath === pathname;
   const categoriesOpen = categoriesPath === pathname;
-  const controlsRail = pathname === "/" && isDesktop;
-  const categoriesExpanded = controlsRail ? railOpen : categoriesOpen;
-
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 1024px)");
-    const apply = () => setIsDesktop(media.matches);
-    apply();
-    media.addEventListener("change", apply);
-    return () => media.removeEventListener("change", apply);
-  }, []);
 
   useScrollLock(mobileOpen);
 
@@ -122,14 +109,14 @@ export default function Header() {
                 <input
                   type="search"
                   name="q"
-                  placeholder="Search for items..."
-                  aria-label="Search products"
+                  placeholder="প্রোডাক্ট খুঁজুন..."
+                  aria-label="প্রোডাক্ট খুঁজুন"
                   className="h-11 min-w-0 flex-1 rounded-l-md border border-r-0 border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
                 />
                 <button
                   type="submit"
                   className="grid size-11 shrink-0 place-items-center rounded-r-md bg-neutral-950 text-white transition-colors hover:bg-black"
-                  aria-label="Search"
+                  aria-label="খুঁজুন"
                 >
                   <MaterialIcon name="search" className="text-[20px]" />
                 </button>
@@ -147,7 +134,7 @@ export default function Header() {
                 <button
                   type="button"
                   className="hidden size-9 items-center justify-center rounded-md text-neutral-800 transition-colors hover:bg-neutral-100 lg:inline-flex"
-                  aria-label="Account"
+                  aria-label="অ্যাকাউন্ট"
                 >
                   <MaterialIcon name="person" className="text-[22px]" />
                 </button>
@@ -157,7 +144,7 @@ export default function Header() {
                 <button
                   type="button"
                   className="inline-flex size-9 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 lg:hidden"
-                  aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                  aria-label={mobileOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
                   aria-expanded={mobileOpen}
                   aria-controls={menuId}
                   onClick={() =>
@@ -182,27 +169,21 @@ export default function Header() {
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100"
-                aria-expanded={categoriesExpanded}
-                aria-controls={controlsRail ? "shop-categories" : undefined}
-                aria-haspopup={controlsRail ? undefined : "true"}
+                aria-expanded={categoriesOpen}
+                aria-haspopup="true"
                 onClick={() => {
-                  if (controlsRail) {
-                    toggleRail();
-                    setCategoriesPath(null);
-                    return;
-                  }
                   setCategoriesPath((current) =>
                     current === pathname ? null : pathname,
                   );
                 }}
               >
                 <MaterialIcon name="apps" className="text-[18px]" />
-                Categories
+                ক্যাটাগরি
                 <MaterialIcon
                   name="expand_more"
                   className={cn(
                     "text-[18px] transition-transform",
-                    categoriesExpanded && "rotate-180",
+                    categoriesOpen && "rotate-180",
                   )}
                 />
               </button>
@@ -210,7 +191,7 @@ export default function Header() {
               <div
                 className={cn(
                   "absolute top-[calc(100%+0.5rem)] left-0 z-50 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 text-neutral-900 shadow-lg dark:border-white/10 dark:bg-[#141c1b] dark:text-white",
-                  categoriesOpen && !controlsRail ? "block" : "hidden",
+                  categoriesOpen ? "block" : "hidden",
                 )}
                 role="menu"
               >
@@ -225,12 +206,20 @@ export default function Header() {
                     {category.label}
                   </Link>
                 ))}
+                <Link
+                  href="/products"
+                  role="menuitem"
+                  className="block border-t border-neutral-100 px-3.5 py-2.5 text-sm font-semibold hover:bg-neutral-100 dark:border-white/10 dark:hover:bg-white/10"
+                  onClick={() => setCategoriesPath(null)}
+                >
+                  সব দেখুন
+                </Link>
               </div>
             </div>
 
             <nav
               className="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto sm:gap-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              aria-label="Main navigation"
+              aria-label="প্রধান নেভিগেশন"
             >
               {headerNav.map((item) => {
                 const active = item.href === activeHref;
@@ -269,7 +258,7 @@ export default function Header() {
             "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300",
             mobileOpen ? "opacity-100" : "opacity-0",
           )}
-          aria-label="Close menu"
+          aria-label="মেনু বন্ধ করুন"
           onClick={() => setMenuPath(null)}
         />
 
@@ -281,12 +270,12 @@ export default function Header() {
           )}
           role="dialog"
           aria-modal="true"
-          aria-label="Mobile menu"
+          aria-label="মোবাইল মেনু"
         >
           <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3.5 sm:px-5 dark:border-white/10">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[0.18em] text-neutral-500 uppercase">
-                Menu
+                মেনু
               </p>
               <p className="truncate text-sm font-semibold text-neutral-950 dark:text-white">
                 {SITE_NAME}
@@ -296,7 +285,7 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className="size-10 shrink-0"
-              aria-label="Close menu"
+              aria-label="মেনু বন্ধ করুন"
               onClick={() => setMenuPath(null)}
             >
               <MaterialIcon name="close" className="text-[24px]" />
@@ -314,9 +303,9 @@ export default function Header() {
                 className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-neutral-400"
               />
               <Input
-                placeholder="Search for items..."
+                placeholder="প্রোডাক্ট খুঁজুন..."
                 className="h-11 w-full rounded-md border border-neutral-200 bg-white py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-neutral-950/15 dark:border-white/15"
-                aria-label="Search products"
+                aria-label="প্রোডাক্ট খুঁজুন"
               />
             </form>
 
@@ -330,7 +319,7 @@ export default function Header() {
               </a>
             ) : null}
 
-            <nav className="space-y-1" aria-label="Mobile links">
+            <nav className="space-y-1" aria-label="মোবাইল লিংক">
               {headerNav.map((item) => {
                 const active = item.href === activeHref;
                 return (
@@ -365,7 +354,7 @@ export default function Header() {
                 className="inline-flex h-11 items-center justify-center rounded-full border border-neutral-200 text-sm font-medium dark:border-white/15"
               >
                 <MaterialIcon name="person" className="mr-1.5 text-[18px]" />
-                Account
+                অ্যাকাউন্ট
               </button>
             </div>
 

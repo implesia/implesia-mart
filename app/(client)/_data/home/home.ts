@@ -35,7 +35,6 @@ const sunsetLamp = products.find((p) => p.slug === "sunset-rainbow-projection-la
 const selfieStand = products.find((p) => p.slug === "ai-face-tracking-phone-holder")!;
 const womensGown = products.find((p) => p.slug === "custom-gorgeous-womens-gown")!;
 const babyFrock = products.find((p) => p.slug === "custom-baby-party-frock")!;
-const powerBank = products.find((p) => p.slug === "slim-power-bank-10000mah")!;
 
 export const heroSlides: HeroSlide[] = [
   {
@@ -97,23 +96,6 @@ export const heroSlides: HeroSlide[] = [
     imageSrc: babyFrock.imageSrc,
     imageAlt: babyFrock.imageAlt,
     accent: "rose",
-  },
-  {
-    id: powerBank.slug,
-    eyebrow: "শীঘ্রই আসছে",
-    title: "স্লিম পাওয়ার ব্যাংক ১০,০০০mAh",
-    description:
-      "হালকা ডিজাইন, ফাস্ট চার্জিং সাপোর্ট — দৈনন্দিন ব্যাটারি ব্যাকআপের স্মার্ট সমাধান।",
-    priceLabel: money(powerBank.price),
-    compareAtLabel: powerBank.compareAtPrice
-      ? money(powerBank.compareAtPrice)
-      : undefined,
-    discountLabel: discountLabel(powerBank.price, powerBank.compareAtPrice),
-    primaryCta: { label: "প্রোডাক্ট দেখুন", href: `/products/${powerBank.slug}` },
-    secondaryCta: { label: "সব প্রোডাক্ট", href: "/products" },
-    imageSrc: powerBank.imageSrc,
-    imageAlt: powerBank.imageAlt,
-    accent: "ink",
   },
 ];
 
@@ -196,7 +178,7 @@ export const organicHighlight = {
   storeBadge: "কোয়ালিটি ভেরিফাইড স্টোর",
   stats: [
     { value: "৬৪", label: "জেলায় ডেলিভারি" },
-    { value: "COD", label: "ক্যাশ অন ডেলিভারি" },
+    { value: "ক্যাশ", label: "ক্যাশ অন ডেলিভারি" },
     { value: "৩ দিন", label: "ইজি রিটার্ন" },
   ],
   bullets: [

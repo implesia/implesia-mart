@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { ProductCard } from "../../products/_components/product-card";
 import {
   categoryLabels,
   products,
@@ -34,32 +35,17 @@ const brandProducts = [
 const categoryRows: { id: ProductCategoryId; slugs: string[] }[] = [
   {
     id: "gadgets",
-    slugs: [
-      "sunset-rainbow-projection-lamp",
-      "ai-face-tracking-phone-holder",
-      "tws-wireless-earbuds",
-      "bluetooth-neckband-earphone",
-      "slim-power-bank-10000mah",
-      "smart-fitness-ring",
-    ],
+    slugs: products
+      .filter((item) => item.categoryId === "gadgets" && item.status === "available")
+      .map((item) => item.slug),
   },
   {
     id: "fashion",
-    slugs: [
-      "custom-gorgeous-womens-gown",
-      "custom-baby-party-frock",
-      "baby-comfort-top-shorts-set",
-      "womens-daily-wear-dress",
-    ],
+    slugs: products
+      .filter((item) => item.categoryId === "fashion" && item.status === "available")
+      .map((item) => item.slug),
   },
 ];
-
-function money(value: number) {
-  return `৳${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 function ViewAll({ href }: { href: string }) {
   return (
@@ -67,7 +53,7 @@ function ViewAll({ href }: { href: string }) {
       href={href}
       className="inline-flex shrink-0 items-center gap-0.5 text-sm text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
     >
-      View All
+      সব দেখুন
       <MaterialIcon name="chevron_right" className="text-[18px]" />
     </Link>
   );
@@ -85,7 +71,7 @@ export function BrandsSection() {
             id="home-brands-heading"
             className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl dark:text-white"
           >
-            Brands
+            ব্র্যান্ড
           </h2>
           <ViewAll href={productsHref()} />
         </div>
@@ -121,33 +107,17 @@ function CategoryProductRow({
   items: Product[];
 }) {
   return (
-    <article className="rounded-xl bg-white px-4 py-4 sm:px-5 sm:py-5 dark:bg-[#121816]">
+    <article className="rounded-2xl border border-neutral-200/90 bg-white px-3 py-4 sm:px-5 sm:py-5">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h3 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl dark:text-white">
+        <h3 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
           {categoryLabels[id]}
         </h3>
         <ViewAll href={productsHref({ category: id })} />
       </div>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((product) => (
-          <li key={product.id}>
-            <Link href={`/products/${product.slug}`} className="group block">
-              <span className="relative block aspect-square">
-                <Image
-                  src={product.imageSrc}
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 42vw, 16vw"
-                  className="object-contain transition-transform duration-300 group-hover:scale-[1.03]"
-                />
-              </span>
-              <span className="mt-2 block truncate text-[13px] text-neutral-700 dark:text-white/80">
-                {product.title}
-              </span>
-              <span className="mt-0.5 block text-sm font-medium text-neutral-950 dark:text-white">
-                {money(product.price)}
-              </span>
-            </Link>
+          <li key={product.id} className="min-w-0">
+            <ProductCard product={product} />
           </li>
         ))}
       </ul>
@@ -162,13 +132,15 @@ export function CategoryShowcaseSection() {
       aria-label="ক্যাটাগরি অনুযায়ী প্রোডাক্ট"
     >
       <Container className="space-y-4 px-4 sm:px-6 lg:px-8">
-        {categoryRows.map((row) => (
-          <CategoryProductRow
-            key={row.id}
-            id={row.id}
-            items={row.slugs.map(productBySlug)}
-          />
-        ))}
+        {categoryRows
+          .filter((row) => row.slugs.length > 0)
+          .map((row) => (
+            <CategoryProductRow
+              key={row.id}
+              id={row.id}
+              items={row.slugs.map(productBySlug)}
+            />
+          ))}
       </Container>
     </section>
   );

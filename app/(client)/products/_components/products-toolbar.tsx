@@ -89,9 +89,14 @@ export function ProductsToolbar({
                   "sm:min-w-[11rem] sm:w-auto",
                 )}
               >
-                <SelectValue />
+                <SelectValue>
+                  {(value) =>
+                    productFilters.sortOptions.find((option) => option.id === value)
+                      ?.label ?? "জনপ্রিয়তা"
+                  }
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="force-light">
                 {productFilters.sortOptions.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
                     {option.label}

@@ -11,7 +11,6 @@ import Header from "./(client)/_components/common/header";
 import Footer from "./(client)/_components/common/footer";
 import { FloatingActions } from "./(client)/_components/common/floating-actions";
 import { CartProvider } from "./(client)/_providers/cart-provider";
-import { CategoryRailProvider } from "./(client)/_providers/category-rail-provider";
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
 import { WHATSAPP_HREF } from "./(client)/_data/contact/contact";
 import {
@@ -142,13 +141,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
           <CartProvider>
-            <CategoryRailProvider>
-              <Header />
-              {children}
-              <Footer />
-              <CartDrawer />
-              <FloatingActions />
-            </CategoryRailProvider>
+            <Header />
+            {children}
+            <Footer />
+            <CartDrawer />
+            <FloatingActions />
           </CartProvider>
         </ThemeProvider>
       </body>

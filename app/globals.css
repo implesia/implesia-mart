@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.force-light, .force-light *)));
 
 @theme {
   --color-surface-bright: #f7faf7;
@@ -89,6 +89,71 @@
   --color-primary-container: rgba(61, 212, 200, 0.14);
   --color-on-primary-container: #d8f7f4;
   --color-warm-gold: #f0c14d;
+}
+
+/* Home + Products stay on the light marketplace palette even when html.dark is set.
+   Token resets cover surface/text utilities; the dark variant above ignores this scope. */
+.force-light {
+  color-scheme: light;
+  --background: #f7faf7;
+  --foreground: #191c1b;
+  --card: #ffffff;
+  --card-foreground: #191c1b;
+  --popover: #ffffff;
+  --popover-foreground: #191c1b;
+  --primary: #2bc0b5;
+  --primary-foreground: #ffffff;
+  --secondary: #eceeec;
+  --secondary-foreground: #4c5e7d;
+  --muted: #e6e9e6;
+  --muted-foreground: #3f4945;
+  --accent: #f2f4f1;
+  --accent-foreground: #191c1b;
+  --destructive: #ba1a1a;
+  --border: #e0e3e0;
+  --input: #e0e3e0;
+  --ring: #2bc0b5;
+  --color-background: #f7faf7;
+  --color-foreground: #191c1b;
+  --color-card: #ffffff;
+  --color-card-foreground: #191c1b;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #191c1b;
+  --color-primary: #2bc0b5;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #eceeec;
+  --color-secondary-foreground: #4c5e7d;
+  --color-muted: #e6e9e6;
+  --color-muted-foreground: #3f4945;
+  --color-accent: #f2f4f1;
+  --color-accent-foreground: #191c1b;
+  --color-border: #e0e3e0;
+  --color-input: #e0e3e0;
+  --color-ring: #2bc0b5;
+  --color-surface-bright: #f7faf7;
+  --color-surface: #f7faf7;
+  --color-surface-container-low: #f2f4f1;
+  --color-surface-container: #eceeec;
+  --color-surface-container-high: #e6e9e6;
+  --color-surface-container-highest: #e0e3e0;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-variant: #e0e3e0;
+  --color-surface-dim: #d8dbd8;
+  --color-on-background: #191c1b;
+  --color-on-surface: #191c1b;
+  --color-on-surface-variant: #3f4945;
+  --color-outline: #6f7975;
+  --color-outline-variant: #bec9c4;
+  --color-surface-tint: #2bc0b5;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #d6f7f5;
+  --color-on-primary-container: #0b3d39;
+  --color-warm-gold: #f5b301;
+}
+
+body:has(.force-light) {
+  background-color: #f5f6f8;
+  color: #191c1b;
 }
 
 @utility font-display-xl {

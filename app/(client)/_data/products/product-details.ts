@@ -157,7 +157,7 @@ function buildRelatedFromProducts(excludeSlug: string, categoryId: Product["cate
       title: p.title,
       priceLabel:
         p.status === "coming-soon"
-          ? "Out of Stock"
+          ? "কামিং সুন"
           : `৳${p.price.toLocaleString("en-US")}`,
       imageSrc: p.imageSrc,
       imageAlt: p.imageAlt,

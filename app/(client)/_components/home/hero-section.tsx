@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Swiper as SwiperInstance } from "swiper/types";
 import { Autoplay, Keyboard } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -10,8 +10,6 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { cn } from "@/lib/utils";
 
 import { heroSlides, type HeroSlide } from "../../_data/home/home";
-import { productFilters } from "../../_data/products/products";
-import { useCategoryRail } from "../../_providers/category-rail-provider";
 import { Container } from "../common/container";
 
 const AUTOPLAY_DELAY = 5500;
@@ -26,19 +24,6 @@ const bannerTone: Record<HeroSlide["accent"], string> = {
 export function HeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const swiperRef = useRef<SwiperInstance | null>(null);
-  const { open: categoriesOpen } = useCategoryRail();
-
-  useEffect(() => {
-    const swiper = swiperRef.current;
-    if (!swiper) return;
-    const fit = () => {
-      swiper.update();
-      swiper.slideToLoop(swiper.realIndex, 0, false);
-    };
-    fit();
-    const frame = window.setTimeout(fit, 320);
-    return () => window.clearTimeout(frame);
-  }, [categoriesOpen]);
 
   return (
     <section
@@ -46,42 +31,7 @@ export function HeroSection() {
       aria-label="ফিচার্ড প্রোডাক্ট"
     >
       <Container className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-stretch">
-          <nav
-            id="shop-categories"
-            aria-label="Shop categories"
-            aria-hidden={!categoriesOpen}
-            className={cn(
-              "hidden min-w-0 flex-col overflow-hidden bg-white shadow-sm transition-[width,margin,opacity] duration-300 lg:flex dark:bg-[#121816]",
-              categoriesOpen
-                ? "mr-3 w-[220px] min-w-[220px] border border-neutral-200 opacity-100 xl:mr-4 xl:w-[248px] xl:min-w-[248px] dark:border-white/10"
-                : "pointer-events-none mr-0 w-0 min-w-0 border-0 opacity-0 shadow-none",
-            )}
-          >
-            <ul className="flex flex-col">
-              {productFilters.categories.map((category) => (
-                <li
-                  key={category.id}
-                  className="border-b border-neutral-100 dark:border-white/10"
-                >
-                  <Link
-                    href={`/products?category=${category.id}`}
-                    className="flex w-full items-center px-4 py-3 text-[13px] text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-950 dark:text-white/80 dark:hover:bg-white/5 dark:hover:text-white"
-                  >
-                    {category.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/products"
-              className="flex h-11 shrink-0 items-center justify-center border-t border-neutral-100 text-[13px] font-medium text-neutral-900 transition-colors hover:bg-neutral-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
-            >
-              View All
-            </Link>
-          </nav>
-
-          <div className="relative min-w-0 flex-1">
+        <div className="relative min-w-0">
             <Swiper
               modules={[Autoplay, Keyboard]}
               speed={700}
@@ -121,11 +71,11 @@ export function HeroSection() {
                   >
                     <div
                       aria-hidden
-                      className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(56,168,255,0.22),transparent_62%)]"
+                      className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
                     />
                     <div className="relative grid h-full grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-center">
                       <div className="min-w-0 px-4 pt-4 pb-8 sm:px-7 sm:pt-6 sm:pb-9 lg:px-8">
-                        <p className="mb-1.5 text-[11px] font-medium tracking-wide text-sky-300 sm:text-xs">
+                        <p className="mb-1.5 text-[11px] font-medium tracking-wide text-primary sm:text-xs">
                           {slide.eyebrow}
                         </p>
                         {index === activeIndex ? (
@@ -143,7 +93,7 @@ export function HeroSection() {
                         <div className="mt-3 flex items-center gap-3 sm:mt-4">
                           <Link
                             href={slide.primaryCta.href}
-                            className="inline-flex h-9 items-center rounded-full bg-[#2f8cff] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#1d7aee] sm:h-10 sm:px-5 sm:text-sm"
+                            className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-on-primary transition-colors hover:bg-primary/80 sm:h-10 sm:px-5 sm:text-sm"
                           >
                             {slide.primaryCta.label}
                           </Link>
@@ -188,7 +138,6 @@ export function HeroSection() {
               ))}
             </div>
           </div>
-        </div>
       </Container>
     </section>
   );

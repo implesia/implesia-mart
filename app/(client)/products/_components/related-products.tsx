@@ -121,7 +121,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                   />
                   {isComingSoon ? (
                     <span className="absolute top-3 left-3 rounded-full bg-on-surface/80 px-2.5 py-1 text-[9px] tracking-widest text-white uppercase sm:top-4 sm:left-4 sm:px-3 sm:text-[10px]">
-                      Out of Stock
+                      কামিং সুন
                     </span>
                   ) : (
                     <Button

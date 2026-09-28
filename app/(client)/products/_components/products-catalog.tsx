@@ -183,16 +183,6 @@ export function ProductsCatalog({
       ? categoryLabels[next[0]]
       : (collectionTitle ?? "সব প্রোডাক্ট");
 
-  const toggleCategory = (id: ProductCategoryId) => {
-    const next = categories.includes(id)
-      ? categories.filter((item) => item !== id)
-      : [...categories, id];
-    setCategories(next);
-    syncCategoryQuery(next.length === 1 ? next[0] : undefined);
-    syncDocumentTitle(titleForCategories(next));
-    setPage(1);
-  };
-
   const selectCategoryChip = (id: ProductCategoryId | "all") => {
     const next = id === "all" ? allCategoryIds : [id];
     setCategories(next);
@@ -231,8 +221,6 @@ export function ProductsCatalog({
     onPriceRangeChange: handlePriceRangeChange,
     availability,
     onAvailabilityToggle: toggleAvailability,
-    categories,
-    onCategoryToggle: toggleCategory,
     onReset: resetFilters,
   };
 

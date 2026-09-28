@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 
-import { ArrivalsRankingsSection } from "./(client)/_components/home/arrivals-rankings-section";
-import { BrandsSection, CategoryShowcaseSection } from "./(client)/_components/home/brands-categories-section";
-import { SpotlightRailsSection } from "./(client)/_components/home/spotlight-rails-section";
-import { StorePromisesSection } from "./(client)/_components/home/store-promises-section";
+import { CategoryShowcaseSection } from "./(client)/_components/home/brands-categories-section";
 import { FaqSection } from "./(client)/_components/home/faq-section";
 import { CategoriesStripSection } from "./(client)/_components/home/categories-strip-section";
 import { FeaturedProductsSection } from "./(client)/_components/home/featured-products-section";
-import { LatestProductsSection } from "./(client)/_components/home/latest-products-section";
 import { HeroSection } from "./(client)/_components/home/hero-section";
+import { HomeTrustStrip } from "./(client)/_components/home/home-trust-strip";
 import { NewsletterSection } from "./(client)/_components/home/newsletter-section";
-import { OrganicHighlightSection } from "./(client)/_components/home/organic-highlight-section";
 import { TestimonialsSection } from "./(client)/_components/home/testimonials-section";
 import { JsonLd } from "./(client)/_components/common/json-ld";
 import { faqSections } from "./(client)/_data/home/home";
@@ -46,17 +42,12 @@ export default function HomePage() {
   return (
     <>
       <JsonLd data={faqJsonLd} />
-      <main>
+      <main className="force-light bg-[#f5f6f8] text-neutral-950">
         <HeroSection />
-        <FeaturedProductsSection />
+        <HomeTrustStrip />
         <CategoriesStripSection />
-        <LatestProductsSection />
-        <ArrivalsRankingsSection />
-        <BrandsSection />
+        <FeaturedProductsSection />
         <CategoryShowcaseSection />
-        <SpotlightRailsSection />
-        <StorePromisesSection />
-        <OrganicHighlightSection />
         <TestimonialsSection />
         <FaqSection />
         <NewsletterSection />

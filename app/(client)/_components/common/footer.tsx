@@ -10,30 +10,30 @@ import { MaterialIcon } from "./material-icon";
 import { SiteLogo } from "./site-logo";
 
 const shopLinks = [
-  { href: "/products", label: "All Products" },
-  { href: "/products", label: "Trending Gadgets" },
-  { href: "/products", label: "Handmade Dresses" },
-  { href: "/blogs", label: "Guides & Blog" },
+  { href: "/products", label: "সব প্রোডাক্ট" },
+  { href: "/products", label: "ট্রেন্ডিং গ্যাজেট" },
+  { href: "/products", label: "হাতে তৈরি ড্রেস" },
+  { href: "/blogs", label: "গাইড ও ব্লগ" },
 ] as const;
 
 const companyLinks = [
-  { href: "/about-us", label: "About Us" },
-  { href: "/sustainability", label: "Sustainability" },
-  { href: "/contact-us", label: "Contact Us" },
-  { href: "/blogs", label: "Blog" },
+  { href: "/about-us", label: "আমাদের সম্পর্কে" },
+  { href: "/sustainability", label: "সাসটেইনেবিলিটি" },
+  { href: "/contact-us", label: "যোগাযোগ" },
+  { href: "/blogs", label: "ব্লগ" },
 ] as const;
 
 const supportLinks = [
-  { href: "/faqs", label: "FAQs" },
-  { href: "/shipping-returns", label: "Shipping & Returns" },
-  { href: "/privacy-policy", label: "Privacy Policy" },
-  { href: "/checkout", label: "Checkout" },
+  { href: "/faqs", label: "প্রশ্নোত্তর" },
+  { href: "/shipping-returns", label: "শিপিং ও রিটার্ন" },
+  { href: "/privacy-policy", label: "গোপনীয়তা নীতি" },
+  { href: "/checkout", label: "চেকআউট" },
 ] as const;
 
 const trustPoints = [
-  { icon: "local_shipping", label: "Nationwide delivery" },
-  { icon: "payments", label: "Cash on delivery" },
-  { icon: "assignment_return", label: "Easy 3-day return" },
+  { icon: "local_shipping", label: "সারাদেশে ডেলিভারি" },
+  { icon: "payments", label: "ক্যাশ অন ডেলিভারি" },
+  { icon: "assignment_return", label: "৩ দিনের ইজি রিটার্ন" },
 ] as const;
 
 const phoneChannel = contactCopy.direct.channels.find((c) => c.icon === "call");
@@ -42,13 +42,12 @@ const facebookLink = contactCopy.direct.social.find((s) => s.platform === "faceb
 const linkedinLink = contactCopy.direct.social.find((s) => s.platform === "linkedin");
 
 const linkClass =
-  "text-sm text-on-surface-variant transition-colors duration-200 hover:text-primary";
+  "text-sm text-white/75 transition-colors duration-200 hover:text-white";
 
 const socialClass = cn(
   "inline-flex size-10 items-center justify-center rounded-full",
-  "bg-surface-container-low text-on-surface-variant ring-1 ring-outline-variant/35",
-  "transition-colors duration-200 hover:bg-primary/10 hover:text-primary hover:ring-primary/25",
-  "dark:bg-surface-container-high dark:ring-white/10",
+  "bg-white/10 text-white",
+  "transition-colors duration-200 hover:bg-white hover:text-neutral-950",
 );
 
 function FooterColumn({
@@ -60,7 +59,7 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h3 className="mb-4 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
+      <h3 className="mb-4 text-[11px] font-semibold tracking-[0.16em] text-white uppercase">
         {title}
       </h3>
       <ul className="space-y-3">
@@ -80,31 +79,27 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer
-      className={cn(
-        "relative mt-20 w-full overflow-hidden",
-        /* Same chrome surface as navbar */
-        "border-t border-outline-variant/35 bg-surface-container-lowest",
-        "dark:border-white/10 dark:bg-surface-container",
-      )}
-    >
+    <footer className="relative mt-20 w-full overflow-hidden bg-neutral-950 text-white">
       <Container className="relative z-10 w-full px-4 sm:px-6 lg:px-8">
         {/* Top: brand + links */}
-        <div className="grid grid-cols-1 gap-10 border-b border-outline-variant/30 py-12 sm:gap-12 sm:py-14 lg:grid-cols-12 lg:gap-10 lg:py-16 dark:border-white/10">
+        <div className="grid grid-cols-1 gap-10 border-b border-white/10 py-12 sm:gap-12 sm:py-14 lg:grid-cols-12 lg:gap-10 lg:py-16">
           <div className="lg:col-span-5">
-            <SiteLogo className="h-11 w-[11rem] sm:h-12 sm:w-[12.5rem] lg:h-14 lg:w-[14rem]" />
-            <p className="mt-5 max-w-sm text-sm leading-relaxed text-on-surface-variant sm:text-[15px]">
-              Trending gadgets and handmade dresses — delivered nationwide with cash on
-              delivery, so you can shop with confidence.
+            <SiteLogo
+              tone="onDark"
+              className="h-11 w-[11rem] sm:h-12 sm:w-[12.5rem] lg:h-14 lg:w-[14rem]"
+            />
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/75 sm:text-[15px]">
+              ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি ড্রেস — সারাদেশে ক্যাশ অন ডেলিভারিতে,
+              নিশ্চিন্তে কিনুন।
             </p>
 
             <div className="mt-6 flex flex-col gap-2.5">
               {phoneChannel ? (
                 <a
                   href={phoneChannel.href}
-                  className="inline-flex w-fit items-center gap-2.5 text-sm text-on-surface-variant transition-colors hover:text-primary"
+                  className="inline-flex w-fit items-center gap-2.5 text-sm text-white/75 transition-colors hover:text-white"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-white">
                     <MaterialIcon name="call" className="text-[16px]" />
                   </span>
                   {phoneChannel.value}
@@ -113,9 +108,9 @@ export default function Footer() {
               {emailChannel ? (
                 <a
                   href={emailChannel.href}
-                  className="inline-flex w-fit items-center gap-2.5 text-sm text-on-surface-variant transition-colors hover:text-primary"
+                  className="inline-flex w-fit items-center gap-2.5 text-sm text-white/75 transition-colors hover:text-white"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-white">
                     <MaterialIcon name="mail" className="text-[16px]" />
                   </span>
                   {emailChannel.value}
@@ -159,23 +154,23 @@ export default function Footer() {
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-7 lg:gap-6 xl:gap-10">
-            <FooterColumn title="Shop" links={shopLinks} />
-            <FooterColumn title="Company" links={companyLinks} />
+            <FooterColumn title="শপ" links={shopLinks} />
+            <FooterColumn title="কোম্পানি" links={companyLinks} />
             <div className="col-span-2 sm:col-span-1">
-              <FooterColumn title="Support" links={supportLinks} />
+              <FooterColumn title="সাপোর্ট" links={supportLinks} />
             </div>
           </div>
         </div>
 
         {/* Trust + WhatsApp */}
-        <div className="flex flex-col gap-6 border-b border-outline-variant/30 py-8 sm:py-9 lg:flex-row lg:items-center lg:justify-between dark:border-white/10">
+        <div className="flex flex-col gap-6 border-b border-white/10 py-8 sm:py-9 lg:flex-row lg:items-center lg:justify-between">
           <ul className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
             {trustPoints.map((item) => (
               <li
                 key={item.label}
-                className="inline-flex items-center gap-2 text-sm text-on-surface-variant"
+                className="inline-flex items-center gap-2 text-sm text-white/75"
               >
-                <MaterialIcon name={item.icon} className="text-[18px] text-primary" />
+                <MaterialIcon name={item.icon} className="text-[18px] text-white" />
                 {item.label}
               </li>
             ))}
@@ -187,36 +182,36 @@ export default function Footer() {
             rel="noopener noreferrer"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "h-11 w-full rounded-full text-sm font-semibold sm:w-auto sm:min-w-[220px]",
+              "h-11 w-full rounded-full bg-white text-sm font-semibold text-neutral-950 hover:bg-neutral-100 sm:w-auto sm:min-w-[220px]",
             )}
           >
             <WhatsAppIcon className="mr-2 size-4" />
-            Chat on WhatsApp
+            হোয়াটসঅ্যাপে চ্যাট
           </a>
         </div>
 
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row sm:py-7">
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-            <SiteLogo className="h-8 w-[8.5rem] sm:h-9 sm:w-[9.5rem]" />
-            <span
-              className="hidden h-4 w-px bg-outline-variant/50 sm:block dark:bg-white/15"
-              aria-hidden
+            <SiteLogo
+              tone="onDark"
+              className="h-8 w-[8.5rem] sm:h-9 sm:w-[9.5rem]"
             />
-            <p className="text-center text-xs text-on-surface-variant sm:text-left sm:text-sm">
-              © {year} · All rights reserved
+            <span className="hidden h-4 w-px bg-white/15 sm:block" aria-hidden />
+            <p className="text-center text-xs text-white/75 sm:text-left sm:text-sm">
+              © {year} · সর্বস্বত্ব সংরক্ষিত
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-on-surface-variant">
-            <Link href="/privacy-policy" className="transition-colors hover:text-primary">
-              Privacy
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/75">
+            <Link href="/privacy-policy" className="transition-colors hover:text-white">
+              গোপনীয়তা
             </Link>
-            <Link href="/shipping-returns" className="transition-colors hover:text-primary">
-              Shipping
+            <Link href="/shipping-returns" className="transition-colors hover:text-white">
+              শিপিং
             </Link>
-            <Link href="/faqs" className="transition-colors hover:text-primary">
-              FAQs
+            <Link href="/faqs" className="transition-colors hover:text-white">
+              প্রশ্নোত্তর
             </Link>
           </div>
         </div>

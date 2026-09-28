@@ -1,25 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { products, productsHref } from "../../_data/products/products";
+import {
+  categoryLabels,
+  productsHref,
+  type ProductCategoryId,
+} from "../../_data/products/products";
 import { Container } from "../common/container";
-import { MaterialIcon } from "../common/material-icon";
 
-const stripIds = [
-  "tws-earbuds",
-  "ai-tracking-holder",
-  "sunset-lamp",
-  "neckband",
-  "power-bank",
-  "smart-ring",
-  "womens-gorgeous-gown",
-  "custom-baby-frock",
-] as const;
-
-const stripItems = stripIds.flatMap((id) => {
-  const product = products.find((item) => item.id === id);
-  return product ? [product] : [];
-});
+const categoryEntries: {
+  id: ProductCategoryId;
+  imageSrc: string;
+}[] = [
+  {
+    id: "gadgets",
+    imageSrc: "/images/products/lamp/lamp-5.jpg",
+  },
+  {
+    id: "fashion",
+    imageSrc: "/images/products/baby-products/wedding-dress.jpeg",
+  },
+];
 
 export function CategoriesStripSection() {
   return (
@@ -29,43 +30,32 @@ export function CategoriesStripSection() {
     >
       <Container className="px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-6 sm:py-5 dark:border-white/10 dark:bg-[#121816]">
-          <div className="mb-5 flex items-center justify-between gap-4 sm:mb-6">
-            <h2
-              id="home-categories-heading"
-              className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl dark:text-white"
-            >
-              Categories
-            </h2>
-            <Link
-              href={productsHref()}
-              className="inline-flex shrink-0 items-center gap-0.5 text-sm text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
-            >
-              View All
-              <MaterialIcon name="chevron_right" className="text-[18px]" />
-            </Link>
-          </div>
-
-          <ul className="flex items-start justify-between gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {stripItems.map((product) => (
-              <li
-                key={product.id}
-                className="w-[4.75rem] shrink-0 sm:w-[5.75rem]"
-              >
+          <h2
+            id="home-categories-heading"
+            className="mb-4 text-lg font-semibold tracking-tight text-neutral-950 sm:mb-5 sm:text-xl dark:text-white"
+          >
+            ক্যাটাগরি
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {categoryEntries.map((entry) => (
+              <li key={entry.id}>
                 <Link
-                  href={`/products/${product.slug}`}
-                  className="group flex flex-col items-center gap-2.5"
+                  href={productsHref({ category: entry.id })}
+                  className="group relative flex min-h-44 overflow-hidden rounded-2xl sm:min-h-56"
                 >
-                  <span className="relative grid size-14 place-items-center sm:size-16">
-                    <Image
-                      src={product.imageSrc}
-                      alt=""
-                      fill
-                      sizes="64px"
-                      className="object-contain transition-transform duration-300 group-hover:scale-105"
-                    />
-                  </span>
-                  <span className="w-full truncate text-center text-xs text-neutral-600 dark:text-white/70">
-                    {product.title}
+                  <Image
+                    src={entry.imageSrc}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 bg-linear-to-t from-black/75 via-black/25 to-black/10"
+                  />
+                  <span className="relative z-10 mt-auto px-5 py-5 text-xl font-semibold text-white sm:text-2xl">
+                    {categoryLabels[entry.id]}
                   </span>
                 </Link>
               </li>

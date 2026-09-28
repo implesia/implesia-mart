@@ -191,7 +191,7 @@ export const products: Product[] = [
 ];
 
 export const PRICE_FILTER_MIN = 0;
-export const PRICE_FILTER_MAX = 8000;
+export const PRICE_FILTER_MAX = 15000;
 
 export const productFilters = {
   categories: [
@@ -243,11 +243,11 @@ export function readCatalogQuery(raw: {
   const title = category
     ? categoryLabels[category]
     : view === "featured"
-      ? "Featured Products"
+      ? "ফিচার্ড প্রোডাক্ট"
       : view === "latest"
-        ? "Latest Products"
+        ? "সর্বশেষ প্রোডাক্ট"
         : view === "new"
-          ? "New Arrivals"
+          ? "নতুন আগমন"
           : "সব প্রোডাক্ট";
 
   return { category, view, sort, badge, title };
