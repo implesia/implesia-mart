@@ -5,9 +5,16 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
 import type { BlogCategory, BlogPost } from "../../_data/blogs/blogs";
+import { products } from "../../_data/products/products";
 import { BlogCard } from "./blog-card";
 
 const ALL_LABEL = "সব";
+
+function hasAvailableRelated(post: BlogPost) {
+  return post.relatedProductSlugs.some((slug) =>
+    products.some((p) => p.slug === slug && p.status === "available"),
+  );
+}
 
 export function BlogsGrid({
   posts,
@@ -23,7 +30,11 @@ export function BlogsGrid({
     return posts.filter((post) => post.category === active);
   }, [posts, active]);
 
-  const [featured, ...rest] = filtered;
+  const featured = useMemo(
+    () => filtered.find(hasAvailableRelated) ?? filtered[0],
+    [filtered],
+  );
+  const rest = filtered.filter((post) => post.slug !== featured?.slug);
   const tabs: (BlogCategory | typeof ALL_LABEL)[] = [ALL_LABEL, ...categories];
 
   const categoryCounts = useMemo(() => {
@@ -40,18 +51,12 @@ export function BlogsGrid({
 
   return (
     <div className="w-full">
-      <div className="mb-8 flex flex-col gap-5 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+      <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-            <span className="h-px w-5 bg-primary/50" aria-hidden />
-            কালেকশন
-          </p>
-          <h2 className="mt-1.5 text-lg font-semibold tracking-tight text-on-surface sm:text-xl">
+          <h2 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
             {active === ALL_LABEL ? "সর্বশেষ আর্টিকেল" : active}
           </h2>
-          <p className="mt-1 text-sm text-on-surface-variant">
-            {filtered.length}টি আর্টিকেল দেখানো হচ্ছে
-          </p>
+          <p className="mt-1 text-sm text-neutral-600">{filtered.length}টি আর্টিকেল</p>
         </div>
 
         <div
@@ -73,17 +78,17 @@ export function BlogsGrid({
                 aria-selected={isActive}
                 onClick={() => setActive(cat)}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-all duration-200 sm:text-[13px]",
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors sm:text-[13px]",
                   isActive
-                    ? "bg-[#062f2c] text-white shadow-[0_6px_16px_-6px_rgba(6,47,44,0.55)] dark:bg-primary dark:text-primary-foreground"
-                    : "bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/35 hover:ring-primary/25 hover:text-on-surface dark:bg-surface-container dark:ring-white/10",
+                    ? "bg-primary text-on-primary"
+                    : "border border-neutral-200/90 bg-white text-neutral-600 hover:border-primary/40 hover:text-neutral-950",
                 )}
               >
                 {cat}
                 <span
                   className={cn(
                     "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
-                    isActive ? "bg-white/15 text-white/90" : "bg-surface-container text-outline dark:bg-white/8",
+                    isActive ? "bg-white/20 text-white" : "bg-[#f5f6f8] text-neutral-500",
                   )}
                 >
                   {count}
@@ -95,24 +100,17 @@ export function BlogsGrid({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl bg-surface-container-low/80 py-20 text-center dark:bg-surface-container/50">
-          <p className="text-sm text-on-surface-variant">
-            এই ক্যাটাগরিতে এখনো কোনো ব্লগ পোস্ট নেই।
-          </p>
+        <div className="rounded-2xl border border-neutral-200/90 bg-white py-16 text-center">
+          <p className="text-sm text-neutral-600">এই ক্যাটাগরিতে এখনো কোনো আর্টিকেল নেই।</p>
         </div>
       ) : (
-        <div className="space-y-6 sm:space-y-8">
+        <div className="space-y-4 sm:space-y-5">
           {featured ? <BlogCard post={featured} featured /> : null}
 
           {rest.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-              {rest.map((post, index) => (
-                <BlogCard
-                  key={post.slug}
-                  post={post}
-                  style={{ animationDelay: `${Math.min(index, 5) * 55}ms` }}
-                  className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:fill-mode-both motion-safe:duration-500"
-                />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+              {rest.map((post) => (
+                <BlogCard key={post.slug} post={post} />
               ))}
             </div>
           ) : null}

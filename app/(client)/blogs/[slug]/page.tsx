@@ -3,8 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { absoluteUrl, bengaliDateToIso, SITE_NAME } from "@/lib/seo";
 
 import { WhatsAppIcon } from "../../_components/common/brand-icons";
 import { Container } from "../../_components/common/container";
@@ -17,9 +17,9 @@ import {
   getBlogPostBySlug,
   getRelatedBlogPosts,
 } from "../../_data/blogs/blogs";
+import { ProductBreadcrumbs } from "../../products/_components/product-breadcrumbs";
 import { BlogContent } from "../_components/blog-content";
 import { BlogRelatedPosts, BlogRelatedProducts } from "../_components/blog-related";
-import { absoluteUrl, bengaliDateToIso, SITE_NAME } from "@/lib/seo";
 
 export function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }));
@@ -105,39 +105,39 @@ export default async function BlogDetailPage({
   };
 
   return (
-    <main className="w-full overflow-x-hidden bg-background text-on-surface">
+    <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <JsonLd data={articleJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
-      {/* Article hero band */}
-      <section className="w-full border-b border-outline-variant/25 bg-surface-container-low/40 dark:border-white/8 dark:bg-surface-container/40">
-        <Container className="w-full px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
-          <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs text-outline sm:mb-6 sm:text-sm">
-            <Link href="/blogs" className="transition-colors hover:text-primary">
-              ব্লগ
-            </Link>
-            <MaterialIcon name="chevron_right" className="text-[14px]" />
-            <span className="text-on-surface-variant">{post.category}</span>
-          </nav>
 
-          <div className="mx-auto max-w-3xl text-center lg:mx-0 lg:max-w-4xl lg:text-left">
-            <span className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:bg-primary/15">
+      <section className="w-full bg-[#f5f6f8]">
+        <Container className="w-full px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:px-8">
+          <ProductBreadcrumbs
+            items={[
+              { label: "হোম", href: "/" },
+              { label: "ব্লগ", href: "/blogs" },
+              { label: post.title },
+            ]}
+          />
+
+          <div className="mt-3 max-w-3xl">
+            <span className="mb-3 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               {post.category}
             </span>
-            <h1 className="mb-4 text-2xl leading-tight font-semibold tracking-tight text-on-surface sm:text-3xl lg:text-[2.5rem] lg:leading-[1.2]">
+            <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-neutral-950 sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
               {post.title}
             </h1>
-            <p className="mx-auto mb-6 max-w-2xl text-sm leading-relaxed text-on-surface-variant sm:text-base lg:mx-0">
+            <p className="mb-5 max-w-2xl text-sm leading-relaxed text-neutral-600 sm:text-base">
               {post.excerpt}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-on-surface-variant sm:gap-5 sm:text-sm lg:justify-start">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500 sm:gap-5 sm:text-sm">
               <span className="inline-flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-full bg-primary/12 text-xs font-semibold text-primary">
+                <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                   {post.author.charAt(0)}
                 </span>
                 <span className="text-left">
-                  <span className="block font-medium text-on-surface">{post.author}</span>
-                  <span className="text-[11px] text-outline">{post.authorRole}</span>
+                  <span className="block font-medium text-neutral-950">{post.author}</span>
+                  <span className="text-[11px] text-neutral-500">{post.authorRole}</span>
                 </span>
               </span>
               <span className="inline-flex items-center gap-1.5">
@@ -153,24 +153,22 @@ export default async function BlogDetailPage({
         </Container>
       </section>
 
-      <Container className="w-full px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-14">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
-          {/* Sticky TOC */}
+      <Container className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           {headings.length > 1 ? (
             <aside className="hidden lg:col-span-3 lg:block">
-              <div className="sticky top-[7.25rem] sm:top-[8.75rem] lg:top-[10rem] overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-lowest dark:border-white/10 dark:bg-surface-container">
-                <div className="border-b border-outline-variant/30 px-4 py-4 dark:border-white/10">
-                  <p className="text-sm font-semibold text-on-surface">এই আর্টিকেলে</p>
-                  <p className="mt-0.5 text-xs text-outline">বিষয়বস্তু</p>
+              <div className="sticky top-28 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
+                <div className="border-b border-neutral-200 px-4 py-3.5">
+                  <p className="text-sm font-semibold text-neutral-950">এই আর্টিকেলে</p>
                 </div>
                 <nav className="flex flex-col gap-0.5 p-2.5" aria-label="আর্টিকেল বিষয়বস্তু">
                   {headingAnchors.map((item, i) => (
                     <a
                       key={item.id}
                       href={`#${item.id}`}
-                      className="rounded-xl px-3 py-2.5 text-left text-sm leading-snug text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
+                      className="rounded-xl px-3 py-2.5 text-left text-sm leading-snug text-neutral-600 transition-colors hover:bg-[#f5f6f8] hover:text-neutral-950"
                     >
-                      <span className="mr-2 text-xs font-semibold text-primary/70">
+                      <span className="mr-2 text-xs font-semibold text-primary">
                         {String(i + 1).padStart(2, "0")}
                       </span>
                       {item.text}
@@ -187,7 +185,7 @@ export default async function BlogDetailPage({
               headings.length > 1 ? "lg:col-span-9" : "mx-auto max-w-3xl lg:col-span-12",
             )}
           >
-            <div className="relative mb-8 aspect-16/9 w-full overflow-hidden rounded-2xl bg-surface-container-low sm:mb-10 sm:rounded-3xl">
+            <div className="relative mb-6 aspect-16/9 w-full overflow-hidden rounded-2xl bg-white sm:mb-8">
               <Image
                 src={post.coverImage}
                 alt={post.coverAlt}
@@ -198,10 +196,9 @@ export default async function BlogDetailPage({
               />
             </div>
 
-            {/* Mobile TOC chips */}
             {headingAnchors.length > 1 ? (
-              <div className="mb-8 lg:hidden">
-                <p className="mb-2.5 text-sm font-semibold text-on-surface">এই আর্টিকেলে</p>
+              <div className="mb-6 lg:hidden">
+                <p className="mb-2.5 text-sm font-semibold text-neutral-950">এই আর্টিকেলে</p>
                 <div
                   className={cn(
                     "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1",
@@ -212,7 +209,7 @@ export default async function BlogDetailPage({
                     <a
                       key={item.id}
                       href={`#${item.id}`}
-                      className="inline-flex shrink-0 rounded-full border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 text-xs font-semibold text-on-surface-variant dark:border-white/10 dark:bg-surface-container"
+                      className="inline-flex shrink-0 rounded-full border border-neutral-200/90 bg-white px-3 py-2 text-xs font-semibold text-neutral-600"
                     >
                       {item.text}
                     </a>
@@ -223,11 +220,11 @@ export default async function BlogDetailPage({
 
             <BlogContent blocks={post.content} />
 
-            <div className="mt-8 flex flex-wrap gap-2 border-t border-outline-variant/30 pt-6 dark:border-white/10">
+            <div className="mt-6 flex flex-wrap gap-2 border-t border-neutral-200 pt-5">
               {post.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface-variant dark:bg-surface-container"
+                  className="rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600"
                 >
                   #{tag}
                 </span>
@@ -236,45 +233,40 @@ export default async function BlogDetailPage({
 
             <BlogRelatedProducts slugs={post.relatedProductSlugs} />
 
-            {/* Help CTA */}
             <div
               className={cn(
-                "relative mt-10 overflow-hidden rounded-2xl px-5 py-8 sm:rounded-3xl sm:px-8 sm:py-9",
-                "bg-[#062f2c] text-white ring-1 ring-black/10",
+                "relative mt-8 overflow-hidden rounded-2xl px-4 py-7 sm:px-7 sm:py-8",
+                "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
               )}
             >
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_100%_0%,rgba(43,192,181,0.28),transparent_55%),radial-gradient(ellipse_40%_40%_at_0%_100%,rgba(245,179,1,0.12),transparent_50%)]"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(43,192,181,0.22),transparent_55%)]"
               />
-              <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="max-w-md">
-                  <h3 className="mb-1.5 text-lg font-semibold sm:text-xl">প্রোডাক্ট নিয়ে জানতে চান?</h3>
+                  <h3 className="mb-1.5 text-lg font-semibold text-white sm:text-xl">
+                    প্রোডাক্ট নিয়ে জানতে চান?
+                  </h3>
                   <p className="text-sm leading-relaxed text-white/70">
-                    অর্ডার, মাপ বা স্টক নিয়ে যেকোনো প্রশ্নে আমাদের টিম সাহায্য করতে প্রস্তুত।
+                    অর্ডার, মাপ বা স্টক — কল বা হোয়াটসঅ্যাপে জিজ্ঞাসা করুন।
                   </p>
                 </div>
-                <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:min-w-[200px]">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[200px]">
                   <Link
                     href="/products"
-                    className={cn(
-                      buttonVariants({ size: "lg" }),
-                      "h-11 w-full rounded-full bg-white text-sm font-semibold text-[#062f2c] hover:bg-white/90",
-                    )}
+                    className="inline-flex h-10 w-full items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
                   >
-                    সব প্রোডাক্ট দেখুন
+                    সব প্রোডাক্ট
                   </Link>
                   <a
                     href={WHATSAPP_HREF}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn(
-                      buttonVariants({ size: "lg", variant: "outline" }),
-                      "h-11 w-full rounded-full border-white/25 bg-white/10 text-sm font-semibold text-white hover:bg-white/15",
-                    )}
+                    className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border border-white/20 text-sm font-semibold text-white transition-colors hover:bg-white/10"
                   >
-                    <WhatsAppIcon className="mr-2 size-4" />
-                    হোয়াটসঅ্যাপে জিজ্ঞাসা
+                    <WhatsAppIcon className="size-4" />
+                    হোয়াটসঅ্যাপ
                   </a>
                 </div>
               </div>
