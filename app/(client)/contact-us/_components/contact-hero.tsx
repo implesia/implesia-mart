@@ -1,39 +1,56 @@
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
+import { MaterialIcon } from "../../_components/common/material-icon";
 import { contactCopy } from "../../_data/contact/contact";
 
 export function ContactHero({ className }: { className?: string }) {
   const { hero } = contactCopy;
 
   return (
-    <section className={cn("w-full pt-6 pb-6 sm:pt-8 sm:pb-8 lg:pt-10 lg:pb-10", className)}>
+    <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            "relative w-full overflow-hidden rounded-2xl px-5 py-10 text-center sm:rounded-3xl sm:px-10 sm:py-12 md:px-14 md:py-14",
-            "bg-[#062f2c] dark:bg-[#041f1d]",
-            "ring-1 ring-black/10 dark:ring-primary/15",
-            "shadow-[0_20px_50px_rgba(6,47,44,0.18)] dark:shadow-[0_24px_56px_rgba(0,0,0,0.45)]",
+            "relative w-full overflow-hidden rounded-2xl px-4 py-8 text-center sm:px-8 sm:py-10",
+            "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
           )}
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_10%_0%,rgba(43,192,181,0.3),transparent_50%),radial-gradient(ellipse_50%_40%_at_100%_100%,rgba(245,179,1,0.14),transparent_45%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(43,192,181,0.22),transparent_55%)]"
           />
 
-          <div className="relative z-10 mx-auto max-w-xl">
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-white/90 backdrop-blur-sm">
-              <span className="size-1.5 shrink-0 rounded-full bg-warm-gold" />
+          <div className="relative z-10 mx-auto max-w-lg">
+            <p className="mb-1.5 text-[11px] font-medium tracking-wide text-primary sm:text-xs">
               {hero.eyebrow}
-            </span>
-
-            <h1 className="mb-3 text-2xl leading-tight font-semibold text-white sm:text-3xl lg:text-4xl">
+            </p>
+            <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-white sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
               {hero.title}
             </h1>
-            <p className="text-sm leading-relaxed text-white/70 sm:text-base">
+            <p className="mb-6 text-sm leading-relaxed text-white/70 sm:text-base">
               {hero.subtitle}
             </p>
+
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
+              <a
+                href={hero.primaryCta.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+              >
+                {hero.primaryCta.label}
+                <MaterialIcon name="chat" className="text-[18px]" />
+              </a>
+              <Link
+                href={hero.secondaryCta.href}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              >
+                {hero.secondaryCta.label}
+              </Link>
+            </div>
           </div>
         </div>
       </Container>

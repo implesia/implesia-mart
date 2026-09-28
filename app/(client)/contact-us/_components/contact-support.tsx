@@ -10,30 +10,19 @@ export function ContactSupport({ className }: { className?: string }) {
   const { support } = contactCopy;
 
   return (
-    <section
-      className={cn(
-        "w-full bg-surface-container-low py-10 sm:py-14 lg:py-xl dark:bg-surface-container",
-        className,
-      )}
-    >
+    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div
-          className={cn(
-            "grid grid-cols-1 gap-8 rounded-2xl p-6 sm:rounded-3xl sm:p-8 lg:grid-cols-2 lg:gap-12 lg:p-10",
-            "bg-surface-container-lowest dark:bg-surface-container-high",
-            "border border-outline-variant/35 dark:border-white/10",
-          )}
-        >
+        <div className="grid grid-cols-1 gap-4 rounded-2xl border border-neutral-200/90 bg-white p-5 sm:p-6 lg:grid-cols-2 lg:gap-8">
           <div>
-            <div className="mb-5 flex items-center gap-3">
-              <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/15">
-                <MaterialIcon name="schedule" filled className="text-[22px]" />
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <MaterialIcon name="schedule" filled className="text-[20px]" />
               </span>
               <div>
-                <h2 className="text-base font-semibold text-on-surface sm:text-lg">
+                <h2 className="text-base font-semibold tracking-tight text-neutral-950 sm:text-lg">
                   {support.title}
                 </h2>
-                <p className="text-xs text-on-surface-variant sm:text-sm">{support.subtitle}</p>
+                <p className="text-xs text-neutral-600 sm:text-sm">{support.subtitle}</p>
               </div>
             </div>
 
@@ -41,34 +30,34 @@ export function ContactSupport({ className }: { className?: string }) {
               {support.hours.map((h) => (
                 <div
                   key={h.label}
-                  className="flex items-center justify-between rounded-xl border border-outline-variant/30 px-4 py-3 dark:border-white/10"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200/90 px-4 py-3"
                 >
-                  <span className="text-sm font-medium text-on-surface">{h.label}</span>
-                  <span className="text-sm text-on-surface-variant">{h.value}</span>
+                  <span className="text-sm font-medium text-neutral-950">{h.label}</span>
+                  <span className="text-right text-sm text-neutral-600">{h.value}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="flex flex-col justify-center gap-3">
+          <div className="flex flex-col justify-center gap-2.5">
             {support.quickLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "group flex items-center justify-between gap-3 rounded-xl border border-outline-variant/30 px-4 py-3.5 dark:border-white/10",
-                  "transition-colors hover:border-primary/30 dark:hover:border-primary/25",
+                  "group flex items-center justify-between gap-3 rounded-xl border border-neutral-200/90 px-4 py-3.5",
+                  "transition-colors hover:border-primary/40",
                 )}
               >
                 <span className="flex items-center gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/15">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <MaterialIcon name={link.icon} className="text-[18px]" />
                   </span>
-                  <span className="text-sm font-medium text-on-surface">{link.label}</span>
+                  <span className="text-sm font-medium text-neutral-950">{link.label}</span>
                 </span>
                 <MaterialIcon
                   name="arrow_forward"
-                  className="text-[18px] text-on-surface-variant transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+                  className="text-[18px] text-neutral-400 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
                 />
               </Link>
             ))}

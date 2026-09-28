@@ -33,30 +33,30 @@ export function getWhatsAppHref(message = WHATSAPP_DEFAULT_MESSAGE) {
 
 export const WHATSAPP_HREF = getWhatsAppHref();
 
-
 export const contactCopy = {
   hero: {
-    eyebrow: "যোগাযোগ করুন",
-    title: "আমরা সাহায্য করতে সবসময় প্রস্তুত",
+    eyebrow: "যোগাযোগ",
+    title: "অর্ডার বা প্রোডাক্ট নিয়ে সাহায্য লাগলে বলুন",
     subtitle:
-      "অর্ডার, ডেলিভারি বা প্রোডাক্ট নিয়ে যেকোনো প্রশ্ন থাকলে নিচের ফর্মে মেসেজ পাঠান অথবা সরাসরি কল/হোয়াটসঅ্যাপ করুন — আমাদের টিম দ্রুত রেসপন্স করবে।",
+      "কল বা হোয়াটসঅ্যাপে সরাসরি যোগাযোগ করুন। কর্মঘণ্টায় রিপ্লাই দেওয়ার চেষ্টা করি।",
+    primaryCta: { label: "হোয়াটসঅ্যাপ", href: WHATSAPP_HREF },
+    secondaryCta: { label: "কল করুন", href: "tel:+8801516527932" },
   },
   form: {
     title: "মেসেজ পাঠান",
-    subtitle: "নিচের ফর্মটি পূরণ করুন, আমরা দ্রুততম সময়ে যোগাযোগ করব।",
+    subtitle: "ফর্ম পূরণ করলে হোয়াটসঅ্যাপে খুলবে — সরাসরি চ্যাট শুরু হবে।",
     fields: {
       name: { label: "নাম", placeholder: "আপনার নাম লিখুন" },
       phone: { label: "ফোন নাম্বার", placeholder: "০১XXX-XXXXXX" },
       subject: { label: "বিষয়", placeholder: "যেমন: অর্ডার সম্পর্কে জানতে চাই" },
       message: { label: "মেসেজ", placeholder: "আমরা কীভাবে সাহায্য করতে পারি লিখুন..." },
     },
-    cta: "মেসেজ পাঠান",
-    successTitle: "মেসেজ পাঠানো হয়েছে!",
-    successBody: "ধন্যবাদ। আমাদের টিম দ্রুত আপনার সাথে যোগাযোগ করবে।",
+    cta: "হোয়াটসঅ্যাপে পাঠান",
+    hint: "বাইরে হোয়াটসঅ্যাপ খুলবে।",
   },
   direct: {
     title: "সরাসরি যোগাযোগ",
-    subtitle: "নিচের যেকোনো মাধ্যমে সরাসরি যোগাযোগ করতে পারেন।",
+    subtitle: "যেকোনো মাধ্যমে যোগাযোগ করতে পারেন।",
     channels: [
       {
         icon: "call",
@@ -71,7 +71,7 @@ export const contactCopy = {
         href: WHATSAPP_HREF,
       },
       {
-        icon: "mail", 
+        icon: "mail",
         title: "ইমেইল করুন",
         value: "implesiaitltd@gmail.com",
         href: "mailto:implesiaitltd@gmail.com",
@@ -79,15 +79,15 @@ export const contactCopy = {
       {
         icon: "location_on",
         title: "সার্ভিস এরিয়া",
-        value: "সারাদেশে ৬৪ জেলা কভারেজ",
-        href: "/sustainability",
+        value: "সারাদেশে ৬৪ জেলা",
+        href: "/shipping-returns",
       },
     ] satisfies ContactChannel[],
-    badge: "যাচাইকৃত ও নিরাপদ বিক্রেতা",
+    badge: "ক্যাশ অন ডেলিভারি",
     social: [
       {
         platform: "facebook",
-        label: "ফেসবুক গ্রুপ",
+        label: "ফেসবুক",
         href: "https://www.facebook.com/implesiamart",
       },
       {
@@ -98,8 +98,8 @@ export const contactCopy = {
     ] satisfies ContactSocialLink[],
   },
   support: {
-    title: "কাস্টমার সাপোর্ট সময়সূচি",
-    subtitle: "নিচের সময়ে আমাদের টিম সরাসরি রেসপন্স দিতে পারবে।",
+    title: "সাপোর্ট সময়সূচি",
+    subtitle: "এই সময়ে সরাসরি রেসপন্সের চেষ্টা করি।",
     hours: [
       { label: "শনি – বৃহস্পতি", value: "সকাল ৯টা – রাত ১০টা" },
       { label: "শুক্রবার", value: "দুপুর ২টা – রাত ১০টা" },
@@ -111,26 +111,26 @@ export const contactCopy = {
     ] satisfies ContactQuickLink[],
   },
   faq: {
-    title: "সচরাচর জিজ্ঞাসিত প্রশ্ন",
-    subtitle: "যোগাযোগ নিয়ে সাধারণ কিছু প্রশ্নের উত্তর।",
+    title: "যোগাযোগ নিয়ে সাধারণ প্রশ্ন",
+    subtitle: "কল, মেসেজ ও অর্ডার স্ট্যাটাস — সংক্ষেপে।",
     items: [
       {
         id: "response-time",
-        question: "মেসেজ পাঠানোর পর কতক্ষণে রিপ্লাই পাব?",
+        question: "মেসেজের পর কতক্ষণে রিপ্লাই পাব?",
         answer:
-          "সাধারণত আমরা কর্মঘণ্টার মধ্যে ১-২ ঘণ্টার মধ্যে রিপ্লাই দিই। দ্রুত সাহায্যের জন্য সরাসরি কল বা হোয়াটসঅ্যাপ করতে পারেন।",
+          "কর্মঘণ্টার মধ্যে রিপ্লাই দেওয়ার চেষ্টা করি। তাড়াতাড়ি লাগলে কল বা হোয়াটসঅ্যাপ করুন।",
       },
       {
         id: "order-status",
-        question: "আমার অর্ডার স্ট্যাটাস কীভাবে জানব?",
+        question: "অর্ডার স্ট্যাটাস কীভাবে জানব?",
         answer:
-          "অর্ডার করার সময় দেওয়া ফোন নাম্বারে আমাদের ডেলিভারি টিম যোগাযোগ করবে। এছাড়া সরাসরি কল করেও অর্ডার স্ট্যাটাস জানতে পারবেন।",
+          "অর্ডারের সময় দেওয়া নম্বরে ডেলিভারি টিম যোগাযোগ করবে। সরাসরি কল করেও জানতে পারবেন।",
       },
       {
         id: "cod-question",
-        question: "ক্যাশ অন ডেলিভারিতে কি কোনো সমস্যা হলে যোগাযোগ করা যাবে?",
+        question: "COD-এ সমস্যা হলে কী করব?",
         answer:
-          "হ্যাঁ, প্রোডাক্ট হাতে পাওয়ার আগে বা পরে কোনো সমস্যা হলে আমাদের সাপোর্ট টিমে সরাসরি কল বা মেসেজ করুন, আমরা সমাধান করে দেব।",
+          "প্রোডাক্ট হাতে পাওয়ার আগে বা পরে সমস্যা হলে কল বা হোয়াটসঅ্যাপ করুন — ৩ দিনের মধ্যে রিটার্নও করা যায়।",
       },
     ] satisfies ContactFaqItem[],
   },

@@ -15,33 +15,33 @@ export function ContactDetails({ className }: { className?: string }) {
   const { direct } = contactCopy;
 
   return (
-    <div className={cn("flex flex-col justify-center gap-6", className)}>
+    <div className={cn("flex flex-col justify-center gap-5", className)}>
       <div>
-        <h2 className="text-lg font-semibold text-on-surface sm:text-xl">{direct.title}</h2>
-        <p className="mt-1 text-sm text-on-surface-variant">{direct.subtitle}</p>
+        <h2 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
+          {direct.title}
+        </h2>
+        <p className="mt-1 text-sm text-neutral-600">{direct.subtitle}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         {direct.channels.map((c) => {
           const isInternal = c.href.startsWith("/");
           const content = (
             <>
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105 dark:bg-primary/15">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <MaterialIcon name={c.icon} filled className="text-[20px]" />
               </span>
               <div className="min-w-0">
-                <h4 className="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">
+                <h3 className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">
                   {c.title}
-                </h4>
-                <p className="mt-0.5 truncate text-sm font-medium text-on-surface">{c.value}</p>
+                </h3>
+                <p className="mt-0.5 truncate text-sm font-medium text-neutral-950">{c.value}</p>
               </div>
             </>
           );
           const linkClass = cn(
-            "group flex items-center gap-3 rounded-2xl p-4",
-            "bg-surface-container-lowest dark:bg-surface-container",
-            "border border-outline-variant/35 dark:border-white/10",
-            "transition-colors hover:border-primary/30 dark:hover:border-primary/25",
+            "group flex items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white p-4",
+            "transition-colors hover:border-primary/40",
           );
 
           return isInternal ? (
@@ -49,20 +49,27 @@ export function ContactDetails({ className }: { className?: string }) {
               {content}
             </Link>
           ) : (
-            <a key={c.title} href={c.href} className={linkClass}>
+            <a
+              key={c.title}
+              href={c.href}
+              {...(c.href.startsWith("http")
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              className={linkClass}
+            >
               {content}
             </a>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/30 pt-5 dark:border-white/10">
-        <div className="inline-flex items-center gap-2 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-3.5 py-1.5 text-xs font-semibold text-warm-gold">
-          <MaterialIcon name="verified" className="text-[16px]" filled />
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-4">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700">
+          <MaterialIcon name="payments" className="text-[16px] text-primary" filled />
           {direct.badge}
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {direct.social.map((s) => {
             const Icon = socialIcons[s.platform];
             return (
@@ -74,9 +81,8 @@ export function ContactDetails({ className }: { className?: string }) {
                 aria-label={s.label}
                 className={cn(
                   "flex size-9 items-center justify-center rounded-full",
-                  "bg-surface-container-lowest text-on-surface-variant dark:bg-surface-container",
-                  "border border-outline-variant/35 dark:border-white/10",
-                  "transition-colors hover:border-primary/30 hover:text-primary dark:hover:border-primary/25",
+                  "border border-neutral-200/90 bg-white text-neutral-600",
+                  "transition-colors hover:border-primary/40 hover:text-primary",
                 )}
               >
                 <Icon className="size-4" />
