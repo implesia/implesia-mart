@@ -8,43 +8,32 @@ export function SustainabilityImpact({ className }: { className?: string }) {
   const { impact } = sustainabilityCopy;
 
   return (
-    <section className={cn("w-full py-10 sm:py-14 lg:py-xl", className)}>
+    <section
+      className={cn("w-full bg-[#f5f6f8] pb-6 sm:pb-8", className)}
+      aria-label={impact.title}
+    >
       <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto mb-8 max-w-2xl text-center sm:mb-10 lg:mb-12">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary dark:border-primary/25 dark:bg-primary/12">
-            <MaterialIcon name="insights" className="text-[16px]" />
-            {impact.kicker}
-          </span>
-          <h2 className="mb-3 text-2xl leading-tight font-semibold text-primary sm:text-3xl lg:text-4xl">
-            {impact.title}
-          </h2>
-          <p className="text-sm leading-relaxed text-on-surface-variant sm:text-base">
-            {impact.subtitle}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <ul className="grid grid-cols-2 divide-x divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:grid-cols-4 lg:divide-y-0">
           {impact.stats.map((stat) => (
-            <div
+            <li
               key={stat.label}
-              className={cn(
-                "flex flex-col items-center gap-2 rounded-2xl p-4 text-center sm:p-6",
-                "bg-surface-container-lowest dark:bg-surface-container",
-                "border border-outline-variant/35 dark:border-white/10",
-              )}
+              className="flex flex-col items-center justify-center gap-1 px-3 py-3.5 text-center sm:flex-row sm:gap-2.5 sm:px-4 sm:py-4 sm:text-left"
             >
-              <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary sm:size-12 dark:bg-primary/15">
-                <MaterialIcon name={stat.icon} className="text-[20px] sm:text-[24px]" />
-              </span>
-              <span className="text-lg font-bold tabular-nums text-primary sm:text-2xl">
-                {stat.value}
-              </span>
-              <span className="text-xs leading-snug text-on-surface-variant sm:text-sm">
-                {stat.label}
-              </span>
-            </div>
+              <MaterialIcon
+                name={stat.icon}
+                className="text-[18px] text-primary sm:text-[20px]"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold tabular-nums text-neutral-950 sm:text-[15px]">
+                  {stat.value}
+                </p>
+                <p className="text-[11px] leading-tight text-neutral-600 sm:text-xs">
+                  {stat.label}
+                </p>
+              </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </Container>
     </section>
   );

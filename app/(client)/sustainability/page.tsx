@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { Container } from "../_components/common/container";
+import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { SustainabilityCommitment } from "./_components/sustainability-commitment";
 import { SustainabilityCta } from "./_components/sustainability-cta";
 import { SustainabilityDurability } from "./_components/sustainability-durability";
@@ -7,25 +9,33 @@ import { SustainabilityHero } from "./_components/sustainability-hero";
 import { SustainabilityImpact } from "./_components/sustainability-impact";
 import { SustainabilityOrigin } from "./_components/sustainability-origin";
 import { SustainabilityQuality } from "./_components/sustainability-quality";
-import { SustainabilityTrust } from "./_components/sustainability-trust";
 
 export const metadata: Metadata = {
   title: "সাসটেইনেবিলিটি",
   description:
-    "ইমপ্লেসিয়া মার্ট — দায়িত্বশীল শপিং, দীর্ঘস্থায়ী প্রোডাক্ট বাছাই, পরিবেশ-বান্ধব প্যাকেজিং ও কোয়ালিটি নিশ্চয়তা প্রক্রিয়া সম্পর্কে জানুন।",
+    "ইমপ্লেসিয়া মার্ট — কোয়ালিটি চেক করা গ্যাজেট ও হাতে তৈরি গর্জিয়াস ড্রেস, দায়িত্বশীল প্যাকেজিং ও ৩ দিন রিটার্ন।",
   alternates: { canonical: "/sustainability" },
 };
 
 export default function SustainabilityPage() {
   return (
-    <main>
+    <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
+      <Container className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="w-full pt-3 sm:pt-4 lg:pt-5">
+          <ProductBreadcrumbs
+            items={[
+              { label: "হোম", href: "/" },
+              { label: "সাসটেইনেবিলিটি" },
+            ]}
+          />
+        </div>
+      </Container>
       <SustainabilityHero />
+      <SustainabilityImpact />
       <SustainabilityOrigin />
       <SustainabilityCommitment />
       <SustainabilityQuality />
       <SustainabilityDurability />
-      <SustainabilityImpact />
-      <SustainabilityTrust />
       <SustainabilityCta />
     </main>
   );

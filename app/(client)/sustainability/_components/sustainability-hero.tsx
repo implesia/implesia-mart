@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -11,68 +13,52 @@ export function SustainabilityHero({ className }: { className?: string }) {
   const { hero } = sustainabilityCopy;
 
   return (
-    <section className={cn("w-full pt-6 pb-10 sm:pt-8 sm:pb-14 lg:pt-10 lg:pb-xl", className)}>
+    <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            "relative w-full overflow-hidden rounded-2xl sm:rounded-3xl lg:rounded-[1.75rem]",
+            "relative w-full overflow-hidden rounded-2xl",
             "grid grid-cols-1 lg:grid-cols-12",
-            "bg-[#062f2c] dark:bg-[#041f1d]",
-            "ring-1 ring-black/10 dark:ring-primary/15",
-            "shadow-[0_20px_50px_rgba(6,47,44,0.18)] dark:shadow-[0_24px_56px_rgba(0,0,0,0.45)]",
+            "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
           )}
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_0%_0%,rgba(43,192,181,0.35),transparent_55%),radial-gradient(ellipse_60%_50%_at_100%_100%,rgba(245,179,1,0.14),transparent_50%)]"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/25 to-transparent"
+            className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
           />
 
-          {/* Copy */}
-          <div className="relative z-10 order-2 flex flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:order-1 lg:col-span-7 lg:px-10 lg:py-14 xl:px-12">
-            <span className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-white/90 backdrop-blur-sm sm:mb-5">
-              <span className="size-1.5 shrink-0 rounded-full bg-warm-gold" />
+          <div className="relative z-10 flex flex-col justify-center px-4 py-6 sm:px-7 sm:py-8 lg:col-span-7 lg:px-8 lg:py-10">
+            <p className="mb-1.5 text-[11px] font-medium tracking-wide text-primary sm:text-xs">
               {hero.eyebrow}
-            </span>
+            </p>
 
-            <h1 className="mb-4 text-2xl leading-tight font-semibold text-white sm:mb-5 sm:text-3xl md:text-4xl lg:text-[2.75rem]">
+            <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-white sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
               {hero.title}
             </h1>
 
-            <p className="mb-8 max-w-xl text-sm leading-relaxed text-white/70 sm:mb-9 sm:text-base">
+            <p className="mb-5 max-w-xl text-sm leading-relaxed text-white/70 sm:mb-6 sm:text-base">
               {hero.subtitle}
             </p>
 
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
               <Link
                 href={hero.primaryCta.href}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 sm:px-8",
-                  "bg-warm-gold text-sm font-semibold text-on-surface",
-                  "transition-colors hover:bg-warm-gold/90 active:scale-[0.98]",
-                )}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
               >
                 {hero.primaryCta.label}
                 <MaterialIcon name="arrow_forward" className="text-[18px]" />
               </Link>
               <Link
                 href={hero.secondaryCta.href}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 px-6 py-3.5 sm:px-8",
-                  "text-sm font-semibold text-white transition-colors hover:bg-white/10",
-                )}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
                 {hero.secondaryCta.label}
               </Link>
             </div>
           </div>
 
-          {/* Product imagery */}
-          <div className="relative order-1 grid grid-cols-2 gap-2.5 p-5 sm:gap-3 sm:p-8 lg:order-2 lg:col-span-5 lg:gap-4 lg:p-8">
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/15 sm:rounded-2xl">
+          <div className="relative grid grid-cols-2 gap-2 p-4 sm:gap-3 sm:p-6 lg:col-span-5 lg:p-7">
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
               <Image
                 src={hero.imageSrc}
                 alt={hero.imageAlt}
@@ -82,7 +68,7 @@ export function SustainabilityHero({ className }: { className?: string }) {
                 className="object-cover"
               />
             </div>
-            <div className="relative aspect-square translate-y-4 overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/15 sm:translate-y-6 sm:rounded-2xl">
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
               <Image
                 src={hero.secondaryImageSrc}
                 alt={hero.secondaryImageAlt}

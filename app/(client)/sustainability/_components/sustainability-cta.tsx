@@ -10,47 +10,36 @@ export function SustainabilityCta({ className }: { className?: string }) {
   const { cta } = sustainabilityCopy;
 
   return (
-    <section className={cn("w-full py-10 sm:py-14 lg:py-xl", className)}>
+    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            "relative w-full overflow-hidden rounded-2xl px-5 py-10 text-center sm:rounded-3xl sm:px-10 sm:py-12 md:px-14 md:py-14",
-            "bg-[#062f2c] dark:bg-[#041f1d]",
-            "ring-1 ring-black/10 dark:ring-primary/15",
-            "shadow-[0_20px_50px_rgba(6,47,44,0.18)] dark:shadow-[0_24px_56px_rgba(0,0,0,0.45)]",
+            "relative w-full overflow-hidden rounded-2xl px-4 py-8 text-center sm:px-8 sm:py-10",
+            "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
           )}
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_10%_0%,rgba(43,192,181,0.28),transparent_50%),radial-gradient(ellipse_50%_40%_at_100%_100%,rgba(245,179,1,0.12),transparent_45%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(43,192,181,0.22),transparent_55%)]"
           />
 
-          <div className="relative z-10 mx-auto max-w-xl">
-            <h2 className="mb-3 text-2xl leading-tight font-semibold text-white sm:text-3xl lg:text-4xl">
+          <div className="relative z-10 mx-auto max-w-lg">
+            <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-white sm:text-2xl">
               {cta.title}
             </h2>
-            <p className="mb-8 text-sm leading-relaxed text-white/70 sm:text-base">
-              {cta.subtitle}
-            </p>
+            <p className="mb-6 text-sm leading-relaxed text-white/70">{cta.subtitle}</p>
 
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
               <Link
                 href={cta.primaryCta.href}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 sm:px-8",
-                  "bg-warm-gold text-sm font-semibold text-on-surface",
-                  "transition-colors hover:bg-warm-gold/90 active:scale-[0.98]",
-                )}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
               >
                 {cta.primaryCta.label}
                 <MaterialIcon name="arrow_forward" className="text-[18px]" />
               </Link>
               <Link
                 href={cta.secondaryCta.href}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 px-6 py-3.5 sm:px-8",
-                  "text-sm font-semibold text-white transition-colors hover:bg-white/10",
-                )}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
                 {cta.secondaryCta.label}
               </Link>

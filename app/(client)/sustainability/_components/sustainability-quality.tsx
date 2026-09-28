@@ -10,45 +10,45 @@ export function SustainabilityQuality({ className }: { className?: string }) {
   const { quality } = sustainabilityCopy;
 
   return (
-    <section className={cn("w-full py-10 sm:py-14 lg:py-xl", className)}>
+    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          <div className="order-2 relative aspect-4/5 w-full overflow-hidden rounded-2xl ring-1 ring-outline-variant/30 sm:rounded-3xl lg:order-1 lg:aspect-square dark:ring-white/10">
+        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-10">
+          <div className="order-2 lg:order-1 relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-[5/4] lg:aspect-4/5">
             <Image
               src={quality.imageSrc}
               alt={quality.imageAlt}
               fill
-              sizes="(max-width: 1024px) 90vw, 46vw"
+              sizes="(max-width: 1024px) 92vw, 42vw"
               className="object-cover"
             />
           </div>
 
-          <div className="order-1 space-y-6 lg:order-2">
-            <h2 className="text-2xl leading-tight font-semibold text-primary sm:text-3xl lg:text-[2.15rem]">
+          <div className="order-1 lg:order-2">
+            <h2 className="text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
               {quality.title}
             </h2>
-            <p className="text-sm leading-relaxed text-on-surface-variant sm:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
               {quality.body}
             </p>
 
-            <div className="space-y-4">
-              {quality.steps.map((step, idx) => (
-                <div key={step} className="flex items-center gap-4">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary sm:size-10 dark:bg-primary/15">
-                    {idx + 1}
+            <ol className="mt-5 space-y-3">
+              {quality.steps.map((step, index) => (
+                <li key={step} className="flex items-start gap-3">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {index + 1}
                   </span>
-                  <p className="text-sm text-on-surface sm:text-base">{step}</p>
-                </div>
+                  <p className="pt-0.5 text-sm leading-relaxed text-neutral-700">{step}</p>
+                </li>
               ))}
-            </div>
+            </ol>
 
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               {quality.badges.map((badge) => (
                 <span
                   key={badge.label}
-                  className="inline-flex items-center gap-2 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-4 py-2 text-xs font-bold text-warm-gold"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"
                 >
-                  <MaterialIcon name={badge.icon} className="text-[16px]" filled />
+                  <MaterialIcon name={badge.icon} className="text-[16px] text-primary" />
                   {badge.label}
                 </span>
               ))}
