@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="w-full overflow-x-hidden bg-background pt-16 text-on-surface sm:pt-20">
+    <main className="w-full overflow-x-hidden bg-background text-on-surface">
       <PrivacyPolicyView />
     </main>
   );

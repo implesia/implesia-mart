@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <>
       <JsonLd data={faqJsonLd} />
-      <main className="pt-16 sm:pt-20">
+      <main>
         <HeroSection />
         <BestSellingSection />
         <FlashSaleSection />

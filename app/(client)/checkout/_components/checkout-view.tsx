@@ -28,10 +28,10 @@ type CheckoutViewProps = {
 };
 
 const pageShell =
-  "min-h-[calc(100dvh-4rem)] overflow-x-hidden bg-surface-container-low sm:min-h-[calc(100dvh-5rem)]";
+  "min-h-[calc(100dvh-6.5rem)] overflow-x-hidden bg-surface-container-low sm:min-h-[calc(100dvh-8rem)] lg:min-h-[calc(100dvh-9.25rem)]";
 
 const pagePad =
-  "px-4 pt-20 pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-24 lg:px-8 lg:pb-16";
+  "px-4 pt-4 pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 lg:px-8 lg:pb-16";
 
 export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
   const router = useRouter();

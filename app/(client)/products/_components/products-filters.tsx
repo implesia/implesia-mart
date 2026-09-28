@@ -187,7 +187,7 @@ export function ProductsFilters({
   return (
     <aside
       className={cn(
-        "custom-scrollbar sticky top-24 hidden h-fit max-h-[calc(100vh-7rem)] w-56 shrink-0 overflow-y-auto xl:w-64 lg:block",
+        "custom-scrollbar sticky top-[7.25rem] hidden h-fit max-h-[calc(100vh-8.5rem)] w-56 shrink-0 overflow-y-auto sm:top-[8.75rem] lg:top-[10rem] lg:block xl:w-64",
         "rounded-2xl border border-outline-variant/35 bg-surface-container-lowest p-4 xl:p-5",
         "shadow-[0_8px_30px_rgba(6,47,44,0.04)] dark:border-white/10 dark:bg-surface-container dark:shadow-none",
         className,

@@ -23,13 +23,18 @@ const breadcrumbJsonLd = {
   "@type": "BreadcrumbList",
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
-    { "@type": "ListItem", position: 2, name: "ব্লগ", item: absoluteUrl("/blogs") },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "ব্লগ",
+      item: absoluteUrl("/blogs"),
+    },
   ],
 };
 
 export default function BlogsPage() {
   return (
-    <main className="w-full overflow-x-hidden bg-background pt-16 text-on-surface sm:pt-20">
+    <main className="w-full overflow-x-hidden bg-background text-on-surface">
       <JsonLd data={breadcrumbJsonLd} />
       <BlogsHero postCount={blogPosts.length} />
 

@@ -50,7 +50,7 @@ export function HeroSection() {
       </div>
 
       <Container className="relative z-10 px-4 sm:px-6 lg:px-8">
-        <div className="grid min-h-[min(100dvh-4.5rem,760px)] grid-cols-1 items-center gap-8 py-10 sm:min-h-[min(100dvh-5rem,820px)] sm:gap-10 sm:py-12 lg:grid-cols-12 lg:gap-8 lg:py-14 xl:gap-10 xl:py-16">
+        <div className="grid min-h-[min(calc(100dvh-6.5rem),760px)] grid-cols-1 items-center gap-8 py-10 sm:gap-10 sm:py-12 sm:min-h-[min(calc(100dvh-8rem),760px)] lg:min-h-[min(calc(100dvh-9.25rem),820px)] lg:grid-cols-12 lg:gap-8 lg:py-14 xl:gap-10 xl:py-16">
           {/* Copy */}
           <div className="relative z-20 order-1 min-w-0 lg:col-span-5 xl:col-span-5">
             <AnimatePresence mode="wait">

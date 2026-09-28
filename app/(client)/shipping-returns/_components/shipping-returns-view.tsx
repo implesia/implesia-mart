@@ -111,7 +111,7 @@ export function ShippingReturnsView() {
               </div>
             </div>
 
-            <div className="sticky top-28 hidden overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-lowest lg:block dark:border-white/10 dark:bg-surface-container">
+            <div className="sticky top-[7.25rem] sm:top-[8.75rem] lg:top-[10rem] hidden overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-lowest lg:block dark:border-white/10 dark:bg-surface-container">
               <div className="border-b border-outline-variant/30 bg-surface-container-low/80 px-5 py-5 dark:border-white/10">
                 <h2 className="text-base font-semibold text-on-surface">{copy.nav.title}</h2>
                 <p className="mt-1 text-xs text-outline">{copy.nav.subtitle}</p>

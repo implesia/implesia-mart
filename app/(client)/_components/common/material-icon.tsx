@@ -13,6 +13,7 @@ export function MaterialIcon({
 }: MaterialIconProps) {
   return (
     <span
+      suppressHydrationWarning
       className={cn(
         "material-symbols-outlined shrink-0 select-none leading-none",
         filled && "material-symbols-outlined--fill",

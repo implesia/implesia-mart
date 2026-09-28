@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function AboutUsPage() {
   return (
-    <main className="pt-16 sm:pt-20">
+    <main>
       <AboutHero />
       <StatsBar />
       <BrandStory />

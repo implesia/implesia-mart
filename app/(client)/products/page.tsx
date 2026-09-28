@@ -23,7 +23,12 @@ const breadcrumbJsonLd = {
   "@type": "BreadcrumbList",
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
-    { "@type": "ListItem", position: 2, name: "সব প্রোডাক্ট", item: absoluteUrl("/products") },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "সব প্রোডাক্ট",
+      item: absoluteUrl("/products"),
+    },
   ],
 };
 
@@ -40,7 +45,7 @@ const itemListJsonLd = {
 
 export default function ProductsPage() {
   return (
-    <main className="w-full overflow-x-hidden pt-16 sm:pt-20">
+    <main className="w-full overflow-x-hidden">
       <JsonLd data={breadcrumbJsonLd} />
       <JsonLd data={itemListJsonLd} />
       <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">

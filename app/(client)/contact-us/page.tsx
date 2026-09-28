@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function ContactUsPage() {
   return (
-    <main className="pt-16 sm:pt-20">
+    <main>
       <ContactHero />
 
       <section className="w-full py-10 sm:py-14 lg:py-xl">

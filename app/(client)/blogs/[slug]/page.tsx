@@ -105,7 +105,7 @@ export default async function BlogDetailPage({
   };
 
   return (
-    <main className="w-full overflow-x-hidden bg-background pt-16 text-on-surface sm:pt-20">
+    <main className="w-full overflow-x-hidden bg-background text-on-surface">
       <JsonLd data={articleJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
       {/* Article hero band */}
@@ -158,7 +158,7 @@ export default async function BlogDetailPage({
           {/* Sticky TOC */}
           {headings.length > 1 ? (
             <aside className="hidden lg:col-span-3 lg:block">
-              <div className="sticky top-28 overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-lowest dark:border-white/10 dark:bg-surface-container">
+              <div className="sticky top-[7.25rem] sm:top-[8.75rem] lg:top-[10rem] overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-lowest dark:border-white/10 dark:bg-surface-container">
                 <div className="border-b border-outline-variant/30 px-4 py-4 dark:border-white/10">
                   <p className="text-sm font-semibold text-on-surface">এই আর্টিকেলে</p>
                   <p className="mt-0.5 text-xs text-outline">বিষয়বস্তু</p>

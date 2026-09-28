@@ -44,7 +44,14 @@ export async function generateMetadata({
       url,
       title: product.title,
       description: product.description,
-      images: [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }],
+      images: [
+        {
+          url: product.imageSrc,
+          alt: product.imageAlt,
+          width: 900,
+          height: 900,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -114,7 +121,7 @@ export default async function ProductDetailsPage({
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 pt-20 pb-28 sm:px-6 sm:pt-24 sm:pb-32 lg:px-8 lg:pt-28 lg:pb-16 xl:px-10">
+    <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 pt-4 pb-28 sm:px-6 sm:pb-32 lg:px-8 lg:pt-8 lg:pb-16 xl:px-10">
       <JsonLd data={productJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
       <ProductBreadcrumbs items={product.breadcrumbs} />
@@ -132,7 +139,10 @@ export default async function ProductDetailsPage({
             }
             images={product.gallery}
           />
-          <ProductSupportPanel product={product} className="mt-6 hidden lg:mt-8 lg:block" />
+          <ProductSupportPanel
+            product={product}
+            className="mt-6 hidden lg:mt-8 lg:block"
+          />
         </div>
 
         <div className="min-w-0 lg:col-span-5">

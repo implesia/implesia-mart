@@ -3,12 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { formatCartMoney } from "../../_lib/cart";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
 
 type CartTriggerProps = {
   className?: string;
-  variant?: "icon" | "button";
+  variant?: "icon" | "button" | "summary";
   onNavigate?: () => void;
 };
 
@@ -17,8 +18,47 @@ export function CartTrigger({
   variant = "icon",
   onNavigate,
 }: CartTriggerProps) {
-  const { itemCount, hydrated, openCart } = useCart();
+  const { itemCount, hydrated, openCart, pricing } = useCart();
   const count = hydrated ? itemCount : 0;
+  const totalLabel = formatCartMoney(hydrated ? pricing.subtotal : 0);
+
+  if (variant === "summary") {
+    return (
+      <button
+        type="button"
+        className={cn(
+          "flex items-center gap-2.5 rounded-md py-0.5 pr-1 text-neutral-800 transition-colors hover:bg-neutral-100 hover:text-neutral-950",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950",
+          className,
+        )}
+        aria-label={
+          count > 0
+            ? `My cart, ${count} items, ${totalLabel}`
+            : `My cart, ${totalLabel}`
+        }
+        onClick={openCart}
+      >
+        <span className="relative grid size-9 shrink-0 place-items-center">
+          <MaterialIcon name="shopping_cart" className="text-[22px]" />
+          <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neutral-950 px-1 text-[10px] leading-none font-bold text-white ring-2 ring-white">
+            {count > 99 ? "99+" : count}
+          </span>
+        </span>
+        <span className="hidden min-w-[2.6rem] text-left leading-none sm:block">
+          <span className="block text-[11px] font-medium text-neutral-500">
+            My cart
+          </span>
+          <span className="mt-1 block text-[13px] font-semibold tracking-tight text-neutral-950">
+            {totalLabel}
+          </span>
+        </span>
+        <MaterialIcon
+          name="expand_more"
+          className="hidden text-[18px] text-neutral-400 sm:inline"
+        />
+      </button>
+    );
+  }
 
   if (variant === "button") {
     return (
@@ -54,7 +94,10 @@ export function CartTrigger({
       aria-label={count > 0 ? `Shopping cart, ${count} items` : "Shopping cart"}
       onClick={openCart}
     >
-      <MaterialIcon name="shopping_cart" className="text-[22px] lg:text-[24px]" />
+      <MaterialIcon
+        name="shopping_cart"
+        className="text-[22px] lg:text-[24px]"
+      />
       {count > 0 ? (
         <span className="absolute top-1 right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-background">
           {count > 99 ? "99+" : count}

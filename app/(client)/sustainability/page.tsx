@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function SustainabilityPage() {
   return (
-    <main className="pt-16 sm:pt-20">
+    <main>
       <SustainabilityHero />
       <SustainabilityOrigin />
       <SustainabilityCommitment />
