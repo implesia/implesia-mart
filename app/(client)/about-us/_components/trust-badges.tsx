@@ -8,39 +8,38 @@ export function TrustBadges({ className }: { className?: string }) {
   const { values } = aboutCopy;
 
   return (
-    <section className={cn("w-full py-10 sm:py-14 lg:py-xl", className)}>
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto mb-8 max-w-2xl text-center sm:mb-10 lg:mb-12">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-3 py-1.5 text-xs font-semibold text-warm-gold">
-            <MaterialIcon name="workspace_premium" className="text-[16px]" />
+    <section className={cn("w-full py-6 sm:py-8 lg:py-10", className)}>
+      <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto mb-5 max-w-2xl text-center sm:mb-6">
+          <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-warm-gold/30 bg-warm-gold/10 px-2.5 py-1 text-xs font-semibold text-on-surface">
+            <MaterialIcon name="workspace_premium" className="text-[14px]" />
             {values.kicker}
           </span>
-          <h2 className="mb-3 text-2xl leading-tight font-semibold text-primary sm:text-3xl lg:text-4xl">
+          <h2 className="mb-2 text-xl leading-tight font-semibold text-neutral-950 sm:text-2xl">
             {values.title}
           </h2>
-          <p className="text-sm leading-relaxed text-on-surface-variant sm:text-base">
+          <p className="text-sm leading-relaxed text-neutral-600">
             {values.subtitle}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
           {values.items.map((item) => (
             <div
               key={item.title}
               className={cn(
-                "rounded-2xl p-5 text-center sm:p-6",
-                "bg-surface-container-lowest dark:bg-surface-container",
-                "border border-outline-variant/35 dark:border-white/10",
-                "transition-colors hover:border-primary/30 dark:hover:border-primary/25",
+                "rounded-xl p-3.5 text-center sm:rounded-2xl sm:p-5",
+                "bg-white",
+                "border border-neutral-200/90",
               )}
             >
-              <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary sm:size-14 dark:bg-primary/15">
-                <MaterialIcon name={item.icon} filled className="text-[24px] sm:text-[26px]" />
+              <span className="mx-auto mb-2.5 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary sm:size-11">
+                <MaterialIcon name={item.icon} filled className="text-[20px]" />
               </span>
-              <h3 className="mb-2 text-sm font-semibold text-on-surface sm:text-base">
+              <h3 className="mb-1 text-sm font-semibold text-neutral-950">
                 {item.title}
               </h3>
-              <p className="text-xs leading-relaxed text-on-surface-variant sm:text-sm">
+              <p className="text-[11px] leading-relaxed text-neutral-600 sm:text-xs">
                 {item.description}
               </p>
             </div>

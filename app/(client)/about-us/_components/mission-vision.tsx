@@ -9,47 +9,42 @@ export function MissionVision({ className }: { className?: string }) {
   const cards = [missionVision.vision, missionVision.mission];
 
   return (
-    <section
-      className={cn(
-        "w-full bg-surface-container-low py-10 sm:py-14 lg:py-xl dark:bg-surface-container",
-        className,
-      )}
-    >
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 md:gap-6">
+    <section className={cn("w-full bg-white py-6 sm:py-8 lg:py-10", className)}>
+      <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {cards.map((card, index) => (
             <div
               key={card.title}
               className={cn(
-                "rounded-2xl p-6 sm:rounded-3xl sm:p-8 lg:p-10",
-                "border border-outline-variant/35 dark:border-white/10",
+                "rounded-2xl p-5 sm:p-6",
+                "border",
                 index === 0
-                  ? "bg-surface-container-lowest dark:bg-surface-container-high"
-                  : "bg-primary text-on-primary",
+                  ? "border-neutral-200/90 bg-[#f5f6f8]"
+                  : "border-transparent bg-primary text-on-primary",
               )}
             >
               <span
                 className={cn(
-                  "mb-5 flex size-12 items-center justify-center rounded-xl sm:size-14",
+                  "mb-3 flex size-10 items-center justify-center rounded-xl sm:size-11",
                   index === 0
-                    ? "bg-warm-gold/12 text-warm-gold"
+                    ? "bg-warm-gold/15 text-on-surface"
                     : "bg-white/15 text-on-primary",
                 )}
               >
-                <MaterialIcon name={card.icon} filled className="text-[26px] sm:text-[28px]" />
+                <MaterialIcon name={card.icon} filled className="text-[22px]" />
               </span>
               <h3
                 className={cn(
-                  "mb-3 text-lg font-semibold sm:text-xl",
-                  index === 0 ? "text-primary" : "text-on-primary",
+                  "mb-2 text-base font-semibold sm:text-lg",
+                  index === 0 ? "text-neutral-950" : "text-on-primary",
                 )}
               >
                 {card.title}
               </h3>
               <p
                 className={cn(
-                  "text-sm leading-relaxed sm:text-base",
-                  index === 0 ? "text-on-surface-variant" : "text-on-primary/85",
+                  "text-sm leading-relaxed",
+                  index === 0 ? "text-neutral-600" : "text-on-primary/85",
                 )}
               >
                 {card.description}

@@ -43,26 +43,26 @@ export function ProductsToolbar({
     (categories?.length ?? 0) === productFilters.categories.length;
 
   return (
-    <div className={cn("mb-5 space-y-4 sm:mb-7 sm:space-y-5 lg:mb-8", className)}>
-      <div className="flex flex-col gap-3.5 sm:gap-4 md:flex-row md:items-end md:justify-between">
+    <div className={cn("mb-3 space-y-3 sm:mb-4 sm:space-y-3.5 lg:mb-4", className)}>
+      <div className="flex flex-col gap-2.5 sm:gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0 flex-1">
-          <p className="mb-1 text-[10px] font-semibold tracking-[0.18em] text-primary uppercase sm:mb-1.5 sm:text-xs">
-            কালেকশন
+          <p className="mb-0.5 text-[10px] font-semibold tracking-[0.18em] text-primary uppercase sm:text-xs">
+            ক্যাটালগ
           </p>
-          <h1 className="text-xl font-semibold tracking-tight text-on-surface sm:text-2xl md:text-3xl">
+          <h1 className="text-lg font-semibold tracking-tight text-on-surface sm:text-xl md:text-2xl">
             {title}
           </h1>
-          <p className="mt-1 text-xs leading-relaxed text-on-surface-variant sm:mt-1.5 sm:text-sm">
+          <p className="mt-0.5 text-xs leading-relaxed text-on-surface-variant sm:text-sm">
             {totalLabel}
           </p>
         </div>
 
-        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-2.5 md:shrink-0">
+        <div className="flex w-full items-center gap-2 sm:w-auto md:shrink-0">
           <button
             type="button"
             onClick={onOpenMobileFilters}
             className={cn(
-              "inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold sm:flex-none sm:px-3.5 lg:hidden",
+              "inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold sm:h-10 sm:flex-none sm:px-3.5 lg:hidden",
               "border border-outline-variant/40 bg-surface-container-lowest text-on-surface",
               "dark:border-white/10 dark:bg-surface-container",
               "transition-colors hover:border-primary/35 hover:text-primary",
@@ -83,10 +83,10 @@ export function ProductsToolbar({
             >
               <SelectTrigger
                 className={cn(
-                  "h-10 w-full min-w-0 rounded-xl border border-outline-variant/40 bg-surface-container-lowest pr-9",
+                  "h-9 w-full min-w-0 rounded-xl border border-outline-variant/40 bg-surface-container-lowest pr-9 sm:h-10",
                   "font-semibold text-on-surface focus-visible:ring-2 focus-visible:ring-primary",
                   "dark:border-white/10 dark:bg-surface-container",
-                  "sm:min-w-[11rem] sm:w-auto",
+                  "sm:min-w-[10.5rem] sm:w-auto",
                 )}
               >
                 <SelectValue>
@@ -109,13 +109,13 @@ export function ProductsToolbar({
       </div>
 
       {/* Category chips — horizontal scroll on small screens */}
-      <div className="-mx-4 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
+      <div className="-mx-3 overflow-x-auto px-3 [-ms-overflow-style:none] [scrollbar-width:none] min-[400px]:-mx-4 min-[400px]:px-4 sm:mx-0 sm:overflow-visible sm:px-0 lg:hidden [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max gap-1.5 sm:w-auto sm:flex-wrap sm:gap-2">
           <button
             type="button"
             onClick={() => onCategorySelect("all")}
             className={cn(
-              "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm",
+              "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-3.5 sm:text-sm",
               allSelected
                 ? "bg-primary text-on-primary shadow-sm shadow-primary/25"
                 : "bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/35 hover:text-on-surface dark:bg-surface-container dark:ring-white/10",
@@ -134,7 +134,7 @@ export function ProductsToolbar({
                 type="button"
                 onClick={() => onCategorySelect(option.id)}
                 className={cn(
-                  "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm",
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-3.5 sm:text-sm",
                   active
                     ? "bg-primary text-on-primary shadow-sm shadow-primary/25"
                     : "bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/35 hover:text-on-surface dark:bg-surface-container dark:ring-white/10",

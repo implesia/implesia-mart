@@ -199,8 +199,8 @@ export const productFilters = {
     { id: "fashion", label: categoryLabels.fashion },
   ],
   availability: [
-    { id: "available", label: "এভেইলেবল" },
-    { id: "coming-soon", label: "কামিং সুন" },
+    { id: "available", label: "স্টকে আছে" },
+    { id: "coming-soon", label: "শীঘ্রই আসছে" },
   ],
   sortOptions: [
     { id: "popularity", label: "জনপ্রিয়তা" },
@@ -211,6 +211,26 @@ export const productFilters = {
 } as const;
 
 export type ProductSortId = (typeof productFilters.sortOptions)[number]["id"];
+
+/** Same four available picks as the home featured rail. */
+export const FEATURED_PRODUCT_SLUGS = [
+  "sunset-rainbow-projection-lamp",
+  "ai-face-tracking-phone-holder",
+  "custom-gorgeous-womens-gown",
+  "custom-baby-party-frock",
+] as const;
+
+/** Same rail as the home latest strip — coming-soon items stay hidden until toggled. */
+export const LATEST_PRODUCT_SLUGS = [
+  "ai-face-tracking-phone-holder",
+  "slim-power-bank-10000mah",
+  "bluetooth-neckband-earphone",
+  "magnetic-car-phone-holder",
+  "baby-comfort-top-shorts-set",
+  "womens-daily-wear-dress",
+  "fast-charging-3in1-cable",
+  "galaxy-projector-humidifier",
+] as const;
 
 /** Cross-category homepage rails. Real categories stay on `?category=`. */
 export type CatalogView = "featured" | "latest" | "new";

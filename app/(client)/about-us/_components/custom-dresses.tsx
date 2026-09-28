@@ -11,49 +11,49 @@ export function CustomDresses({ className }: { className?: string }) {
   const { customDresses } = aboutCopy;
 
   return (
-    <section className={cn("w-full py-10 sm:py-14 lg:py-xl", className)}>
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-14 xl:gap-16">
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:order-1 lg:col-span-7">
+    <section className={cn("w-full py-6 sm:py-8 lg:py-10", className)}>
+      <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-10">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:col-span-7">
             {customDresses.gallery.map((image) => (
               <div
                 key={image.src}
-                className="group relative aspect-4/5 overflow-hidden rounded-2xl ring-1 ring-outline-variant/30 dark:ring-white/10"
+                className="group relative aspect-4/5 overflow-hidden rounded-xl ring-1 ring-neutral-200 sm:rounded-2xl"
               >
                 <Image
                   src={image.src}
                   alt={image.alt}
                   fill
-                  sizes="(max-width: 1024px) 33vw, 22vw"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             ))}
           </div>
 
-          <div className="lg:order-2 lg:col-span-5">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-primary uppercase sm:text-sm">
-              <span aria-hidden className="h-px w-6 bg-warm-gold" />
+          <div className="lg:col-span-5">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-primary uppercase">
+              <span aria-hidden className="h-px w-5 bg-warm-gold" />
               {customDresses.kicker}
             </span>
 
-            <h2 className="mt-4 text-2xl leading-tight font-semibold text-primary sm:text-3xl lg:text-[2.15rem]">
+            <h2 className="mt-3 text-xl leading-tight font-semibold text-neutral-950 sm:text-2xl lg:text-[1.85rem]">
               {customDresses.title}
             </h2>
 
-            <p className="mt-4 text-sm leading-relaxed text-on-surface-variant sm:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
               {customDresses.subtitle}
             </p>
 
-            <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+            <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:gap-4">
               {customDresses.features.map((feature) => (
-                <div key={feature.title} className="flex items-start gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary dark:bg-primary/15">
-                    <MaterialIcon name={feature.icon} className="text-[18px]" />
+                <div key={feature.title} className="flex items-start gap-2.5">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <MaterialIcon name={feature.icon} className="text-[16px]" />
                   </span>
-                  <div>
-                    <h3 className="text-sm font-semibold text-on-surface">{feature.title}</h3>
-                    <p className="mt-0.5 text-xs leading-relaxed text-on-surface-variant sm:text-sm">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-neutral-950">{feature.title}</h3>
+                    <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">
                       {feature.description}
                     </p>
                   </div>
@@ -61,14 +61,14 @@ export function CustomDresses({ className }: { className?: string }) {
               ))}
             </div>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <a
                 href={customDresses.primaryCta.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 sm:px-8",
-                  "bg-warm-gold text-sm font-semibold text-on-surface",
+                  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold sm:px-6",
+                  "bg-warm-gold text-on-surface",
                   "transition-colors hover:bg-warm-gold/90 active:scale-[0.98]",
                 )}
               >
@@ -78,8 +78,8 @@ export function CustomDresses({ className }: { className?: string }) {
               <Link
                 href={customDresses.secondaryCta.href}
                 className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 sm:px-8",
-                  "border border-outline-variant/40 text-sm font-semibold text-on-surface dark:border-white/15",
+                  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold sm:px-6",
+                  "border border-neutral-200 bg-white text-neutral-950",
                   "transition-colors hover:border-primary/40 hover:text-primary",
                 )}
               >

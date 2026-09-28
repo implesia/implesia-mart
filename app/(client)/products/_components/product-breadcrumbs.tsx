@@ -10,7 +10,7 @@ type BreadcrumbItem = { label: string; href?: string };
 
 export function ProductBreadcrumbs({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-outline sm:mb-6 sm:gap-2 sm:text-label-sm lg:mb-7">
+    <nav className="mb-2.5 flex flex-wrap items-center gap-1 text-xs text-outline sm:mb-3 sm:gap-1.5 sm:text-label-sm lg:mb-3.5">
       {items.map((item, idx) => {
         const isLast = idx === items.length - 1;
         const content = item.href ? (

@@ -76,7 +76,7 @@ export function ProductCard({ product }: ProductCardProps) {
           alt={product.imageAlt}
           fill
           className={cn(
-            "relative z-[1] object-contain p-2.5 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02] sm:p-3.5 md:p-4",
+            "relative z-[1] object-contain p-2 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02] sm:p-3 md:p-3.5",
             isComingSoon && "opacity-55 grayscale-[40%]",
           )}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
@@ -84,8 +84,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <div className="absolute top-2 left-2 z-10 flex max-w-[calc(100%-2.75rem)] flex-wrap gap-1 sm:top-2.5 sm:left-2.5 sm:gap-1.5">
           {isComingSoon ? (
-            <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white uppercase backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
-              কামিং সুন
+            <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
+              শীঘ্রই আসছে
             </span>
           ) : product.badge ? (
             <span
@@ -101,7 +101,7 @@ export function ProductCard({ product }: ProductCardProps) {
           ) : null}
         </div>
 
-        {discountPct ? (
+        {discountPct && !isComingSoon ? (
           <span className="absolute top-2 right-2 z-10 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm sm:top-2.5 sm:right-2.5 sm:px-2 sm:py-1 sm:text-[10px]">
             -{discountPct}%
           </span>
@@ -116,17 +116,17 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-2 p-2.5 sm:gap-2.5 sm:p-3.5 md:gap-3 md:p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-2 sm:gap-2 sm:p-3 md:p-3.5">
         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
           <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary sm:px-2 sm:text-[10px] md:text-[11px]">
             {categoryLabels[product.categoryId]}
           </span>
           {isFashion ? (
-            <span className="rounded-full bg-warm-gold/15 px-1.5 py-0.5 text-[9px] font-semibold text-on-surface sm:px-2 sm:text-[10px] md:text-[11px]">
+            <span className="hidden rounded-full bg-warm-gold/15 px-1.5 py-0.5 text-[9px] font-semibold text-on-surface sm:inline-flex sm:px-2 sm:text-[10px] md:text-[11px]">
               হাতে তৈরি
             </span>
           ) : (
-            <span className="rounded-full bg-surface-container px-1.5 py-0.5 text-[9px] font-medium text-on-surface-variant sm:px-2 sm:text-[10px] md:text-[11px] dark:bg-background/40">
+            <span className="hidden rounded-full bg-surface-container px-1.5 py-0.5 text-[9px] font-medium text-on-surface-variant sm:inline-flex sm:px-2 sm:text-[10px] md:text-[11px] dark:bg-background/40">
               ক্যাশ অন ডেলিভারি
             </span>
           )}
@@ -143,7 +143,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </p>
         </div>
 
-        <div className="mt-auto space-y-2 pt-0.5 sm:space-y-2.5 sm:pt-1 md:space-y-3">
+        <div className="mt-auto space-y-1.5 pt-0.5 sm:space-y-2 sm:pt-1">
           <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 sm:gap-x-2">
             {product.unitLabel ? (
               <span className="text-[10px] font-medium text-on-surface-variant sm:text-[11px]">
@@ -153,7 +153,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <span className="text-base font-bold tabular-nums text-primary sm:text-lg md:text-xl">
               {formatPrice(product.price)}
             </span>
-            {product.compareAtPrice ? (
+            {product.compareAtPrice && !isComingSoon ? (
               <span className="text-[11px] tabular-nums text-on-surface-variant line-through sm:text-xs">
                 {formatPrice(product.compareAtPrice)}
               </span>

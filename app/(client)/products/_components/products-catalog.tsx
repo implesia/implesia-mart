@@ -3,21 +3,17 @@
 import { useMemo, useRef, useState } from "react";
 
 import { SITE_NAME } from "@/lib/seo";
-import {
-  clampPage,
-  DEFAULT_PAGE_SIZE,
-  getPageRangeMeta,
-  getTotalPages,
-  paginateItems,
-} from "@/lib/pagination";
+import { getPageRangeMeta } from "@/lib/pagination";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { Pagination } from "../../_components/common/pagination";
 import {
   categoryLabels,
+  FEATURED_PRODUCT_SLUGS,
+  LATEST_PRODUCT_SLUGS,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   productFilters,
+  type CatalogView,
   type Product,
   type ProductBadge,
   type ProductCategoryId,
@@ -31,7 +27,11 @@ import { ProductsToolbar } from "./products-toolbar";
 type SortId = ProductSortId;
 type AvailabilityId = ProductStatus;
 
-const PRODUCTS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
+const DEFAULT_AVAILABILITY: AvailabilityId[] = ["available"];
+
+function formatTaka(value: number) {
+  return `৳${value.toLocaleString("en-US")}`;
+}
 
 function sortProducts(list: Product[], sort: SortId): Product[] {
   const next = [...list];
@@ -62,6 +62,7 @@ type ProductsCatalogProps = {
   initialCategory?: ProductCategoryId;
   initialSort?: SortId;
   initialBadge?: ProductBadge;
+  initialView?: CatalogView;
   initialCollectionTitle?: string;
 };
 
@@ -80,21 +81,26 @@ function replaceCatalogSearch(mutate: (params: URLSearchParams) => void) {
   );
 }
 
+const VIEW_LABEL: Record<CatalogView, string> = {
+  featured: "ফিচার্ড প্রোডাক্ট",
+  latest: "সর্বশেষ প্রোডাক্ট",
+  new: "নতুন আগমন",
+};
+
 export function ProductsCatalog({
   products,
   initialCategory,
   initialSort = "popularity",
   initialBadge,
+  initialView,
   initialCollectionTitle,
 }: ProductsCatalogProps) {
   const [priceRange, setPriceRange] = useState<[number, number]>([
     PRICE_FILTER_MIN,
     PRICE_FILTER_MAX,
   ]);
-  const [availability, setAvailability] = useState<AvailabilityId[]>([
-    "available",
-    "coming-soon",
-  ]);
+  const [availability, setAvailability] =
+    useState<AvailabilityId[]>(DEFAULT_AVAILABILITY);
   const allCategoryIds = productFilters.categories.map(
     (c) => c.id,
   ) as ProductCategoryId[];
@@ -103,15 +109,23 @@ export function ProductsCatalog({
   );
   const [sort, setSort] = useState<SortId>(initialSort);
   const [badge, setBadge] = useState<ProductBadge | null>(initialBadge ?? null);
+  const [activeView, setActiveView] = useState<CatalogView | null>(
+    initialView ?? null,
+  );
   const [collectionTitle, setCollectionTitle] = useState(
     initialCollectionTitle ?? null,
   );
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [page, setPage] = useState(1);
   const catalogTopRef = useRef<HTMLElement | null>(null);
 
   const filteredProducts = useMemo(() => {
     const [minPrice, maxPrice] = priceRange;
+    const viewSlugs =
+      activeView === "featured"
+        ? FEATURED_PRODUCT_SLUGS
+        : activeView === "latest"
+          ? LATEST_PRODUCT_SLUGS
+          : null;
 
     const matched = products.filter((product) => {
       const matchesAvailability =
@@ -125,6 +139,9 @@ export function ProductsCatalog({
           : categories.includes(product.categoryId);
 
       const matchesBadge = badge ? product.badge === badge : true;
+      const matchesView = viewSlugs
+        ? (viewSlugs as readonly string[]).includes(product.slug)
+        : true;
 
       const matchesMin = product.price >= minPrice;
       const matchesMax =
@@ -134,47 +151,37 @@ export function ProductsCatalog({
         matchesAvailability &&
         matchesCategory &&
         matchesBadge &&
+        matchesView &&
         matchesMin &&
         matchesMax
       );
     });
 
     return sortProducts(matched, sort);
-  }, [availability, badge, categories, priceRange, products, sort]);
-
-  const totalPages = getTotalPages(filteredProducts.length, PRODUCTS_PAGE_SIZE);
-  const safePage = clampPage(page, totalPages);
-
-  const paginatedProducts = useMemo(
-    () => paginateItems(filteredProducts, safePage, PRODUCTS_PAGE_SIZE),
-    [filteredProducts, safePage],
-  );
+  }, [activeView, availability, badge, categories, priceRange, products, sort]);
 
   const range = getPageRangeMeta(
     filteredProducts.length,
-    safePage,
-    PRODUCTS_PAGE_SIZE,
+    1,
+    Math.max(filteredProducts.length, 1),
   );
-
-  function handlePageChange(nextPage: number) {
-    setPage(nextPage);
-    catalogTopRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }
 
   const toggleAvailability = (id: AvailabilityId) => {
     setAvailability((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
-    setPage(1);
   };
 
   const syncCategoryQuery = (id?: ProductCategoryId) => {
     replaceCatalogSearch((params) => {
       if (id) params.set("category", id);
       else params.delete("category");
+    });
+  };
+
+  const clearViewQuery = () => {
+    replaceCatalogSearch((params) => {
+      params.delete("view");
     });
   };
 
@@ -186,29 +193,30 @@ export function ProductsCatalog({
   const selectCategoryChip = (id: ProductCategoryId | "all") => {
     const next = id === "all" ? allCategoryIds : [id];
     setCategories(next);
+    setActiveView(null);
+    setBadge(null);
+    setCollectionTitle(null);
     syncCategoryQuery(id === "all" ? undefined : id);
+    clearViewQuery();
     syncDocumentTitle(titleForCategories(next));
-    setPage(1);
   };
 
   const handlePriceRangeChange = (next: [number, number]) => {
     setPriceRange(next);
-    setPage(1);
   };
 
   const handleSortChange = (next: SortId) => {
     setSort(next);
-    setPage(1);
   };
 
   const resetFilters = () => {
     setPriceRange([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
-    setAvailability(["available", "coming-soon"]);
+    setAvailability(DEFAULT_AVAILABILITY);
     setCategories(allCategoryIds);
     setSort("popularity");
     setBadge(null);
+    setActiveView(null);
     setCollectionTitle(null);
-    setPage(1);
     replaceCatalogSearch((params) => {
       params.delete("category");
       params.delete("view");
@@ -216,30 +224,48 @@ export function ProductsCatalog({
     syncDocumentTitle("সব প্রোডাক্ট");
   };
 
+  const clearView = () => {
+    setActiveView(null);
+    setBadge(null);
+    setCollectionTitle(null);
+    clearViewQuery();
+    syncDocumentTitle(
+      categories.length === 1 ? categoryLabels[categories[0]] : "সব প্রোডাক্ট",
+    );
+  };
+
   const filterControls = {
     priceRange,
     onPriceRangeChange: handlePriceRangeChange,
     availability,
     onAvailabilityToggle: toggleAvailability,
+    categories,
+    onCategorySelect: selectCategoryChip,
     onReset: resetFilters,
   };
 
   const totalLabel =
     filteredProducts.length === 0
       ? "কোনো পণ্য পাওয়া যায়নি"
-      : filteredProducts.length === products.length
-        ? `${range.start}–${range.end} দেখানো হচ্ছে (মোট ${range.total}টি)`
-        : `${range.start}–${range.end} দেখানো হচ্ছে (ফিল্টারড ${range.total}টি / মোট ${products.length}টি)`;
-
-  const paginationSummary = `${range.start}–${range.end} দেখানো হচ্ছে · মোট ${range.total}টি`;
+      : `${range.total}টি প্রোডাক্ট`;
 
   const pageTitle =
     categories.length === 1
       ? categoryLabels[categories[0]]
       : (collectionTitle ?? "সব প্রোডাক্ট");
 
+  const priceDirty =
+    priceRange[0] > PRICE_FILTER_MIN || priceRange[1] < PRICE_FILTER_MAX;
+  const comingSoonOn = availability.includes("coming-soon");
+  const categoryChip =
+    categories.length === 1 ? categoryLabels[categories[0]] : null;
+  const viewChip = activeView ? VIEW_LABEL[activeView] : null;
+  const showActiveFilters = Boolean(
+    viewChip || categoryChip || comingSoonOn || priceDirty,
+  );
+
   return (
-    <div className="flex w-full flex-col gap-0 lg:flex-row lg:items-start lg:gap-7 xl:gap-8">
+    <div className="flex w-full flex-col gap-0 lg:flex-row lg:items-start lg:gap-5 xl:gap-6">
       <ProductsFilters {...filterControls} />
       <ProductsMobileFilters
         open={mobileFiltersOpen}
@@ -249,7 +275,7 @@ export function ProductsCatalog({
 
       <section
         ref={catalogTopRef}
-        className="min-w-0 w-full flex-1 scroll-mt-20 sm:scroll-mt-24"
+        className="min-w-0 w-full flex-1 scroll-mt-[7.25rem] sm:scroll-mt-[8.75rem] lg:scroll-mt-[10rem]"
       >
         <ProductsToolbar
           title={pageTitle}
@@ -261,20 +287,65 @@ export function ProductsCatalog({
           onOpenMobileFilters={() => setMobileFiltersOpen(true)}
         />
 
+        {showActiveFilters ? (
+          <ul className="mb-3 flex flex-wrap items-center gap-1.5 sm:mb-3.5">
+            {viewChip ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={clearView}
+                  className="inline-flex items-center gap-1 rounded-full bg-neutral-950 px-2.5 py-1 text-xs font-medium text-white"
+                >
+                  {viewChip}
+                  <MaterialIcon name="close" className="text-[14px]" />
+                </button>
+              </li>
+            ) : null}
+            {categoryChip ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => selectCategoryChip("all")}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                >
+                  {categoryChip}
+                  <MaterialIcon name="close" className="text-[14px]" />
+                </button>
+              </li>
+            ) : null}
+            {comingSoonOn ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => toggleAvailability("coming-soon")}
+                  className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-800"
+                >
+                  শীঘ্রই আসছে
+                  <MaterialIcon name="close" className="text-[14px]" />
+                </button>
+              </li>
+            ) : null}
+            {priceDirty ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPriceRange([PRICE_FILTER_MIN, PRICE_FILTER_MAX])
+                  }
+                  className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-800"
+                >
+                  {formatTaka(priceRange[0])}–{formatTaka(priceRange[1])}
+                  <MaterialIcon name="close" className="text-[14px]" />
+                </button>
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+
         {filteredProducts.length > 0 ? (
-          <>
-            <ProductsGrid products={paginatedProducts} />
-            <Pagination
-              className="mt-8 sm:mt-10"
-              page={safePage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              summary={paginationSummary}
-              ariaLabel="প্রোডাক্ট পেজিনেশন"
-            />
-          </>
+          <ProductsGrid products={filteredProducts} />
         ) : (
-          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low px-4 py-12 text-center dark:border-white/10 sm:px-6 sm:py-16">
+          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low px-4 py-8 text-center dark:border-white/10 sm:px-6 sm:py-10">
             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary sm:size-14">
               <MaterialIcon
                 name="search_off"

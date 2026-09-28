@@ -178,7 +178,7 @@ export default function Header() {
                 }}
               >
                 <MaterialIcon name="apps" className="text-[18px]" />
-                ক্যাটাগরি
+                <span className="hidden min-[360px]:inline">ক্যাটাগরি</span>
                 <MaterialIcon
                   name="expand_more"
                   className={cn(
@@ -242,7 +242,7 @@ export default function Header() {
         </div>
       </header>
 
-      <div aria-hidden className="h-[6.5rem] sm:h-[8rem] lg:h-[9.25rem]" />
+      <div aria-hidden className="h-[6.75rem] sm:h-[8.5rem] lg:h-[9.25rem]" />
 
       <div
         id={menuId}

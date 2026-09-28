@@ -13,9 +13,11 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
+  categoryLabels,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   productFilters,
+  type ProductCategoryId,
   type ProductStatus,
 } from "../../_data/products/products";
 
@@ -24,6 +26,8 @@ export type ProductsFilterControls = {
   onPriceRangeChange: (range: [number, number]) => void;
   availability: ProductStatus[];
   onAvailabilityToggle: (id: ProductStatus) => void;
+  categories: ProductCategoryId[];
+  onCategorySelect: (id: ProductCategoryId | "all") => void;
   onReset: () => void;
 };
 
@@ -36,10 +40,15 @@ function FilterBody({
   onPriceRangeChange,
   availability,
   onAvailabilityToggle,
+  categories,
+  onCategorySelect,
   onReset,
 }: ProductsFilterControls) {
+  const allCategoriesSelected =
+    categories.length === productFilters.categories.length;
+
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-5">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold text-on-surface">ফিল্টার</h2>
@@ -54,6 +63,52 @@ function FilterBody({
           রিসেট
         </button>
       </div>
+
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <MaterialIcon name="category" className="text-[16px]" />
+          </span>
+          <span className="text-xs font-semibold tracking-wider text-on-surface uppercase">
+            ক্যাটাগরি
+          </span>
+        </div>
+        <div className="space-y-1">
+          <button
+            type="button"
+            onClick={() => onCategorySelect("all")}
+            className={cn(
+              "flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+              allCategoriesSelected
+                ? "bg-primary/8 font-medium text-on-surface ring-1 ring-primary/20"
+                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
+            )}
+          >
+            সব
+          </button>
+          {productFilters.categories.map((option) => {
+            const active =
+              !allCategoriesSelected &&
+              categories.length === 1 &&
+              categories[0] === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => onCategorySelect(option.id)}
+                className={cn(
+                  "flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                  active
+                    ? "bg-primary/8 font-medium text-on-surface ring-1 ring-primary/20"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
+                )}
+              >
+                {categoryLabels[option.id]}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <section>
         <div className="mb-3 flex items-center gap-2">
@@ -93,7 +148,7 @@ function FilterBody({
             <MaterialIcon name="inventory_2" className="text-[16px]" />
           </span>
           <span className="text-xs font-semibold tracking-wider text-on-surface uppercase">
-            এভেইলেবিলিটি
+            স্টক
           </span>
         </div>
         <div className="space-y-1">
@@ -139,8 +194,8 @@ export function ProductsFilters({
   return (
     <aside
       className={cn(
-        "custom-scrollbar sticky top-[7.25rem] hidden h-fit max-h-[calc(100vh-8.5rem)] w-56 shrink-0 overflow-y-auto sm:top-[8.75rem] lg:top-[10rem] lg:block xl:w-64",
-        "rounded-2xl border border-outline-variant/35 bg-surface-container-lowest p-4 xl:p-5",
+        "custom-scrollbar sticky top-[7.25rem] hidden h-fit max-h-[calc(100vh-8.25rem)] w-52 shrink-0 overflow-y-auto sm:top-[8.75rem] lg:top-[9.75rem] lg:block xl:w-56",
+        "rounded-2xl border border-outline-variant/35 bg-surface-container-lowest p-3.5 xl:p-4",
         "shadow-[0_8px_30px_rgba(6,47,44,0.04)] dark:border-white/10 dark:bg-surface-container dark:shadow-none",
         className,
       )}
@@ -164,13 +219,13 @@ export function ProductsMobileFilters({
         side="left"
         className="force-light flex h-full w-[min(100%,20rem)] flex-col gap-0 border-outline-variant/30 bg-white p-0"
       >
-        <SheetHeader className="shrink-0 border-b border-outline-variant/25 px-4 py-4 text-left sm:px-5 dark:border-white/10">
+        <SheetHeader className="shrink-0 border-b border-outline-variant/25 px-4 py-3 text-left sm:px-5 dark:border-white/10">
           <SheetTitle className="text-on-surface">ফিল্টার</SheetTitle>
           <SheetDescription className="text-on-surface-variant">
-            দাম ও এভেইলেবিলিটি দিয়ে সীমিত করুন
+            ক্যাটাগরি, দাম ও স্টক দিয়ে সীমিত করুন
           </SheetDescription>
         </SheetHeader>
-        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           <FilterBody {...filterProps} />
         </div>
         <div className="shrink-0 border-t border-outline-variant/25 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-white/10">

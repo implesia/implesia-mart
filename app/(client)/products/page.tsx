@@ -79,7 +79,7 @@ export default async function ProductsPage({
       <JsonLd data={breadcrumbJsonLd} />
       <JsonLd data={itemListJsonLd} />
       <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
-        <div className="w-full py-5 sm:py-8 lg:py-10">
+        <div className="w-full py-3 sm:py-4 lg:py-5">
           <ProductBreadcrumbs
             items={
               focused
@@ -97,6 +97,7 @@ export default async function ProductsPage({
             initialCategory={catalog.category}
             initialSort={catalog.sort}
             initialBadge={catalog.badge}
+            initialView={catalog.view}
             initialCollectionTitle={
               catalog.category
                 ? undefined

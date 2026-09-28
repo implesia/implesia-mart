@@ -4,15 +4,16 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { WHATSAPP_HREF, contactCopy } from "../../_data/contact/contact";
+import { productsHref } from "../../_data/products/products";
 import { FacebookIcon, LinkedinIcon, WhatsAppIcon } from "./brand-icons";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
 import { SiteLogo } from "./site-logo";
 
 const shopLinks = [
-  { href: "/products", label: "সব প্রোডাক্ট" },
-  { href: "/products", label: "ট্রেন্ডিং গ্যাজেট" },
-  { href: "/products", label: "হাতে তৈরি ড্রেস" },
+  { href: productsHref(), label: "সব প্রোডাক্ট" },
+  { href: productsHref({ category: "gadgets" }), label: "ট্রেন্ডিং গ্যাজেট" },
+  { href: productsHref({ category: "fashion" }), label: "গর্জিয়াস ড্রেস" },
   { href: "/blogs", label: "গাইড ও ব্লগ" },
 ] as const;
 
@@ -79,7 +80,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-20 w-full overflow-hidden bg-neutral-950 text-white">
+    <footer className="relative mt-10 w-full overflow-hidden bg-neutral-950 text-white sm:mt-12 lg:mt-14">
       <Container className="relative z-10 w-full px-4 sm:px-6 lg:px-8">
         {/* Top: brand + links */}
         <div className="grid grid-cols-1 gap-10 border-b border-white/10 py-12 sm:gap-12 sm:py-14 lg:grid-cols-12 lg:gap-10 lg:py-16">
@@ -89,8 +90,8 @@ export default function Footer() {
               className="h-11 w-[11rem] sm:h-12 sm:w-[12.5rem] lg:h-14 lg:w-[14rem]"
             />
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/75 sm:text-[15px]">
-              ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি ড্রেস — সারাদেশে ক্যাশ অন ডেলিভারিতে,
-              নিশ্চিন্তে কিনুন।
+              ট্রেন্ডিং গ্যাজেট আর হাতে তৈরি গর্জিয়াস ড্রেস — ক্যাশ অন ডেলিভারিতে
+              সারাদেশে, নিশ্চিন্তে কিনুন।
             </p>
 
             <div className="mt-6 flex flex-col gap-2.5">
@@ -186,7 +187,7 @@ export default function Footer() {
             )}
           >
             <WhatsAppIcon className="mr-2 size-4" />
-            হোয়াটসঅ্যাপে চ্যাট
+            WhatsApp-এ চ্যাট
           </a>
         </div>
 

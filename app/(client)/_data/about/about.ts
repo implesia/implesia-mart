@@ -39,19 +39,19 @@ export const aboutCopy = {
     eyebrow: "আমাদের সম্পর্কে",
     title: "আপনার নিশ্চিন্ত অনলাইন শপিং পার্টনার।",
     subtitle:
-      "ইমপ্লেসিয়া মার্ট শুরু হয়েছিল একটাই লক্ষ্য নিয়ে — বাংলাদেশের মানুষ যেন ঘরে বসেই কোয়ালিটি চেক করা প্রোডাক্ট, ক্যাশ অন ডেলিভারিতে, কোনো ঝুঁকি ছাড়াই অর্ডার করতে পারে। আজ ট্রেন্ডিং গ্যাজেট দিয়ে শুরু হলেও, ধীরে ধীরে আমরা যুক্ত করছি আরও নতুন নতুন ক্যাটাগরির প্রোডাক্ট।",
-    primaryCta: { label: "সব প্রোডাক্ট দেখুন", href: "/products" },
-    secondaryCta: { label: "যোগাযোগ করুন", href: "/contact-us" },
+      "ঘরে বসে কোয়ালিটি চেক করা প্রোডাক্ট — ক্যাশ অন ডেলিভারিতে, কোনো আগাম ঝুঁকি ছাড়াই। ট্রেন্ডিং গ্যাজেট আর হাতে তৈরি গর্জিয়াস ড্রেস, একই বিশ্বাসে।",
+    primaryCta: { label: "সব প্রোডাক্ট", href: "/products" },
+    secondaryCta: { label: "যোগাযোগ", href: "/contact-us" },
     imageSrc: "/images/products/lamp/lamp-1.jpg",
-    imageAlt: "সানসেট ল্যাম্প — ইমপ্লেসিয়া মার্টের জনপ্রিয় প্রোডাক্ট",
-    secondaryImageSrc: "/images/products/selfie-stand/stand-2.jpg",
-    secondaryImageAlt: "AI সেলফি স্ট্যান্ড — ইমপ্লেসিয়া মার্টের জনপ্রিয় প্রোডাক্ট",
+    imageAlt: "সানসেট ল্যাম্প — ইমপ্লেসিয়া মার্টের ট্রেন্ডিং গ্যাজেট",
+    secondaryImageSrc: "/images/products/baby-products/female-gorgious-ground-dress.jpeg",
+    secondaryImageAlt: "হাতে তৈরি গর্জিয়াস উইমেন্স গাউন",
   },
   stats: [
-    { icon: "diversity_3", value: "৫,০০০+", label: "সন্তুষ্ট কাস্টমার" },
-    { icon: "location_on", value: "৬৪ জেলা", label: "সারাদেশে ডেলিভারি" },
-    { icon: "star", value: "৪.৮/৫", label: "কাস্টমার রেটিং" },
-    { icon: "payments", value: "১০০%", label: "ক্যাশ অন ডেলিভারি" },
+    { icon: "category", value: "২", label: "ক্যাটাগরি" },
+    { icon: "location_on", value: "৬৪", label: "জেলায় ডেলিভারি" },
+    { icon: "payments", value: "COD", label: "ক্যাশ অন ডেলিভারি" },
+    { icon: "assignment_return", value: "৩ দিন", label: "ইজি রিটার্ন" },
   ] satisfies AboutStat[],
   story: {
     kicker: "আমাদের যাত্রা",
@@ -61,15 +61,15 @@ export const aboutCopy = {
       "তাই ইমপ্লেসিয়া মার্টে প্রতিটি প্রোডাক্ট অর্ডারের আগে নিজেরা চালিয়ে দেখি, যাচাই করি, এবং সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা রাখি — যাতে আপনি প্রোডাক্ট হাতে পেয়ে, নিজে দেখে তারপর টাকা দিতে পারেন।",
       "শুরুটা হয়েছিল হাতে গোনা কিছু ট্রেন্ডিং গ্যাজেট নিয়ে, কিন্তু আমাদের লক্ষ্য তার চেয়ে অনেক বড় — প্রতিদিনের প্রয়োজনীয় থেকে শুরু করে জনপ্রিয় নানা ক্যাটাগরির প্রোডাক্ট, একই বিশ্বাসযোগ্যতা আর কোয়ালিটি স্ট্যান্ডার্ড মেনে, ধাপে ধাপে আপনার দরজায় পৌঁছে দেওয়াই আমাদের আসল লক্ষ্য।",
     ],
-    cta: { label: "সব প্রোডাক্ট দেখুন", href: "/products" },
+    cta: { label: "সব প্রোডাক্ট", href: "/products" },
     images: [
       {
         src: "/images/products/lamp/lamp-2.jpg",
-        alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা প্রোডাক্ট",
+        alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা গ্যাজেট",
       },
       {
-        src: "/images/products/selfie-stand/stand-3.jpg",
-        alt: "AI সেলফি স্ট্যান্ড — কনটেন্ট ক্রিয়েটরদের পছন্দ",
+        src: "/images/products/baby-products/baby-frock-with-baby.jpeg",
+        alt: "হাতে তৈরি বেবি পার্টি ফ্রক",
       },
     ],
   },
@@ -100,8 +100,8 @@ export const aboutCopy = {
         description: "উন্নত ফেব্রিক আর নিখুঁত ফিনিশিং সবসময় আমাদের অগ্রাধিকার।",
       },
     ] satisfies AboutFeature[],
-    primaryCta: { label: "কাস্টম অর্ডার করুন", href: CUSTOM_DRESS_WHATSAPP_HREF },
-    secondaryCta: { label: "যোগাযোগ করুন", href: "/contact-us" },
+    primaryCta: { label: "কাস্টম অর্ডার", href: CUSTOM_DRESS_WHATSAPP_HREF },
+    secondaryCta: { label: "গর্জিয়াস ড্রেস", href: "/products?category=fashion" },
     gallery: [
       {
         src: "/images/products/baby-products/baby-frock-with-baby.jpeg",
@@ -173,7 +173,7 @@ export const aboutCopy = {
   howItWorks: {
     kicker: "সহজ প্রক্রিয়া",
     title: "কীভাবে অর্ডার করবেন",
-    subtitle: "চারটি সহজ ধাপে অর্ডার করুন, ঘরে বসেই পণ্য পেয়ে যান।",
+    subtitle: "চার ধাপে অর্ডার — হাতে পেয়ে তারপর পেমেন্ট।",
     steps: [
       {
         step: "০১",
@@ -190,8 +190,8 @@ export const aboutCopy = {
       {
         step: "০৩",
         icon: "local_shipping",
-        title: "দ্রুত ডেলিভারি",
-        description: "সারাদেশে ২৪-৭২ ঘণ্টার মধ্যে প্রোডাক্ট পৌঁছে যাবে।",
+        title: "সারাদেশে ডেলিভারি",
+        description: "ঢাকা থেকে দূরের জেলা — অর্ডার আপনার ঠিকানায় পৌঁছে যাবে।",
       },
       {
         step: "০৪",
@@ -204,8 +204,8 @@ export const aboutCopy = {
   shopCta: {
     title: "আজই খুঁজে নিন আপনার প্রয়োজনীয় প্রোডাক্ট",
     subtitle:
-      "হাজারো কাস্টমারের বিশ্বাস নিয়ে আমরা এগিয়ে যাচ্ছি। ক্যাশ অন ডেলিভারিতে নিশ্চিন্তে অর্ডার করুন আজই।",
-    primaryCta: { label: "সব প্রোডাক্ট দেখুন", href: "/products" },
-    secondaryCta: { label: "যোগাযোগ করুন", href: "/contact-us" },
+      "গ্যাজেট হোক বা গর্জিয়াস ড্রেস — হাতে পেয়ে দেখে তারপর ক্যাশ অন ডেলিভারি।",
+    primaryCta: { label: "সব প্রোডাক্ট", href: "/products" },
+    secondaryCta: { label: "যোগাযোগ", href: "/contact-us" },
   },
 } as const;
