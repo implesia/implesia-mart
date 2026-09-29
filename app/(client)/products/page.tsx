@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Container } from "../_components/common/container";
 import { JsonLd } from "../_components/common/json-ld";
 import { products, readCatalogQuery } from "../_data/products/products";
-import { ProductBreadcrumbs } from "./_components/product-breadcrumbs";
 import { ProductsCatalog } from "./_components/products-catalog";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -72,25 +71,12 @@ export default async function ProductsPage({
     category: firstParam(params.category),
     view: firstParam(params.view),
   });
-  const focused = catalog.title !== "সব প্রোডাক্ট";
-
   return (
-    <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
+    <main className="force-light w-full bg-[#f5f6f8] text-neutral-950">
       <JsonLd data={breadcrumbJsonLd} />
       <JsonLd data={itemListJsonLd} />
       <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
-        <div className="w-full py-3 sm:py-4 lg:py-5">
-          <ProductBreadcrumbs
-            items={
-              focused
-                ? [
-                    { label: "হোম", href: "/" },
-                    { label: "সব প্রোডাক্ট", href: "/products" },
-                    { label: catalog.title },
-                  ]
-                : [{ label: "হোম", href: "/" }, { label: "সব প্রোডাক্ট" }]
-            }
-          />
+        <div className="w-full pt-2 pb-3 sm:pt-2.5 sm:pb-4">
           <ProductsCatalog
             key={`${catalog.category ?? "all"}-${catalog.view ?? "all"}`}
             products={products}

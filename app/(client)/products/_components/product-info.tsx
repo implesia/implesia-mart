@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
+
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { useCart } from "../../_providers/cart-provider";
@@ -38,7 +40,9 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
     () => 1,
   );
   const [justAdded, setJustAdded] = useState(false);
-  const isComingSoon = product.status === "coming-soon";
+  const stockStatus = useCatalogStockStatus(product.slug, product.status);
+  const isComingSoon = stockStatus === "coming-soon";
+  const isSoldOut = stockStatus === "sold-out";
 
   useEffect(() => {
     setBuyQuantity(1);
@@ -106,7 +110,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           </>
         ) : null}
         <span className="rounded-full bg-surface-container px-2.5 py-1 text-[11px] font-semibold text-outline sm:px-3 sm:text-sm">
-          {isComingSoon ? "প্রত্যাশিত মূল্য" : product.stockLabel}
+          {isSoldOut ? "শেষ" : isComingSoon ? "প্রত্যাশিত মূল্য" : product.stockLabel}
         </span>
       </div>
 
@@ -161,7 +165,20 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </div>
       ) : null}
 
-      {isComingSoon ? (
+      {isSoldOut ? (
+        <div className="mb-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-4 sm:mb-8 sm:p-6">
+          <div className="mb-3 flex items-center gap-2 text-neutral-800">
+            <MaterialIcon name="block" />
+            <span className="text-sm font-semibold tracking-widest uppercase">শেষ</span>
+          </div>
+          <p className="mb-4 text-sm text-on-surface-variant sm:text-base">
+            এই প্রোডাক্টটি এখন শেষ। কার্টে যোগ করা যাবে না।
+          </p>
+          <Button type="button" disabled className="hidden h-auto w-full rounded-full py-4 lg:inline-flex lg:py-5">
+            কার্টে যোগ বন্ধ
+          </Button>
+        </div>
+      ) : isComingSoon ? (
         <div className="mb-6 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 sm:mb-8 sm:p-6">
           <div className="mb-3 flex items-center gap-2 text-primary">
             <MaterialIcon name="hourglass_top" />

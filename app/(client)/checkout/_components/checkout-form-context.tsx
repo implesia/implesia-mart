@@ -8,6 +8,13 @@ import {
   useState,
 } from "react";
 
+import { useDeliveryCharges } from "@/lib/mart-mock/hooks";
+import {
+  createMockOrderNumber,
+  feeForDistrict,
+  isDhakaDistrict,
+} from "@/lib/mart-mock/store";
+
 import {
   sendOrderEmail,
   validateShipping,
@@ -25,6 +32,10 @@ type CheckoutFormContextValue = {
   errors: Partial<Record<keyof CheckoutShippingValues, string>>;
   status: "idle" | "submitting" | "success" | "error";
   errorMessage: string | null;
+  deliveryFee: number;
+  grandTotal: number;
+  deliveryZone: "inside" | "outside";
+  orderNumber: string | null;
   submitOrder: () => Promise<boolean>;
   resetStatus: () => void;
 };
@@ -43,7 +54,9 @@ const initialShipping: CheckoutShippingValues = {
 
 export function CheckoutFormProvider({ children }: { children: React.ReactNode }) {
   const { items, pricing, clearCart } = useCart();
+  const deliveryCharges = useDeliveryCharges();
   const [shipping, setShipping] = useState<CheckoutShippingValues>(initialShipping);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [errors, setErrors] = useState<
     Partial<Record<keyof CheckoutShippingValues, string>>
   >({});
@@ -67,6 +80,10 @@ export function CheckoutFormProvider({ children }: { children: React.ReactNode }
     },
     [],
   );
+
+  const deliveryZone = isDhakaDistrict(shipping.district) ? "inside" : "outside";
+  const deliveryFee = items.length > 0 ? feeForDistrict(deliveryCharges, shipping.district) : 0;
+  const grandTotal = pricing.subtotal + deliveryFee;
 
   const resetStatus = useCallback(() => {
     setStatus("idle");
@@ -96,8 +113,13 @@ export function CheckoutFormProvider({ children }: { children: React.ReactNode }
         shipping,
         paymentMethod: "ক্যাশ অন ডেলিভারি (COD)",
         items,
-        pricing,
+        pricing: {
+          ...pricing,
+          shipping: deliveryFee,
+          total: pricing.subtotal + deliveryFee,
+        },
       });
+      setOrderNumber(createMockOrderNumber());
       clearCart();
       setShipping(initialShipping);
       setStatus("success");
@@ -110,7 +132,7 @@ export function CheckoutFormProvider({ children }: { children: React.ReactNode }
       );
       return false;
     }
-  }, [shipping, items, pricing, clearCart]);
+  }, [shipping, items, pricing, clearCart, deliveryFee]);
 
   const value = useMemo<CheckoutFormContextValue>(
     () => ({
@@ -120,6 +142,10 @@ export function CheckoutFormProvider({ children }: { children: React.ReactNode }
       errors,
       status,
       errorMessage,
+      deliveryFee,
+      grandTotal,
+      deliveryZone,
+      orderNumber,
       submitOrder,
       resetStatus,
     }),
@@ -129,6 +155,10 @@ export function CheckoutFormProvider({ children }: { children: React.ReactNode }
       errors,
       status,
       errorMessage,
+      deliveryFee,
+      grandTotal,
+      deliveryZone,
+      orderNumber,
       submitOrder,
       resetStatus,
     ],

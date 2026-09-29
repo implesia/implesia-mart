@@ -5,11 +5,8 @@ import "./globals.css";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/effect-fade";
-import { CartDrawer } from "./(client)/_components/cart/cart-drawer";
 import { JsonLd } from "./(client)/_components/common/json-ld";
-import Header from "./(client)/_components/common/header";
-import Footer from "./(client)/_components/common/footer";
-import { FloatingActions } from "./(client)/_components/common/floating-actions";
+import { StorefrontFrame } from "./(client)/_components/common/storefront-frame";
 import { CartProvider } from "./(client)/_providers/cart-provider";
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
 import { WHATSAPP_HREF } from "./(client)/_data/contact/contact";
@@ -141,11 +138,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
           <CartProvider>
-            <Header />
-            {children}
-            <Footer />
-            <CartDrawer />
-            <FloatingActions />
+            <StorefrontFrame>{children}</StorefrontFrame>
           </CartProvider>
         </ThemeProvider>
       </body>

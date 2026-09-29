@@ -1,3 +1,5 @@
+import { effectiveStockStatus } from "@/lib/mart-mock/store";
+
 import { products, type Product } from "../_data/products/products";
 
 export const CART_STORAGE_KEY = "implesia.cart.v1";
@@ -35,7 +37,7 @@ export function clampCartQty(value: number) {
 
 export function getAvailableProductBySlug(slug: string): Product | null {
   const product = products.find((p) => p.slug === slug);
-  if (!product || product.status !== "available") return null;
+  if (!product || effectiveStockStatus(slug, product.status) !== "available") return null;
   return product;
 }
 

@@ -7,6 +7,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
+
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { Product, ProductBadge } from "../../_data/products/products";
 import { categoryLabels } from "../../_data/products/products";
@@ -29,7 +31,9 @@ const BADGE_LABEL: Record<ProductBadge, string> = {
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
-  const isComingSoon = product.status === "coming-soon";
+  const stockStatus = useCatalogStockStatus(product.slug, product.status);
+  const isComingSoon = stockStatus === "coming-soon";
+  const isSoldOut = stockStatus === "sold-out";
   const isFashion = product.categoryId === "fashion";
 
   function handleAddToCart(e: React.MouseEvent) {
@@ -77,7 +81,7 @@ export function ProductCard({ product }: ProductCardProps) {
           fill
           className={cn(
             "relative z-[1] object-contain p-2 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02] sm:p-3 md:p-3.5",
-            isComingSoon && "opacity-55 grayscale-[40%]",
+            (isComingSoon || isSoldOut) && "opacity-55 grayscale-[40%]",
           )}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
         />
@@ -86,6 +90,10 @@ export function ProductCard({ product }: ProductCardProps) {
           {isComingSoon ? (
             <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
               শীঘ্রই আসছে
+            </span>
+          ) : isSoldOut ? (
+            <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
+              শেষ
             </span>
           ) : product.badge ? (
             <span
@@ -101,7 +109,7 @@ export function ProductCard({ product }: ProductCardProps) {
           ) : null}
         </div>
 
-        {discountPct && !isComingSoon ? (
+        {discountPct && !isComingSoon && !isSoldOut ? (
           <span className="absolute top-2 right-2 z-10 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm sm:top-2.5 sm:right-2.5 sm:px-2 sm:py-1 sm:text-[10px]">
             -{discountPct}%
           </span>
@@ -174,6 +182,14 @@ export function ProductCard({ product }: ProductCardProps) {
               <span className="hidden sm:inline">বিস্তারিত দেখুন</span>
               <MaterialIcon name="arrow_forward" className="text-[14px] sm:text-[16px]" />
             </Link>
+          ) : isSoldOut ? (
+            <Button
+              type="button"
+              disabled
+              className="h-9 w-full rounded-lg text-xs font-semibold sm:h-10 sm:rounded-xl sm:text-sm"
+            >
+              শেষ
+            </Button>
           ) : (
             <Button
               type="button"

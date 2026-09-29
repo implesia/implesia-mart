@@ -21,7 +21,6 @@ type SortId = (typeof productFilters.sortOptions)[number]["id"];
 type ProductsToolbarProps = {
   className?: string;
   title: string;
-  totalLabel: string;
   sort: SortId;
   onSortChange: (sort: SortId) => void;
   categories: ProductCategoryId[];
@@ -32,7 +31,6 @@ type ProductsToolbarProps = {
 export function ProductsToolbar({
   className,
   title,
-  totalLabel,
   sort,
   onSortChange,
   categories,
@@ -43,21 +41,10 @@ export function ProductsToolbar({
     (categories?.length ?? 0) === productFilters.categories.length;
 
   return (
-    <div className={cn("mb-3 space-y-3 sm:mb-4 sm:space-y-3.5 lg:mb-4", className)}>
-      <div className="flex flex-col gap-2.5 sm:gap-3 md:flex-row md:items-end md:justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="mb-0.5 text-[10px] font-semibold tracking-[0.18em] text-primary uppercase sm:text-xs">
-            ক্যাটালগ
-          </p>
-          <h1 className="text-lg font-semibold tracking-tight text-on-surface sm:text-xl md:text-2xl">
-            {title}
-          </h1>
-          <p className="mt-0.5 text-xs leading-relaxed text-on-surface-variant sm:text-sm">
-            {totalLabel}
-          </p>
-        </div>
-
-        <div className="flex w-full items-center gap-2 sm:w-auto md:shrink-0">
+    <div className={cn("mb-2 space-y-2 sm:mb-2.5", className)}>
+      <h1 className="sr-only">{title}</h1>
+      <div className="flex items-center justify-end gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
           <button
             type="button"
             onClick={onOpenMobileFilters}

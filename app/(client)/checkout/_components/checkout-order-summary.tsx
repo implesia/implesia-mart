@@ -11,6 +11,7 @@ import { formatCartMoney, MAX_CART_QTY } from "../../_lib/cart";
 import { useCart } from "../../_providers/cart-provider";
 
 import { CheckoutPlaceOrderButton } from "./checkout-place-order-button";
+import { useCheckoutForm } from "./checkout-form-context";
 
 const TRUST_ITEMS = [
   { icon: "payments", label: "ক্যাশ অন ডেলিভারি" },
@@ -20,6 +21,7 @@ const TRUST_ITEMS = [
 
 export function CheckoutOrderSummary({ className }: { className?: string }) {
   const { items, pricing, setQuantity, removeItem } = useCart();
+  const { deliveryFee, grandTotal, deliveryZone } = useCheckoutForm();
 
   return (
     <aside className={cn("min-w-0 lg:col-span-5", className)}>
@@ -111,14 +113,19 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
             <span className="font-medium text-neutral-950">{formatCartMoney(pricing.subtotal)}</span>
           </div>
           <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="text-neutral-600">ডেলিভারি চার্জ</span>
-            <span className="font-medium text-neutral-950">{formatCartMoney(pricing.shipping)}</span>
+            <span className="text-neutral-600">
+              ডেলিভারি চার্জ
+              <span className="mt-0.5 block text-[11px] text-neutral-400">
+                {deliveryZone === "inside" ? "ঢাকার ভেতর" : "ঢাকার বাইরে"}
+              </span>
+            </span>
+            <span className="font-medium text-neutral-950">{formatCartMoney(deliveryFee)}</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f6f8] px-3.5 py-3.5">
           <span className="text-base font-semibold text-neutral-950">সর্বমোট</span>
-          <span className="text-base font-semibold text-primary">{formatCartMoney(pricing.total)}</span>
+          <span className="text-base font-semibold text-primary">{formatCartMoney(grandTotal)}</span>
         </div>
 
         <div className="hidden lg:block">

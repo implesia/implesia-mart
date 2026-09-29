@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 
 import { SITE_NAME } from "@/lib/seo";
-import { getPageRangeMeta } from "@/lib/pagination";
+
+import { CATALOG_PAGE_SIZE, loadCatalogPage } from "../_lib/load-catalog-page";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
@@ -116,6 +117,8 @@ export function ProductsCatalog({
     initialCollectionTitle ?? null,
   );
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [loadedPage, setLoadedPage] = useState({ key: "", shown: CATALOG_PAGE_SIZE });
+  const [loadingMore, setLoadingMore] = useState(false);
   const catalogTopRef = useRef<HTMLElement | null>(null);
 
   const filteredProducts = useMemo(() => {
@@ -144,8 +147,7 @@ export function ProductsCatalog({
         : true;
 
       const matchesMin = product.price >= minPrice;
-      const matchesMax =
-        maxPrice >= PRICE_FILTER_MAX ? true : product.price <= maxPrice;
+      const matchesMax = product.price <= maxPrice;
 
       return (
         matchesAvailability &&
@@ -160,11 +162,76 @@ export function ProductsCatalog({
     return sortProducts(matched, sort);
   }, [activeView, availability, badge, categories, priceRange, products, sort]);
 
-  const range = getPageRangeMeta(
-    filteredProducts.length,
-    1,
-    Math.max(filteredProducts.length, 1),
-  );
+  const catalogQueryKey = [
+    [...categories].sort().join(","),
+    [...availability].sort().join(","),
+    priceRange.join(","),
+    sort,
+    badge ?? "",
+    activeView ?? "",
+  ].join("|");
+  const shownCount =
+    loadedPage.key === catalogQueryKey ? loadedPage.shown : CATALOG_PAGE_SIZE;
+  const visibleProducts = filteredProducts.slice(0, shownCount);
+  const hasMore = shownCount < filteredProducts.length;
+
+  async function handleLoadMore() {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await loadCatalogPage(filteredProducts, shownCount);
+      setLoadedPage({ key: catalogQueryKey, shown: page.nextOffset });
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const categoryCounts = useMemo(() => {
+    const viewSlugs =
+      activeView === "featured"
+        ? FEATURED_PRODUCT_SLUGS
+        : activeView === "latest"
+          ? LATEST_PRODUCT_SLUGS
+          : null;
+    const counts: Record<ProductCategoryId, number> = { gadgets: 0, fashion: 0 };
+    for (const product of products) {
+      if (!availability.includes(product.status)) continue;
+      if (badge && product.badge !== badge) continue;
+      if (viewSlugs && !(viewSlugs as readonly string[]).includes(product.slug)) continue;
+      if (product.price < priceRange[0] || product.price > priceRange[1]) continue;
+      counts[product.categoryId] += 1;
+    }
+    return counts;
+  }, [activeView, availability, badge, priceRange, products]);
+
+  const availabilityCounts = useMemo(() => {
+    const viewSlugs =
+      activeView === "featured"
+        ? FEATURED_PRODUCT_SLUGS
+        : activeView === "latest"
+          ? LATEST_PRODUCT_SLUGS
+          : null;
+    const counts: Record<ProductStatus, number> = { available: 0, "coming-soon": 0 };
+    for (const product of products) {
+      if (!categories.includes(product.categoryId)) continue;
+      if (badge && product.badge !== badge) continue;
+      if (viewSlugs && !(viewSlugs as readonly string[]).includes(product.slug)) continue;
+      if (product.price < priceRange[0] || product.price > priceRange[1]) continue;
+      counts[product.status] += 1;
+    }
+    return counts;
+  }, [activeView, badge, categories, priceRange, products]);
+
+  const canReset =
+    priceRange[0] !== PRICE_FILTER_MIN ||
+    priceRange[1] !== PRICE_FILTER_MAX ||
+    availability.length !== DEFAULT_AVAILABILITY.length ||
+    availability.some((id) => !DEFAULT_AVAILABILITY.includes(id)) ||
+    categories.length !== allCategoryIds.length ||
+    sort !== "popularity" ||
+    badge !== null ||
+    activeView !== null ||
+    collectionTitle !== null;
 
   const toggleAvailability = (id: AvailabilityId) => {
     setAvailability((prev) =>
@@ -242,12 +309,11 @@ export function ProductsCatalog({
     categories,
     onCategorySelect: selectCategoryChip,
     onReset: resetFilters,
+    categoryCounts,
+    availabilityCounts,
+    resultCount: filteredProducts.length,
+    canReset,
   };
-
-  const totalLabel =
-    filteredProducts.length === 0
-      ? "কোনো পণ্য পাওয়া যায়নি"
-      : `${range.total}টি প্রোডাক্ট`;
 
   const pageTitle =
     categories.length === 1
@@ -265,7 +331,7 @@ export function ProductsCatalog({
   );
 
   return (
-    <div className="flex w-full flex-col gap-0 lg:flex-row lg:items-start lg:gap-5 xl:gap-6">
+    <div className="flex w-full flex-col gap-0 lg:flex-row lg:items-start lg:gap-3.5 xl:gap-4">
       <ProductsFilters {...filterControls} />
       <ProductsMobileFilters
         open={mobileFiltersOpen}
@@ -279,7 +345,6 @@ export function ProductsCatalog({
       >
         <ProductsToolbar
           title={pageTitle}
-          totalLabel={totalLabel}
           sort={sort}
           onSortChange={handleSortChange}
           categories={categories}
@@ -288,7 +353,7 @@ export function ProductsCatalog({
         />
 
         {showActiveFilters ? (
-          <ul className="mb-3 flex flex-wrap items-center gap-1.5 sm:mb-3.5">
+          <ul className="mb-2 flex flex-wrap items-center gap-1.5">
             {viewChip ? (
               <li>
                 <button
@@ -343,7 +408,23 @@ export function ProductsCatalog({
         ) : null}
 
         {filteredProducts.length > 0 ? (
-          <ProductsGrid products={filteredProducts} />
+          <>
+            <ProductsGrid products={visibleProducts} />
+            {hasMore ? (
+              <div className="mt-4 flex justify-center sm:mt-5">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  aria-busy={loadingMore}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-full border border-neutral-300 bg-white px-5 text-sm font-semibold text-neutral-950 transition-colors hover:border-neutral-950 disabled:cursor-wait disabled:opacity-70"
+                >
+                  {loadingMore ? "লোড হচ্ছে…" : `আরও ${Math.min(CATALOG_PAGE_SIZE, filteredProducts.length - shownCount)}টি দেখুন`}
+                  <MaterialIcon name="expand_more" className="text-[18px]" />
+                </button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low px-4 py-8 text-center dark:border-white/10 sm:px-6 sm:py-10">
             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary sm:size-14">
