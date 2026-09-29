@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 import type { ProductStatus } from "@/app/(client)/_data/products/products";
 
 import {
+  readHomeSections,
+  seedHomeSections,
+  type HomeSections,
+} from "./home-sections";
+import {
   DEFAULT_DELIVERY,
   MOCK_EVENT,
   effectiveStockStatus,
@@ -49,6 +54,18 @@ export function useBanners() {
   }, []);
 
   return banners;
+}
+
+export function useHomeSections() {
+  const [sections, setSections] = useState<HomeSections>(seedHomeSections);
+
+  useEffect(() => {
+    const sync = () => setSections(readHomeSections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
 }
 
 export function useDeliveryCharges() {

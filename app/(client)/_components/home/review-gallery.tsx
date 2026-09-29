@@ -8,11 +8,17 @@ import type { Swiper as SwiperInstance } from "swiper/types";
 
 import { cn } from "@/lib/utils";
 
-import { testimonials } from "../../_data/home/home";
 import { WhatsAppIcon } from "../common/brand-icons";
 import { MaterialIcon } from "../common/material-icon";
 
-export type ReviewShot = (typeof testimonials)[number] & { ready: boolean };
+export type ReviewShot = {
+  id: string;
+  imageSrc: string;
+  imageAlt: string;
+  product: string;
+  channel: "WhatsApp" | "Messenger";
+  ready: boolean;
+};
 
 function ChannelMark({ channel }: { channel: ReviewShot["channel"] }) {
   if (channel === "WhatsApp") {

@@ -9,23 +9,22 @@ import { useOrders } from "@/lib/mart-mock/hooks";
 import {
   formatTaka,
   isSameLocalDay,
-  ORDER_STATUS_LABEL,
   orderGrandTotal,
   type MockOrder,
   type OrderStatus,
 } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
-import { OrderStatusBadge } from "./_components/admin-ui";
+import { ADMIN_ORDER_STATUS_LABEL, OrderStatusBadge } from "./_components/admin-ui";
 
 const FLOW = ["new", "confirmed", "shipped", "delivered"] as const;
 const SIDE = ["cancelled", "returned"] as const;
 
 const FLOW_HINT: Record<(typeof FLOW)[number], string> = {
-  new: "কনফার্ম করতে হবে",
-  confirmed: "কুরিয়ারে দিতে হবে",
-  shipped: "পথে আছে",
-  delivered: "পৌঁছে গেছে",
+  new: "Needs confirmation",
+  confirmed: "Hand to courier",
+  shipped: "On the way",
+  delivered: "Delivered",
 };
 
 export default function AdminDashboardPage() {
@@ -84,13 +83,13 @@ export default function AdminDashboardPage() {
             <div>
               <h2 className="text-base font-semibold text-neutral-950">
                 {waiting.length > 0
-                  ? `${waiting.length}টি অর্ডার এখনো কনফার্ম হয়নি`
-                  : "কনফার্ম বাকি নেই"}
+                  ? `${waiting.length} ${waiting.length === 1 ? "order" : "orders"} still unconfirmed`
+                  : "Nothing left to confirm"}
               </h2>
               <p className="mt-0.5 text-sm text-neutral-500">
                 {waiting.length > 0
-                  ? "খুললে নাম, ঠিকানা আর স্ট্যাটাস বদলানো যায়। আজকের নতুন আগে।"
-                  : "নতুন অর্ডার এলে এখানে ধরা পড়বে।"}
+                  ? "Open one to change the name, address, and status. Today’s new orders come first."
+                  : "New orders show up here."}
               </p>
             </div>
           </div>
@@ -98,7 +97,7 @@ export default function AdminDashboardPage() {
         </div>
         {waiting.length === 0 ? (
           <p className="px-5 py-8 text-sm text-neutral-500">
-            এই মুহূর্তে নতুন স্ট্যাটাসের অর্ডার নেই।
+            No orders in the new status right now.
           </p>
         ) : (
           <ul>
@@ -118,7 +117,7 @@ export default function AdminDashboardPage() {
               href="/admin/orders?status=new"
               className="text-sm font-medium text-primary"
             >
-              বাকি {waiting.length - 4}টি দেখুন
+              See the other {waiting.length - 4}
             </Link>
           </div>
         ) : null}
@@ -127,25 +126,25 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <MetricCard
           href="/admin/orders?status=new"
-          label="আজ এসেছে"
+          label="Arrived today"
           value={String(todayNew.length)}
-          hint="আজকের নতুন, এখনো কনফার্ম হয়নি"
+          hint="New today, still unconfirmed"
           icon="inbox"
           tone="teal"
         />
         <MetricCard
           href="/admin/orders"
-          label="আজকের বিক্রি"
+          label="Today’s sales"
           value={formatTaka(todaySales)}
-          hint="বাতিল আর রিটার্ন বাদ"
+          hint="Cancelled and returned orders excluded"
           icon="payments"
           tone="emerald"
         />
         <MetricCard
           href="/admin/orders"
-          label="পথে আছে"
+          label="On the way"
           value={String(onTheWay.length)}
-          hint="কনফার্ম হয়েছে বা পাঠানো হয়েছে"
+          hint="Confirmed or shipped"
           icon="local_shipping"
           tone="sky"
         />
@@ -155,10 +154,10 @@ export default function AdminDashboardPage() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-neutral-950">
-              অর্ডার এভাবে এগোয়
+              How an order moves
             </h2>
             <p className="mt-0.5 text-xs text-neutral-500">
-              একটা ধাপে চাপ দিলে শুধু সেই স্ট্যাটাসের লিস্ট খুলবে।
+              Open a step to see only that status.
             </p>
           </div>
           <div className="flex gap-2">
@@ -168,7 +167,7 @@ export default function AdminDashboardPage() {
                 href={`/admin/orders?status=${status}`}
                 className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-200"
               >
-                {ORDER_STATUS_LABEL[status]} {counts[status]}
+                {ADMIN_ORDER_STATUS_LABEL[status]} {counts[status]}
               </Link>
             ))}
           </div>
@@ -185,7 +184,7 @@ export default function AdminDashboardPage() {
               </span>
               <span className="mt-0.5 flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-neutral-950">
-                  {ORDER_STATUS_LABEL[status]}
+                  {ADMIN_ORDER_STATUS_LABEL[status]}
                 </span>
                 <span className="text-lg font-semibold tabular-nums text-neutral-950 group-hover:text-primary">
                   {counts[status]}
@@ -201,22 +200,22 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-2.5">
             <div>
               <h2 className="text-sm font-semibold text-neutral-950">
-                শেষ অর্ডার
+                Latest orders
               </h2>
               <p className="mt-0.5 text-xs text-neutral-500">
-                সারিতে চাপ দিলে বিস্তারিত খুলবে।
+                Open a row for the full order.
               </p>
             </div>
             <Link
               href="/admin/orders"
               className="text-sm font-medium text-primary"
             >
-              সব অর্ডার
+              All orders
             </Link>
           </div>
           {sorted.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-neutral-500">
-              এখনো কোনো অর্ডার নেই।
+              No orders yet.
             </p>
           ) : (
             <>
@@ -234,11 +233,11 @@ export default function AdminDashboardPage() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-[#f7f8fa] text-xs text-neutral-500">
                     <tr>
-                      <th className="px-4 py-2 font-medium">অর্ডার</th>
-                      <th className="px-4 py-2 font-medium">কাস্টমার</th>
-                      <th className="px-4 py-2 font-medium">ফোন</th>
-                      <th className="px-4 py-2 font-medium">মোট</th>
-                      <th className="px-4 py-2 font-medium">স্ট্যাটাস</th>
+                      <th className="px-4 py-2 font-medium">Order</th>
+                      <th className="px-4 py-2 font-medium">Customer</th>
+                      <th className="px-4 py-2 font-medium">Phone</th>
+                      <th className="px-4 py-2 font-medium">Total</th>
+                      <th className="px-4 py-2 font-medium">Status</th>
                       <th className="w-10 px-3 py-3" />
                     </tr>
                   </thead>
@@ -255,29 +254,41 @@ export default function AdminDashboardPage() {
 
         <section className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200/90">
           <h2 className="px-2 text-sm font-semibold text-neutral-950">
-            আর যা যা আছে
+            Also here
           </h2>
           <p className="mt-0.5 px-2 text-xs text-neutral-500">
-            অর্ডার ছাড়া বাকি কাজ।
+            Store, home sections, and site copy.
           </p>
           <div className="mt-1 flex flex-col">
             <Shortcut
               href="/admin/products"
               icon="inventory_2"
-              title="প্রোডাক্ট"
-              text="দাম, স্টক আর প্রকাশ"
+              title="Products"
+              text="Price, stock, and publishing"
             />
             <Shortcut
-              href="/admin/banners"
+              href="/admin/home/hero"
               icon="view_carousel"
-              title="হোম ব্যানার"
-              text="হিরো স্লাইডের লেখা ও ছবি"
+              title="Home hero"
+              text="Slide copy and images"
+            />
+            <Shortcut
+              href="/admin/pages/about"
+              icon="domain"
+              title="Page CMS"
+              text="About through privacy — each section separate"
+            />
+            <Shortcut
+              href="/admin/site/header"
+              icon="web"
+              title="Header and footer"
+              text="Menu and columns on every page"
             />
             <Shortcut
               href="/admin/delivery"
               icon="local_shipping"
-              title="ডেলিভারি চার্জ"
-              text="ঢাকার ভেতর ও বাইরের রেট"
+              title="Delivery charges"
+              text="Inside and outside Dhaka"
             />
           </div>
         </section>
@@ -299,11 +310,11 @@ function WaitingRow({ order, fresh }: { order: MockOrder; fresh: boolean }) {
           <span className="text-sm font-semibold text-neutral-950">{order.number}</span>
           {fresh ? (
             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-              আজ
+              Today
             </span>
           ) : (
             <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
-              আগের দিন
+              Earlier
             </span>
           )}
         </span>
@@ -317,7 +328,7 @@ function WaitingRow({ order, fresh }: { order: MockOrder; fresh: boolean }) {
         {formatTaka(orderGrandTotal(order))}
       </span>
       <span className="inline-flex h-8 justify-self-end items-center rounded-full bg-neutral-950 px-3 text-xs font-medium text-white">
-        খুলুন
+        Open
       </span>
     </Link>
   );
@@ -512,7 +523,7 @@ function DashboardSkeleton() {
 }
 
 function formatDashboardDate(date = new Date()) {
-  return new Intl.DateTimeFormat("bn-BD", {
+  return new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -525,14 +536,14 @@ function formatOrderWhen(iso: string) {
   const start = (value: Date) =>
     new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
   const days = Math.round((start(now) - start(date)) / 86_400_000);
-  const time = new Intl.DateTimeFormat("bn-BD", {
+  const time = new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
-  if (days <= 0) return `আজ, ${time}`;
-  if (days === 1) return `গতকাল, ${time}`;
-  if (days < 7) return `${days} দিন আগে`;
-  return new Intl.DateTimeFormat("bn-BD", {
+  if (days <= 0) return `Today, ${time}`;
+  if (days === 1) return `Yesterday, ${time}`;
+  if (days < 7) return `${days} days ago`;
+  return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "short",
   }).format(date);

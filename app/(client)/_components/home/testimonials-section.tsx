@@ -1,21 +1,20 @@
-import fs from "node:fs";
-import path from "node:path";
+"use client";
 
-import { testimonials } from "../../_data/home/home";
+import { useHomeSections } from "@/lib/mart-mock/hooks";
+
 import { Container } from "../common/container";
 import { ReviewGallery, type ReviewShot } from "./review-gallery";
 
-function withFiles(): ReviewShot[] {
-  return testimonials.map((review) => ({
-    ...review,
-    ready: fs.existsSync(
-      path.join(process.cwd(), "public", review.imageSrc.replace(/^\//, "")),
-    ),
-  }));
-}
-
 export function TestimonialsSection() {
-  const reviews = withFiles();
+  const { reviews } = useHomeSections();
+  const shots: ReviewShot[] = reviews.items.map((item) => ({
+    id: item.id,
+    imageSrc: item.imageSrc,
+    imageAlt: item.imageAlt,
+    product: item.product,
+    channel: item.channel,
+    ready: Boolean(item.imageSrc),
+  }));
 
   return (
     <section
@@ -25,21 +24,19 @@ export function TestimonialsSection() {
       <Container className="px-4 sm:px-6 lg:px-8">
         <div className="mb-8 max-w-2xl sm:mb-10">
           <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-white/50">
-            রিভিউ
+            {reviews.kicker}
           </p>
           <h2
             id="customer-reviews-heading"
             className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl dark:text-white"
           >
-            কাস্টমাররা যা বলছেন
+            {reviews.title}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base dark:text-white/65">
-            {reviews.some((review) => review.ready)
-              ? "হোয়াটসঅ্যাপ ও মেসেঞ্জারের রিভিউ স্ক্রিনশট। ছবিতে ক্লিক করলে পুরো কথোপকথন খোলে।"
-              : "হোয়াটসঅ্যাপ ও মেসেঞ্জারের কাস্টমার রিভিউ স্ক্রিনশট।"}
+            {reviews.subtitle}
           </p>
         </div>
-        <ReviewGallery reviews={reviews} />
+        <ReviewGallery reviews={shots} />
       </Container>
     </section>
   );

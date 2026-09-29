@@ -29,7 +29,7 @@ export default function AdminDeliveryPage() {
     event.preventDefault();
     if (insideValue == null || outsideValue == null) {
       setSaved(false);
-      setError("দুই চার্জই ০ বা তার বেশি সংখ্যা হতে হবে।");
+      setError("Both charges must be a number of 0 or more.");
       return;
     }
     saveDeliveryCharges({ insideDhaka: insideValue, outsideDhaka: outsideValue });
@@ -41,19 +41,19 @@ export default function AdminDeliveryPage() {
     <form onSubmit={save} className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
       <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-neutral-950">২টি ডেলিভারি জোন</p>
+          <p className="text-sm font-semibold text-neutral-950">2 delivery zones</p>
           <p className="mt-0.5 text-xs text-neutral-500">
-            জেলা ঢাকা হলে ভেতরের চার্জ, না হলে বাইরের চার্জ। সেভ হলে চেকআউট সামারি এই রেট নেয়।
+            Dhaka district uses the inside rate. Everywhere else uses the outside rate. Checkout reads these rates after you save.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {saved && !dirty ? <p className="text-sm font-medium text-primary">সেভ হয়েছে</p> : null}
-          {dirty ? <p className="text-sm text-neutral-500">পরিবর্তন সেভ হয়নি</p> : null}
+          {saved && !dirty ? <p className="text-sm font-medium text-primary">Saved</p> : null}
+          {dirty ? <p className="text-sm text-neutral-500">Unsaved changes</p> : null}
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-full bg-neutral-950 px-5 text-sm font-medium text-white transition-colors hover:bg-black"
           >
-            সেভ
+            Save
           </button>
         </div>
       </div>
@@ -62,8 +62,8 @@ export default function AdminDeliveryPage() {
         <ZoneCard
           id="inside-dhaka"
           icon="location_city"
-          title="ঢাকার ভেতর"
-          detail="জেলা ঢাকা বা Dhaka"
+          title="Inside Dhaka"
+          detail="District is Dhaka"
           value={inside}
           stored={stored.insideDhaka}
           onChange={(value) => {
@@ -75,8 +75,8 @@ export default function AdminDeliveryPage() {
         <ZoneCard
           id="outside-dhaka"
           icon="public"
-          title="ঢাকার বাইরে"
-          detail="অন্য যেকোনো জেলা, খালি থাকলেও"
+          title="Outside Dhaka"
+          detail="Any other district, including a blank one"
           value={outside}
           stored={stored.outsideDhaka}
           onChange={(value) => {
@@ -89,10 +89,10 @@ export default function AdminDeliveryPage() {
 
       <div className="border-t border-neutral-100 px-4 py-4 sm:px-5">
         <FieldError message={error ?? undefined} />
-        <p className="text-xs font-medium tracking-wide text-neutral-500">চেকআউটে যাবে</p>
+        <p className="text-xs font-medium tracking-wide text-neutral-500">Shown at checkout</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <PreviewRow label="ঢাকা জেলা" value={insideValue} />
-          <PreviewRow label="অন্য জেলা" value={outsideValue} />
+          <PreviewRow label="Dhaka district" value={insideValue} />
+          <PreviewRow label="Other district" value={outsideValue} />
         </div>
       </div>
     </form>
@@ -141,7 +141,7 @@ function ZoneCard({
         />
       </span>
       <span className={cn("mt-2 block text-xs", changed ? "text-neutral-500" : "text-neutral-400")}>
-        {changed ? `সেভ করা আছে ${formatTaka(stored)}` : "এই রেট এখন সেভ করা"}
+        {changed ? `Saved rate ${formatTaka(stored)}` : "This rate is saved"}
       </span>
     </label>
   );

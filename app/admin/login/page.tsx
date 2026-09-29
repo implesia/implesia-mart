@@ -18,8 +18,8 @@ export default function AdminLoginPage() {
   function submit(event: React.FormEvent) {
     event.preventDefault();
     const next: { email?: string; password?: string } = {};
-    if (!email.trim()) next.email = "ইমেইল দিন।";
-    if (!password.trim()) next.password = "পাসওয়ার্ড দিন।";
+    if (!email.trim()) next.email = "Enter an email.";
+    if (!password.trim()) next.password = "Enter a password.";
     setErrors(next);
     if (next.email || next.password) return;
     writeSession(email);
@@ -30,14 +30,14 @@ export default function AdminLoginPage() {
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-10">
       <div className="rounded-2xl bg-white p-5 ring-1 ring-neutral-200/90 sm:p-6">
         <p className="text-xs font-medium tracking-wide text-primary">Implesia Mart</p>
-        <h1 className="mt-1 text-2xl font-semibold text-neutral-950">অ্যাডমিন লগইন</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-neutral-950">Admin login</h1>
         <p className="mt-3 rounded-xl bg-primary/10 px-3 py-2 text-xs leading-relaxed text-[#0b3d39]">
-          লগইন এখন ডিজাইন। আসল অথেন্টিকেশন পরের ধাপ।
+          Login is a design placeholder. Real authentication comes later.
         </p>
 
         <form onSubmit={submit} className="mt-5 flex flex-col gap-4" noValidate>
           <div>
-            <FieldLabel htmlFor="admin-email">ইমেইল</FieldLabel>
+            <FieldLabel htmlFor="admin-email">Email</FieldLabel>
             <Input
               id="admin-email"
               type="email"
@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
             <FieldError message={errors.email} />
           </div>
           <div>
-            <FieldLabel htmlFor="admin-password">পাসওয়ার্ড</FieldLabel>
+            <FieldLabel htmlFor="admin-password">Password</FieldLabel>
             <Input
               id="admin-password"
               type="password"
@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
             type="submit"
             className="inline-flex h-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white transition-colors hover:bg-primary/80"
           >
-            ঢুকুন
+            Sign in
           </button>
         </form>
       </div>

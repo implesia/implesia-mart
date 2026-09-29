@@ -26,9 +26,9 @@ export default function EditProductPage() {
   if (!product) {
     return (
       <>
-        <AdminPageHeader title="প্রোডাক্ট পাওয়া যায়নি" />
+        <AdminPageHeader title="Product not found" />
         <Link href="/admin/products" className="text-sm font-medium text-primary">
-          প্রোডাক্ট লিস্টে ফিরুন
+          Back to products
         </Link>
       </>
     );
@@ -36,7 +36,7 @@ export default function EditProductPage() {
 
   return (
     <>
-      <AdminPageHeader title="প্রোডাক্ট এডিট" description={product.title} />
+      <AdminPageHeader title="Edit product" description={product.title} />
       <ProductForm key={product.slug} product={product} />
     </>
   );

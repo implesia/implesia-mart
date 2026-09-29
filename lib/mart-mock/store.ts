@@ -85,11 +85,21 @@ export type AdminProduct = {
 
 export type ProductDraft = Omit<AdminProduct, "slug" | "custom">;
 
+export type HeroAccent = "gold" | "teal" | "rose" | "ink";
+
 export type AdminBanner = {
   id: string;
+  eyebrow: string;
   title: string;
+  description: string;
   priceLabel: string;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
   imageSrc: string;
+  imageAlt: string;
+  accent: HeroAccent;
   published: boolean;
 };
 
@@ -405,20 +415,89 @@ export function effectiveStockStatus(slug: string, fallback: ProductStatus): Sto
 export function seedBanners(): AdminBanner[] {
   return heroSlides.map((slide) => ({
     id: slide.id,
+    eyebrow: slide.eyebrow,
     title: slide.title,
+    description: slide.description,
     priceLabel: slide.priceLabel,
+    primaryCtaLabel: slide.primaryCta.label,
+    primaryCtaHref: slide.primaryCta.href,
+    secondaryCtaLabel: slide.secondaryCta.label,
+    secondaryCtaHref: slide.secondaryCta.href,
     imageSrc: slide.imageSrc,
+    imageAlt: slide.imageAlt,
+    accent: slide.accent,
     published: true,
   }));
 }
 
+function normalizeBanner(raw: Partial<AdminBanner>, seed?: AdminBanner): AdminBanner {
+  return {
+    id: raw.id || seed?.id || `slide-${Date.now()}`,
+    eyebrow: raw.eyebrow ?? seed?.eyebrow ?? "",
+    title: raw.title ?? seed?.title ?? "",
+    description: raw.description ?? seed?.description ?? "",
+    priceLabel: raw.priceLabel ?? seed?.priceLabel ?? "",
+    primaryCtaLabel: raw.primaryCtaLabel ?? seed?.primaryCtaLabel ?? "Order",
+    primaryCtaHref: raw.primaryCtaHref ?? seed?.primaryCtaHref ?? "/products",
+    secondaryCtaLabel: raw.secondaryCtaLabel ?? seed?.secondaryCtaLabel ?? "",
+    secondaryCtaHref: raw.secondaryCtaHref ?? seed?.secondaryCtaHref ?? "/products",
+    imageSrc: raw.imageSrc ?? seed?.imageSrc ?? "",
+    imageAlt: raw.imageAlt ?? seed?.imageAlt ?? raw.title ?? "",
+    accent: raw.accent ?? seed?.accent ?? "teal",
+    published: raw.published ?? seed?.published ?? true,
+  };
+}
+
 export function readBanners() {
-  return readJson<AdminBanner[]>(BANNERS_KEY) ?? seedBanners();
+  const stored = readJson<Partial<AdminBanner>[]>(BANNERS_KEY);
+  if (!stored) return seedBanners();
+  const seeds = new Map(seedBanners().map((banner) => [banner.id, banner]));
+  return stored.map((banner) => normalizeBanner(banner, banner.id ? seeds.get(banner.id) : undefined));
 }
 
 export function saveBanner(banner: AdminBanner) {
-  const next = readBanners().map((item) => (item.id === banner.id ? banner : item));
+  const current = readBanners();
+  const next = current.some((item) => item.id === banner.id)
+    ? current.map((item) => (item.id === banner.id ? banner : item))
+    : [...current, banner];
   writeJson(BANNERS_KEY, next);
+}
+
+export function moveBanner(id: string, direction: -1 | 1) {
+  const items = readBanners();
+  const index = items.findIndex((item) => item.id === id);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= items.length) return;
+  const next = [...items];
+  const [item] = next.splice(index, 1);
+  next.splice(target, 0, item);
+  writeJson(BANNERS_KEY, next);
+}
+
+export function createBanner(banner: AdminBanner) {
+  writeJson(BANNERS_KEY, [...readBanners(), banner]);
+}
+
+export function deleteBanner(id: string) {
+  writeJson(BANNERS_KEY, readBanners().filter((item) => item.id !== id));
+}
+
+export function blankBanner(): AdminBanner {
+  return {
+    id: `slide-${Date.now()}`,
+    eyebrow: "",
+    title: "",
+    description: "",
+    priceLabel: "",
+    primaryCtaLabel: "Order now",
+    primaryCtaHref: "/products",
+    secondaryCtaLabel: "",
+    secondaryCtaHref: "/products",
+    imageSrc: "",
+    imageAlt: "",
+    accent: "teal",
+    published: true,
+  };
 }
 
 export function readDeliveryCharges() {

@@ -1,10 +1,26 @@
 import { cn } from "@/lib/utils";
-import {
-  ORDER_STATUS_LABEL,
-  STOCK_STATUS_LABEL,
-  type OrderStatus,
-  type StockStatus,
-} from "@/lib/mart-mock/store";
+import type { OrderStatus, StockStatus } from "@/lib/mart-mock/store";
+import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
+
+export const ADMIN_ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  new: "New",
+  confirmed: "Confirmed",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+  returned: "Returned",
+};
+
+export const ADMIN_STOCK_STATUS_LABEL: Record<StockStatus, string> = {
+  available: "In stock",
+  "sold-out": "Sold out",
+  "coming-soon": "Coming soon",
+};
+
+export const ADMIN_CATEGORY_LABEL: Record<ProductCategoryId, string> = {
+  gadgets: "Trending gadgets",
+  fashion: "Gorgeous dresses",
+};
 
 export function AdminPageHeader({
   title,
@@ -62,7 +78,7 @@ const STOCK_TONE: Record<StockStatus, string> = {
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return (
     <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", ORDER_TONE[status])}>
-      {ORDER_STATUS_LABEL[status]}
+      {ADMIN_ORDER_STATUS_LABEL[status]}
     </span>
   );
 }
@@ -70,7 +86,7 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 export function StockStatusBadge({ status }: { status: StockStatus }) {
   return (
     <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", STOCK_TONE[status])}>
-      {STOCK_STATUS_LABEL[status]}
+      {ADMIN_STOCK_STATUS_LABEL[status]}
     </span>
   );
 }

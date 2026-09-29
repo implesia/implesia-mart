@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { categoryLabels, type ProductBadge, type ProductCategoryId } from "@/app/(client)/_data/products/products";
+import type { ProductBadge, ProductCategoryId } from "@/app/(client)/_data/products/products";
 import { cn } from "@/lib/utils";
 import {
   createAdminProduct,
@@ -14,17 +14,20 @@ import {
 } from "@/lib/mart-mock/store";
 
 import {
+  ADMIN_CATEGORY_LABEL,
+  ADMIN_STOCK_STATUS_LABEL,
   AdminCard,
   adminFieldClass,
   FieldError,
   FieldLabel,
 } from "../../_components/admin-ui";
+import { ImageField } from "../../_components/image-field";
 
 const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
-  { value: "", label: "নেই" },
-  { value: "New", label: "নতুন" },
-  { value: "Best Seller", label: "বেস্ট সেলার" },
-  { value: "Limited", label: "লিমিটেড" },
+  { value: "", label: "None" },
+  { value: "New", label: "New" },
+  { value: "Best Seller", label: "Best seller" },
+  { value: "Limited", label: "Limited" },
 ];
 
 type FormState = {
@@ -86,23 +89,23 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     event.preventDefault();
     const title = form.title.trim();
     if (!title) {
-      setError("নাম দিন।");
+      setError("Enter a name.");
       return;
     }
     const price = Number(form.price);
     if (!form.price.trim() || !Number.isFinite(price) || price < 0) {
-      setError("বিক্রয় মূল্য দিন।");
+      setError("Enter a selling price.");
       return;
     }
     let compareAtPrice: number | null = null;
     if (form.compareAtPrice.trim()) {
       compareAtPrice = Number(form.compareAtPrice);
       if (!Number.isFinite(compareAtPrice) || compareAtPrice < 0) {
-        setError("আগের মূল্য সংখ্যায় দিন, অথবা খালি রাখুন।");
+        setError("Enter the compare-at price as a number, or leave it blank.");
         return;
       }
       if (compareAtPrice < price) {
-        setError("আগের মূল্য বিক্রয় মূল্যের চেয়ে ছোট হতে পারবে না।");
+        setError("The compare-at price cannot be lower than the selling price.");
         return;
       }
     }
@@ -110,7 +113,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     if (form.quantity.trim()) {
       quantity = Number(form.quantity);
       if (!Number.isInteger(quantity) || quantity < 0) {
-        setError("পরিমাণ খালি রাখুন, অথবা ০ বা তার বেশি পূর্ণসংখ্যা দিন।");
+        setError("Leave quantity blank, or enter a whole number of 0 or more.");
         return;
       }
     }
@@ -141,7 +144,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     <AdminCard>
       <form onSubmit={save} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <div className="sm:col-span-2">
-          <FieldLabel htmlFor="product-title">নাম</FieldLabel>
+          <FieldLabel htmlFor="product-title">Name</FieldLabel>
           <input
             id="product-title"
             value={form.title}
@@ -150,7 +153,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           />
         </div>
         <div className="sm:col-span-2">
-          <FieldLabel htmlFor="product-subtitle">সাবটাইটেল</FieldLabel>
+          <FieldLabel htmlFor="product-subtitle">Subtitle</FieldLabel>
           <input
             id="product-subtitle"
             value={form.subtitle}
@@ -159,32 +162,32 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           />
         </div>
         <div>
-          <FieldLabel htmlFor="product-category">ক্যাটাগরি</FieldLabel>
+          <FieldLabel htmlFor="product-category">Category</FieldLabel>
           <select
             id="product-category"
             value={form.categoryId}
             onChange={(event) => setField("categoryId", event.target.value as ProductCategoryId)}
             className={adminFieldClass}
           >
-            <option value="gadgets">{categoryLabels.gadgets}</option>
-            <option value="fashion">{categoryLabels.fashion}</option>
+            <option value="gadgets">{ADMIN_CATEGORY_LABEL.gadgets}</option>
+            <option value="fashion">{ADMIN_CATEGORY_LABEL.fashion}</option>
           </select>
         </div>
         <div>
-          <FieldLabel htmlFor="product-status">অবস্থা</FieldLabel>
+          <FieldLabel htmlFor="product-status">Status</FieldLabel>
           <select
             id="product-status"
             value={form.status}
             onChange={(event) => setField("status", event.target.value as StockStatus)}
             className={adminFieldClass}
           >
-            <option value="available">আছে</option>
-            <option value="sold-out">শেষ</option>
-            <option value="coming-soon">শীঘ্রই আসছে</option>
+            <option value="available">{ADMIN_STOCK_STATUS_LABEL.available}</option>
+            <option value="sold-out">{ADMIN_STOCK_STATUS_LABEL["sold-out"]}</option>
+            <option value="coming-soon">{ADMIN_STOCK_STATUS_LABEL["coming-soon"]}</option>
           </select>
         </div>
         <div>
-          <FieldLabel htmlFor="product-price">বিক্রয় মূল্য</FieldLabel>
+          <FieldLabel htmlFor="product-price">Selling price</FieldLabel>
           <input
             id="product-price"
             inputMode="numeric"
@@ -194,29 +197,29 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           />
         </div>
         <div>
-          <FieldLabel htmlFor="product-compare">আগের মূল্য</FieldLabel>
+          <FieldLabel htmlFor="product-compare">Compare-at price</FieldLabel>
           <input
             id="product-compare"
             inputMode="numeric"
             value={form.compareAtPrice}
             onChange={(event) => setField("compareAtPrice", event.target.value)}
-            placeholder="খালি থাকতে পারে"
+            placeholder="Optional"
             className={adminFieldClass}
           />
         </div>
         <div>
-          <FieldLabel htmlFor="product-qty">পরিমাণ</FieldLabel>
+          <FieldLabel htmlFor="product-qty">Quantity</FieldLabel>
           <input
             id="product-qty"
             inputMode="numeric"
             value={form.quantity}
             onChange={(event) => setField("quantity", event.target.value)}
-            placeholder="খালি মানে অর্ডার অনুযায়ী"
+            placeholder="Blank means made to order"
             className={adminFieldClass}
           />
         </div>
         <div>
-          <FieldLabel htmlFor="product-badge">ব্যাজ</FieldLabel>
+          <FieldLabel htmlFor="product-badge">Badge</FieldLabel>
           <select
             id="product-badge"
             value={form.badge}
@@ -231,21 +234,15 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </select>
         </div>
         <div className="sm:col-span-2">
-          <FieldLabel htmlFor="product-image">ছবির পাথ</FieldLabel>
-          <input
-            id="product-image"
-            value={form.imageSrc}
-            onChange={(event) => setField("imageSrc", event.target.value)}
-            className={adminFieldClass}
-          />
+          <ImageField value={form.imageSrc} onChange={(imageSrc) => setField("imageSrc", imageSrc)} />
         </div>
         <Toggle
-          label="ফিচার্ড"
+          label="Featured"
           checked={form.featured}
           onChange={(checked) => setField("featured", checked)}
         />
         <Toggle
-          label="প্রকাশিত"
+          label="Published"
           checked={form.published}
           onChange={(checked) => setField("published", checked)}
         />
@@ -259,7 +256,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             type="submit"
             className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-white hover:bg-primary/80"
           >
-            সেভ
+            Save
           </button>
         </div>
       </form>
@@ -295,7 +292,7 @@ function Toggle({
             checked ? "left-5" : "left-0.5",
           )}
         />
-        <span className="sr-only">{checked ? "চালু" : "বন্ধ"}</span>
+        <span className="sr-only">{checked ? "On" : "Off"}</span>
       </button>
     </div>
   );

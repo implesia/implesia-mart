@@ -14,6 +14,15 @@ import {
 } from "@/lib/mart-mock/store";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import {
+  ADMIN_NAV,
+  adminBackHref,
+  currentAdminPage,
+  isAdminBranchActive,
+  isAdminNavActive,
+  isWideAdminPath,
+  type AdminNavItem,
+} from "../_config/nav";
 
 const SIDEBAR_KEY = "implesia.admin.sidebar.collapsed";
 const SIDEBAR_EVENT = "implesia-admin-sidebar";
@@ -68,50 +77,137 @@ function writeCollapsed(collapsed: boolean) {
   window.dispatchEvent(new Event(SIDEBAR_EVENT));
 }
 
-const NAV = [
-  { href: "/admin", label: "ড্যাশবোর্ড", icon: "dashboard", exact: true },
-  {
-    href: "/admin/orders",
-    label: "অর্ডার",
-    icon: "receipt_long",
-    exact: false,
-  },
-  {
-    href: "/admin/products",
-    label: "প্রোডাক্ট",
-    icon: "inventory_2",
-    exact: false,
-  },
-  {
-    href: "/admin/banners",
-    label: "হোম ব্যানার",
-    icon: "view_carousel",
-    exact: false,
-  },
-  {
-    href: "/admin/delivery",
-    label: "ডেলিভারি চার্জ",
-    icon: "local_shipping",
-    exact: false,
-  },
-] as const;
-
-function isActive(pathname: string, href: string, exact: boolean) {
-  if (exact) return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
+function NavLink({
+  item,
+  pathname,
+  collapsed,
+  onNavigate,
+  nested = false,
+  forceActive,
+}: {
+  item: AdminNavItem;
+  pathname: string;
+  collapsed: boolean;
+  onNavigate?: () => void;
+  nested?: boolean;
+  forceActive?: boolean;
+}) {
+  const active = forceActive ?? isAdminNavActive(pathname, item);
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      onClick={onNavigate}
+      className={cn(
+        "flex items-center rounded-xl text-sm font-medium transition-colors",
+        collapsed ? "justify-center px-0 py-2.5" : "gap-2.5 px-3 py-2",
+        nested && !collapsed && "py-1.5 text-[13px]",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950",
+      )}
+    >
+      <MaterialIcon name={item.icon} className={nested ? "text-[18px]" : "text-[20px]"} />
+      <span className={cn("truncate", collapsed && "sr-only")}>{item.label}</span>
+    </Link>
+  );
 }
 
-function pageLabel(pathname: string) {
-  if (pathname === "/admin") return "ড্যাশবোর্ড";
-  if (pathname.startsWith("/admin/orders/")) return "অর্ডার বিস্তারিত";
-  if (pathname.startsWith("/admin/orders")) return "অর্ডার";
-  if (pathname === "/admin/products/new") return "নতুন প্রোডাক্ট";
-  if (pathname.startsWith("/admin/products/")) return "প্রোডাক্ট এডিট";
-  if (pathname.startsWith("/admin/products")) return "প্রোডাক্ট";
-  if (pathname.startsWith("/admin/banners/")) return "ব্যানার এডিট";
-  if (pathname.startsWith("/admin/banners")) return "হোম ব্যানার";
-  if (pathname.startsWith("/admin/delivery")) return "ডেলিভারি চার্জ";
-  return "অ্যাডমিন";
+function NavBranch({
+  item,
+  pathname,
+  collapsed,
+  onNavigate,
+  open,
+  onToggle,
+}: {
+  item: AdminNavItem;
+  pathname: string;
+  collapsed: boolean;
+  onNavigate?: () => void;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const children = item.children ?? [];
+  const branchActive = isAdminBranchActive(pathname, item);
+
+  if (children.length === 0 || collapsed) {
+    return (
+      <NavLink
+        item={item}
+        pathname={pathname}
+        collapsed={collapsed}
+        onNavigate={onNavigate}
+        forceActive={branchActive}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <div
+        className={cn(
+          "flex items-center rounded-xl",
+          branchActive && "bg-neutral-50",
+        )}
+      >
+        <Link
+          href={item.href}
+          title={item.label}
+          onClick={onNavigate}
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+            isAdminNavActive(pathname, item)
+              ? "text-primary"
+              : branchActive
+                ? "text-neutral-950"
+                : "text-neutral-600 hover:text-neutral-950",
+          )}
+        >
+          <MaterialIcon name={item.icon} className="text-[20px]" />
+          <span className="truncate">{item.label}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-label={open ? `Hide ${item.label} sections` : `Show ${item.label} sections`}
+          className="mr-1 grid size-8 shrink-0 place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+        >
+          <MaterialIcon
+            name={open ? "expand_less" : "expand_more"}
+            className="text-[20px]"
+          />
+        </button>
+      </div>
+      {open ? (
+        <div className="mt-0.5 ml-4 flex flex-col gap-0.5 border-l border-neutral-200 pl-2">
+          {children.map((child) => (
+            <NavLink
+              key={child.href}
+              item={child}
+              pathname={pathname}
+              collapsed={false}
+              onNavigate={onNavigate}
+              nested
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function openMapForPath(pathname: string) {
+  const next: Record<string, boolean> = {};
+  for (const group of ADMIN_NAV) {
+    for (const item of group.items) {
+      if (item.children?.length && isAdminBranchActive(pathname, item)) {
+        next[item.href] = true;
+      }
+    }
+  }
+  return next;
 }
 
 function SidebarNav({
@@ -123,6 +219,14 @@ function SidebarNav({
   onNavigate?: () => void;
   collapsed?: boolean;
 }) {
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
+    openMapForPath(pathname),
+  );
+
+  useEffect(() => {
+    setOpenMap((prev) => ({ ...prev, ...openMapForPath(pathname) }));
+  }, [pathname]);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div
@@ -150,38 +254,44 @@ function SidebarNav({
           />
         </Link>
         {collapsed ? null : (
-          <span className="text-xs text-neutral-500">অ্যাডমিন</span>
+          <span className="text-xs text-neutral-500">Admin</span>
         )}
       </div>
       <nav
         className={cn(
-          "flex flex-1 flex-col gap-1 overflow-y-auto",
-          collapsed ? "p-2" : "p-3",
+          "flex flex-1 flex-col overflow-y-auto",
+          collapsed ? "gap-2 p-2" : "gap-3 p-3",
         )}
       >
-        {NAV.map((item) => {
-          const active = isActive(pathname, item.href, item.exact);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={item.label}
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center rounded-xl text-sm font-medium transition-colors",
-                collapsed
-                  ? "justify-center px-0 py-2.5"
-                  : "gap-2.5 px-3 py-2.5",
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950",
-              )}
-            >
-              <MaterialIcon name={item.icon} className="text-[22px]" />
-              <span className={cn(collapsed && "sr-only")}>{item.label}</span>
-            </Link>
-          );
-        })}
+        {ADMIN_NAV.map((group) => (
+          <div key={group.title}>
+            {collapsed ? (
+              <div className="mx-1 mb-1 h-px bg-neutral-200" />
+            ) : (
+              <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-[0.18em] text-neutral-400 uppercase">
+                {group.title}
+              </p>
+            )}
+            <div className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}>
+              {group.items.map((item) => (
+                <NavBranch
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  collapsed={collapsed}
+                  onNavigate={onNavigate}
+                  open={Boolean(openMap[item.href])}
+                  onToggle={() =>
+                    setOpenMap((prev) => ({
+                      ...prev,
+                      [item.href]: !prev[item.href],
+                    }))
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </nav>
     </div>
   );
@@ -202,13 +312,14 @@ function AdminHeader({
   onOpenMenu: () => void;
   onLogout: () => void;
 }) {
+  const page = currentAdminPage(pathname);
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-neutral-200 bg-white px-3 sm:px-4">
       <button
         type="button"
         onClick={onOpenMenu}
         className="inline-flex size-10 items-center justify-center rounded-xl text-neutral-700 hover:bg-neutral-100 lg:hidden"
-        aria-label="মেনু খুলুন"
+        aria-label="Open menu"
       >
         <MaterialIcon name="menu" className="text-[22px]" />
       </button>
@@ -216,7 +327,7 @@ function AdminHeader({
         type="button"
         onClick={onToggleSidebar}
         className="hidden size-10 items-center justify-center rounded-xl text-neutral-700 hover:bg-neutral-100 lg:inline-flex"
-        aria-label={collapsed ? "সাইডবার খুলুন" : "সাইডবার ভাঁজ করুন"}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-pressed={collapsed}
       >
         <MaterialIcon
@@ -229,11 +340,11 @@ function AdminHeader({
         />
       </button>
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-neutral-950">
-          {pageLabel(pathname)}
+        <p className="text-[11px] font-semibold tracking-[0.16em] text-neutral-400 uppercase">
+          {page.group}
         </p>
-        <p className="hidden truncate text-xs text-neutral-500 sm:block">
-          Implesia Mart
+        <p className="truncate text-sm font-semibold text-neutral-950">
+          {page.label}
         </p>
       </div>
       <div className="ml-auto flex min-w-0 items-center gap-2">
@@ -246,7 +357,7 @@ function AdminHeader({
           className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
         >
           <MaterialIcon name="logout" className="text-[20px]" />
-          <span className="hidden sm:inline">লগআউট</span>
+          <span className="hidden sm:inline">Log out</span>
         </button>
       </div>
     </header>
@@ -273,12 +384,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   );
   const [menuOpen, setMenuOpen] = useState(false);
   const isLogin = pathname === "/admin/login";
-  const wide =
-    pathname === "/admin" ||
-    pathname === "/admin/orders" ||
-    pathname === "/admin/products" ||
-    pathname === "/admin/banners" ||
-    pathname === "/admin/delivery";
+  const wide = isWideAdminPath(pathname);
+  const backHref = adminBackHref(pathname);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -366,6 +473,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               : "mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-6",
           )}
         >
+          {backHref ? (
+            <div className="mb-4">
+              <Link
+                href={backHref}
+                className="inline-flex h-9 items-center gap-1.5 text-sm font-medium text-neutral-600 hover:text-neutral-950"
+              >
+                <MaterialIcon name="arrow_back" className="text-[18px]" />
+                Back
+              </Link>
+            </div>
+          ) : null}
           {children}
         </div>
       </div>

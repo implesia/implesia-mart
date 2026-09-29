@@ -9,7 +9,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-import { faqSections } from "../../_data/home/home";
+import { useHomeSections } from "@/lib/mart-mock/hooks";
+import type { FaqItem } from "@/lib/mart-mock/home-sections";
+
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
@@ -22,14 +24,12 @@ const categoryIcons: Record<string, string> = {
   "ডেলিভারি সময়": "schedule",
 };
 
-type FaqBlock = (typeof faqSections)[number];
-
 function FaqColumn({
   items,
   idPrefix,
   defaultValue,
 }: {
-  items: readonly FaqBlock[];
+  items: FaqItem[];
   idPrefix: string;
   defaultValue?: string;
 }) {
@@ -40,7 +40,7 @@ function FaqColumn({
     >
       {items.map((block) => {
         const icon = categoryIcons[block.category] ?? "help_outline";
-        const value = `${idPrefix}-${block.category}`;
+        const value = `${idPrefix}-${block.id}`;
         return (
           <AccordionItem
             key={value}
@@ -66,9 +66,10 @@ function FaqColumn({
 }
 
 export function FaqSection() {
+  const { faq } = useHomeSections();
   const columns = [
-    faqSections.filter((_, index) => index % 2 === 0),
-    faqSections.filter((_, index) => index % 2 === 1),
+    faq.items.filter((_, index) => index % 2 === 0),
+    faq.items.filter((_, index) => index % 2 === 1),
   ];
 
   return (
@@ -79,17 +80,16 @@ export function FaqSection() {
       <Container className="px-4 sm:px-6 lg:px-8">
         <div className="mb-8 sm:mb-10">
           <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-white/50">
-            জিজ্ঞাসা ও উত্তর
+            {faq.kicker}
           </p>
           <h2
             id="home-faq-heading"
             className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl dark:text-white"
           >
-            প্রায়শই জিজ্ঞাসিত প্রশ্ন
+            {faq.title}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base dark:text-white/65">
-            অর্ডার, পেমেন্ট, ডেলিভারি ও রিটার্ন নিয়ে সাধারণ প্রশ্নের দ্রুত
-            উত্তর।
+            {faq.subtitle}
           </p>
         </div>
 
@@ -100,7 +100,7 @@ export function FaqSection() {
               items={items}
               idPrefix={index === 0 ? "left" : "right"}
               defaultValue={
-                index === 0 ? `left-${items[0]?.category}` : undefined
+                index === 0 && items[0] ? `left-${items[0].id}` : undefined
               }
             />
           ))}
@@ -108,10 +108,10 @@ export function FaqSection() {
 
         <div className="mt-8">
           <Link
-            href="/faqs"
+            href={faq.moreHref || "/faqs"}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-950 transition-colors hover:text-neutral-600 dark:text-white dark:hover:text-white/70"
           >
-            আরও প্রশ্ন দেখুন
+            {faq.moreLabel}
             <MaterialIcon name="arrow_forward" className="text-[18px]" />
           </Link>
         </div>

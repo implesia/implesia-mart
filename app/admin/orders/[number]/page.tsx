@@ -8,7 +8,6 @@ import { useOrders } from "@/lib/mart-mock/hooks";
 import {
   formatTaka,
   ORDER_STATUSES,
-  ORDER_STATUS_LABEL,
   orderGrandTotal,
   orderItemsTotal,
   updateOrder,
@@ -19,6 +18,7 @@ import {
 import {
   AdminCard,
   AdminLoading,
+  ADMIN_ORDER_STATUS_LABEL,
   AdminPageHeader,
   adminFieldClass,
   FieldLabel,
@@ -44,9 +44,9 @@ export default function AdminOrderDetailPage() {
   if (!order) {
     return (
       <>
-        <AdminPageHeader title="অর্ডার পাওয়া যায়নি" />
+        <AdminPageHeader title="Order not found" />
         <Link href="/admin/orders" className="text-sm font-medium text-primary">
-          অর্ডার লিস্টে ফিরুন
+          Back to orders
         </Link>
       </>
     );
@@ -70,17 +70,17 @@ export default function AdminOrderDetailPage() {
     <>
       <AdminPageHeader
         title={order.number}
-        description="স্ট্যাটাস বদলালে এই পেজের মক স্টেট আপডেট হয়।"
+        description="Changing the status updates the mock state on this page."
         action={<OrderStatusBadge status={current.status} />}
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <AdminCard className="lg:col-span-3">
-          <h2 className="text-base font-semibold text-neutral-950">কাস্টমার</h2>
+          <h2 className="text-base font-semibold text-neutral-950">Customer</h2>
           <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <Info label="নাম" value={order.customerName} />
-            <Info label="ফোন" value={order.phone} />
-            <Info label="ঠিকানা" value={order.address} className="sm:col-span-2" />
-            <Info label="নোট" value={order.note.trim() ? order.note : "—"} className="sm:col-span-2" />
+            <Info label="Name" value={order.customerName} />
+            <Info label="Phone" value={order.phone} />
+            <Info label="Address" value={order.address} className="sm:col-span-2" />
+            <Info label="Note" value={order.note.trim() ? order.note : "—"} className="sm:col-span-2" />
           </dl>
           <a
             href={whatsappHref(order.phone)}
@@ -88,12 +88,12 @@ export default function AdminOrderDetailPage() {
             rel="noreferrer"
             className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-[#25D366] px-4 text-sm font-semibold text-white"
           >
-            WhatsApp-এ যান
+            Open WhatsApp
           </a>
         </AdminCard>
 
         <AdminCard className="lg:col-span-2">
-          <FieldLabel htmlFor="order-status">স্ট্যাটাস</FieldLabel>
+          <FieldLabel htmlFor="order-status">Status</FieldLabel>
           <select
             id="order-status"
             value={order.status}
@@ -102,14 +102,14 @@ export default function AdminOrderDetailPage() {
           >
             {ORDER_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {ORDER_STATUS_LABEL[status]}
+                {ADMIN_ORDER_STATUS_LABEL[status]}
               </option>
             ))}
           </select>
           {order.status === "shipped" ? (
             <div className="mt-4 flex flex-col gap-3">
               <div>
-                <FieldLabel htmlFor="courier-name">কুরিয়ারের নাম</FieldLabel>
+                <FieldLabel htmlFor="courier-name">Courier name</FieldLabel>
                 <input
                   id="courier-name"
                   value={courierName}
@@ -119,7 +119,7 @@ export default function AdminOrderDetailPage() {
                 />
               </div>
               <div>
-                <FieldLabel htmlFor="tracking-number">ট্র্যাকিং</FieldLabel>
+                <FieldLabel htmlFor="tracking-number">Tracking</FieldLabel>
                 <input
                   id="tracking-number"
                   value={trackingNumber}
@@ -134,7 +134,7 @@ export default function AdminOrderDetailPage() {
       </div>
 
       <AdminCard className="mt-4">
-        <h2 className="text-base font-semibold text-neutral-950">আইটেম</h2>
+        <h2 className="text-base font-semibold text-neutral-950">Items</h2>
         <ul className="mt-3 flex flex-col gap-3">
           {order.items.map((item) => (
             <li key={`${item.slug}-${item.unitPrice}`} className="flex items-start justify-between gap-3 text-sm">
@@ -151,9 +151,9 @@ export default function AdminOrderDetailPage() {
           ))}
         </ul>
         <div className="mt-4 flex flex-col gap-2 border-t border-neutral-100 pt-4 text-sm">
-          <Row label="দামের স্ন্যাপশট" value={formatTaka(orderItemsTotal(order))} />
-          <Row label="ডেলিভারি চার্জ" value={formatTaka(order.deliveryCharge)} />
-          <Row label="সর্বমোট" value={formatTaka(orderGrandTotal(order))} strong />
+          <Row label="Item total" value={formatTaka(orderItemsTotal(order))} />
+          <Row label="Delivery charge" value={formatTaka(order.deliveryCharge)} />
+          <Row label="Grand total" value={formatTaka(orderGrandTotal(order))} strong />
         </div>
       </AdminCard>
     </>

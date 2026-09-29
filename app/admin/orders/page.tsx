@@ -10,7 +10,6 @@ import { useOrders } from "@/lib/mart-mock/hooks";
 import {
   formatTaka,
   ORDER_STATUSES,
-  ORDER_STATUS_LABEL,
   orderGrandTotal,
   phoneDigits,
   type MockOrder,
@@ -18,7 +17,7 @@ import {
 } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
-import { AdminLoading, OrderStatusBadge } from "../_components/admin-ui";
+import { ADMIN_ORDER_STATUS_LABEL, AdminLoading, OrderStatusBadge } from "../_components/admin-ui";
 
 function isOrderStatus(value: string | null): value is OrderStatus {
   return ORDER_STATUSES.some((status) => status === value);
@@ -71,11 +70,11 @@ function OrdersView() {
         <div className="min-w-0">
           <p className="text-sm font-semibold text-neutral-950">
             {query.trim()
-              ? `${visible.length}টি মিলেছে`
-              : `${visible.length}টি অর্ডার`}
+              ? `${visible.length} matching`
+              : `${visible.length} ${visible.length === 1 ? "order" : "orders"}`}
           </p>
           <p className="mt-0.5 text-xs text-neutral-500">
-            নতুন অর্ডার আগে। সারি খুললে বিস্তারিত।
+            Newest first. Open a row for details.
           </p>
         </div>
         <label className="relative block w-full sm:w-80">
@@ -86,8 +85,8 @@ function OrdersView() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="অর্ডার, নাম, ফোন বা পণ্য"
-            aria-label="অর্ডার খুঁজুন"
+            placeholder="Order, name, phone, or product"
+            aria-label="Search orders"
             className="h-10 w-full rounded-xl border border-neutral-200 bg-[#f5f6f8] pr-3 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-primary focus:ring-3 focus:ring-primary/25"
           />
         </label>
@@ -96,7 +95,7 @@ function OrdersView() {
       <div className="flex gap-1 overflow-x-auto border-b border-neutral-100 px-2">
         <StatusTab
           href="/admin/orders"
-          label="সব"
+          label="All"
           count={sorted.length}
           active={active === "all"}
         />
@@ -104,7 +103,7 @@ function OrdersView() {
           <StatusTab
             key={status}
             href={`/admin/orders?status=${status}`}
-            label={ORDER_STATUS_LABEL[status]}
+            label={ADMIN_ORDER_STATUS_LABEL[status]}
             count={counts[status]}
             active={active === status}
           />
@@ -114,8 +113,8 @@ function OrdersView() {
       {visible.length === 0 ? (
         <p className="px-5 py-16 text-center text-sm text-neutral-500">
           {query.trim()
-            ? "এই খোঁজে কোনো অর্ডার নেই।"
-            : "এই স্ট্যাটাসে কোনো অর্ডার নেই।"}
+            ? "No orders match this search."
+            : "No orders in this status."}
         </p>
       ) : (
         <>
@@ -133,12 +132,12 @@ function OrdersView() {
             <table className="w-full text-left text-sm">
               <thead className="sticky top-16 z-10 bg-[#f7f8fa] text-xs text-neutral-500">
                 <tr>
-                  <th className="px-5 py-3 font-medium">অর্ডার</th>
-                  <th className="px-5 py-3 font-medium">কাস্টমার</th>
-                  <th className="px-5 py-3 font-medium">পণ্য</th>
-                  <th className="px-5 py-3 font-medium">ফোন</th>
-                  <th className="px-5 py-3 text-right font-medium">মোট</th>
-                  <th className="px-5 py-3 font-medium">স্ট্যাটাস</th>
+                  <th className="px-5 py-3 font-medium">Order</th>
+                  <th className="px-5 py-3 font-medium">Customer</th>
+                  <th className="px-5 py-3 font-medium">Product</th>
+                  <th className="px-5 py-3 font-medium">Phone</th>
+                  <th className="px-5 py-3 text-right font-medium">Total</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,7 +294,7 @@ function ProductThumb({ item }: { item?: MockOrder["items"][number] }) {
 
 function itemSummary(order: MockOrder) {
   const item = order.items[0];
-  if (!item) return "পণ্য নেই";
+  if (!item) return "No products";
   const extra = order.items.length - 1;
   return extra > 0 ? `${item.title} +${extra}` : item.title;
 }
@@ -303,13 +302,13 @@ function itemSummary(order: MockOrder) {
 function itemMeta(order: MockOrder) {
   const qty = order.items.reduce((sum, item) => sum + item.quantity, 0);
   if (order.items.length > 1)
-    return `${order.items.length}টি পণ্য · ${qty} পিস`;
-  return `${qty} পিস`;
+    return `${order.items.length} products · ${qty} pcs`;
+  return `${qty} pcs`;
 }
 
 function formatOrderWhen(iso: string) {
   const date = new Date(iso);
-  return new Intl.DateTimeFormat("bn-BD", {
+  return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "short",
     hour: "numeric",

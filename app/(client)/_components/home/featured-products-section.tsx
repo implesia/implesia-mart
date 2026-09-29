@@ -1,20 +1,18 @@
+"use client";
+
 import Link from "next/link";
 
+import { productsForSlugs } from "@/lib/mart-mock/home-sections";
+import { useHomeSections } from "@/lib/mart-mock/hooks";
+
 import { ProductCard } from "../../products/_components/product-card";
-import { products, productsHref } from "../../_data/products/products";
-import { bestSellingProducts } from "../../_data/home/home";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
-const featuredProducts = bestSellingProducts
-  .flatMap((item) => {
-    if (item.status !== "available") return [];
-    const product = products.find((entry) => entry.slug === item.slug);
-    return product ? [product] : [];
-  })
-  .slice(0, 4);
-
 export function FeaturedProductsSection() {
+  const { featured } = useHomeSections();
+  const featuredProducts = productsForSlugs(featured.slugs);
+
   return (
     <section
       className="bg-[#f5f6f8] pb-6 sm:pb-8 dark:bg-background"
@@ -27,13 +25,13 @@ export function FeaturedProductsSection() {
               id="featured-products-heading"
               className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl"
             >
-              ফিচার্ড প্রোডাক্ট
+              {featured.heading}
             </h2>
             <Link
-              href={productsHref({ view: "featured" })}
+              href={featured.viewAllHref || "/products"}
               className="inline-flex shrink-0 items-center gap-0.5 text-sm text-neutral-500 transition-colors hover:text-neutral-950"
             >
-              সব দেখুন
+              {featured.viewAllLabel}
               <MaterialIcon name="chevron_right" className="text-[18px]" />
             </Link>
           </div>

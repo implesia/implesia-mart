@@ -6,21 +6,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import {
-  categoryLabels,
-  type ProductCategoryId,
-} from "@/app/(client)/_data/products/products";
+import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import {
   formatTaka,
   listAdminProducts,
   MOCK_EVENT,
-  STOCK_STATUS_LABEL,
   type AdminProduct,
   type StockStatus,
 } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
-import { AdminLoading, StockStatusBadge } from "../_components/admin-ui";
+import {
+  ADMIN_CATEGORY_LABEL,
+  ADMIN_STOCK_STATUS_LABEL,
+  AdminLoading,
+  StockStatusBadge,
+} from "../_components/admin-ui";
 
 const CATEGORIES: ProductCategoryId[] = ["gadgets", "fashion"];
 const STOCK_FILTERS: StockStatus[] = ["available", "sold-out", "coming-soon"];
@@ -104,7 +105,7 @@ function ProductsView() {
       return [
         product.title,
         product.subtitle,
-        categoryLabels[product.categoryId],
+        ADMIN_CATEGORY_LABEL[product.categoryId],
       ]
         .join(" ")
         .toLowerCase()
@@ -120,11 +121,11 @@ function ProductsView() {
         <div className="min-w-0">
           <p className="text-sm font-semibold text-neutral-950">
             {query.trim()
-              ? `${visible.length}টি মিলেছে`
-              : `${visible.length}টি প্রোডাক্ট`}
+              ? `${visible.length} matching`
+              : `${visible.length} ${visible.length === 1 ? "product" : "products"}`}
           </p>
           <p className="mt-0.5 text-xs text-neutral-500">
-            সারি খুললে মূল্য, স্টক আর প্রকাশ এডিট হয়।
+            Open a row to edit price, stock, and publishing.
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
@@ -136,8 +137,8 @@ function ProductsView() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="নাম বা ক্যাটাগরি"
-              aria-label="প্রোডাক্ট খুঁজুন"
+              placeholder="Name or category"
+              aria-label="Search products"
               className="h-10 w-full rounded-xl border border-neutral-200 bg-[#f5f6f8] pr-3 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-primary focus:ring-3 focus:ring-primary/25"
             />
           </label>
@@ -146,7 +147,7 @@ function ProductsView() {
             className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-neutral-950 px-4 text-sm font-medium text-white transition-colors hover:bg-black"
           >
             <MaterialIcon name="add" className="text-[18px]" />
-            নতুন প্রোডাক্ট
+            New product
           </Link>
         </div>
       </div>
@@ -155,7 +156,7 @@ function ProductsView() {
         <div className="flex gap-1 overflow-x-auto">
           <FilterTab
             href={catalogHref(null, status)}
-            label="সব"
+            label="All"
             count={categoryCounts.all}
             active={category == null}
           />
@@ -163,7 +164,7 @@ function ProductsView() {
             <FilterTab
               key={id}
               href={catalogHref(id, status)}
-              label={categoryLabels[id]}
+              label={ADMIN_CATEGORY_LABEL[id]}
               count={categoryCounts[id]}
               active={category === id}
             />
@@ -172,14 +173,14 @@ function ProductsView() {
         <div className="flex gap-1 overflow-x-auto px-2 pb-2 sm:px-3 sm:pb-0">
           <StockChip
             href={catalogHref(category, null)}
-            label="সব অবস্থা"
+            label="All statuses"
             active={status == null}
           />
           {STOCK_FILTERS.map((id) => (
             <StockChip
               key={id}
               href={catalogHref(category, id)}
-              label={`${STOCK_STATUS_LABEL[id]} ${stockCounts[id]}`}
+              label={`${ADMIN_STOCK_STATUS_LABEL[id]} ${stockCounts[id]}`}
               active={status === id}
             />
           ))}
@@ -189,8 +190,8 @@ function ProductsView() {
       {visible.length === 0 ? (
         <p className="px-5 py-16 text-center text-sm text-neutral-500">
           {query.trim()
-            ? "এই খোঁজে কোনো প্রোডাক্ট নেই।"
-            : "এই ফিল্টারে কোনো প্রোডাক্ট নেই।"}
+            ? "No products match this search."
+            : "No products in this filter."}
         </p>
       ) : (
         <>
@@ -208,12 +209,12 @@ function ProductsView() {
             <table className="w-full text-left text-sm">
               <thead className="sticky top-16 z-10 bg-[#f7f8fa] text-xs text-neutral-500">
                 <tr>
-                  <th className="px-5 py-3 font-medium">প্রোডাক্ট</th>
-                  <th className="px-5 py-3 font-medium">ক্যাটাগরি</th>
-                  <th className="px-5 py-3 text-right font-medium">মূল্য</th>
-                  <th className="px-5 py-3 font-medium">পরিমাণ</th>
-                  <th className="px-5 py-3 font-medium">প্রকাশ</th>
-                  <th className="px-5 py-3 font-medium">অবস্থা</th>
+                  <th className="px-5 py-3 font-medium">Product</th>
+                  <th className="px-5 py-3 font-medium">Category</th>
+                  <th className="px-5 py-3 text-right font-medium">Price</th>
+                  <th className="px-5 py-3 font-medium">Quantity</th>
+                  <th className="px-5 py-3 font-medium">Published</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,7 +313,7 @@ function ProductCard({ product }: { product: AdminProduct }) {
         </span>
         <span className="mt-2 flex items-end justify-between gap-3">
           <span className="text-xs text-neutral-500">
-            {categoryLabels[product.categoryId]}
+            {ADMIN_CATEGORY_LABEL[product.categoryId]}
             {" · "}
             {quantityLabel(product)}
           </span>
@@ -347,14 +348,14 @@ function ProductRow({ product }: { product: AdminProduct }) {
             </span>
             {product.featured ? (
               <span className="mt-1 inline-flex text-[11px] font-medium text-primary">
-                ফিচার্ড
+                Featured
               </span>
             ) : null}
           </span>
         </span>
       </td>
       <td className="px-5 py-3.5 text-neutral-700">
-        {categoryLabels[product.categoryId]}
+        {ADMIN_CATEGORY_LABEL[product.categoryId]}
       </td>
       <td className="px-5 py-3.5 text-right">
         <PriceStack product={product} align="end" />
@@ -367,7 +368,7 @@ function ProductRow({ product }: { product: AdminProduct }) {
             product.published ? "text-neutral-800" : "text-neutral-400",
           )}
         >
-          {product.published ? "লাইভ" : "লুকানো"}
+          {product.published ? "Live" : "Hidden"}
         </span>
       </td>
       <td className="px-5 py-3.5">
@@ -418,7 +419,7 @@ function PriceStack({
 
 function quantityLabel(product: AdminProduct) {
   return product.quantity == null
-    ? "অর্ডার অনুযায়ী"
+    ? "Made to order"
     : String(product.quantity);
 }
 

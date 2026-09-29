@@ -2,14 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Swiper as SwiperInstance } from "swiper/types";
 import { Autoplay, Keyboard } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
+import { useBanners } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
-import { heroSlides, type HeroSlide } from "../../_data/home/home";
+import type { HeroSlide } from "../../_data/home/home";
 import { Container } from "../common/container";
 
 const AUTOPLAY_DELAY = 5500;
@@ -22,8 +23,32 @@ const bannerTone: Record<HeroSlide["accent"], string> = {
 };
 
 export function HeroSection() {
+  const banners = useBanners();
+  const slides = useMemo<HeroSlide[]>(
+    () =>
+      banners
+        .filter((banner) => banner.published && banner.imageSrc)
+        .map((banner) => ({
+          id: banner.id,
+          eyebrow: banner.eyebrow,
+          title: banner.title,
+          description: banner.description,
+          priceLabel: banner.priceLabel,
+          compareAtLabel: undefined,
+          discountLabel: undefined,
+          primaryCta: { label: banner.primaryCtaLabel, href: banner.primaryCtaHref },
+          secondaryCta: { label: banner.secondaryCtaLabel, href: banner.secondaryCtaHref },
+          imageSrc: banner.imageSrc,
+          imageAlt: banner.imageAlt,
+          accent: banner.accent,
+        })),
+    [banners],
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const swiperRef = useRef<SwiperInstance | null>(null);
+  const loop = slides.length > 1;
+
+  if (slides.length === 0) return null;
 
   return (
     <section
@@ -33,9 +58,10 @@ export function HeroSection() {
       <Container className="px-4 sm:px-6 lg:px-8">
         <div className="relative min-w-0">
             <Swiper
+              key={slides.map((slide) => slide.id).join("|")}
               modules={[Autoplay, Keyboard]}
               speed={700}
-              loop
+              loop={loop}
               watchOverflow
               observer
               observeParents
@@ -52,7 +78,7 @@ export function HeroSection() {
                 swiperRef.current = swiper;
                 const fit = () => {
                   swiper.update();
-                  swiper.slideToLoop(swiper.realIndex, 0, false);
+                  if (loop) swiper.slideToLoop(swiper.realIndex, 0, false);
                 };
                 requestAnimationFrame(fit);
               }}
@@ -61,7 +87,7 @@ export function HeroSection() {
               }}
               className="banner-swiper h-[248px] overflow-hidden rounded-2xl sm:h-[280px] lg:h-[360px] xl:h-[400px]"
             >
-              {heroSlides.map((slide, index) => (
+              {slides.map((slide, index) => (
                 <SwiperSlide key={slide.id}>
                   <article
                     className={cn(
@@ -121,13 +147,17 @@ export function HeroSection() {
             </Swiper>
 
             <div className="pointer-events-auto absolute bottom-3 left-3.5 z-10 flex items-center gap-1.5 sm:left-7 lg:left-8">
-              {heroSlides.map((slide, index) => (
+              {slides.map((slide, index) => (
                 <button
                   key={slide.id}
                   type="button"
                   aria-label={`স্লাইড ${index + 1}`}
                   aria-current={activeIndex === index ? "true" : undefined}
-                  onClick={() => swiperRef.current?.slideToLoop(index)}
+                  onClick={() =>
+                    loop
+                      ? swiperRef.current?.slideToLoop(index)
+                      : swiperRef.current?.slideTo(index)
+                  }
                   className={cn(
                     "h-1.5 rounded-full transition-all",
                     activeIndex === index

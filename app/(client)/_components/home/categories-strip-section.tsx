@@ -1,28 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
-import {
-  categoryLabels,
-  productsHref,
-  type ProductCategoryId,
-} from "../../_data/products/products";
+import { useHomeSections } from "@/lib/mart-mock/hooks";
+
 import { Container } from "../common/container";
 
-const categoryEntries: {
-  id: ProductCategoryId;
-  imageSrc: string;
-}[] = [
-  {
-    id: "gadgets",
-    imageSrc: "/images/products/lamp/lamp-5.jpg",
-  },
-  {
-    id: "fashion",
-    imageSrc: "/images/products/baby-products/wedding-dress.jpeg",
-  },
-];
-
 export function CategoriesStripSection() {
+  const { categories } = useHomeSections();
+
   return (
     <section
       className="bg-[#f5f6f8] pb-6 sm:pb-8 dark:bg-background"
@@ -34,28 +21,30 @@ export function CategoriesStripSection() {
             id="home-categories-heading"
             className="mb-4 text-lg font-semibold tracking-tight text-neutral-950 sm:mb-5 sm:text-xl dark:text-white"
           >
-            ক্যাটাগরি
+            {categories.heading}
           </h2>
           <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            {categoryEntries.map((entry) => (
-              <li key={entry.id}>
+            {categories.tiles.map((tile) => (
+              <li key={tile.id}>
                 <Link
-                  href={productsHref({ category: entry.id })}
+                  href={tile.href || "/products"}
                   className="group relative flex min-h-32 overflow-hidden rounded-2xl sm:min-h-56"
                 >
-                  <Image
-                    src={entry.imageSrc}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 50vw, 50vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
+                  {tile.imageSrc ? (
+                    <Image
+                      src={tile.imageSrc}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 50vw, 50vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                  ) : null}
                   <span
                     aria-hidden
                     className="absolute inset-0 bg-linear-to-t from-black/75 via-black/25 to-black/10"
                   />
                   <span className="relative z-10 mt-auto px-3 py-3 text-sm font-semibold text-white sm:px-5 sm:py-5 sm:text-2xl">
-                    {categoryLabels[entry.id]}
+                    {tile.label}
                   </span>
                 </Link>
               </li>

@@ -1,13 +1,16 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
+import { productsForSlugs } from "@/lib/mart-mock/home-sections";
+import { useHomeSections } from "@/lib/mart-mock/hooks";
+
 import { ProductCard } from "../../products/_components/product-card";
 import {
-  categoryLabels,
   products,
   productsHref,
   type Product,
-  type ProductCategoryId,
 } from "../../_data/products/products";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
@@ -31,21 +34,6 @@ const brandProducts = [
   "galaxy-projector-humidifier",
   "custom-gorgeous-womens-gown",
 ].map(productBySlug);
-
-const categoryRows: { id: ProductCategoryId; slugs: string[] }[] = [
-  {
-    id: "gadgets",
-    slugs: products
-      .filter((item) => item.categoryId === "gadgets" && item.status === "available")
-      .map((item) => item.slug),
-  },
-  {
-    id: "fashion",
-    slugs: products
-      .filter((item) => item.categoryId === "fashion" && item.status === "available")
-      .map((item) => item.slug),
-  },
-];
 
 function ViewAll({ href }: { href: string }) {
   return (
@@ -100,19 +88,21 @@ export function BrandsSection() {
 }
 
 function CategoryProductRow({
-  id,
+  heading,
+  href,
   items,
 }: {
-  id: ProductCategoryId;
+  heading: string;
+  href: string;
   items: Product[];
 }) {
   return (
     <article className="rounded-2xl border border-neutral-200/90 bg-white px-3 py-4 sm:px-5 sm:py-5">
       <div className="mb-4 flex items-center justify-between gap-4">
         <h3 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
-          {categoryLabels[id]}
+          {heading}
         </h3>
-        <ViewAll href={productsHref({ category: id })} />
+        <ViewAll href={href} />
       </div>
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {items.map((product) => (
@@ -126,21 +116,26 @@ function CategoryProductRow({
 }
 
 export function CategoryShowcaseSection() {
+  const { showcase } = useHomeSections();
+
   return (
     <section
       className="bg-[#f5f6f8] pb-5 sm:pb-6 dark:bg-background"
       aria-label="ক্যাটাগরি অনুযায়ী প্রোডাক্ট"
     >
       <Container className="space-y-4 px-4 sm:px-6 lg:px-8">
-        {categoryRows
-          .filter((row) => row.slugs.length > 0)
-          .map((row) => (
+        {showcase.map((row) => {
+          const items = productsForSlugs(row.slugs);
+          if (items.length === 0) return null;
+          return (
             <CategoryProductRow
               key={row.id}
-              id={row.id}
-              items={row.slugs.map(productBySlug)}
+              heading={row.heading}
+              href={row.href}
+              items={items}
             />
-          ))}
+          );
+        })}
       </Container>
     </section>
   );
