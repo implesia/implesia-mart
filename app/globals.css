@@ -54,6 +54,15 @@
   --color-background: #f7faf7;
   --color-warm-gold: #f5b301;
 
+  /* Admin surfaces. Status hues stay paired with ORDER_STATUS_TONE in admin-ui. */
+  --color-admin-canvas: #f5f6f8;
+  --color-admin-surface: #ffffff;
+  --color-admin-subtle: #f7f8fa;
+  --color-admin-ink: #171717;
+  --color-admin-secondary: #525252;
+  --color-admin-muted: #737373;
+  --color-admin-line: #e5e5e5;
+
   --spacing-xl: 80px;
   --spacing-gutter: 24px;
   --spacing-margin: 32px;

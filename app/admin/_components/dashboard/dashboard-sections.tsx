@@ -7,19 +7,10 @@ import type {
   DashboardSeller,
   DashboardStatusSlice,
 } from "@/lib/mart-mock/dashboard";
-import { formatTaka, orderGrandTotal, type MockOrder, type OrderStatus } from "@/lib/mart-mock/store";
+import { formatTaka, orderGrandTotal, type MockOrder } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
-import { ADMIN_ORDER_STATUS_LABEL, OrderStatusBadge } from "../admin-ui";
-
-const STATUS_BAR: Record<OrderStatus, string> = {
-  new: "bg-primary",
-  confirmed: "bg-sky-600",
-  shipped: "bg-amber-500",
-  delivered: "bg-emerald-600",
-  cancelled: "bg-red-500",
-  returned: "bg-neutral-400",
-};
+import { ADMIN_ORDER_STATUS_LABEL, ORDER_STATUS_MARK, OrderStatusBadge } from "../admin-ui";
 
 export function OrderActivity({
   statuses,
@@ -45,7 +36,7 @@ export function OrderActivity({
               slice.count === 0 ? null : (
                 <span
                   key={slice.status}
-                  className={STATUS_BAR[slice.status]}
+                  className={ORDER_STATUS_MARK[slice.status]}
                   style={{ width: `${slice.share}%` }}
                 />
               ),
@@ -58,7 +49,7 @@ export function OrderActivity({
                   href={`/admin/orders?status=${slice.status}`}
                   className="flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
-                  <span className={cn("size-2 shrink-0 rounded-full", STATUS_BAR[slice.status])} aria-hidden />
+                  <span className={cn("size-2 shrink-0 rounded-full", ORDER_STATUS_MARK[slice.status])} aria-hidden />
                   <span className="min-w-0 flex-1 text-sm text-neutral-700">
                     {ADMIN_ORDER_STATUS_LABEL[slice.status]}
                   </span>
