@@ -18,11 +18,13 @@ import {
   DEFAULT_DELIVERY,
   MOCK_EVENT,
   effectiveStockStatus,
+  listAdminProducts,
   readBanners,
   readDeliveryCharges,
   readOrders,
   seedBanners,
   type AdminBanner,
+  type AdminProduct,
   type DeliveryCharges,
   type MockOrder,
   type StockStatus,
@@ -47,6 +49,18 @@ export function useOrders() {
   }, []);
 
   return orders;
+}
+
+export function useAdminProducts() {
+  const [products, setProducts] = useState<AdminProduct[] | null>(null);
+
+  useEffect(() => {
+    const sync = () => setProducts(listAdminProducts());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return products;
 }
 
 export function useBanners() {
