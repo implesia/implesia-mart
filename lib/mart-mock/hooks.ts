@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 import type { ProductStatus } from "@/app/(client)/_data/products/products";
 
 import {
+  readAboutSections,
+  seedAboutSections,
+  type AboutSections,
+} from "./about-sections";
+import {
   readHomeSections,
   seedHomeSections,
   type HomeSections,
@@ -68,6 +73,18 @@ export function useHomeSections() {
   return sections;
 }
 
+export function useAboutSections() {
+  const [sections, setSections] = useState<AboutSections>(seedAboutSections);
+
+  useEffect(() => {
+    const sync = () => setSections(readAboutSections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
+}
+
 export function useDeliveryCharges() {
   const [charges, setCharges] = useState<DeliveryCharges>(DEFAULT_DELIVERY);
 
@@ -80,7 +97,10 @@ export function useDeliveryCharges() {
   return charges;
 }
 
-export function useCatalogStockStatus(slug: string, fallback: ProductStatus): StockStatus {
+export function useCatalogStockStatus(
+  slug: string,
+  fallback: ProductStatus,
+): StockStatus {
   const [status, setStatus] = useState<StockStatus>(fallback);
 
   useEffect(() => {

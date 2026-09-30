@@ -1,14 +1,17 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
+import { isExternalHref } from "@/lib/mart-mock/about-sections";
+import { useAboutSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { aboutCopy } from "../../_data/about/about";
 
 export function BrandStory({ className }: { className?: string }) {
-  const { story } = aboutCopy;
+  const { story } = useAboutSections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -24,38 +27,55 @@ export function BrandStory({ className }: { className?: string }) {
             </h2>
 
             <div className="space-y-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
-              {story.paragraphs.map((p) => (
-                <p key={p}>{p}</p>
+              {story.paragraphs.map((paragraph) => (
+                <p key={paragraph.id}>{paragraph.text}</p>
               ))}
             </div>
 
             <div className="pt-1">
-              <Link
-                href={story.cta.href}
-                className={cn(
-                  "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold",
-                  "bg-primary text-on-primary transition-colors hover:bg-primary/80",
-                )}
-              >
-                {story.cta.label}
-                <MaterialIcon name="arrow_forward" className="text-[18px]" />
-              </Link>
+              {isExternalHref(story.cta.href) ? (
+                <a
+                  href={story.cta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold",
+                    "bg-primary text-on-primary transition-colors hover:bg-primary/80",
+                  )}
+                >
+                  {story.cta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </a>
+              ) : (
+                <Link
+                  href={story.cta.href || "/"}
+                  className={cn(
+                    "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold",
+                    "bg-primary text-on-primary transition-colors hover:bg-primary/80",
+                  )}
+                >
+                  {story.cta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </Link>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {story.images.map((image) => (
               <div
-                key={image.src}
+                key={image.id}
                 className="relative aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-4/5"
               >
-                <Image
-                  src={image.src}
-                  alt={image.alt}
-                  fill
-                  sizes="(max-width: 1024px) 45vw, 24vw"
-                  className="object-cover"
-                />
+                {image.src ? (
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    fill
+                    sizes="(max-width: 1024px) 45vw, 24vw"
+                    className="object-cover"
+                  />
+                ) : null}
               </div>
             ))}
           </div>

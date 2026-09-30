@@ -1,14 +1,17 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
+import { isExternalHref } from "@/lib/mart-mock/about-sections";
+import { useAboutSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { aboutCopy } from "../../_data/about/about";
 
 export function CustomDresses({ className }: { className?: string }) {
-  const { customDresses } = aboutCopy;
+  const { customDresses } = useAboutSections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -17,16 +20,18 @@ export function CustomDresses({ className }: { className?: string }) {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:col-span-7">
             {customDresses.gallery.map((image) => (
               <div
-                key={image.src}
+                key={image.id}
                 className="group relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white"
               >
-                <Image
-                  src={image.src}
-                  alt={image.alt}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                {image.src ? (
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : null}
               </div>
             ))}
           </div>
@@ -46,7 +51,7 @@ export function CustomDresses({ className }: { className?: string }) {
 
             <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
               {customDresses.features.map((feature) => (
-                <div key={feature.title} className="flex items-start gap-2.5">
+                <div key={feature.id} className="flex items-start gap-2.5">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <MaterialIcon name={feature.icon} className="text-[16px]" />
                   </span>
@@ -61,18 +66,31 @@ export function CustomDresses({ className }: { className?: string }) {
             </div>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-3">
-              <a
-                href={customDresses.primaryCta.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold",
-                  "bg-primary text-on-primary transition-colors hover:bg-primary/80",
-                )}
-              >
-                {customDresses.primaryCta.label}
-                <MaterialIcon name="arrow_forward" className="text-[18px]" />
-              </a>
+              {isExternalHref(customDresses.primaryCta.href) ? (
+                <a
+                  href={customDresses.primaryCta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold",
+                    "bg-primary text-on-primary transition-colors hover:bg-primary/80",
+                  )}
+                >
+                  {customDresses.primaryCta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </a>
+              ) : (
+                <Link
+                  href={customDresses.primaryCta.href || "/"}
+                  className={cn(
+                    "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold",
+                    "bg-primary text-on-primary transition-colors hover:bg-primary/80",
+                  )}
+                >
+                  {customDresses.primaryCta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </Link>
+              )}
               <Link
                 href={customDresses.secondaryCta.href}
                 className={cn(

@@ -1,11 +1,13 @@
+"use client";
+
+import { useAboutSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { aboutCopy } from "../../_data/about/about";
 
 export function TrustBadges({ className }: { className?: string }) {
-  const { values } = aboutCopy;
+  const { values } = useAboutSections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -23,7 +25,7 @@ export function TrustBadges({ className }: { className?: string }) {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {values.items.map((item) => (
             <div
-              key={item.title}
+              key={item.id}
               className="rounded-2xl border border-neutral-200/90 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5"
             >
               <span className="mx-auto mb-2.5 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">

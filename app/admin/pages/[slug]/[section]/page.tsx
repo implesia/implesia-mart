@@ -1,6 +1,12 @@
+import { Suspense } from "react";
+
 import { CmsNotFound } from "../../../_components/cms-hub";
 import { CmsSectionPage } from "../../../_components/cms-section";
 import { findCmsPage, findCmsSection, PAGE_CMS } from "../../../_config/cms";
+import {
+  AboutSectionFallback,
+  AboutSectionManager,
+} from "../../about/_components/section-manager";
 
 export default async function AdminCmsPageSection({
   params,
@@ -28,6 +34,14 @@ export default async function AdminCmsPageSection({
         href={page.href}
         back={`Back to ${page.label}`}
       />
+    );
+  }
+
+  if (slug === "about") {
+    return (
+      <Suspense fallback={<AboutSectionFallback />}>
+        <AboutSectionManager sectionId={section.id} />
+      </Suspense>
     );
   }
 

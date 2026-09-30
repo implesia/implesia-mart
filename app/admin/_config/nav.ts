@@ -158,7 +158,9 @@ export function isWideAdminPath(pathname: string) {
   if (pathname === "/admin") return true;
   if (
     pathname === "/admin/orders" ||
+    pathname.startsWith("/admin/orders/") ||
     pathname === "/admin/products" ||
+    pathname === "/admin/products/new" ||
     pathname === "/admin/delivery"
   ) {
     return true;

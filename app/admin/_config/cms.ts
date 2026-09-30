@@ -95,7 +95,7 @@ export const PAGE_CMS: CmsPage[] = [
     api: "cms/pages/about",
     description: "Brand story, stats, mission, and order steps.",
     sections: [
-      { id: "hero", label: "Hero", icon: "imagesmode", description: "Opening title, subtitle, and images.", fields: ["eyebrow", "title", "subtitle", "cta", "images"] },
+      { id: "hero", label: "Hero", icon: "imagesmode", description: "The banner at the top of the about page. Words on the left, two photos on the right.", fields: ["eyebrow", "title", "subtitle", "cta", "images"] },
       { id: "stats", label: "Stats", icon: "bar_chart", description: "Categories, districts, COD, and returns.", fields: ["items", "value", "label", "icon"] },
       { id: "story", label: "Story", icon: "menu_book", description: "Why Implesia Mart started.", fields: ["kicker", "title", "paragraphs", "cta", "images"] },
       { id: "custom-dresses", label: "Custom dresses", icon: "checkroom", description: "Dress block and gallery.", fields: ["title", "subtitle", "features", "gallery", "cta"] },

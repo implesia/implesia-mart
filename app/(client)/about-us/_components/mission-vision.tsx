@@ -1,12 +1,14 @@
+"use client";
+
+import { useAboutSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { aboutCopy } from "../../_data/about/about";
 
 export function MissionVision({ className }: { className?: string }) {
-  const { missionVision } = aboutCopy;
-  const cards = [missionVision.vision, missionVision.mission];
+  const { mission } = useAboutSections();
+  const cards = [mission.vision, mission.mission];
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>

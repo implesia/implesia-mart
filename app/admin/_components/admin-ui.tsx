@@ -38,7 +38,9 @@ export function AdminPageHeader({
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 text-sm leading-relaxed text-neutral-600">{description}</p>
+          <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+            {description}
+          </p>
         ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
@@ -54,13 +56,18 @@ export function AdminCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn("rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5", className)}>
+    <section
+      className={cn(
+        "rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5",
+        className,
+      )}
+    >
       {children}
     </section>
   );
 }
 
-const ORDER_TONE: Record<OrderStatus, string> = {
+export const ORDER_STATUS_TONE: Record<OrderStatus, string> = {
   new: "bg-primary/10 text-primary",
   confirmed: "bg-sky-50 text-sky-700",
   shipped: "bg-amber-50 text-amber-800",
@@ -69,7 +76,7 @@ const ORDER_TONE: Record<OrderStatus, string> = {
   returned: "bg-neutral-100 text-neutral-700",
 };
 
-const STOCK_TONE: Record<StockStatus, string> = {
+export const STOCK_STATUS_TONE: Record<StockStatus, string> = {
   available: "bg-emerald-50 text-emerald-700",
   "sold-out": "bg-red-50 text-red-600",
   "coming-soon": "bg-neutral-100 text-neutral-700",
@@ -77,7 +84,12 @@ const STOCK_TONE: Record<StockStatus, string> = {
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return (
-    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", ORDER_TONE[status])}>
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+        ORDER_STATUS_TONE[status],
+      )}
+    >
       {ADMIN_ORDER_STATUS_LABEL[status]}
     </span>
   );
@@ -85,7 +97,12 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 
 export function StockStatusBadge({ status }: { status: StockStatus }) {
   return (
-    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", STOCK_TONE[status])}>
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+        STOCK_STATUS_TONE[status],
+      )}
+    >
       {ADMIN_STOCK_STATUS_LABEL[status]}
     </span>
   );
@@ -102,7 +119,10 @@ export function FieldLabel({
   children: React.ReactNode;
 }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-neutral-700">
+    <label
+      htmlFor={htmlFor}
+      className="mb-1.5 block text-sm font-medium text-neutral-700"
+    >
       {children}
     </label>
   );
@@ -114,5 +134,7 @@ export function FieldError({ message }: { message?: string }) {
 }
 
 export function AdminLoading() {
-  return <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />;
+  return (
+    <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
+  );
 }

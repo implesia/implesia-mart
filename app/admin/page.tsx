@@ -3,37 +3,44 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { useOrders } from "@/lib/mart-mock/hooks";
 import {
   formatTaka,
   isSameLocalDay,
+  ORDER_STATUSES,
   orderGrandTotal,
   type MockOrder,
   type OrderStatus,
 } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
-import { ADMIN_ORDER_STATUS_LABEL, OrderStatusBadge } from "./_components/admin-ui";
+import {
+  ADMIN_ORDER_STATUS_LABEL,
+  OrderStatusBadge,
+} from "./_components/admin-ui";
 
-const FLOW = ["new", "confirmed", "shipped", "delivered"] as const;
-const SIDE = ["cancelled", "returned"] as const;
-
-const FLOW_HINT: Record<(typeof FLOW)[number], string> = {
-  new: "Needs confirmation",
-  confirmed: "Hand to courier",
-  shipped: "On the way",
-  delivered: "Delivered",
-};
+const RECENT_PAGE_SIZE = 6;
 
 export default function AdminDashboardPage() {
   const orders = useOrders();
+  const [recentPage, setRecentPage] = useState(0);
 
   if (!orders) return <DashboardSkeleton />;
 
   const sorted = [...orders].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
+  );
+  const recentPageCount = Math.max(
+    1,
+    Math.ceil(sorted.length / RECENT_PAGE_SIZE),
+  );
+  const recentIndex = Math.min(recentPage, recentPageCount - 1);
+  const recentOrders = sorted.slice(
+    recentIndex * RECENT_PAGE_SIZE,
+    recentIndex * RECENT_PAGE_SIZE + RECENT_PAGE_SIZE,
   );
   const waiting = sorted.filter((order) => order.status === "new");
   const todayNew = waiting.filter((order) => isSameLocalDay(order.createdAt));
@@ -58,46 +65,90 @@ export default function AdminDashboardPage() {
   } satisfies Record<OrderStatus, number>;
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
+      <section>
+        <p className="mb-2 text-right text-xs text-neutral-500">
+          {formatDashboardDate()}
+        </p>
+        <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+          <MetricCard
+            href="/admin/orders?status=new"
+            label="To confirm"
+            value={String(waiting.length)}
+            hint={waiting.length > 0 ? "Waiting on you" : "You’re caught up"}
+            icon="pending_actions"
+            tone={waiting.length > 0 ? "amber" : "neutral"}
+          />
+          <MetricCard
+            href="/admin/orders?status=new&day=today"
+            label="Arrived today"
+            value={String(todayNew.length)}
+            hint="New orders from today"
+            icon="inbox"
+            tone="teal"
+          />
+          <MetricCard
+            href="/admin/orders?day=today"
+            label="Today’s sales"
+            value={formatTaka(todaySales)}
+            hint="Cancelled and returned left out"
+            icon="payments"
+            tone="emerald"
+          />
+          <MetricCard
+            href="/admin/orders?lane=transit"
+            label="In transit"
+            value={String(onTheWay.length)}
+            hint={`${counts.confirmed} confirmed, ${counts.shipped} shipped`}
+            icon="local_shipping"
+            tone="sky"
+          />
+        </div>
+      </section>
+
+      <nav
+        aria-label="Order status"
+        className="flex min-w-0 gap-1.5 overflow-x-auto"
+      >
+        {ORDER_STATUSES.map((status) => (
+          <Link
+            key={status}
+            href={`/admin/orders?status=${status}`}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-neutral-200/90 transition-colors hover:bg-neutral-50 hover:ring-neutral-300",
+              status === "new" && counts.new > 0 && "ring-amber-300",
+            )}
+          >
+            <span className="text-neutral-700">
+              {ADMIN_ORDER_STATUS_LABEL[status]}
+            </span>
+            <span className="font-semibold tabular-nums text-neutral-950">
+              {counts[status]}
+            </span>
+          </Link>
+        ))}
+      </nav>
+
       <section
         className={cn(
           "overflow-hidden rounded-2xl bg-white ring-1",
           waiting.length > 0 ? "ring-amber-200" : "ring-neutral-200/90",
         )}
       >
-        <div className="flex flex-col gap-2 border-b border-neutral-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span
-              className={cn(
-                "grid size-10 shrink-0 place-items-center rounded-xl",
-                waiting.length > 0
-                  ? "bg-amber-50 text-amber-700"
-                  : "bg-emerald-50 text-emerald-700",
-              )}
+        <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-2.5">
+          <h2 className="text-sm font-semibold text-neutral-950">To confirm</h2>
+          {waiting.length > 0 ? (
+            <Link
+              href="/admin/orders?status=new"
+              className="text-sm font-medium text-primary"
             >
-              <MaterialIcon
-                name={waiting.length > 0 ? "priority_high" : "check_circle"}
-                className="text-[22px]"
-              />
-            </span>
-            <div>
-              <h2 className="text-base font-semibold text-neutral-950">
-                {waiting.length > 0
-                  ? `${waiting.length} ${waiting.length === 1 ? "order" : "orders"} still unconfirmed`
-                  : "Nothing left to confirm"}
-              </h2>
-              <p className="mt-0.5 text-sm text-neutral-500">
-                {waiting.length > 0
-                  ? "Open one to change the name, address, and status. Today’s new orders come first."
-                  : "New orders show up here."}
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-neutral-500">{formatDashboardDate()}</p>
+              All new
+            </Link>
+          ) : null}
         </div>
         {waiting.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-neutral-500">
-            No orders in the new status right now.
+          <p className="px-4 py-6 text-sm text-neutral-500">
+            Nothing to confirm.
           </p>
         ) : (
           <ul>
@@ -123,176 +174,89 @@ export default function AdminDashboardPage() {
         ) : null}
       </section>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <MetricCard
-          href="/admin/orders?status=new"
-          label="Arrived today"
-          value={String(todayNew.length)}
-          hint="New today, still unconfirmed"
-          icon="inbox"
-          tone="teal"
-        />
-        <MetricCard
-          href="/admin/orders"
-          label="Today’s sales"
-          value={formatTaka(todaySales)}
-          hint="Cancelled and returned orders excluded"
-          icon="payments"
-          tone="emerald"
-        />
-        <MetricCard
-          href="/admin/orders"
-          label="On the way"
-          value={String(onTheWay.length)}
-          hint="Confirmed or shipped"
-          icon="local_shipping"
-          tone="sky"
-        />
-      </div>
-
-      <section className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200/90 sm:p-4">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-semibold text-neutral-950">
-              How an order moves
-            </h2>
-            <p className="mt-0.5 text-xs text-neutral-500">
-              Open a step to see only that status.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {SIDE.map((status) => (
-              <Link
-                key={status}
-                href={`/admin/orders?status=${status}`}
-                className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-200"
-              >
-                {ADMIN_ORDER_STATUS_LABEL[status]} {counts[status]}
-              </Link>
-            ))}
-          </div>
+      <section className="min-w-0 overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
+        <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-2.5">
+          <h2 className="text-sm font-semibold text-neutral-950">Recent</h2>
+          <Link
+            href="/admin/orders"
+            className="text-sm font-medium text-primary"
+          >
+            All orders
+          </Link>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {FLOW.map((status, index) => (
-            <Link
-              key={status}
-              href={`/admin/orders?status=${status}`}
-              className="group rounded-xl bg-[#f7f8fa] px-3 py-2.5 transition-colors hover:bg-primary/10"
-            >
-              <span className="text-xs text-neutral-500">
-                {index + 1}. {FLOW_HINT[status]}
-              </span>
-              <span className="mt-0.5 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-neutral-950">
-                  {ADMIN_ORDER_STATUS_LABEL[status]}
-                </span>
-                <span className="text-lg font-semibold tabular-nums text-neutral-950 group-hover:text-primary">
-                  {counts[status]}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
+        {sorted.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-neutral-500">
+            No orders yet.
+          </p>
+        ) : (
+          <>
+            <ul className="flex flex-col lg:hidden">
+              {recentOrders.map((order) => (
+                <li
+                  key={order.number}
+                  className="border-b border-neutral-100 last:border-b-0"
+                >
+                  <OrderSummary order={order} />
+                </li>
+              ))}
+            </ul>
+            <div className="hidden lg:block">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[#f7f8fa] text-xs text-neutral-500">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">Order</th>
+                    <th className="px-4 py-2 font-medium">Customer</th>
+                    <th className="px-4 py-2 font-medium">Phone</th>
+                    <th className="px-4 py-2 font-medium">Total</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="w-10 px-3 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentOrders.map((order) => (
+                    <OrderTableRow key={order.number} order={order} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <RecentPager
+              page={recentIndex}
+              pageCount={recentPageCount}
+              total={sorted.length}
+              onPage={setRecentPage}
+            />
+          </>
+        )}
       </section>
 
-      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_16.5rem]">
-        <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
-          <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-2.5">
-            <div>
-              <h2 className="text-sm font-semibold text-neutral-950">
-                Latest orders
-              </h2>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                Open a row for the full order.
-              </p>
-            </div>
-            <Link
-              href="/admin/orders"
-              className="text-sm font-medium text-primary"
-            >
-              All orders
-            </Link>
-          </div>
-          {sorted.length === 0 ? (
-            <p className="px-5 py-10 text-center text-sm text-neutral-500">
-              No orders yet.
-            </p>
-          ) : (
-            <>
-              <ul className="flex flex-col lg:hidden">
-                {sorted.slice(0, 6).map((order) => (
-                  <li
-                    key={order.number}
-                    className="border-b border-neutral-100 last:border-b-0"
-                  >
-                    <OrderSummary order={order} />
-                  </li>
-                ))}
-              </ul>
-              <div className="hidden lg:block">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-[#f7f8fa] text-xs text-neutral-500">
-                    <tr>
-                      <th className="px-4 py-2 font-medium">Order</th>
-                      <th className="px-4 py-2 font-medium">Customer</th>
-                      <th className="px-4 py-2 font-medium">Phone</th>
-                      <th className="px-4 py-2 font-medium">Total</th>
-                      <th className="px-4 py-2 font-medium">Status</th>
-                      <th className="w-10 px-3 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sorted.slice(0, 6).map((order) => (
-                      <OrderTableRow key={order.number} order={order} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </section>
-
-        <section className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200/90">
-          <h2 className="px-2 text-sm font-semibold text-neutral-950">
-            Also here
-          </h2>
-          <p className="mt-0.5 px-2 text-xs text-neutral-500">
-            Store, home sections, and site copy.
-          </p>
-          <div className="mt-1 flex flex-col">
-            <Shortcut
-              href="/admin/products"
-              icon="inventory_2"
-              title="Products"
-              text="Price, stock, and publishing"
-            />
-            <Shortcut
-              href="/admin/home/hero"
-              icon="view_carousel"
-              title="Home hero"
-              text="Slide copy and images"
-            />
-            <Shortcut
-              href="/admin/pages/about"
-              icon="domain"
-              title="Page CMS"
-              text="About through privacy — each section separate"
-            />
-            <Shortcut
-              href="/admin/site/header"
-              icon="web"
-              title="Header and footer"
-              text="Menu and columns on every page"
-            />
-            <Shortcut
-              href="/admin/delivery"
-              icon="local_shipping"
-              title="Delivery charges"
-              text="Inside and outside Dhaka"
-            />
-          </div>
-        </section>
-      </div>
+      <section>
+        <h2 className="mb-2 text-sm font-semibold text-neutral-950">
+          Shortcuts
+        </h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          <Shortcut
+            href="/admin/products"
+            icon="inventory_2"
+            title="Products"
+          />
+          <Shortcut
+            href="/admin/home/hero"
+            icon="view_carousel"
+            title="Home hero"
+          />
+          <Shortcut href="/admin/pages/about" icon="domain" title="Pages" />
+          <Shortcut
+            href="/admin/site/header"
+            icon="web"
+            title="Header and footer"
+          />
+          <Shortcut
+            href="/admin/delivery"
+            icon="local_shipping"
+            title="Delivery"
+          />
+        </div>
+      </section>
     </div>
   );
 }
@@ -307,23 +271,25 @@ function WaitingRow({ order, fresh }: { order: MockOrder; fresh: boolean }) {
       <ProductThumb item={item} />
       <span className="min-w-0">
         <span className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-neutral-950">{order.number}</span>
+          <span className="text-sm font-semibold text-neutral-950">
+            {order.number}
+          </span>
           {fresh ? (
             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
               Today
             </span>
-          ) : (
-            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
-              Earlier
-            </span>
-          )}
+          ) : null}
         </span>
         <span className="mt-0.5 block truncate text-xs text-neutral-500 lg:hidden">
           {order.customerName} · {formatTaka(orderGrandTotal(order))}
         </span>
       </span>
-      <span className="hidden truncate text-sm text-neutral-800 lg:block">{order.customerName}</span>
-      <span className="hidden truncate text-sm text-neutral-500 lg:block">{item ? item.title : "—"}</span>
+      <span className="hidden truncate text-sm text-neutral-800 lg:block">
+        {order.customerName}
+      </span>
+      <span className="hidden truncate text-sm text-neutral-500 lg:block">
+        {item ? item.title : "—"}
+      </span>
       <span className="hidden text-right text-sm font-semibold tabular-nums text-neutral-950 lg:block">
         {formatTaka(orderGrandTotal(order))}
       </span>
@@ -347,36 +313,40 @@ function MetricCard({
   value: string;
   hint: string;
   icon: string;
-  tone: "teal" | "emerald" | "sky";
+  tone: "teal" | "amber" | "emerald" | "sky" | "neutral";
 }) {
   const toneClass = {
     teal: "bg-primary/10 text-primary",
+    amber: "bg-amber-50 text-amber-700",
     emerald: "bg-emerald-50 text-emerald-700",
     sky: "bg-sky-50 text-sky-700",
+    neutral: "bg-neutral-100 text-neutral-600",
   }[tone];
 
   return (
     <Link
       href={href}
-      className="group flex items-center justify-between gap-3 rounded-2xl bg-white px-3.5 py-3 ring-1 ring-neutral-200/90 transition-colors hover:bg-neutral-50 hover:ring-neutral-300"
+      className="group flex flex-col rounded-2xl bg-white px-3.5 py-3.5 ring-1 ring-neutral-200/90 transition duration-150 hover:-translate-y-px hover:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.45)] hover:ring-neutral-300"
     >
-      <span className="min-w-0">
-        <span className="block text-xs text-neutral-500">{label}</span>
-        <span className="mt-0.5 block text-2xl font-semibold tracking-tight tabular-nums text-neutral-950">
-          {value}
+      <span className="flex items-center justify-between gap-2">
+        <span
+          className={cn(
+            "grid size-8 shrink-0 place-items-center rounded-lg",
+            toneClass,
+          )}
+        >
+          <MaterialIcon name={icon} className="text-[18px]" />
         </span>
-        <span className="mt-0.5 block truncate text-xs text-neutral-400 group-hover:text-neutral-600">
-          {hint}
-        </span>
+        <MaterialIcon
+          name="arrow_outward"
+          className="text-[18px] text-neutral-300 transition group-hover:text-primary"
+        />
       </span>
-      <span
-        className={cn(
-          "grid size-9 shrink-0 place-items-center rounded-xl",
-          toneClass,
-        )}
-      >
-        <MaterialIcon name={icon} className="text-[20px]" />
+      <span className="mt-3 text-sm text-neutral-600">{label}</span>
+      <span className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-neutral-950">
+        {value}
       </span>
+      <span className="mt-1 text-xs leading-4 text-neutral-500">{hint}</span>
     </Link>
   );
 }
@@ -385,31 +355,22 @@ function Shortcut({
   href,
   icon,
   title,
-  text,
 }: {
   href: string;
   icon: string;
   title: string;
-  text: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-neutral-50"
+      className="flex items-center gap-2.5 rounded-2xl bg-white px-3 py-2.5 ring-1 ring-neutral-200/90 transition-colors hover:bg-neutral-50 hover:ring-neutral-300"
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#f7f8fa] text-neutral-700">
-        <MaterialIcon name={icon} className="text-[20px]" />
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#f7f8fa] text-neutral-700">
+        <MaterialIcon name={icon} className="text-[18px]" />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-neutral-950">
-          {title}
-        </span>
-        <span className="block truncate text-xs text-neutral-500">{text}</span>
+      <span className="min-w-0 text-sm font-semibold text-neutral-950">
+        {title}
       </span>
-      <MaterialIcon
-        name="chevron_right"
-        className="text-[20px] text-neutral-300"
-      />
     </Link>
   );
 }
@@ -505,18 +466,79 @@ function ProductThumb({ item }: { item?: MockOrder["items"][number] }) {
   );
 }
 
+function RecentPager({
+  page,
+  pageCount,
+  total,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  onPage: (page: number) => void;
+}) {
+  if (total <= RECENT_PAGE_SIZE) return null;
+  const start = page * RECENT_PAGE_SIZE + 1;
+  const end = Math.min(total, (page + 1) * RECENT_PAGE_SIZE);
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-neutral-100 px-4 py-2">
+      <p className="text-xs text-neutral-500">
+        {start}–{end} of {total}
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-label="Previous page"
+          disabled={page === 0}
+          onClick={() => onPage(page - 1)}
+          className="grid size-8 place-items-center rounded-full text-neutral-600 hover:bg-neutral-100 disabled:text-neutral-300"
+        >
+          <MaterialIcon name="chevron_left" className="text-[20px]" />
+        </button>
+        {Array.from({ length: pageCount }, (_, index) => (
+          <button
+            key={index}
+            type="button"
+            aria-label={`Page ${index + 1}`}
+            aria-current={index === page ? "page" : undefined}
+            onClick={() => onPage(index)}
+            className={cn(
+              "grid size-8 place-items-center rounded-full text-sm font-medium",
+              index === page
+                ? "bg-neutral-950 text-white"
+                : "text-neutral-600 hover:bg-neutral-100",
+            )}
+          >
+            {index + 1}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-label="Next page"
+          disabled={page >= pageCount - 1}
+          onClick={() => onPage(page + 1)}
+          className="grid size-8 place-items-center rounded-full text-neutral-600 hover:bg-neutral-100 disabled:text-neutral-300"
+        >
+          <MaterialIcon name="chevron_right" className="text-[20px]" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-3">
-      <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
           <div
             key={index}
             className="h-28 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90"
           />
         ))}
       </div>
+      <div className="h-36 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
       <div className="h-36 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
     </div>
   );

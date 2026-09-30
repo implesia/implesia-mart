@@ -107,8 +107,13 @@ function NavLink({
           : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950",
       )}
     >
-      <MaterialIcon name={item.icon} className={nested ? "text-[18px]" : "text-[20px]"} />
-      <span className={cn("truncate", collapsed && "sr-only")}>{item.label}</span>
+      <MaterialIcon
+        name={item.icon}
+        className={nested ? "text-[18px]" : "text-[20px]"}
+      />
+      <span className={cn("truncate", collapsed && "sr-only")}>
+        {item.label}
+      </span>
     </Link>
   );
 }
@@ -171,7 +176,9 @@ function NavBranch({
           type="button"
           onClick={onToggle}
           aria-expanded={open}
-          aria-label={open ? `Hide ${item.label} sections` : `Show ${item.label} sections`}
+          aria-label={
+            open ? `Hide ${item.label} sections` : `Show ${item.label} sections`
+          }
           className="mr-1 grid size-8 shrink-0 place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
         >
           <MaterialIcon
@@ -222,10 +229,11 @@ function SidebarNav({
   const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
     openMapForPath(pathname),
   );
-
-  useEffect(() => {
+  const [openForPath, setOpenForPath] = useState(pathname);
+  if (pathname !== openForPath) {
+    setOpenForPath(pathname);
     setOpenMap((prev) => ({ ...prev, ...openMapForPath(pathname) }));
-  }, [pathname]);
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -272,7 +280,9 @@ function SidebarNav({
                 {group.title}
               </p>
             )}
-            <div className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}>
+            <div
+              className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}
+            >
               {group.items.map((item) => (
                 <NavBranch
                   key={item.href}

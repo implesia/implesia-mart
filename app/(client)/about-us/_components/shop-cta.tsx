@@ -1,13 +1,16 @@
+"use client";
+
 import Link from "next/link";
 
+import { isExternalHref } from "@/lib/mart-mock/about-sections";
+import { useAboutSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { aboutCopy } from "../../_data/about/about";
 
 export function ShopCta({ className }: { className?: string }) {
-  const { shopCta } = aboutCopy;
+  const { cta } = useAboutSections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -25,24 +28,49 @@ export function ShopCta({ className }: { className?: string }) {
 
           <div className="relative z-10 mx-auto max-w-lg">
             <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-white sm:text-2xl">
-              {shopCta.title}
+              {cta.title}
             </h2>
-            <p className="mb-6 text-sm leading-relaxed text-white/70">{shopCta.subtitle}</p>
+            <p className="mb-6 text-sm leading-relaxed text-white/70">
+              {cta.subtitle}
+            </p>
 
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
-              <Link
-                href={shopCta.primaryCta.href}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-              >
-                {shopCta.primaryCta.label}
-                <MaterialIcon name="arrow_forward" className="text-[18px]" />
-              </Link>
-              <Link
-                href={shopCta.secondaryCta.href}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-              >
-                {shopCta.secondaryCta.label}
-              </Link>
+              {isExternalHref(cta.primaryCta.href) ? (
+                <a
+                  href={cta.primaryCta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                >
+                  {cta.primaryCta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </a>
+              ) : (
+                <Link
+                  href={cta.primaryCta.href || "/"}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                >
+                  {cta.primaryCta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </Link>
+              )}
+              {isExternalHref(cta.secondaryCta.href) ? (
+                <a
+                  href={cta.secondaryCta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  {cta.secondaryCta.label}
+                </a>
+              ) : (
+                <Link
+                  href={cta.secondaryCta.href || "/"}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  {cta.secondaryCta.label}
+                </Link>
+              )}
             </div>
           </div>
         </div>

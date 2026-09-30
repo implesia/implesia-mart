@@ -14,10 +14,12 @@ export function ImageField({
   value,
   onChange,
   label = "Image",
+  compact = false,
 }: {
   value: string;
   onChange: (src: string) => void;
   label?: string;
+  compact?: boolean;
 }) {
   const inputId = useId();
   const [dragging, setDragging] = useState(false);
@@ -52,7 +54,7 @@ export function ImageField({
 
   return (
     <div>
-      <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+      {label ? <FieldLabel htmlFor={inputId}>{label}</FieldLabel> : null}
       <div
         onDragEnter={(event) => {
           event.preventDefault();
@@ -77,7 +79,7 @@ export function ImageField({
           dragging && "ring-2 ring-primary",
         )}
       >
-        <div className="relative aspect-video bg-[#071820]">
+        <div className={cn("relative bg-[#071820]", compact ? "aspect-square" : "aspect-video")}>
           {value ? (
             <Image src={value} alt="" fill sizes="640px" className="object-contain p-3" />
           ) : (
