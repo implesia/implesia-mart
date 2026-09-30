@@ -96,8 +96,8 @@ export const adminButtonClass = {
 } as const;
 
 export const STOCK_STATUS_TONE: Record<StockStatus, string> = {
-  available: "bg-emerald-50 text-emerald-700",
-  "sold-out": "bg-red-50 text-red-600",
+  available: "bg-emerald-50 text-emerald-800",
+  "sold-out": "bg-red-50 text-red-700",
   "coming-soon": "bg-neutral-100 text-neutral-700",
 };
 

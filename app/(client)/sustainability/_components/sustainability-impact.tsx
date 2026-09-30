@@ -1,11 +1,13 @@
+"use client";
+
+import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { sustainabilityCopy } from "../../_data/sustainability/sustainability";
 
 export function SustainabilityImpact({ className }: { className?: string }) {
-  const { impact } = sustainabilityCopy;
+  const { impact } = useSustainabilitySections();
 
   return (
     <section
@@ -13,10 +15,15 @@ export function SustainabilityImpact({ className }: { className?: string }) {
       aria-label={impact.title}
     >
       <Container className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto mb-4 max-w-2xl text-center">
+          <p className="mb-2 text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">{impact.kicker}</p>
+          <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">{impact.title}</h2>
+          <p className="text-sm leading-relaxed text-neutral-600">{impact.subtitle}</p>
+        </div>
         <ul className="grid grid-cols-2 divide-x divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:grid-cols-4 lg:divide-y-0">
           {impact.stats.map((stat) => (
             <li
-              key={stat.label}
+              key={stat.id}
               className="flex flex-col items-center justify-center gap-1 px-3 py-3.5 text-center sm:flex-row sm:gap-2.5 sm:px-4 sm:py-4 sm:text-left"
             >
               <MaterialIcon

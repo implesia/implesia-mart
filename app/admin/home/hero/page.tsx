@@ -16,7 +16,8 @@ import {
 } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
-import { AdminLoading, AdminPageHeader } from "../../_components/admin-ui";
+import { adminButtonClass, AdminLoading } from "../../_components/admin-ui";
+import { HomeCmsHeader } from "../_components/home-cms-header";
 
 type PublishFilter = "all" | "live" | "off";
 
@@ -65,28 +66,16 @@ function HeroSlidesView() {
 
   return (
     <div>
-      <AdminPageHeader
-        title="Hero slides"
+      <HomeCmsHeader
+        title="Hero"
         description="The carousel at the top of the home page. Visitors see published slides in this order, starting with the first one."
-        action={
-          <div className="flex items-center gap-2">
-            <a
-              href="/"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-neutral-600 ring-1 ring-neutral-200 hover:bg-white hover:text-neutral-950"
-            >
-              View on site
-              <MaterialIcon name="open_in_new" className="text-[16px]" />
-            </a>
-            <Link
-              href="/admin/home/hero/new"
-              className="inline-flex h-10 items-center gap-1 rounded-full bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/80"
-            >
-              <MaterialIcon name="add" className="text-[18px]" />
-              New slide
-            </Link>
-          </div>
+        sectionId="hero"
+        autosave
+        extra={
+          <Link href="/admin/home/hero/new" className={adminButtonClass.primary}>
+            <MaterialIcon name="add" className="text-[18px]" />
+            New slide
+          </Link>
         }
       />
 
@@ -250,7 +239,7 @@ function SlideRow({
             </button>
           </div>
         ) : (
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 flex-wrap items-center gap-1">
             <button
               type="button"
               onClick={() => saveBanner({ ...banner, published: !banner.published })}

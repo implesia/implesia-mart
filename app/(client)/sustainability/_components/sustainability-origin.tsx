@@ -1,12 +1,14 @@
+"use client";
+
 import Image from "next/image";
 
+import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
-import { sustainabilityCopy } from "../../_data/sustainability/sustainability";
 
 export function SustainabilityOrigin({ className }: { className?: string }) {
-  const { origin } = sustainabilityCopy;
+  const { origin } = useSustainabilitySections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -33,7 +35,7 @@ export function SustainabilityOrigin({ className }: { className?: string }) {
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {origin.images.map((image) => (
               <div
-                key={image.src}
+                key={image.id}
                 className="relative aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-4/5"
               >
                 <Image

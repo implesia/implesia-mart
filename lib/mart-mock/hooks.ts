@@ -15,6 +15,11 @@ import {
   type HomeSections,
 } from "./home-sections";
 import {
+  readSustainabilitySections,
+  seedSustainabilitySections,
+  type SustainabilitySections,
+} from "./sustainability-sections";
+import {
   DEFAULT_DELIVERY,
   MOCK_EVENT,
   effectiveStockStatus,
@@ -92,6 +97,18 @@ export function useAboutSections() {
 
   useEffect(() => {
     const sync = () => setSections(readAboutSections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
+}
+
+export function useSustainabilitySections() {
+  const [sections, setSections] = useState<SustainabilitySections>(seedSustainabilitySections);
+
+  useEffect(() => {
+    const sync = () => setSections(readSustainabilitySections());
     sync();
     return subscribe(sync);
   }, []);

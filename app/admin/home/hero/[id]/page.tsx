@@ -20,9 +20,11 @@ import { ImageField } from "../../../_components/image-field";
 import {
   AdminLoading,
   AdminPageHeader,
+  adminButtonClass,
   adminFieldClass,
   FieldLabel,
 } from "../../../_components/admin-ui";
+import { HomeCmsHeader } from "../../_components/home-cms-header";
 
 const ACCENTS: { id: HeroAccent; label: string; swatch: string; banner: string }[] = [
   { id: "gold", label: "Gold", swatch: "bg-[#c4a35a]", banner: "bg-[linear-gradient(100deg,#1c1408_0%,#0c0d12_42%,#05060a_100%)]" },
@@ -71,18 +73,16 @@ export default function EditHomeHeroSlidePage() {
 
   return (
     <form onSubmit={save}>
-      <AdminPageHeader
+      <HomeCmsHeader
         title={creating ? "New slide" : "Edit slide"}
         description={
           creating
             ? "Write the slide, then save it. Turn on Live if it should appear on the home page."
             : "Changes show on the home page when this slide is live."
         }
-        action={
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-white hover:bg-primary/80"
-          >
+        sectionId="hero"
+        extra={
+          <button type="submit" className={adminButtonClass.primary}>
             {creating ? "Create slide" : "Save"}
           </button>
         }

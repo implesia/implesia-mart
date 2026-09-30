@@ -34,10 +34,5 @@ export default function EditProductPage() {
     );
   }
 
-  return (
-    <>
-      <AdminPageHeader title="Edit product" description={product.title} />
-      <ProductForm key={product.slug} product={product} />
-    </>
-  );
+  return <ProductForm key={product.slug} product={product} />;
 }

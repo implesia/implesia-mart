@@ -15,16 +15,21 @@ export function ImageField({
   onChange,
   label = "Image",
   compact = false,
+  confirmRemove = false,
+  onBusy,
 }: {
   value: string;
   onChange: (src: string) => void;
   label?: string;
   compact?: boolean;
+  confirmRemove?: boolean;
+  onBusy?: (busy: boolean) => void;
 }) {
   const inputId = useId();
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   async function upload(file: File | undefined) {
     if (!file) return;
@@ -33,7 +38,9 @@ export function ImageField({
       return;
     }
     setError("");
+    setConfirmingRemove(false);
     setUploading(true);
+    onBusy?.(true);
     try {
       const body = new FormData();
       body.set("file", file);
@@ -49,6 +56,7 @@ export function ImageField({
     } finally {
       setUploading(false);
       setDragging(false);
+      onBusy?.(false);
     }
   }
 
@@ -120,13 +128,41 @@ export function ImageField({
             />
           </label>
           {value ? (
-            <button
-              type="button"
-              onClick={() => onChange("")}
-              className="h-9 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
-            >
-              Remove
-            </button>
+            confirmingRemove ? (
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange("");
+                    setConfirmingRemove(false);
+                  }}
+                  className="h-9 rounded-full px-3 text-xs font-semibold text-red-700 hover:bg-red-50"
+                >
+                  Remove image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingRemove(false)}
+                  className="h-9 rounded-full px-3 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+                >
+                  Keep
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmRemove) {
+                    setConfirmingRemove(true);
+                    return;
+                  }
+                  onChange("");
+                }}
+                className="h-9 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
+              >
+                Remove
+              </button>
+            )
           ) : (
             <p className="text-xs text-neutral-500">JPG, PNG, WEBP, GIF, or AVIF. Up to 5 MB.</p>
           )}

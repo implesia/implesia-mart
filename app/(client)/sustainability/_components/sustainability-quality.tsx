@@ -1,13 +1,15 @@
+"use client";
+
 import Image from "next/image";
 
+import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { sustainabilityCopy } from "../../_data/sustainability/sustainability";
 
 export function SustainabilityQuality({ className }: { className?: string }) {
-  const { quality } = sustainabilityCopy;
+  const { quality } = useSustainabilitySections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -15,8 +17,8 @@ export function SustainabilityQuality({ className }: { className?: string }) {
         <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-10">
           <div className="order-2 lg:order-1 relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-[5/4] lg:aspect-4/5">
             <Image
-              src={quality.imageSrc}
-              alt={quality.imageAlt}
+              src={quality.image.src}
+              alt={quality.image.alt}
               fill
               sizes="(max-width: 1024px) 92vw, 42vw"
               className="object-cover"
@@ -33,11 +35,11 @@ export function SustainabilityQuality({ className }: { className?: string }) {
 
             <ol className="mt-5 space-y-3">
               {quality.steps.map((step, index) => (
-                <li key={step} className="flex items-start gap-3">
+                <li key={step.id} className="flex items-start gap-3">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                     {index + 1}
                   </span>
-                  <p className="pt-0.5 text-sm leading-relaxed text-neutral-700">{step}</p>
+                  <p className="pt-0.5 text-sm leading-relaxed text-neutral-700">{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -45,7 +47,7 @@ export function SustainabilityQuality({ className }: { className?: string }) {
             <div className="mt-5 flex flex-wrap gap-2">
               {quality.badges.map((badge) => (
                 <span
-                  key={badge.label}
+                  key={badge.id}
                   className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"
                 >
                   <MaterialIcon name={badge.icon} className="text-[16px] text-primary" />

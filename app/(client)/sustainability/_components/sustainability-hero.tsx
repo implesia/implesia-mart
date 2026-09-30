@@ -3,14 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { sustainabilityCopy } from "../../_data/sustainability/sustainability";
 
 export function SustainabilityHero({ className }: { className?: string }) {
-  const { hero } = sustainabilityCopy;
+  const { hero } = useSustainabilitySections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
@@ -60,8 +60,8 @@ export function SustainabilityHero({ className }: { className?: string }) {
           <div className="relative grid grid-cols-2 gap-2 p-4 sm:gap-3 sm:p-6 lg:col-span-5 lg:p-7">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
               <Image
-                src={hero.imageSrc}
-                alt={hero.imageAlt}
+                src={hero.primaryImage.src}
+                alt={hero.primaryImage.alt}
                 fill
                 priority
                 sizes="(max-width: 1024px) 45vw, 22vw"
@@ -70,8 +70,8 @@ export function SustainabilityHero({ className }: { className?: string }) {
             </div>
             <div className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
               <Image
-                src={hero.secondaryImageSrc}
-                alt={hero.secondaryImageAlt}
+                src={hero.secondaryImage.src}
+                alt={hero.secondaryImage.alt}
                 fill
                 sizes="(max-width: 1024px) 45vw, 22vw"
                 className="object-cover"

@@ -7,6 +7,10 @@ import {
   AboutSectionFallback,
   AboutSectionManager,
 } from "../../about/_components/section-manager";
+import {
+  SustainabilitySectionFallback,
+  SustainabilitySectionManager,
+} from "../../sustainability/_components/section-manager";
 
 export default async function AdminCmsPageSection({
   params,
@@ -41,6 +45,14 @@ export default async function AdminCmsPageSection({
     return (
       <Suspense fallback={<AboutSectionFallback />}>
         <AboutSectionManager sectionId={section.id} />
+      </Suspense>
+    );
+  }
+
+  if (slug === "sustainability") {
+    return (
+      <Suspense fallback={<SustainabilitySectionFallback />}>
+        <SustainabilitySectionManager sectionId={section.id} />
       </Suspense>
     );
   }

@@ -1,13 +1,15 @@
+"use client";
+
 import Link from "next/link";
 
+import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { sustainabilityCopy } from "../../_data/sustainability/sustainability";
 
 export function SustainabilityCta({ className }: { className?: string }) {
-  const { cta } = sustainabilityCopy;
+  const { cta } = useSustainabilitySections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>

@@ -1,13 +1,15 @@
+"use client";
+
 import Image from "next/image";
 
+import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { sustainabilityCopy } from "../../_data/sustainability/sustainability";
 
 export function SustainabilityDurability({ className }: { className?: string }) {
-  const { durability } = sustainabilityCopy;
+  const { durability } = useSustainabilitySections();
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -33,12 +35,12 @@ export function SustainabilityDurability({ className }: { className?: string }) 
 
             <ul className="mt-5 space-y-2.5">
               {durability.bullets.map((bullet) => (
-                <li key={bullet} className="flex items-start gap-2.5 text-sm text-white/85">
+                <li key={bullet.id} className="flex items-start gap-2.5 text-sm text-white/85">
                   <MaterialIcon
                     name="check_circle"
                     className="mt-0.5 shrink-0 text-[18px] text-primary"
                   />
-                  <span>{bullet}</span>
+                  <span>{bullet.text}</span>
                 </li>
               ))}
             </ul>
@@ -46,8 +48,8 @@ export function SustainabilityDurability({ className }: { className?: string }) 
 
           <div className="relative aspect-[4/3] min-h-[220px] lg:aspect-auto lg:min-h-0">
             <Image
-              src={durability.imageSrc}
-              alt={durability.imageAlt}
+              src={durability.image.src}
+              alt={durability.image.alt}
               fill
               sizes="(max-width: 1024px) 92vw, 46vw"
               className="object-cover"
