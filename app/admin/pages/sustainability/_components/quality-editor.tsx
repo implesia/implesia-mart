@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -12,214 +12,120 @@ import {
   saveSustainabilitySections,
   type SustainBadge,
   type SustainMedia,
+  type SustainQuality,
+  type SustainTextItem,
 } from "@/lib/mart-mock/sustainability-sections";
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+import { cn } from "@/lib/utils";
 
-import { SectionCopyForm } from "../../../home/_components/section-copy-form";
+import { AdminFormModal } from "../../../_components/admin-form-modal";
 import {
-  AddButton,
-  BadgePanel,
-  DrawerOverlay,
-  iconLabel,
-  ImagePanel,
-  MissingLine,
-  RecordList,
+  adminButtonClass,
+  adminFieldClass,
+  FieldError,
+  FieldLabel,
+} from "../../../_components/admin-ui";
+import { FormCloseGuard } from "../../../_components/form-close-guard";
+import { ImageField } from "../../../_components/image-field";
+import {
+  IconButton,
+  IconPicker,
   replaceSearch,
-  SavedLine,
   SustainHeader,
-  TextPanel,
-  useFocusWhenClosed,
   useSustainNav,
 } from "./sustain-shared";
+
+type QualityDraft = {
+  title: string;
+  body: string;
+  image: SustainMedia;
+  steps: SustainTextItem[];
+  badges: SustainBadge[];
+};
+
+function draftFrom(quality: SustainQuality): QualityDraft {
+  return {
+    title: quality.title,
+    body: quality.body,
+    image: { ...quality.image },
+    steps: quality.steps.map((step) => ({
+      ...step,
+      isActive: step.isActive !== false,
+    })),
+    badges: quality.badges.map((badge) => ({
+      ...badge,
+      isActive: badge.isActive !== false,
+    })),
+  };
+}
+
+function uniqueId(id: string) {
+  return `${id}-${Math.random().toString(36).slice(2, 6)}`;
+}
 
 export function SustainabilityQualityEditor() {
   const { quality } = useSustainabilitySections();
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
-  const stepId = params.get("step");
-  const badgeId = params.get("badge");
-  const photo = params.get("photo");
-  const openedStep =
-    stepId && stepId !== "new"
-      ? (quality.steps.find((item) => item.id === stepId) ?? null)
-      : null;
-  const openedBadge =
-    badgeId && badgeId !== "new"
-      ? (quality.badges.find((item) => item.id === badgeId) ?? null)
-      : null;
-  const photoOpen = photo === "cover";
-  const drawerOpen =
-    stepId === "new" ||
-    Boolean(openedStep) ||
-    badgeId === "new" ||
-    Boolean(openedBadge) ||
-    photoOpen;
+  const editing =
+    params.has("edit") ||
+    params.has("step") ||
+    params.has("badge") ||
+    params.has("photo");
   const [notice, setNotice] = useState("");
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
-  const focusRef = useFocusWhenClosed(drawerOpen);
+  const focusEdit = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+  const empty =
+    !quality.title.trim() &&
+    !quality.body.trim() &&
+    !quality.image.src &&
+    quality.steps.length === 0 &&
+    quality.badges.length === 0;
 
-  function setKey(key: "step" | "badge" | "photo", id: string | null) {
+  useEffect(() => {
+    if (editing || !returnFocus.current) return;
+    returnFocus.current = false;
+    focusEdit.current?.focus();
+  }, [editing]);
+
+  function setEditing(open: boolean) {
+    if (!open) returnFocus.current = true;
     replaceSearch(router, pathname, (next) => {
-      if (id) next.set(key, id);
-      else next.delete(key);
+      if (open) next.set("edit", "quality");
+      else {
+        next.delete("edit");
+        next.delete("step");
+        next.delete("badge");
+        next.delete("photo");
+      }
     });
   }
 
-  function flash(message: string) {
-    setNotice(message);
-    window.setTimeout(() => {
-      setNotice("");
-      setSavedId(null);
-    }, 1600);
-  }
-
-  function saveCopy(next: Record<string, string>) {
+  function save(draft: QualityDraft) {
     const doc = readSustainabilitySections();
     saveSustainabilitySections({
       ...doc,
       quality: {
-        ...doc.quality,
-        title: next.title ?? "",
-        body: next.body ?? "",
+        title: draft.title.trim(),
+        body: draft.body.trim(),
+        image: { src: draft.image.src, alt: draft.image.alt.trim() },
+        steps: draft.steps.map((step) => ({
+          id: step.id,
+          text: step.text.trim(),
+          isActive: step.isActive !== false,
+        })),
+        badges: draft.badges.map((badge) => ({
+          id: badge.id,
+          icon: badge.icon || "check_circle",
+          label: badge.label.trim(),
+          isActive: badge.isActive !== false,
+        })),
       },
     });
+    setNotice("Saved.");
+    window.setTimeout(() => setNotice(""), 1600);
+    setEditing(false);
   }
-
-  function saveStep(text: string, isActive = true) {
-    const doc = readSustainabilitySections();
-    if (stepId === "new") {
-      const item = { ...blankSustainText(), text, isActive };
-      saveSustainabilitySections({
-        ...doc,
-        quality: { ...doc.quality, steps: [...doc.quality.steps, item] },
-      });
-      setSavedId(item.id);
-      focusRef.current = `sustain-quality-step-${item.id}`;
-    } else if (stepId) {
-      saveSustainabilitySections({
-        ...doc,
-        quality: {
-          ...doc.quality,
-          steps: doc.quality.steps.map((item) =>
-            item.id === stepId ? { ...item, text, isActive } : item,
-          ),
-        },
-      });
-      setSavedId(stepId);
-      focusRef.current = `sustain-quality-step-${stepId}`;
-    }
-    flash("Saved");
-    setKey("step", null);
-  }
-
-  function saveBadge(draft: Pick<SustainBadge, "icon" | "label" | "isActive">) {
-    const doc = readSustainabilitySections();
-    if (badgeId === "new") {
-      const item = { ...blankSustainBadge(), ...draft };
-      saveSustainabilitySections({
-        ...doc,
-        quality: { ...doc.quality, badges: [...doc.quality.badges, item] },
-      });
-      setSavedId(item.id);
-      focusRef.current = `sustain-quality-badge-${item.id}`;
-    } else if (badgeId) {
-      saveSustainabilitySections({
-        ...doc,
-        quality: {
-          ...doc.quality,
-          badges: doc.quality.badges.map((item) =>
-            item.id === badgeId ? { ...item, ...draft } : item,
-          ),
-        },
-      });
-      setSavedId(badgeId);
-      focusRef.current = `sustain-quality-badge-${badgeId}`;
-    }
-    flash("Saved");
-    setKey("badge", null);
-  }
-
-  function saveImage(draft: SustainMedia) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      quality: { ...doc.quality, image: draft },
-    });
-    focusRef.current = "sustain-quality-photo";
-    flash("Saved");
-    setKey("photo", null);
-  }
-
-  function removeStep(id: string) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      quality: {
-        ...doc.quality,
-        steps: doc.quality.steps.filter((item) => item.id !== id),
-      },
-    });
-    if (stepId === id) setKey("step", null);
-    setConfirmId(null);
-    flash("Removed");
-  }
-
-  function removeBadge(id: string) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      quality: {
-        ...doc.quality,
-        badges: doc.quality.badges.filter((item) => item.id !== id),
-      },
-    });
-    if (badgeId === id) setKey("badge", null);
-    setConfirmId(null);
-    flash("Removed");
-  }
-
-  function move(list: "steps" | "badges", id: string, direction: -1 | 1) {
-    const doc = readSustainabilitySections();
-    const items = [...doc.quality[list]];
-    const index = items.findIndex((item) => item.id === id);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= items.length) return;
-    const [item] = items.splice(index, 1);
-    if (!item) return;
-    items.splice(target, 0, item);
-    saveSustainabilitySections({
-      ...doc,
-      quality: { ...doc.quality, [list]: items },
-    });
-  }
-
-  function drop(list: "steps" | "badges", targetId: string) {
-    if (!dragId || dragId === targetId) {
-      setDragId(null);
-      setOverId(null);
-      return;
-    }
-    const doc = readSustainabilitySections();
-    const items = [...doc.quality[list]];
-    const from = items.findIndex((item) => item.id === dragId);
-    const to = items.findIndex((item) => item.id === targetId);
-    if (from < 0 || to < 0) return;
-    const [item] = items.splice(from, 1);
-    if (!item) return;
-    items.splice(to, 0, item);
-    saveSustainabilitySections({
-      ...doc,
-      quality: { ...doc.quality, [list]: items },
-    });
-    setDragId(null);
-    setOverId(null);
-  }
-
-  const stepOpen = stepId === "new" || Boolean(openedStep);
-  const badgeOpen = badgeId === "new" || Boolean(openedBadge);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -228,270 +134,673 @@ export function SustainabilityQualityEditor() {
         title="Quality"
         description="Check process and badges."
         extra={
-          <>
-            <AddButton onClick={() => setKey("step", "new")}>
-              Add step
-            </AddButton>
-            <AddButton secondary onClick={() => setKey("badge", "new")}>
-              Add badge
-            </AddButton>
-          </>
+          <button
+            ref={focusEdit}
+            type="button"
+            onClick={() => setEditing(true)}
+            className={adminButtonClass.primary}
+          >
+            <MaterialIcon name="edit" className="text-[18px]" />
+            Edit quality
+          </button>
         }
       />
-      <SavedLine notice={notice} open={drawerOpen} />
-      <MissingLine
-        show={Boolean(stepId && stepId !== "new" && !openedStep)}
-        onClose={() => setKey("step", null)}
-      />
-      <MissingLine
-        show={Boolean(badgeId && badgeId !== "new" && !openedBadge)}
-        onClose={() => setKey("badge", null)}
-      />
-      <section className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90">
-        <div className="px-4 pt-4 sm:px-5">
-          <h2 className="text-sm font-semibold text-neutral-950">
-            Storefront preview
+
+      {notice ? (
+        <p role="status" className="text-sm font-medium text-emerald-800">
+          {notice} This section is up to date.
+        </p>
+      ) : null}
+
+      <section
+        className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+        aria-labelledby="sustain-quality-card-heading"
+      >
+        <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
+          <h2
+            id="sustain-quality-card-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
+            Quality
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Shown on the sustainability page. Steps and badges stay in this
-            order.
+            Shown on the sustainability page. The photo is on the left. Steps
+            and badges are on the right.
           </p>
         </div>
-        <div className="p-4 sm:p-5">
-          <div className="grid items-start gap-6 rounded-2xl bg-[#f5f6f8] p-4 xl:grid-cols-2 sm:p-5">
-            <button
-              type="button"
-              aria-label={quality.image.alt || "Photo"}
-              onClick={() => setKey("photo", "cover")}
-              className="relative aspect-4/5 overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200"
-            >
-              {quality.image.src ? (
-                <Image
-                  src={quality.image.src}
-                  alt=""
-                  fill
-                  sizes="320px"
-                  className="object-cover"
-                />
-              ) : (
-                <span className="grid size-full place-items-center text-sm text-neutral-500">
-                  Photo
+        {empty ? (
+          <div className="px-4 py-12 text-center">
+            <p className="text-sm font-semibold text-neutral-950">
+              No quality content yet
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+              Add the heading, cover photo, check steps, and badges.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-admin-canvas p-4 sm:p-5">
+            <QualityPreview quality={quality} />
+          </div>
+        )}
+      </section>
+
+      {editing ? (
+        <QualityFormModal
+          quality={quality}
+          onClose={() => setEditing(false)}
+          onSave={save}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function QualityPreview({ quality }: { quality: SustainQuality }) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="relative aspect-4/5 w-24 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-neutral-200 sm:w-28">
+        {quality.image.src ? (
+          <Image
+            src={quality.image.src}
+            alt=""
+            fill
+            sizes="112px"
+            className="object-cover"
+          />
+        ) : (
+          <span className="grid size-full place-items-center px-2 text-center text-xs text-neutral-500">
+            Photo
+          </span>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xl font-semibold text-neutral-950">
+          {quality.title.trim() || "Title"}
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-neutral-600">
+          {quality.body.trim() || "Body"}
+        </p>
+        {quality.steps.length === 0 ? (
+          <p className="mt-5 text-sm text-neutral-500">No steps yet</p>
+        ) : (
+          <ol className="mt-5 space-y-3">
+            {quality.steps.map((step, index) => {
+              const hidden = step.isActive === false;
+              const number = quality.steps
+                .slice(0, index + 1)
+                .filter((item) => item.isActive !== false).length;
+              return (
+                <li
+                  key={step.id}
+                  className={cn(
+                    "flex items-start gap-3",
+                    hidden && "opacity-50",
+                  )}
+                >
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {hidden ? "–" : number}
+                  </span>
+                  <span className="pt-0.5 text-sm text-neutral-700">
+                    {step.text || "Empty step"}
+                    {hidden ? (
+                      <span className="ml-2 rounded-full bg-neutral-950/80 px-2 py-0.5 text-[11px] font-semibold text-white">
+                        Hidden
+                      </span>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        {quality.badges.length === 0 ? (
+          <p className="mt-5 text-sm text-neutral-500">No badges yet</p>
+        ) : (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {quality.badges.map((badge) => {
+              const hidden = badge.isActive === false;
+              return (
+                <span
+                  key={badge.id}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 ring-1 ring-neutral-200",
+                    hidden && "opacity-50",
+                  )}
+                >
+                  <MaterialIcon
+                    name={badge.icon || "notes"}
+                    className="text-[16px] text-primary"
+                  />
+                  {badge.label || "Empty badge"}
+                  {hidden ? " · Hidden" : ""}
                 </span>
-              )}
-            </button>
-            <div>
-              <p className="text-xl font-semibold text-neutral-950">
-                {quality.title}
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-                {quality.body}
-              </p>
-              <ol className="mt-5 space-y-3">
-                {quality.steps.map((step, index) => (
-                  <li key={step.id}>
-                    <button
-                      type="button"
-                      onClick={() => setKey("step", step.id)}
-                      className="flex items-start gap-3 text-left"
-                    >
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {index + 1}
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QualityFormModal({
+  quality,
+  onClose,
+  onSave,
+}: {
+  quality: SustainQuality;
+  onClose: () => void;
+  onSave: (draft: QualityDraft) => void;
+}) {
+  const initial = draftFrom(quality);
+  const [draft, setDraft] = useState(initial);
+  const [baseline] = useState(initial);
+  const [titleError, setTitleError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [stepError, setStepError] = useState("");
+  const [badgeError, setBadgeError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const formId = useId();
+
+  function save() {
+    if (saving || uploading > 0) return;
+    const nextTitleError = draft.title.trim() ? "" : "Title is required.";
+    const nextPhotoError = draft.image.src ? "" : "Cover photo is required.";
+    const nextStepError = draft.steps.some((step) => !step.text.trim())
+      ? "Write each step, or remove the empty one."
+      : "";
+    const nextBadgeError = draft.badges.some((badge) => !badge.label.trim())
+      ? "Write each badge, or remove the empty one."
+      : "";
+    setTitleError(nextTitleError);
+    setPhotoError(nextPhotoError);
+    setStepError(nextStepError);
+    setBadgeError(nextBadgeError);
+    if (nextTitleError || nextPhotoError || nextStepError || nextBadgeError) {
+      return;
+    }
+    setSaving(true);
+    onSave(draft);
+  }
+
+  function moveSteps(index: number, direction: -1 | 1) {
+    setDraft((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.steps.length) return current;
+      const steps = [...current.steps];
+      const [item] = steps.splice(index, 1);
+      if (!item) return current;
+      steps.splice(target, 0, item);
+      return { ...current, steps };
+    });
+  }
+
+  function moveBadges(index: number, direction: -1 | 1) {
+    setDraft((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.badges.length) return current;
+      const badges = [...current.badges];
+      const [item] = badges.splice(index, 1);
+      if (!item) return current;
+      badges.splice(target, 0, item);
+      return { ...current, badges };
+    });
+  }
+
+  return (
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
+      <AdminFormModal titleId="sustain-quality-drawer-title" size="lg">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+          <div className="min-w-0">
+            <h2
+              id="sustain-quality-drawer-title"
+              className="text-lg font-semibold text-neutral-950"
+            >
+              Edit quality
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Update the heading, photo, steps, and badges for this section.
+            </p>
+          </div>
+          <button
+            type="button"
+            data-form-dismiss=""
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <MaterialIcon name="close" className="text-[20px]" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4">
+          <section aria-labelledby={`${formId}-content`}>
+            <h3
+              id={`${formId}-content`}
+              className="text-sm font-semibold text-neutral-950"
+            >
+              Content
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              The words beside the cover photo.
+            </p>
+            <div className="mt-3 grid gap-3">
+              <div>
+                <FieldLabel htmlFor={`${formId}-title`}>
+                  Title <span className="text-red-700">*</span>
+                </FieldLabel>
+                <input
+                  id={`${formId}-title`}
+                  autoFocus
+                  value={draft.title}
+                  placeholder="The main line of this section"
+                  aria-invalid={titleError ? true : undefined}
+                  aria-describedby={
+                    titleError ? `${formId}-title-error` : undefined
+                  }
+                  onChange={(event) => {
+                    setDraft({ ...draft, title: event.target.value });
+                    setTitleError("");
+                  }}
+                  className={cn(
+                    adminFieldClass,
+                    titleError && "border-red-400",
+                  )}
+                />
+                {titleError ? (
+                  <div id={`${formId}-title-error`}>
+                    <FieldError message={titleError} />
+                  </div>
+                ) : null}
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${formId}-body`}>Body</FieldLabel>
+                <textarea
+                  id={`${formId}-body`}
+                  value={draft.body}
+                  rows={4}
+                  placeholder="The paragraph under the title"
+                  onChange={(event) =>
+                    setDraft({ ...draft, body: event.target.value })
+                  }
+                  className={cn(adminFieldClass, "h-auto py-3")}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section
+            className="border-t border-neutral-100 pt-5"
+            aria-labelledby={`${formId}-photo`}
+          >
+            <h3
+              id={`${formId}-photo`}
+              className="text-sm font-semibold text-neutral-950"
+            >
+              Cover photo
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              This photo sits on the left of the section.
+            </p>
+            <div className="mt-3">
+              <ImageField
+                variant="thumb"
+                label=""
+                value={draft.image.src}
+                confirmRemove
+                onBusy={(busy) =>
+                  setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
+                }
+                onChange={(src) => {
+                  setDraft({ ...draft, image: { ...draft.image, src } });
+                  setPhotoError("");
+                }}
+              />
+            </div>
+            {photoError ? (
+              <div className="mt-3">
+                <FieldError message={photoError} />
+              </div>
+            ) : null}
+            <label className="mt-3 block">
+              <span className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Description
+              </span>
+              <input
+                value={draft.image.alt}
+                placeholder="What this photo shows"
+                aria-label="Cover photo description"
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    image: { ...draft.image, alt: event.target.value },
+                  })
+                }
+                className={adminFieldClass}
+              />
+            </label>
+          </section>
+
+          <section
+            className="border-t border-neutral-100 pt-5"
+            aria-labelledby={`${formId}-steps`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3
+                  id={`${formId}-steps`}
+                  className="text-sm font-semibold text-neutral-950"
+                >
+                  Steps
+                </h3>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Numbered checks under the paragraph. Hidden steps stay here
+                  but do not appear on the website.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const item = blankSustainText();
+                  setDraft((current) => ({
+                    ...current,
+                    steps: [
+                      ...current.steps,
+                      { ...item, id: uniqueId(item.id) },
+                    ],
+                  }));
+                  setStepError("");
+                }}
+                className={adminButtonClass.secondary}
+              >
+                <MaterialIcon name="add" className="text-[18px]" />
+                Add step
+              </button>
+            </div>
+            {stepError ? (
+              <div className="mt-3">
+                <FieldError message={stepError} />
+              </div>
+            ) : null}
+            {draft.steps.length === 0 ? (
+              <p className="mt-3 text-sm text-neutral-500">No steps yet.</p>
+            ) : (
+              <ol className="mt-3 space-y-3">
+                {draft.steps.map((step, index) => (
+                  <li key={step.id} className="rounded-2xl bg-admin-canvas p-3">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-neutral-950">
+                        Step {index + 1}
+                      </p>
+                      <div className="flex items-center">
+                        <IconButton
+                          label={`Move step ${index + 1} earlier`}
+                          icon="arrow_upward"
+                          disabled={index === 0}
+                          onClick={() => moveSteps(index, -1)}
+                        />
+                        <IconButton
+                          label={`Move step ${index + 1} later`}
+                          icon="arrow_downward"
+                          disabled={index === draft.steps.length - 1}
+                          onClick={() => moveSteps(index, 1)}
+                        />
+                        <IconButton
+                          label={`Remove step ${index + 1}`}
+                          icon="delete"
+                          danger
+                          onClick={() => {
+                            setDraft((current) => ({
+                              ...current,
+                              steps: current.steps.filter(
+                                (item) => item.id !== step.id,
+                              ),
+                            }));
+                            setStepError("");
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <label className="block">
+                      <span className="mb-1.5 block text-sm font-medium text-neutral-700">
+                        Step <span className="text-red-700">*</span>
                       </span>
-                      <span className="text-sm text-neutral-700">
-                        {step.text}
-                      </span>
-                    </button>
+                      <textarea
+                        value={step.text}
+                        rows={2}
+                        placeholder="What happens at this step"
+                        aria-label={`Step ${index + 1}`}
+                        onChange={(event) => {
+                          const text = event.target.value;
+                          setDraft((current) => ({
+                            ...current,
+                            steps: current.steps.map((item) =>
+                              item.id === step.id ? { ...item, text } : item,
+                            ),
+                          }));
+                          setStepError("");
+                        }}
+                        className={cn(
+                          adminFieldClass,
+                          "h-auto py-3",
+                          stepError && !step.text.trim() && "border-red-400",
+                        )}
+                      />
+                    </label>
+                    <VisibilitySwitch
+                      checked={step.isActive !== false}
+                      showLabel={`Show step ${index + 1}`}
+                      hideLabel={`Hide step ${index + 1}`}
+                      onChange={(isActive) =>
+                        setDraft((current) => ({
+                          ...current,
+                          steps: current.steps.map((item) =>
+                            item.id === step.id ? { ...item, isActive } : item,
+                          ),
+                        }))
+                      }
+                    />
                   </li>
                 ))}
               </ol>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {quality.badges.map((badge) => (
-                  <button
-                    key={badge.id}
-                    type="button"
-                    onClick={() => setKey("badge", badge.id)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 ring-1 ring-neutral-200"
-                  >
-                    <MaterialIcon
-                      name={badge.icon || "notes"}
-                      className="text-[16px] text-primary"
-                    />
-                    {badge.label}
-                  </button>
-                ))}
+            )}
+          </section>
+
+          <section
+            className="border-t border-neutral-100 pt-5"
+            aria-labelledby={`${formId}-badges`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3
+                  id={`${formId}-badges`}
+                  className="text-sm font-semibold text-neutral-950"
+                >
+                  Badges
+                </h3>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Short labels under the steps. Hidden badges stay here but do
+                  not appear on the website.
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const item = blankSustainBadge();
+                  setDraft((current) => ({
+                    ...current,
+                    badges: [
+                      ...current.badges,
+                      { ...item, id: uniqueId(item.id) },
+                    ],
+                  }));
+                  setBadgeError("");
+                }}
+                className={adminButtonClass.secondary}
+              >
+                <MaterialIcon name="add" className="text-[18px]" />
+                Add badge
+              </button>
             </div>
-          </div>
+            {badgeError ? (
+              <div className="mt-3">
+                <FieldError message={badgeError} />
+              </div>
+            ) : null}
+            {draft.badges.length === 0 ? (
+              <p className="mt-3 text-sm text-neutral-500">No badges yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {draft.badges.map((badge, index) => (
+                  <li
+                    key={badge.id}
+                    className="rounded-2xl bg-admin-canvas p-3"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-neutral-950">
+                        Badge {index + 1}
+                      </p>
+                      <div className="flex items-center">
+                        <IconButton
+                          label={`Move badge ${index + 1} earlier`}
+                          icon="arrow_upward"
+                          disabled={index === 0}
+                          onClick={() => moveBadges(index, -1)}
+                        />
+                        <IconButton
+                          label={`Move badge ${index + 1} later`}
+                          icon="arrow_downward"
+                          disabled={index === draft.badges.length - 1}
+                          onClick={() => moveBadges(index, 1)}
+                        />
+                        <IconButton
+                          label={`Remove badge ${index + 1}`}
+                          icon="delete"
+                          danger
+                          onClick={() => {
+                            setDraft((current) => ({
+                              ...current,
+                              badges: current.badges.filter(
+                                (item) => item.id !== badge.id,
+                              ),
+                            }));
+                            setBadgeError("");
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <IconPicker
+                      value={badge.icon}
+                      onChange={(icon) =>
+                        setDraft((current) => ({
+                          ...current,
+                          badges: current.badges.map((item) =>
+                            item.id === badge.id ? { ...item, icon } : item,
+                          ),
+                        }))
+                      }
+                    />
+                    <label className="mt-3 block">
+                      <span className="mb-1.5 block text-sm font-medium text-neutral-700">
+                        Label <span className="text-red-700">*</span>
+                      </span>
+                      <input
+                        value={badge.label}
+                        placeholder="Checked before delivery"
+                        aria-label={`Label for badge ${index + 1}`}
+                        onChange={(event) => {
+                          const label = event.target.value;
+                          setDraft((current) => ({
+                            ...current,
+                            badges: current.badges.map((item) =>
+                              item.id === badge.id ? { ...item, label } : item,
+                            ),
+                          }));
+                          setBadgeError("");
+                        }}
+                        className={cn(
+                          adminFieldClass,
+                          badgeError && !badge.label.trim() && "border-red-400",
+                        )}
+                      />
+                    </label>
+                    <VisibilitySwitch
+                      checked={badge.isActive !== false}
+                      showLabel={`Show badge ${index + 1}`}
+                      hideLabel={`Hide badge ${index + 1}`}
+                      onChange={(isActive) =>
+                        setDraft((current) => ({
+                          ...current,
+                          badges: current.badges.map((item) =>
+                            item.id === badge.id ? { ...item, isActive } : item,
+                          ),
+                        }))
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
-      </section>
-      <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
-        <SectionCopyForm
-          values={{ title: quality.title, body: quality.body }}
-          fields={[
-            { name: "title", label: "Title", wide: true },
-            {
-              name: "body",
-              label: "Body",
-              multiline: true,
-              rows: 4,
-              wide: true,
-            },
-          ]}
-          saveLabel="Save heading"
-          onSave={saveCopy}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+          <button
+            type="button"
+            data-form-dismiss=""
+            onClick={onClose}
+            className={adminButtonClass.secondary}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || uploading > 0}
+            className={adminButtonClass.primary}
+          >
+            {saving ? "Saving…" : uploading > 0 ? "Uploading…" : "Save changes"}
+          </button>
+        </div>
+      </AdminFormModal>
+    </FormCloseGuard>
+  );
+}
+
+function VisibilitySwitch({
+  checked,
+  showLabel,
+  hideLabel,
+  onChange,
+}: {
+  checked: boolean;
+  showLabel: string;
+  hideLabel: string;
+  onChange: (active: boolean) => void;
+}) {
+  return (
+    <div className="mt-3 flex items-center justify-between gap-3">
+      <span className="text-sm text-neutral-600">
+        {checked ? "Visible on the website" : "Hidden from the website"}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={checked ? hideLabel : showLabel}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          checked ? "bg-primary" : "bg-neutral-300",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 size-5 rounded-full bg-white transition-all",
+            checked ? "left-5" : "left-0.5",
+          )}
         />
-      </section>
-      <RecordList
-        headingId="sustain-quality-steps"
-        title={
-          quality.steps.length === 1
-            ? "1 step"
-            : `${quality.steps.length} steps`
-        }
-        emptyTitle="No steps yet"
-        emptyBody="Add the check steps shown beside the photo."
-        emptyAction="Add step"
-        onEmpty={() => setKey("step", "new")}
-        items={quality.steps.map((item, index) => ({
-          id: item.id,
-          buttonId: `sustain-quality-step-${item.id}`,
-          title: item.text || "Empty step",
-          active: item.isActive !== false,
-          meta: `Step ${index + 1}`,
-          reorder: item.text || "step",
-        }))}
-        selected={stepId}
-        savedId={savedId}
-        confirmId={confirmId}
-        dragId={dragId}
-        overId={overId}
-        onOpen={(id) => setKey("step", id)}
-        onDrag={setDragId}
-        onOver={setOverId}
-        onDrop={(id) => drop("steps", id)}
-        onMove={(id, direction) => move("steps", id, direction)}
-        onAskRemove={setConfirmId}
-        onRemove={removeStep}
-        removeLabel="Remove step"
-      />
-      <RecordList
-        headingId="sustain-quality-badges"
-        title={
-          quality.badges.length === 1
-            ? "1 badge"
-            : `${quality.badges.length} badges`
-        }
-        emptyTitle="No badges yet"
-        emptyBody="Add the badges shown under the steps."
-        emptyAction="Add badge"
-        onEmpty={() => setKey("badge", "new")}
-        items={quality.badges.map((item) => ({
-          id: item.id,
-          buttonId: `sustain-quality-badge-${item.id}`,
-          title: item.label || "Empty badge",
-          active: item.isActive !== false,
-          meta: iconLabel(item.icon),
-          reorder: item.label || "badge",
-          icon: item.icon,
-        }))}
-        selected={badgeId}
-        savedId={savedId}
-        confirmId={confirmId}
-        dragId={dragId}
-        overId={overId}
-        onOpen={(id) => setKey("badge", id)}
-        onDrag={setDragId}
-        onOver={setOverId}
-        onDrop={(id) => drop("badges", id)}
-        onMove={(id, direction) => move("badges", id, direction)}
-        onAskRemove={setConfirmId}
-        onRemove={removeBadge}
-        removeLabel="Remove badge"
-      />
-      <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
-        <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
-          <h2 className="text-sm font-semibold text-neutral-950">Photo</h2>
-        </div>
-        <div className="flex items-center gap-3 px-3 py-3 sm:px-4">
-          <button
-            id="sustain-quality-photo"
-            type="button"
-            onClick={() => setKey("photo", "cover")}
-            className="flex min-w-0 flex-1 items-center gap-3 text-left"
-          >
-            <span className="relative size-12 overflow-hidden rounded-xl bg-neutral-100">
-              {quality.image.src ? (
-                <Image
-                  src={quality.image.src}
-                  alt=""
-                  fill
-                  sizes="48px"
-                  className="object-cover"
-                />
-              ) : null}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-neutral-950">
-                {quality.image.alt || "No description"}
-              </span>
-              <span className="block text-xs text-neutral-500">
-                Cover photo
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setKey("photo", "cover")}
-            className="text-sm font-medium text-neutral-600"
-          >
-            Edit
-          </button>
-        </div>
-      </section>
-      {drawerOpen ? (
-        <DrawerOverlay titleId="sustain-quality-drawer">
-          {stepOpen ? (
-            <TextPanel
-              key={stepId}
-              creating={stepId === "new"}
-              noun="Step"
-              titleId="sustain-quality-drawer"
-              initial={openedStep?.text ?? ""}
-              active={openedStep?.isActive}
-              notice={notice}
-              onClose={() => setKey("step", null)}
-              onSave={saveStep}
-            />
-          ) : null}
-          {badgeOpen ? (
-            <BadgePanel
-              key={badgeId}
-              creating={badgeId === "new"}
-              titleId={stepOpen ? undefined : "sustain-quality-drawer"}
-              initial={
-                openedBadge
-                  ? { icon: openedBadge.icon, label: openedBadge.label, isActive: openedBadge.isActive }
-                  : { icon: "check_circle", label: "", isActive: true }
-              }
-              notice={notice}
-              onClose={() => setKey("badge", null)}
-              onSave={saveBadge}
-            />
-          ) : null}
-          {photoOpen ? (
-            <ImagePanel
-              creating={false}
-              titleId={
-                stepOpen || badgeOpen ? undefined : "sustain-quality-drawer"
-              }
-              initial={quality.image}
-              notice={notice}
-              onClose={() => setKey("photo", null)}
-              onSave={saveImage}
-            />
-          ) : null}
-        </DrawerOverlay>
-      ) : null}
+      </button>
     </div>
   );
 }
