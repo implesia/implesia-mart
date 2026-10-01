@@ -10,15 +10,35 @@ import {
   type AboutSections,
 } from "./about-sections";
 import {
+  readBlogSections,
+  seedBlogSections,
+  type BlogSections,
+} from "./blog-sections";
+import {
   readContactSections,
   seedContactSections,
   type ContactSections,
 } from "./contact-sections";
 import {
+  readFaqSections,
+  seedFaqSections,
+  type FaqSections,
+} from "./faq-sections";
+import {
   readHomeSections,
   seedHomeSections,
   type HomeSections,
 } from "./home-sections";
+import {
+  readPrivacySections,
+  seedPrivacySections,
+  type PrivacySections,
+} from "./privacy-sections";
+import {
+  readShippingSections,
+  seedShippingSections,
+  type ShippingSections,
+} from "./shipping-sections";
 import {
   readSustainabilitySections,
   seedSustainabilitySections,
@@ -109,11 +129,59 @@ export function useAboutSections() {
   return sections;
 }
 
+export function useBlogSections() {
+  const [sections, setSections] = useState<BlogSections>(seedBlogSections);
+
+  useEffect(() => {
+    const sync = () => setSections(readBlogSections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
+}
+
+export function useFaqSections() {
+  const [sections, setSections] = useState<FaqSections>(seedFaqSections);
+
+  useEffect(() => {
+    const sync = () => setSections(readFaqSections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
+}
+
 export function useContactSections() {
   const [sections, setSections] = useState<ContactSections>(seedContactSections);
 
   useEffect(() => {
     const sync = () => setSections(readContactSections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
+}
+
+export function usePrivacySections() {
+  const [sections, setSections] = useState<PrivacySections>(seedPrivacySections);
+
+  useEffect(() => {
+    const sync = () => setSections(readPrivacySections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
+}
+
+export function useShippingSections() {
+  const [sections, setSections] = useState<ShippingSections>(seedShippingSections);
+
+  useEffect(() => {
+    const sync = () => setSections(readShippingSections());
     sync();
     return subscribe(sync);
   }, []);

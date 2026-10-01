@@ -5,7 +5,6 @@ import { absoluteUrl } from "@/lib/seo";
 import { Container } from "../_components/common/container";
 import { JsonLd } from "../_components/common/json-ld";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
-import { blogCategories, blogPosts } from "../_data/blogs/blogs";
 import { BlogsGrid } from "./_components/blogs-grid";
 import { BlogsHero } from "./_components/blogs-hero";
 
@@ -48,11 +47,11 @@ export default function BlogsPage() {
           />
         </div>
       </Container>
-      <BlogsHero postCount={blogPosts.length} />
+      <BlogsHero />
 
       <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
         <Container className="w-full px-4 sm:px-6 lg:px-8">
-          <BlogsGrid posts={blogPosts} categories={blogCategories} />
+          <BlogsGrid />
         </Container>
       </section>
     </main>

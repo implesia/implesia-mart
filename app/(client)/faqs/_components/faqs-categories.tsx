@@ -1,9 +1,10 @@
 "use client";
 
+import { useFaqSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { faqsCopy } from "../../_data/faqs/faqs";
 
 type FaqsCategoriesProps = {
   activeCategory: string;
@@ -11,39 +12,42 @@ type FaqsCategoriesProps = {
   className?: string;
 };
 
-const ALL_ID = "all";
-
 export function FaqsCategories({
   activeCategory,
   onChange,
   className,
 }: FaqsCategoriesProps) {
+  const { categories } = useFaqSections();
+  if (!isContentActive(categories)) return null;
+
   const options = [
     {
-      id: ALL_ID,
-      label: faqsCopy.sidebar.allLabel,
-      icon: "grid_view",
+      id: "all",
+      label: categories.allLabel.trim() || "সব প্রশ্ন",
+      icon: categories.allIcon || "grid_view",
     },
-    ...faqsCopy.categories,
+    ...categories.items.filter(isContentActive),
   ];
 
   return (
     <aside className={cn("min-w-0", className)}>
       <div className="lg:hidden">
-        <p className="mb-2.5 text-sm font-semibold text-neutral-950">{faqsCopy.sidebar.title}</p>
+        {categories.title.trim() ? (
+          <p className="mb-2.5 text-sm font-semibold text-neutral-950">{categories.title}</p>
+        ) : null}
         <div
           className={cn(
             "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1",
             "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           )}
         >
-          {options.map((opt) => {
-            const active = activeCategory === opt.id;
+          {options.map((option) => {
+            const active = activeCategory === option.id;
             return (
               <button
-                key={opt.id}
+                key={option.id}
                 type="button"
-                onClick={() => onChange(opt.id)}
+                onClick={() => onChange(option.id)}
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
                   active
@@ -51,8 +55,8 @@ export function FaqsCategories({
                     : "border-neutral-200/90 bg-white text-neutral-600 hover:border-primary/40 hover:text-neutral-950",
                 )}
               >
-                <MaterialIcon name={opt.icon} className="text-[16px]" />
-                {opt.label}
+                <MaterialIcon name={option.icon} className="text-[16px]" />
+                {option.label}
               </button>
             );
           })}
@@ -61,18 +65,24 @@ export function FaqsCategories({
 
       <div className="sticky top-28 hidden overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:block">
         <div className="border-b border-neutral-200 px-4 py-3.5">
-          <h2 className="text-base font-semibold text-neutral-950">{faqsCopy.sidebar.title}</h2>
-          <p className="mt-1 text-xs text-neutral-500">{faqsCopy.sidebar.subtitle}</p>
+          {categories.title.trim() ? (
+            <h2 className="text-base font-semibold text-neutral-950">{categories.title}</h2>
+          ) : null}
+          {categories.subtitle.trim() ? (
+            <p className="mt-1 text-xs text-neutral-500">{categories.subtitle}</p>
+          ) : null}
         </div>
-
-        <nav className="flex flex-col gap-1 p-2.5" aria-label="FAQ ক্যাটাগরি">
-          {options.map((opt) => {
-            const active = activeCategory === opt.id;
+        <nav
+          className="flex flex-col gap-1 p-2.5"
+          aria-label={categories.navLabel.trim() || "FAQ ক্যাটাগরি"}
+        >
+          {options.map((option) => {
+            const active = activeCategory === option.id;
             return (
               <button
-                key={opt.id}
+                key={option.id}
                 type="button"
-                onClick={() => onChange(opt.id)}
+                onClick={() => onChange(option.id)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
                   active
@@ -86,9 +96,9 @@ export function FaqsCategories({
                     active ? "bg-primary/15 text-primary" : "bg-[#f5f6f8] text-neutral-500",
                   )}
                 >
-                  <MaterialIcon name={opt.icon} className="text-[18px]" />
+                  <MaterialIcon name={option.icon} className="text-[18px]" />
                 </span>
-                <span className="min-w-0 leading-snug">{opt.label}</span>
+                <span className="min-w-0 leading-snug">{option.label}</span>
               </button>
             );
           })}

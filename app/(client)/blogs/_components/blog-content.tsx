@@ -1,18 +1,17 @@
+import type { BlogBlock } from "@/lib/mart-mock/blog-sections";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import type { BlogContentBlock } from "../../_data/blogs/blogs";
 
-export function BlogContent({ blocks }: { blocks: BlogContentBlock[] }) {
+export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
   return (
     <div className="max-w-none">
-      {blocks.map((block, idx) => {
+      {blocks.map((block) => {
         if (block.type === "heading") {
-          const id = `section-${idx}`;
           return (
             <h2
-              key={idx}
-              id={id}
+              key={block.id}
+              id={`section-${block.id}`}
               className="mt-8 mb-3 scroll-mt-28 text-xl font-semibold tracking-tight text-neutral-950 sm:mt-10 sm:text-2xl"
             >
               {block.text}
@@ -22,9 +21,9 @@ export function BlogContent({ blocks }: { blocks: BlogContentBlock[] }) {
 
         if (block.type === "list") {
           return (
-            <ul key={idx} className="my-4 space-y-2.5">
+            <ul key={block.id} className="my-4 space-y-2.5">
               {block.items.map((item, itemIdx) => (
-                <li key={itemIdx} className="flex items-start gap-3">
+                <li key={`${block.id}-${itemIdx}`} className="flex items-start gap-3">
                   <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
                   <span className="text-[15px] leading-relaxed text-neutral-700 sm:text-base">
                     {item}
@@ -39,12 +38,10 @@ export function BlogContent({ blocks }: { blocks: BlogContentBlock[] }) {
           const isTip = block.variant !== "note";
           return (
             <aside
-              key={idx}
+              key={block.id}
               className={cn(
                 "my-5 flex gap-3 rounded-2xl border-l-4 p-4 sm:p-5",
-                isTip
-                  ? "border-l-primary bg-primary/8"
-                  : "border-l-neutral-400 bg-white",
+                isTip ? "border-l-primary bg-primary/8" : "border-l-neutral-400 bg-white",
               )}
             >
               <MaterialIcon
@@ -67,7 +64,7 @@ export function BlogContent({ blocks }: { blocks: BlogContentBlock[] }) {
 
         return (
           <p
-            key={idx}
+            key={block.id}
             className="mb-4 text-[15px] leading-[1.8] text-neutral-600 sm:text-base sm:leading-[1.85]"
           >
             {block.text}

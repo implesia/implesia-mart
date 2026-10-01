@@ -8,9 +8,25 @@ import {
   AboutSectionManager,
 } from "../../about/_components/section-manager";
 import {
+  BlogSectionFallback,
+  BlogSectionManager,
+} from "../../blogs/_components/section-manager";
+import {
   ContactSectionFallback,
   ContactSectionManager,
 } from "../../contact/_components/section-manager";
+import {
+  FaqSectionFallback,
+  FaqSectionManager,
+} from "../../faqs/_components/section-manager";
+import {
+  PrivacySectionFallback,
+  PrivacySectionManager,
+} from "../../privacy/_components/section-manager";
+import {
+  ShippingSectionFallback,
+  ShippingSectionManager,
+} from "../../shipping/_components/section-manager";
 import {
   SustainabilitySectionFallback,
   SustainabilitySectionManager,
@@ -57,6 +73,38 @@ export default async function AdminCmsPageSection({
     return (
       <Suspense fallback={<ContactSectionFallback />}>
         <ContactSectionManager sectionId={section.id} />
+      </Suspense>
+    );
+  }
+
+  if (slug === "faqs") {
+    return (
+      <Suspense fallback={<FaqSectionFallback />}>
+        <FaqSectionManager sectionId={section.id} />
+      </Suspense>
+    );
+  }
+
+  if (slug === "blogs") {
+    return (
+      <Suspense fallback={<BlogSectionFallback />}>
+        <BlogSectionManager sectionId={section.id} />
+      </Suspense>
+    );
+  }
+
+  if (slug === "privacy") {
+    return (
+      <Suspense fallback={<PrivacySectionFallback />}>
+        <PrivacySectionManager sectionId={section.id} />
+      </Suspense>
+    );
+  }
+
+  if (slug === "shipping") {
+    return (
+      <Suspense fallback={<ShippingSectionFallback />}>
+        <ShippingSectionManager sectionId={section.id} />
       </Suspense>
     );
   }

@@ -6,18 +6,21 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import type { FaqQuestion } from "@/lib/mart-mock/faq-sections";
+import { useFaqSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import type { FaqItem } from "../../_data/faqs/faqs";
-import { faqsCopy } from "../../_data/faqs/faqs";
 
-type FaqsListProps = {
-  items: readonly FaqItem[] | FaqItem[];
+export function FaqsList({
+  items,
+  className,
+}: {
+  items: FaqQuestion[];
   className?: string;
-};
+}) {
+  const { listing } = useFaqSections();
 
-export function FaqsList({ items, className }: FaqsListProps) {
   if (!items.length) {
     return (
       <div
@@ -27,10 +30,14 @@ export function FaqsList({ items, className }: FaqsListProps) {
         )}
       >
         <MaterialIcon name="search_off" className="mx-auto mb-3 text-[32px] text-neutral-400" />
-        <h3 className="mb-2 text-base font-semibold text-neutral-950">{faqsCopy.empty.title}</h3>
-        <p className="mx-auto max-w-md text-sm leading-relaxed text-neutral-600">
-          {faqsCopy.empty.body}
-        </p>
+        {listing.emptyTitle.trim() ? (
+          <h3 className="mb-2 text-base font-semibold text-neutral-950">{listing.emptyTitle}</h3>
+        ) : null}
+        {listing.emptyBody.trim() ? (
+          <p className="mx-auto max-w-md text-sm leading-relaxed text-neutral-600">
+            {listing.emptyBody}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -39,7 +46,7 @@ export function FaqsList({ items, className }: FaqsListProps) {
 
   return (
     <Accordion
-      key={items.map((i) => i.id).join("-")}
+      key={items.map((item) => item.id).join("-")}
       defaultValue={defaultOpen}
       className={cn("flex flex-col gap-3", className)}
     >
