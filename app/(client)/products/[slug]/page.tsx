@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
 import { JsonLd } from "../../_components/common/json-ld";
-import { ProductBreadcrumbs } from "../_components/product-breadcrumbs";
-import { ProductDetailsTabs } from "../_components/product-details-tabs";
-import { ProductGallery } from "../_components/product-gallery";
-import { ProductInfo } from "../_components/product-info";
-import { ProductMobileBuyBar } from "../_components/product-mobile-buy-bar";
-import { ProductSupportPanel } from "../_components/product-support-panel";
-import { RelatedProducts } from "../_components/related-products";
+import {
+  CatalogProductView,
+  CustomProductView,
+} from "../_components/product-detail-view";
 import { getProductDetailBySlug } from "../../_data/products/product-details";
 import { products } from "../../_data/products/products";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
@@ -69,13 +64,7 @@ export default async function ProductDetailsPage({
 }) {
   const { slug } = await params;
   const product = getProductDetailBySlug(slug);
-  if (!product) return notFound();
-
-  const badgeLabel: Record<NonNullable<typeof product.badge>, string> = {
-    New: "নতুন প্রোডাক্ট",
-    "Best Seller": "বেস্ট সেলার",
-    Limited: "লিমিটেড স্টক",
-  };
+  if (!product) return <CustomProductView slug={slug} />;
 
   const productUrl = absoluteUrl(`/products/${product.slug}`);
 
@@ -121,39 +110,10 @@ export default async function ProductDetailsPage({
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 pt-4 pb-28 sm:px-6 sm:pb-32 lg:px-8 lg:pt-8 lg:pb-16 xl:px-10">
+    <>
       <JsonLd data={productJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
-      <ProductBreadcrumbs items={product.breadcrumbs} />
-
-      <div className="grid grid-cols-1 items-start gap-5 sm:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
-        {/* Mobile: gallery first. Desktop: left column */}
-        <div className="min-w-0 lg:col-span-7">
-          <ProductGallery
-            badge={
-              product.status === "coming-soon"
-                ? "কামিং সুন"
-                : product.badge
-                  ? badgeLabel[product.badge]
-                  : undefined
-            }
-            images={product.gallery}
-          />
-          <ProductSupportPanel
-            product={product}
-            className="mt-6 hidden lg:mt-8 lg:block"
-          />
-        </div>
-
-        <div className="min-w-0 lg:col-span-5">
-          <ProductInfo product={product} />
-        </div>
-      </div>
-
-      <ProductDetailsTabs product={product} />
-      <RelatedProducts items={product.related} />
-
-      <ProductMobileBuyBar product={product} />
-    </main>
+      <CatalogProductView product={product} />
+    </>
   );
 }

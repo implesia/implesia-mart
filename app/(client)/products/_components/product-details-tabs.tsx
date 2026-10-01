@@ -17,7 +17,12 @@ function Stars({ value }: { value: number }) {
   return (
     <div className="flex text-tertiary">
       {Array.from({ length: 5 }).map((_, i) => (
-        <MaterialIcon key={i} name="star" filled={i < Math.round(value)} className="text-[18px]" />
+        <MaterialIcon
+          key={i}
+          name="star"
+          filled={i < Math.round(value)}
+          className="text-[18px]"
+        />
       ))}
     </div>
   );
@@ -34,7 +39,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
   const tabs = [
     { value: "details", label: "বিস্তারিত", icon: "description" },
     { value: "specifications", label: "স্পেসিফিকেশন", icon: "tune" },
-    ...(faqs.length ? [{ value: "faq", label: "প্রশ্নোত্তর", icon: "help" }] : []),
+    ...(faqs.length
+      ? [{ value: "faq", label: "প্রশ্নোত্তর", icon: "help" }]
+      : []),
     { value: "reviews", label: "রিভিউ", icon: "rate_review" },
   ];
 
@@ -64,7 +71,11 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
             )}
           >
             {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerClass}>
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className={tabTriggerClass}
+              >
                 {activeTab === tab.value ? (
                   <motion.span
                     layoutId="pdp-tab-pill"
@@ -92,7 +103,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
         className="pt-6 sm:pt-8 lg:pt-10"
         role="tabpanel"
         aria-label={tabs.find((t) => t.value === activeTab)?.label}
-      >        <AnimatePresence mode="wait">
+      >
+        {" "}
+        <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, y: 12 }}
@@ -104,11 +117,18 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
               <div className="grid grid-cols-1 gap-10 sm:gap-12 lg:grid-cols-2 lg:gap-16">
                 <div className="space-y-8">
                   <div className="space-y-6">
-                    <h3 className="font-headline-sm text-on-background">{product.details.heading}</h3>
-                    <p className="text-body-lg text-on-surface-variant">{product.details.body}</p>
+                    <h3 className="font-headline-sm text-on-background">
+                      {product.details.heading}
+                    </h3>
+                    <p className="text-body-lg text-on-surface-variant">
+                      {product.details.body}
+                    </p>
                     <ul className="space-y-3">
                       {product.details.bullets.map((b) => (
-                        <li key={b} className="flex items-center gap-3 text-body-md text-on-surface">
+                        <li
+                          key={b}
+                          className="flex items-center gap-3 text-body-md text-on-surface"
+                        >
                           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                           {b}
                         </li>
@@ -118,7 +138,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
 
                   {howToUse.length ? (
                     <div className="space-y-4">
-                      <h4 className="font-headline-sm text-on-background">কীভাবে ব্যবহার করবেন</h4>
+                      <h4 className="font-headline-sm text-on-background">
+                        কীভাবে ব্যবহার করবেন
+                      </h4>
                       <ol className="space-y-3">
                         {howToUse.map((step, index) => (
                           <li
@@ -137,7 +159,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
 
                   {suitableFor.length ? (
                     <div className="space-y-3">
-                      <h4 className="font-headline-sm text-on-background">কার জন্য উপযোগী</h4>
+                      <h4 className="font-headline-sm text-on-background">
+                        কার জন্য উপযোগী
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {suitableFor.map((item) => (
                           <span
@@ -162,8 +186,14 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                   />
                   <div className="relative z-10 flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
                     <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 backdrop-blur-sm sm:mb-5 sm:px-3 sm:py-1.5">
-                      <MaterialIcon name="verified" filled className="text-[16px] text-primary sm:text-[18px]" />
-                      <span className="text-[11px] text-white/90 sm:text-label-sm">ভেরিফাইড কোয়ালিটি</span>
+                      <MaterialIcon
+                        name="verified"
+                        filled
+                        className="text-[16px] text-primary sm:text-[18px]"
+                      />
+                      <span className="text-[11px] text-white/90 sm:text-label-sm">
+                        ভেরিফাইড কোয়ালিটি
+                      </span>
                     </div>
 
                     <h4 className="mb-2 text-lg font-medium text-white sm:mb-3 sm:text-xl">
@@ -184,7 +214,10 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                           className="flex items-center gap-2.5 text-sm text-white/90 sm:gap-3 sm:text-base"
                         >
                           <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary sm:size-7">
-                            <MaterialIcon name="check" className="text-[14px] sm:text-[16px]" />
+                            <MaterialIcon
+                              name="check"
+                              className="text-[14px] sm:text-[16px]"
+                            />
                           </span>
                           {item}
                         </li>
@@ -192,16 +225,18 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                     </ul>
                   </div>
 
-                  <div className="relative z-10 mx-4 mb-4 h-24 overflow-hidden rounded-lg border border-white/10 bg-black/25 sm:mx-6 sm:mb-6 sm:h-28 sm:rounded-xl lg:mx-8 lg:mb-8 lg:h-36">
-                    <Image
-                      src={product.details.authenticity.imageSrc}
-                      alt={product.details.authenticity.imageAlt}
-                      fill
-                      className="object-cover object-center opacity-80"
-                      sizes="(max-width: 1024px) 100vw, 40vw"
-                    />
-                    <div className="absolute inset-0 bg-linear-to-r from-[#0a2e2b]/90 via-[#0a2e2b]/35 to-[#0a2e2b]/70" />
-                  </div>
+                  {product.details.authenticity.imageSrc ? (
+                    <div className="relative z-10 mx-4 mb-4 h-24 overflow-hidden rounded-lg border border-white/10 bg-black/25 sm:mx-6 sm:mb-6 sm:h-28 sm:rounded-xl lg:mx-8 lg:mb-8 lg:h-36">
+                      <Image
+                        src={product.details.authenticity.imageSrc}
+                        alt={product.details.authenticity.imageAlt}
+                        fill
+                        className="object-cover object-center opacity-80"
+                        sizes="(max-width: 1024px) 100vw, 40vw"
+                      />
+                      <div className="absolute inset-0 bg-linear-to-r from-[#0a2e2b]/90 via-[#0a2e2b]/35 to-[#0a2e2b]/70" />
+                    </div>
+                  ) : null}
                 </aside>
               </div>
             ) : null}
@@ -217,7 +252,8 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                     সাধারণ জিজ্ঞাসা
                   </h3>
                   <p className="mt-1.5 text-sm text-on-surface-variant sm:mt-2 sm:text-base">
-                    অর্ডার, ডেলিভারি, ব্যবহার ও কেয়ার — যে প্রশ্নগুলো বেশি আসে, তার উত্তর।
+                    অর্ডার, ডেলিভারি, ব্যবহার ও কেয়ার — যে প্রশ্নগুলো বেশি আসে,
+                    তার উত্তর।
                   </p>
                 </div>
                 {faqs.map((faq) => (
@@ -226,7 +262,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                     className="group rounded-xl border border-outline-variant/30 bg-surface-container-low px-3.5 py-3.5 sm:rounded-2xl sm:px-5 sm:py-4"
                   >
                     <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-sm font-semibold text-on-surface sm:items-center sm:gap-4 sm:text-base">
-                      <span className="min-w-0 leading-snug">{faq.question}</span>
+                      <span className="min-w-0 leading-snug">
+                        {faq.question}
+                      </span>
                       <MaterialIcon
                         name="expand_more"
                         className="mt-0.5 shrink-0 text-outline transition-transform duration-300 group-open:rotate-180"
@@ -245,7 +283,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                 <section className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low p-6 sm:p-8 md:p-12">
                   <div className="mb-3 inline-flex items-center gap-2 text-primary">
                     <MaterialIcon name="rate_review" />
-                    <span className="font-label-md tracking-widest uppercase">রিভিউ</span>
+                    <span className="font-label-md tracking-widest uppercase">
+                      রিভিউ
+                    </span>
                   </div>
                   <h3 className="mb-3 text-xl font-medium text-on-background sm:font-headline-sm">
                     এখনও কোনো রিভিউ নেই
@@ -293,8 +333,13 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                         {reviews.breakdown
                           .filter((b) => b.stars >= 3)
                           .map((b) => (
-                            <div key={b.stars} className="flex items-center gap-3 sm:gap-4">
-                              <span className="w-4 text-label-sm">{b.stars}</span>
+                            <div
+                              key={b.stars}
+                              className="flex items-center gap-3 sm:gap-4"
+                            >
+                              <span className="w-4 text-label-sm">
+                                {b.stars}
+                              </span>
                               <div className="flex-1">
                                 <Progress value={b.percent} />
                               </div>
@@ -321,7 +366,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                                 <h5 className="truncate font-label-md text-on-surface">
                                   {r.name}
                                 </h5>
-                                <p className="text-label-sm text-outline">{r.meta}</p>
+                                <p className="text-label-sm text-outline">
+                                  {r.meta}
+                                </p>
                               </div>
                             </div>
                             <Stars value={r.rating} />

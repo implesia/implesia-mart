@@ -1725,3 +1725,13 @@ export const productDetails: ProductDetail[] = [
 export function getProductDetailBySlug(slug: string) {
   return productDetails.find((p) => p.slug === slug) ?? null;
 }
+
+export function relatedForCategory(excludeSlug: string, categoryId: Product["categoryId"]) {
+  return buildRelatedFromProducts(excludeSlug, categoryId);
+}
+
+export function deliveryBlocks(categoryId: Product["categoryId"], status: Product["status"]) {
+  if (categoryId === "fashion") return CUSTOM_DRESS_DELIVERY;
+  if (status === "coming-soon") return COMING_SOON_DELIVERY;
+  return STANDARD_DELIVERY;
+}

@@ -1,12 +1,27 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
-import type { ProductBadge, ProductCategoryId } from "@/app/(client)/_data/products/products";
+import type {
+  ProductBadge,
+  ProductCategoryId,
+} from "@/app/(client)/_data/products/products";
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { cn } from "@/lib/utils";
+import {
+  cleanProductContent,
+  emptyProductContent,
+  type ProductStorefrontContent,
+} from "@/lib/mart-mock/product-content";
 import {
   createAdminProduct,
   formatTaka,
@@ -28,6 +43,11 @@ import {
   StockStatusBadge,
 } from "../../_components/admin-ui";
 import { ImageField } from "../../_components/image-field";
+import {
+  ProductCopyFields,
+  ProductDetailFields,
+  ProductGalleryFields,
+} from "./product-content-fields";
 
 const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
   { value: "", label: "None" },
@@ -41,6 +61,7 @@ const SECTIONS = [
   { id: "product-media", label: "Media" },
   { id: "product-pricing", label: "Pricing" },
   { id: "product-inventory", label: "Inventory" },
+  { id: "product-details", label: "Product details" },
   { id: "product-organization", label: "Organization" },
   { id: "product-publishing", label: "Publishing" },
 ] as const;
@@ -59,6 +80,7 @@ type FormState = {
   imageSrc: string;
   featured: boolean;
   published: boolean;
+  content: ProductStorefrontContent;
 };
 
 type FieldKey = "title" | "price" | "compareAtPrice" | "quantity";
@@ -96,6 +118,7 @@ function toForm(product?: AdminProduct): FormState {
       imageSrc: "",
       featured: false,
       published: true,
+      content: emptyProductContent(),
     };
   }
   return {
@@ -103,13 +126,15 @@ function toForm(product?: AdminProduct): FormState {
     subtitle: product.subtitle,
     categoryId: product.categoryId,
     price: String(product.price),
-    compareAtPrice: product.compareAtPrice == null ? "" : String(product.compareAtPrice),
+    compareAtPrice:
+      product.compareAtPrice == null ? "" : String(product.compareAtPrice),
     quantity: product.quantity == null ? "" : String(product.quantity),
     status: product.status,
     badge: product.badge ?? "",
     imageSrc: product.imageSrc,
     featured: product.featured,
     published: product.published,
+    content: structuredClone(product.content),
   };
 }
 
@@ -125,16 +150,19 @@ function validate(form: FormState): FieldErrors {
   if (form.compareAtPrice.trim()) {
     const compareAtPrice = Number(form.compareAtPrice);
     if (!Number.isFinite(compareAtPrice) || compareAtPrice < 0) {
-      errors.compareAtPrice = "Enter the compare-at price as a number, or leave it blank.";
+      errors.compareAtPrice =
+        "Enter the compare-at price as a number, or leave it blank.";
     } else if (!errors.price && compareAtPrice < price) {
-      errors.compareAtPrice = "Compare-at price must be at least the selling price.";
+      errors.compareAtPrice =
+        "Compare-at price must be at least the selling price.";
     }
   }
 
   if (form.quantity.trim()) {
     const quantity = Number(form.quantity);
     if (!Number.isInteger(quantity) || quantity < 0) {
-      errors.quantity = "Leave quantity blank, or enter a whole number of 0 or more.";
+      errors.quantity =
+        "Leave quantity blank, or enter a whole number of 0 or more.";
     }
   }
 
@@ -156,6 +184,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const uploads = useRef(0);
   const [active, setActive] = useState<SectionId>("product-information");
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
   const bypassLeave = useRef(false);
@@ -165,10 +194,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const errors = showErrors ? issues : {};
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline);
   const priceNumber = Number(form.price);
-  const priceReady = form.price.trim() !== "" && Number.isFinite(priceNumber) && priceNumber >= 0;
+  const priceReady =
+    form.price.trim() !== "" &&
+    Number.isFinite(priceNumber) &&
+    priceNumber >= 0;
   const compareNumber = Number(form.compareAtPrice);
   const compareReady =
-    form.compareAtPrice.trim() !== "" && Number.isFinite(compareNumber) && compareNumber >= 0 && !issues.compareAtPrice;
+    form.compareAtPrice.trim() !== "" &&
+    Number.isFinite(compareNumber) &&
+    compareNumber >= 0 &&
+    !issues.compareAtPrice;
   const discount =
     priceReady && compareReady && compareNumber > priceNumber
       ? Math.round(((compareNumber - priceNumber) / compareNumber) * 100)
@@ -178,20 +213,34 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function setContent(content: ProductStorefrontContent) {
+    setForm((prev) => ({ ...prev, content }));
+  }
+
+  function onUploadBusy(busy: boolean) {
+    uploads.current = Math.max(0, uploads.current + (busy ? 1 : -1));
+    setUploading(uploads.current > 0);
+  }
+
   function scrollToSection(id: SectionId) {
     setActive(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById(id)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   useEffect(() => {
-    const nodes = SECTIONS.map((section) => document.getElementById(section.id)).filter((node): node is HTMLElement => node != null);
+    const nodes = SECTIONS.map((section) =>
+      document.getElementById(section.id),
+    ).filter((node): node is HTMLElement => node != null);
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         const id = visible?.target.id;
-        if (id && SECTIONS.some((section) => section.id === id)) setActive(id as SectionId);
+        if (id && SECTIONS.some((section) => section.id === id))
+          setActive(id as SectionId);
       },
       { rootMargin: "-25% 0px -55% 0px", threshold: [0.15, 0.4] },
     );
@@ -208,14 +257,26 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     };
     const onClick = (event: MouseEvent) => {
       if (bypassLeave.current) return;
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
       const anchor = (event.target as Element | null)?.closest("a[href]");
       if (!anchor || anchor.getAttribute("target") === "_blank") return;
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("#")) return;
       const url = new URL(href, window.location.href);
       if (url.origin !== window.location.origin) return;
-      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      if (
+        url.pathname === window.location.pathname &&
+        url.search === window.location.search
+      )
+        return;
       event.preventDefault();
       event.stopPropagation();
       setLeaveHref(`${url.pathname}${url.search}${url.hash}`);
@@ -255,7 +316,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     if (uploading || saving) return;
 
     const price = Number(form.price);
-    const compareAtPrice = form.compareAtPrice.trim() ? Number(form.compareAtPrice) : null;
+    const compareAtPrice = form.compareAtPrice.trim()
+      ? Number(form.compareAtPrice)
+      : null;
     const quantity = form.quantity.trim() ? Number(form.quantity) : null;
     const draft: ProductDraft = {
       title: form.title.trim(),
@@ -269,19 +332,41 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       imageSrc: form.imageSrc.trim(),
       featured: form.featured,
       published: form.published,
+      content: cleanProductContent({
+        ...form.content,
+        imageAlt: form.content.imageAlt.trim() || form.title.trim(),
+      }),
     };
 
     setSaving(true);
     bypassLeave.current = true;
     if (product) {
-      saveAdminProduct({ ...draft, slug: product.slug, custom: product.custom });
+      saveAdminProduct({
+        ...draft,
+        slug: product.slug,
+        custom: product.custom,
+      });
     } else {
       createAdminProduct(draft);
     }
     router.push("/admin/products");
   }
 
-  const statusLine = uploading ? "Uploading image…" : saving ? "Saving…" : dirty ? "Unsaved changes" : product ? "No unsaved changes" : "Not saved yet";
+  const statusLine = uploading
+    ? "Uploading image…"
+    : saving
+      ? "Saving…"
+      : dirty
+        ? "Unsaved changes"
+        : product
+          ? "No unsaved changes"
+          : "Not saved yet";
+  const setupDone = [
+    Boolean(form.title.trim()),
+    priceReady && !issues.price,
+    Boolean(form.imageSrc),
+    Boolean(form.content.description.trim()),
+  ].filter(Boolean).length;
 
   return (
     <form id={formId} onSubmit={save} className="min-w-0 pb-24" noValidate>
@@ -301,22 +386,39 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           <span
             className={cn(
               "rounded-full px-2.5 py-1 text-xs font-semibold",
-              form.published ? "bg-emerald-50 text-emerald-800" : "bg-neutral-100 text-neutral-600",
+              form.published
+                ? "bg-emerald-50 text-emerald-800"
+                : "bg-neutral-100 text-neutral-600",
             )}
           >
             {form.published ? "Live" : "Hidden"}
           </span>
           <StockStatusBadge status={form.status} />
-          {form.featured ? <span className="text-xs font-medium text-primary">Featured</span> : null}
+          {form.featured ? (
+            <span className="text-xs font-medium text-primary">Featured</span>
+          ) : null}
+          <Link
+            href={`/products/${product.slug}`}
+            target="_blank"
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            View on site
+          </Link>
         </div>
       ) : null}
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_16.5rem] xl:grid-cols-[11rem_minmax(0,1fr)_17.5rem]">
-        <nav aria-label="Product sections" className="sticky top-20 hidden xl:block">
+        <nav
+          aria-label="Product sections"
+          className="sticky top-20 hidden xl:block"
+        >
           <ol className="space-y-1">
             {SECTIONS.map((section) => (
               <li key={section.id}>
-                <SectionLink active={active === section.id} onClick={() => scrollToSection(section.id)}>
+                <SectionLink
+                  active={active === section.id}
+                  onClick={() => scrollToSection(section.id)}
+                >
                   {section.label}
                 </SectionLink>
               </li>
@@ -335,7 +437,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   onClick={() => scrollToSection(section.id)}
                   className={cn(
                     "h-9 shrink-0 rounded-full px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                    active === section.id ? "bg-neutral-950 text-white" : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
+                    active === section.id
+                      ? "bg-neutral-950 text-white"
+                      : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
                   )}
                 >
                   {section.label}
@@ -347,7 +451,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           <FormSection
             id="product-information"
             title="Product information"
-            description="Name is required. The subtitle is an optional short line under the name."
+            description="Name is required. Subtitle is the short catalog line. Tagline and description are the product page copy."
           >
             <div className="grid gap-4">
               <div>
@@ -360,10 +464,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   onChange={(event) => setField("title", event.target.value)}
                   placeholder="Sunset projection lamp"
                   aria-invalid={errors.title ? true : undefined}
-                  aria-describedby={errors.title ? `${formId}-title-error` : undefined}
-                  className={cn(adminFieldClass, "h-12 text-base", errors.title && "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200")}
+                  aria-describedby={
+                    errors.title ? `${formId}-title-error` : undefined
+                  }
+                  className={cn(
+                    adminFieldClass,
+                    "h-12 text-base",
+                    errors.title &&
+                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                  )}
                 />
-                <FieldErrorSlot id={`${formId}-title-error`} message={errors.title} />
+                <FieldErrorSlot
+                  id={`${formId}-title-error`}
+                  message={errors.title}
+                />
               </div>
               <div>
                 <FieldLabel htmlFor={`${formId}-subtitle`}>Subtitle</FieldLabel>
@@ -375,22 +489,50 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   className={adminFieldClass}
                 />
               </div>
+              <ProductCopyFields
+                formId={formId}
+                content={form.content}
+                onChange={setContent}
+              />
             </div>
           </FormSection>
 
           <FormSection
             id="product-media"
             title="Media"
-            description="One main image is saved with the product. JPG, PNG, WEBP, GIF, or AVIF, up to 5 MB."
+            description="The main image is the catalog thumbnail. Gallery images are the product page photos. JPG, PNG, WEBP, GIF, or AVIF, up to 5 MB."
           >
             <ImageField
               label=""
               value={form.imageSrc}
               onChange={(imageSrc) => setField("imageSrc", imageSrc)}
               confirmRemove
-              onBusy={setUploading}
+              onBusy={onUploadBusy}
             />
-            {!form.imageSrc ? <p className="mt-2 text-sm text-neutral-500">No image yet. You can still save the product.</p> : null}
+            {!form.imageSrc ? (
+              <p className="mt-2 text-sm text-neutral-500">
+                No image yet. You can still save the product.
+              </p>
+            ) : null}
+            <div className="mt-3">
+              <FieldLabel htmlFor={`${formId}-image-alt`}>
+                Image description
+              </FieldLabel>
+              <input
+                id={`${formId}-image-alt`}
+                value={form.content.imageAlt}
+                onChange={(event) =>
+                  setContent({ ...form.content, imageAlt: event.target.value })
+                }
+                placeholder="Used as the image description on the product page"
+                className={adminFieldClass}
+              />
+            </div>
+            <ProductGalleryFields
+              content={form.content}
+              onChange={setContent}
+              onBusy={onUploadBusy}
+            />
           </FormSection>
 
           <FormSection
@@ -410,34 +552,91 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   onChange={(event) => setField("price", event.target.value)}
                   placeholder="999"
                   aria-invalid={errors.price ? true : undefined}
-                  aria-describedby={errors.price ? `${formId}-price-error` : undefined}
-                  className={cn(adminFieldClass, errors.price && "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200")}
+                  aria-describedby={
+                    errors.price ? `${formId}-price-error` : undefined
+                  }
+                  className={cn(
+                    adminFieldClass,
+                    errors.price &&
+                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                  )}
                 />
-                <FieldErrorSlot id={`${formId}-price-error`} message={errors.price} />
+                <FieldErrorSlot
+                  id={`${formId}-price-error`}
+                  message={errors.price}
+                />
               </div>
               <div>
-                <FieldLabel htmlFor={`${formId}-compare`}>Compare-at price</FieldLabel>
+                <FieldLabel htmlFor={`${formId}-compare`}>
+                  Compare-at price
+                </FieldLabel>
                 <input
                   id={`${formId}-compare`}
                   inputMode="decimal"
                   value={form.compareAtPrice}
-                  onChange={(event) => setField("compareAtPrice", event.target.value)}
+                  onChange={(event) =>
+                    setField("compareAtPrice", event.target.value)
+                  }
                   placeholder="Optional"
                   aria-invalid={errors.compareAtPrice ? true : undefined}
-                  aria-describedby={errors.compareAtPrice ? `${formId}-compare-error` : `${formId}-compare-hint`}
-                  className={cn(adminFieldClass, errors.compareAtPrice && "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200")}
+                  aria-describedby={
+                    errors.compareAtPrice
+                      ? `${formId}-compare-error`
+                      : `${formId}-compare-hint`
+                  }
+                  className={cn(
+                    adminFieldClass,
+                    errors.compareAtPrice &&
+                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                  )}
                 />
-                <FieldErrorSlot id={`${formId}-compare-error`} message={errors.compareAtPrice} />
-                {!errors.compareAtPrice && priceReady && compareReady && compareNumber > priceNumber ? (
-                  <p id={`${formId}-compare-hint`} className="mt-1.5 text-xs text-neutral-500">
-                    Selling price {formatTaka(priceNumber)} is {discount}% below the compare-at price of {formatTaka(compareNumber)}.
+                <FieldErrorSlot
+                  id={`${formId}-compare-error`}
+                  message={errors.compareAtPrice}
+                />
+                {!errors.compareAtPrice &&
+                priceReady &&
+                compareReady &&
+                compareNumber > priceNumber ? (
+                  <p
+                    id={`${formId}-compare-hint`}
+                    className="mt-1.5 text-xs text-neutral-500"
+                  >
+                    Selling price {formatTaka(priceNumber)} is {discount}% below
+                    the compare-at price of {formatTaka(compareNumber)}.
                   </p>
                 ) : null}
-                {!errors.compareAtPrice && priceReady && compareReady && compareNumber === priceNumber ? (
-                  <p id={`${formId}-compare-hint`} className="mt-1.5 text-xs text-neutral-500">
-                    Compare-at matches the selling price, so there is no higher price to show.
+                {!errors.compareAtPrice &&
+                priceReady &&
+                compareReady &&
+                compareNumber === priceNumber ? (
+                  <p
+                    id={`${formId}-compare-hint`}
+                    className="mt-1.5 text-xs text-neutral-500"
+                  >
+                    Compare-at matches the selling price, so there is no higher
+                    price to show.
                   </p>
                 ) : null}
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${formId}-unit`}>Price note</FieldLabel>
+                <input
+                  id={`${formId}-unit`}
+                  value={form.content.unitLabel}
+                  onChange={(event) =>
+                    setContent({
+                      ...form.content,
+                      unitLabel: event.target.value,
+                    })
+                  }
+                  placeholder="Optional, such as শুরু"
+                  className={adminFieldClass}
+                />
+                <p className="mt-1.5 text-xs text-neutral-500">
+                  Shown beside the price on the product page. Leave blank for a
+                  normal price.
+                </p>
               </div>
             </div>
           </FormSection>
@@ -448,22 +647,28 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             description="Stock status is the availability label. Quantity is optional: leave it blank for made to order."
           >
             <div>
-              <p className="mb-1.5 text-sm font-medium text-neutral-700">Stock status</p>
+              <p className="mb-1.5 text-sm font-medium text-neutral-700">
+                Stock status
+              </p>
               <div className="grid grid-cols-3 gap-2">
-                {(["available", "sold-out", "coming-soon"] as const).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    aria-pressed={form.status === status}
-                    onClick={() => setField("status", status)}
-                    className={cn(
-                      "h-11 rounded-xl px-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      form.status === status ? STOCK_STATUS_TONE[status] : "bg-[#f5f6f8] text-neutral-500 ring-1 ring-transparent hover:bg-neutral-100",
-                    )}
-                  >
-                    {ADMIN_STOCK_STATUS_LABEL[status]}
-                  </button>
-                ))}
+                {(["available", "sold-out", "coming-soon"] as const).map(
+                  (status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      aria-pressed={form.status === status}
+                      onClick={() => setField("status", status)}
+                      className={cn(
+                        "h-11 rounded-xl px-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        form.status === status
+                          ? STOCK_STATUS_TONE[status]
+                          : "bg-[#f5f6f8] text-neutral-500 ring-1 ring-transparent hover:bg-neutral-100",
+                      )}
+                    >
+                      {ADMIN_STOCK_STATUS_LABEL[status]}
+                    </button>
+                  ),
+                )}
               </div>
               <p className="mt-2 text-xs text-neutral-500">
                 {form.status === "available"
@@ -482,19 +687,70 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 onChange={(event) => setField("quantity", event.target.value)}
                 placeholder="Blank = made to order"
                 aria-invalid={errors.quantity ? true : undefined}
-                aria-describedby={errors.quantity ? `${formId}-qty-error` : `${formId}-qty-hint`}
-                className={cn(adminFieldClass, errors.quantity && "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200")}
+                aria-describedby={
+                  errors.quantity ? `${formId}-qty-error` : `${formId}-qty-hint`
+                }
+                className={cn(
+                  adminFieldClass,
+                  errors.quantity &&
+                    "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                )}
               />
-              <FieldErrorSlot id={`${formId}-qty-error`} message={errors.quantity} />
+              <FieldErrorSlot
+                id={`${formId}-qty-error`}
+                message={errors.quantity}
+              />
               {!errors.quantity ? (
-                <p id={`${formId}-qty-hint`} className="mt-1.5 text-xs text-neutral-500">
-                  {form.quantity.trim() ? `${form.quantity.trim()} in stock in the product list.` : "Blank is saved as made to order."}
+                <p
+                  id={`${formId}-qty-hint`}
+                  className="mt-1.5 text-xs text-neutral-500"
+                >
+                  {form.quantity.trim()
+                    ? `${form.quantity.trim()} in stock in the product list.`
+                    : "Blank is saved as made to order."}
                 </p>
               ) : null}
             </div>
+            <div className="mt-4">
+              <FieldLabel htmlFor={`${formId}-stock-label`}>
+                Availability note
+              </FieldLabel>
+              <input
+                id={`${formId}-stock-label`}
+                value={form.content.stockLabel}
+                onChange={(event) =>
+                  setContent({
+                    ...form.content,
+                    stockLabel: event.target.value,
+                  })
+                }
+                placeholder="স্টকে আছে"
+                className={adminFieldClass}
+              />
+              <p className="mt-1.5 text-xs text-neutral-500">
+                Shown next to the price when the product is in stock. Sold out
+                and coming soon replace this note on the product page.
+              </p>
+            </div>
           </FormSection>
 
-          <FormSection id="product-organization" title="Organization" description="Category is required and already selected. Badge is optional.">
+          <FormSection
+            id="product-details"
+            title="Product details"
+            description="Content for the product page: highlights, the details tab, specifications, and questions. Reviews stay as they are."
+          >
+            <ProductDetailFields
+              formId={formId}
+              content={form.content}
+              onChange={setContent}
+            />
+          </FormSection>
+
+          <FormSection
+            id="product-organization"
+            title="Organization"
+            description="Category is required and already selected. Badge is optional."
+          >
             <fieldset>
               <legend className="mb-1.5 text-sm font-medium text-neutral-700">
                 Category <RequiredMark />
@@ -519,7 +775,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               </div>
             </fieldset>
             <div className="mt-4">
-              <p className="mb-1.5 text-sm font-medium text-neutral-700">Badge</p>
+              <p className="mb-1.5 text-sm font-medium text-neutral-700">
+                Badge
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {BADGE_OPTIONS.map((option) => (
                   <button
@@ -529,7 +787,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                     onClick={() => setField("badge", option.value)}
                     className={cn(
                       "h-9 rounded-full px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      form.badge === option.value ? "bg-neutral-950 text-white" : "bg-[#f5f6f8] text-neutral-600 hover:bg-neutral-200",
+                      form.badge === option.value
+                        ? "bg-neutral-950 text-white"
+                        : "bg-[#f5f6f8] text-neutral-600 hover:bg-neutral-200",
                     )}
                   >
                     {option.label}
@@ -541,29 +801,56 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         </div>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-20">
-          <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-label="Catalog preview">
+          <section
+            className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+            aria-label="Catalog preview"
+          >
             <div className="relative aspect-[4/3] bg-[#f3f4f6]">
               {form.imageSrc ? (
-                <Image src={form.imageSrc} alt="" fill sizes="320px" className="object-contain p-4" />
+                <Image
+                  src={form.imageSrc}
+                  alt=""
+                  fill
+                  sizes="320px"
+                  className="object-contain p-4"
+                />
               ) : (
-                <div className="grid h-full place-items-center text-sm text-neutral-400">No image yet</div>
+                <div className="grid h-full place-items-center text-sm text-neutral-400">
+                  No image yet
+                </div>
               )}
             </div>
             <div className="space-y-2 px-4 py-3">
-              <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">Catalog preview</p>
+              <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
+                Catalog preview
+              </p>
               <div className="flex flex-wrap items-center gap-2">
                 <StockStatusBadge status={form.status} />
                 {form.badge ? (
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">{form.badge}</span>
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                    {form.badge}
+                  </span>
                 ) : null}
               </div>
-              <p className="text-base font-semibold text-neutral-950">{form.title.trim() || "Product name"}</p>
-              {form.subtitle.trim() ? <p className="text-sm text-neutral-500">{form.subtitle.trim()}</p> : null}
-              <p className="text-xs text-neutral-500">{ADMIN_CATEGORY_LABEL[form.categoryId]}</p>
+              <p className="text-base font-semibold text-neutral-950">
+                {form.title.trim() || "Product name"}
+              </p>
+              {form.subtitle.trim() ? (
+                <p className="text-sm text-neutral-500">
+                  {form.subtitle.trim()}
+                </p>
+              ) : null}
+              <p className="text-xs text-neutral-500">
+                {ADMIN_CATEGORY_LABEL[form.categoryId]}
+              </p>
               <p className="flex items-baseline gap-2">
-                <span className="text-lg font-semibold text-neutral-950 tabular-nums">{priceReady ? formatTaka(priceNumber) : "৳—"}</span>
+                <span className="text-lg font-semibold text-neutral-950 tabular-nums">
+                  {priceReady ? formatTaka(priceNumber) : "৳—"}
+                </span>
                 {discount != null ? (
-                  <span className="text-sm text-neutral-400 line-through tabular-nums">{formatTaka(compareNumber)}</span>
+                  <span className="text-sm text-neutral-400 line-through tabular-nums">
+                    {formatTaka(compareNumber)}
+                  </span>
                 ) : null}
               </p>
             </div>
@@ -577,7 +864,11 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             <div className="space-y-2">
               <Toggle
                 label="Published"
-                hint={form.published ? "Marked Live in the product list." : "Marked Hidden in the product list."}
+                hint={
+                  form.published
+                    ? "Marked Live in the product list."
+                    : "Marked Hidden in the product list."
+                }
                 checked={form.published}
                 onChange={(checked) => setField("published", checked)}
               />
@@ -588,10 +879,28 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 onChange={(checked) => setField("featured", checked)}
               />
             </div>
-            <ul className="mt-4 space-y-2 border-t border-neutral-100 pt-3" aria-label="Required details">
-              <CheckRow done={Boolean(form.title.trim())} label="Product name" />
-              <CheckRow done={priceReady && !issues.price} label="Selling price" />
-              <CheckRow done={Boolean(form.imageSrc)} label="Main image" optional />
+            <p className="mt-4 border-t border-neutral-100 pt-3 text-sm font-medium text-neutral-800">
+              Setup {setupDone} of 4
+            </p>
+            <ul className="mt-2 space-y-2" aria-label="Required details">
+              <CheckRow
+                done={Boolean(form.title.trim())}
+                label="Product name"
+              />
+              <CheckRow
+                done={priceReady && !issues.price}
+                label="Selling price"
+              />
+              <CheckRow
+                done={Boolean(form.imageSrc)}
+                label="Main image"
+                optional
+              />
+              <CheckRow
+                done={Boolean(form.content.description.trim())}
+                label="Product description"
+                optional
+              />
             </ul>
           </FormSection>
         </aside>
@@ -604,13 +913,24 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         )}
       >
         <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
-          <button type="button" onClick={() => requestLeave("/admin/products")} className={adminButtonClass.secondary}>
+          <button
+            type="button"
+            onClick={() => requestLeave("/admin/products")}
+            className={adminButtonClass.secondary}
+          >
             Cancel
           </button>
-          <p className="min-w-0 flex-1 truncate text-sm text-neutral-500" role="status">
+          <p
+            className="min-w-0 flex-1 truncate text-sm text-neutral-500"
+            role="status"
+          >
             {statusLine}
           </p>
-          <button type="submit" disabled={saving || uploading} className={adminButtonClass.primary}>
+          <button
+            type="submit"
+            disabled={saving || uploading}
+            className={adminButtonClass.primary}
+          >
             {saving ? "Saving…" : product ? "Save changes" : "Create product"}
           </button>
         </div>
@@ -633,15 +953,30 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               if (event.key === "Escape") setLeaveHref(null);
             }}
           >
-            <h2 id={`${formId}-leave-title`} className="text-base font-semibold text-neutral-950">
+            <h2
+              id={`${formId}-leave-title`}
+              className="text-base font-semibold text-neutral-950"
+            >
               Unsaved changes
             </h2>
-            <p className="mt-1 text-sm text-neutral-600">Leave this page? The product details you entered will not be saved.</p>
+            <p className="mt-1 text-sm text-neutral-600">
+              Leave this page? The product details you entered will not be
+              saved.
+            </p>
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" className={adminButtonClass.secondary} onClick={() => setLeaveHref(null)} autoFocus>
+              <button
+                type="button"
+                className={adminButtonClass.secondary}
+                onClick={() => setLeaveHref(null)}
+                autoFocus
+              >
                 Stay
               </button>
-              <button type="button" className={adminButtonClass.primary} onClick={confirmLeave}>
+              <button
+                type="button"
+                className={adminButtonClass.primary}
+                onClick={confirmLeave}
+              >
                 Leave without saving
               </button>
             </div>
@@ -664,9 +999,14 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-32 rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
+    <section
+      id={id}
+      className="scroll-mt-32 rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5"
+    >
       <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
-      <p className="mt-1 text-sm leading-relaxed text-neutral-500">{description}</p>
+      <p className="mt-1 text-sm leading-relaxed text-neutral-500">
+        {description}
+      </p>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -688,7 +1028,9 @@ function SectionLink({
       onClick={onClick}
       className={cn(
         "flex w-full rounded-xl px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        active ? "bg-white font-semibold text-neutral-950 ring-1 ring-neutral-200" : "font-medium text-neutral-500 hover:bg-white/70 hover:text-neutral-800",
+        active
+          ? "bg-white font-semibold text-neutral-950 ring-1 ring-neutral-200"
+          : "font-medium text-neutral-500 hover:bg-white/70 hover:text-neutral-800",
       )}
     >
       {children}
@@ -716,12 +1058,32 @@ function FieldErrorSlot({ id, message }: { id: string; message?: string }) {
   );
 }
 
-function CheckRow({ done, label, optional = false }: { done: boolean; label: string; optional?: boolean }) {
+function CheckRow({
+  done,
+  label,
+  optional = false,
+}: {
+  done: boolean;
+  label: string;
+  optional?: boolean;
+}) {
   return (
     <li className="flex items-center gap-2 text-sm">
-      <MaterialIcon name={done ? "check_circle" : "radio_button_unchecked"} className={cn("text-[18px]", done ? "text-emerald-700" : "text-neutral-400")} />
-      <span className={done ? "text-neutral-800" : "text-neutral-600"}>{label}</span>
-      {optional ? <span className="text-xs text-neutral-400">Optional</span> : <span className="text-xs text-neutral-400">Required</span>}
+      <MaterialIcon
+        name={done ? "check_circle" : "radio_button_unchecked"}
+        className={cn(
+          "text-[18px]",
+          done ? "text-emerald-700" : "text-neutral-400",
+        )}
+      />
+      <span className={done ? "text-neutral-800" : "text-neutral-600"}>
+        {label}
+      </span>
+      {optional ? (
+        <span className="text-xs text-neutral-400">Optional</span>
+      ) : (
+        <span className="text-xs text-neutral-400">Required</span>
+      )}
     </li>
   );
 }
@@ -740,7 +1102,9 @@ function Toggle({
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f6f8] px-3.5 py-3">
       <span>
-        <span className="block text-sm font-medium text-neutral-800">{label}</span>
+        <span className="block text-sm font-medium text-neutral-800">
+          {label}
+        </span>
         <span className="block text-xs text-neutral-500">{hint}</span>
       </span>
       <button
@@ -754,7 +1118,12 @@ function Toggle({
           checked ? "bg-primary" : "bg-neutral-300",
         )}
       >
-        <span className={cn("absolute top-0.5 size-5 rounded-full bg-white transition-all", checked ? "left-5" : "left-0.5")} />
+        <span
+          className={cn(
+            "absolute top-0.5 size-5 rounded-full bg-white transition-all",
+            checked ? "left-5" : "left-0.5",
+          )}
+        />
       </button>
     </div>
   );

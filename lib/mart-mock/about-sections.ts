@@ -57,7 +57,8 @@ export type AboutHeroContent = {
   images: AboutImage[];
 };
 
-export type AboutStoryContent = {
+export type AboutStoryBlock = {
+  id: string;
   kicker: string;
   title: string;
   paragraphs: AboutParagraph[];
@@ -99,7 +100,7 @@ export type AboutCtaContent = {
 export type AboutSections = {
   hero: AboutHeroContent;
   stats: AboutStatItem[];
-  story: AboutStoryContent;
+  stories: AboutStoryBlock[];
   customDresses: AboutDressContent;
   mission: { vision: AboutCard; mission: AboutCard };
   values: AboutValuesContent;
@@ -173,20 +174,23 @@ export function seedAboutSections(): AboutSections {
       value: item.value,
       label: item.label,
     })),
-    story: {
-      kicker: story.kicker,
-      title: story.title,
-      paragraphs: story.paragraphs.map((text, index) => ({
-        id: `story-${index + 1}`,
-        text,
-      })),
-      cta: link(story.cta),
-      images: story.images.map((image, index) => ({
-        id: `story-image-${index + 1}`,
-        src: image.src,
-        alt: image.alt,
-      })),
-    },
+    stories: [
+      {
+        id: "story-1",
+        kicker: story.kicker,
+        title: story.title,
+        paragraphs: story.paragraphs.map((text, index) => ({
+          id: `story-${index + 1}`,
+          text,
+        })),
+        cta: link(story.cta),
+        images: story.images.map((image, index) => ({
+          id: `story-image-${index + 1}`,
+          src: image.src,
+          alt: image.alt,
+        })),
+      },
+    ],
     customDresses: {
       kicker: customDresses.kicker,
       title: customDresses.title,
@@ -241,9 +245,13 @@ export function seedAboutSections(): AboutSections {
   };
 }
 
+type StoredAboutSections = Partial<AboutSections> & {
+  story?: Omit<AboutStoryBlock, "id"> & { id?: string };
+};
+
 export function readAboutSections(): AboutSections {
   const seed = seedAboutSections();
-  const stored = readJson<Partial<AboutSections>>(KEY);
+  const stored = readJson<StoredAboutSections>(KEY);
   if (!stored) return seed;
 
   return {
@@ -255,13 +263,7 @@ export function readAboutSections(): AboutSections {
       images: stored.hero?.images ?? seed.hero.images,
     },
     stats: stored.stats ?? seed.stats,
-    story: {
-      ...seed.story,
-      ...stored.story,
-      cta: { ...seed.story.cta, ...stored.story?.cta },
-      paragraphs: stored.story?.paragraphs ?? seed.story.paragraphs,
-      images: stored.story?.images ?? seed.story.images,
-    },
+    stories: readStories(seed.stories, stored),
     customDresses: {
       ...seed.customDresses,
       ...stored.customDresses,
@@ -309,6 +311,59 @@ export function blankAboutImage(): AboutImage {
 
 export function blankParagraph(): AboutParagraph {
   return { id: newId("paragraph"), text: "" };
+}
+
+export function blankStory(): AboutStoryBlock {
+  return {
+    id: newId("story"),
+    kicker: "",
+    title: "",
+    paragraphs: [blankParagraph()],
+    cta: { label: "", href: "" },
+    images: [blankAboutImage()],
+  };
+}
+
+function readStories(
+  seed: AboutStoryBlock[],
+  stored: StoredAboutSections,
+): AboutStoryBlock[] {
+  if (Array.isArray(stored.stories))
+    return stored.stories.map((item, index) => normalizeStory(item, index));
+  if (stored.story) {
+    const base = seed[0];
+    return [
+      normalizeStory(
+        {
+          id: "story-1",
+          kicker: stored.story.kicker ?? base?.kicker,
+          title: stored.story.title ?? base?.title,
+          paragraphs: stored.story.paragraphs ?? base?.paragraphs,
+          cta: {
+            label: stored.story.cta?.label ?? base?.cta.label ?? "",
+            href: stored.story.cta?.href ?? base?.cta.href ?? "",
+          },
+          images: stored.story.images ?? base?.images,
+        },
+        0,
+      ),
+    ];
+  }
+  return seed;
+}
+
+function normalizeStory(
+  item: Partial<AboutStoryBlock>,
+  index: number,
+): AboutStoryBlock {
+  return {
+    id: item.id || `story-${index + 1}`,
+    kicker: item.kicker ?? "",
+    title: item.title ?? "",
+    paragraphs: item.paragraphs ?? [],
+    cta: { label: item.cta?.label ?? "", href: item.cta?.href ?? "" },
+    images: item.images ?? [],
+  };
 }
 
 export function blankStat(): AboutStatItem {

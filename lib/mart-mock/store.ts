@@ -1,5 +1,11 @@
 import { heroSlides } from "@/app/(client)/_data/home/home";
 import {
+  emptyProductContent,
+  mergeProductContent,
+  seedProductContent,
+  type ProductStorefrontContent,
+} from "@/lib/mart-mock/product-content";
+import {
   FEATURED_PRODUCT_SLUGS,
   products,
   type Product,
@@ -81,6 +87,7 @@ export type AdminProduct = {
   featured: boolean;
   published: boolean;
   custom: boolean;
+  content: ProductStorefrontContent;
 };
 
 export type ProductDraft = Omit<AdminProduct, "slug" | "custom">;
@@ -362,6 +369,15 @@ function catalogDraft(product: Product): ProductDraft {
     imageSrc: product.imageSrc,
     featured: featuredSlug(product.slug),
     published: true,
+    content: seedProductContent(product.slug),
+  };
+}
+
+function mergeDraft(seed: ProductDraft, stored: Partial<ProductDraft>): ProductDraft {
+  return {
+    ...seed,
+    ...stored,
+    content: mergeProductContent(seed.content, stored.content),
   };
 }
 
@@ -370,13 +386,18 @@ function readOverrides() {
 }
 
 function readCustomProducts() {
-  return readJson<AdminProduct[]>(CUSTOM_PRODUCTS_KEY) ?? [];
+  return (readJson<AdminProduct[]>(CUSTOM_PRODUCTS_KEY) ?? []).map((product) => ({
+    ...product,
+    content: mergeProductContent(emptyProductContent(), product.content),
+  }));
 }
 
 export function listAdminProducts(): AdminProduct[] {
   const overrides = readOverrides();
   const catalog = products.map((product) => {
-    const draft = overrides[product.slug] ?? catalogDraft(product);
+    const seed = catalogDraft(product);
+    const stored = overrides[product.slug];
+    const draft = stored ? mergeDraft(seed, stored) : seed;
     return { ...draft, slug: product.slug, custom: false };
   });
   return [...catalog, ...readCustomProducts()];
@@ -408,8 +429,7 @@ export function createAdminProduct(draft: ProductDraft) {
 
 export function effectiveStockStatus(slug: string, fallback: ProductStatus): StockStatus {
   if (typeof window === "undefined") return fallback;
-  const override = readOverrides()[slug];
-  return override?.status ?? fallback;
+  return getAdminProduct(slug)?.status ?? fallback;
 }
 
 export function seedBanners(): AdminBanner[] {
