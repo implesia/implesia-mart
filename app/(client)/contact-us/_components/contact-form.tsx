@@ -7,11 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { contactCopy, getWhatsAppHref } from "../../_data/contact/contact";
+import { useContactSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
+
+import { getWhatsAppHref } from "../../_data/contact/contact";
 
 export function ContactForm({ className }: { className?: string }) {
-  const { form } = contactCopy;
+  const { form, direct } = useContactSections();
   const [values, setValues] = useState({ name: "", phone: "", subject: "", message: "" });
+  if (!isContentActive(form)) return null;
 
   function handleChange(field: keyof typeof values) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -27,7 +31,14 @@ export function ContactForm({ className }: { className?: string }) {
       "",
       values.message,
     ].join("\n");
-    window.open(getWhatsAppHref(composed), "_blank", "noopener,noreferrer");
+    const chat = direct.channels.find(
+      (channel) => channel.icon === "chat" && isContentActive(channel) && isContentActive(direct),
+    );
+    const number = chat?.href.match(/wa\.me\/(\d+)/)?.[1];
+    const href = number
+      ? `https://wa.me/${number}?text=${encodeURIComponent(composed)}`
+      : getWhatsAppHref(composed);
+    window.open(href, "_blank", "noopener,noreferrer");
   }
 
   return (

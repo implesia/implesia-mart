@@ -1,13 +1,19 @@
+"use client";
+
 import Link from "next/link";
 
+import { useContactSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { contactCopy } from "../../_data/contact/contact";
 
 export function ContactSupport({ className }: { className?: string }) {
-  const { support } = contactCopy;
+  const { support } = useContactSections();
+  if (!isContentActive(support)) return null;
+  const hours = support.hours.filter(isContentActive);
+  const quickLinks = support.quickLinks.filter(isContentActive);
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -27,9 +33,9 @@ export function ContactSupport({ className }: { className?: string }) {
             </div>
 
             <div className="space-y-2.5">
-              {support.hours.map((h) => (
+              {hours.map((h) => (
                 <div
-                  key={h.label}
+                  key={h.id}
                   className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200/90 px-4 py-3"
                 >
                   <span className="text-sm font-medium text-neutral-950">{h.label}</span>
@@ -40,9 +46,9 @@ export function ContactSupport({ className }: { className?: string }) {
           </div>
 
           <div className="flex flex-col justify-center gap-2.5">
-            {support.quickLinks.map((link) => (
+            {quickLinks.map((link) => (
               <Link
-                key={link.href}
+                key={link.id}
                 href={link.href}
                 className={cn(
                   "group flex items-center justify-between gap-3 rounded-xl border border-neutral-200/90 px-4 py-3.5",

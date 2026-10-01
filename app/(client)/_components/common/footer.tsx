@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
+import { WHATSAPP_HREF } from "@/app/(client)/_data/contact/contact";
+import { useContactSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
-
-import { WHATSAPP_HREF, contactCopy } from "../../_data/contact/contact";
 import { productsHref } from "../../_data/products/products";
 import { FacebookIcon, LinkedinIcon, WhatsAppIcon } from "./brand-icons";
 import { Container } from "./container";
@@ -36,11 +39,6 @@ const trustPoints = [
   { icon: "payments", label: "ক্যাশ অন ডেলিভারি" },
   { icon: "assignment_return", label: "৩ দিনের ইজি রিটার্ন" },
 ] as const;
-
-const phoneChannel = contactCopy.direct.channels.find((c) => c.icon === "call");
-const emailChannel = contactCopy.direct.channels.find((c) => c.icon === "mail");
-const facebookLink = contactCopy.direct.social.find((s) => s.platform === "facebook");
-const linkedinLink = contactCopy.direct.social.find((s) => s.platform === "linkedin");
 
 const linkClass =
   "text-sm text-white/75 transition-colors duration-200 hover:text-white";
@@ -78,6 +76,24 @@ function FooterColumn({
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const { direct } = useContactSections();
+  const visible = isContentActive(direct);
+  const phoneChannel = visible
+    ? direct.channels.find((channel) => channel.icon === "call" && isContentActive(channel))
+    : undefined;
+  const emailChannel = visible
+    ? direct.channels.find((channel) => channel.icon === "mail" && isContentActive(channel))
+    : undefined;
+  const chatChannel = visible
+    ? direct.channels.find((channel) => channel.icon === "chat" && isContentActive(channel))
+    : undefined;
+  const facebookLink = visible
+    ? direct.social.find((item) => item.platform === "facebook" && isContentActive(item))
+    : undefined;
+  const linkedinLink = visible
+    ? direct.social.find((item) => item.platform === "linkedin" && isContentActive(item))
+    : undefined;
+  const whatsAppHref = chatChannel?.href || WHATSAPP_HREF;
 
   return (
     <footer className="relative mt-10 w-full overflow-hidden bg-neutral-950 text-white sm:mt-12 lg:mt-14">
@@ -121,7 +137,7 @@ export default function Footer() {
 
             <div className="mt-6 flex items-center gap-2.5">
               <a
-                href={WHATSAPP_HREF}
+                href={whatsAppHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={socialClass}
@@ -129,7 +145,7 @@ export default function Footer() {
               >
                 <WhatsAppIcon className="size-[18px]" />
               </a>
-              {facebookLink ? (
+              {facebookLink?.href ? (
                 <a
                   href={facebookLink.href}
                   target="_blank"
@@ -140,7 +156,7 @@ export default function Footer() {
                   <FacebookIcon className="size-[18px]" />
                 </a>
               ) : null}
-              {linkedinLink ? (
+              {linkedinLink?.href ? (
                 <a
                   href={linkedinLink.href}
                   target="_blank"
@@ -178,7 +194,7 @@ export default function Footer() {
           </ul>
 
           <a
-            href={WHATSAPP_HREF}
+            href={whatsAppHref}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(

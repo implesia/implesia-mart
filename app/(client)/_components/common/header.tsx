@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { contactCopy } from "../../_data/contact/contact";
+import { useContactSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
+
 import { headerNav } from "../../_data/common/site-nav";
 import { productFilters } from "../../_data/products/products";
 import { CartTrigger } from "../cart/cart-trigger";
@@ -18,9 +20,6 @@ import { SiteLogo } from "./site-logo";
 import { ThemeToggle } from "./theme-toggle";
 
 const SITE_NAME = "Implesia Mart";
-const phoneChannel = contactCopy.direct.channels.find(
-  (channel) => channel.icon === "call",
-);
 
 function useScrollLock(locked: boolean) {
   useEffect(() => {
@@ -35,6 +34,12 @@ function useScrollLock(locked: boolean) {
 
 export default function Header() {
   const pathname = usePathname();
+  const direct = useContactSections().direct;
+  const phoneChannel = isContentActive(direct)
+    ? direct.channels.find(
+        (channel) => channel.icon === "call" && isContentActive(channel),
+      )
+    : undefined;
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
   const menuId = useId();

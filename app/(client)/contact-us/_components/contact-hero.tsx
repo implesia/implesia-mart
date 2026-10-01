@@ -1,13 +1,18 @@
+"use client";
+
 import Link from "next/link";
 
+import { isExternalHref } from "@/lib/mart-mock/about-sections";
+import { useContactSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { contactCopy } from "../../_data/contact/contact";
 
 export function ContactHero({ className }: { className?: string }) {
-  const { hero } = contactCopy;
+  const { hero } = useContactSections();
+  if (!isContentActive(hero)) return null;
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
@@ -35,21 +40,47 @@ export function ContactHero({ className }: { className?: string }) {
             </p>
 
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
-              <a
-                href={hero.primaryCta.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-              >
-                {hero.primaryCta.label}
-                <MaterialIcon name="chat" className="text-[18px]" />
-              </a>
-              <Link
-                href={hero.secondaryCta.href}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-              >
-                {hero.secondaryCta.label}
-              </Link>
+              {hero.primaryCta.label.trim() &&
+              isExternalHref(hero.primaryCta.href) ? (
+                <a
+                  href={hero.primaryCta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                >
+                  {hero.primaryCta.label}
+                  <MaterialIcon name="chat" className="text-[18px]" />
+                </a>
+              ) : hero.primaryCta.label.trim() ? (
+                <Link
+                  href={hero.primaryCta.href || "/"}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                >
+                  {hero.primaryCta.label}
+                  <MaterialIcon name="chat" className="text-[18px]" />
+                </Link>
+              ) : null}
+              {hero.secondaryCta.label.trim() &&
+              (isExternalHref(hero.secondaryCta.href) ||
+                hero.secondaryCta.href.startsWith("tel:") ||
+                hero.secondaryCta.href.startsWith("mailto:")) ? (
+                <a
+                  href={hero.secondaryCta.href}
+                  {...(isExternalHref(hero.secondaryCta.href)
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  {hero.secondaryCta.label}
+                </a>
+              ) : hero.secondaryCta.label.trim() ? (
+                <Link
+                  href={hero.secondaryCta.href || "/"}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  {hero.secondaryCta.label}
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

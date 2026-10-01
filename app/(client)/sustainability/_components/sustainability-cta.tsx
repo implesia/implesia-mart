@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { isExternalHref } from "@/lib/mart-mock/about-sections";
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
@@ -32,19 +33,44 @@ export function SustainabilityCta({ className }: { className?: string }) {
             <p className="mb-6 text-sm leading-relaxed text-white/70">{cta.subtitle}</p>
 
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
-              <Link
-                href={cta.primaryCta.href}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-              >
-                {cta.primaryCta.label}
-                <MaterialIcon name="arrow_forward" className="text-[18px]" />
-              </Link>
-              <Link
-                href={cta.secondaryCta.href}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-              >
-                {cta.secondaryCta.label}
-              </Link>
+              {cta.primaryCta.label.trim() &&
+              isExternalHref(cta.primaryCta.href) ? (
+                <a
+                  href={cta.primaryCta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                >
+                  {cta.primaryCta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </a>
+              ) : cta.primaryCta.label.trim() ? (
+                <Link
+                  href={cta.primaryCta.href || "/"}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                >
+                  {cta.primaryCta.label}
+                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                </Link>
+              ) : null}
+              {cta.secondaryCta.label.trim() &&
+              isExternalHref(cta.secondaryCta.href) ? (
+                <a
+                  href={cta.secondaryCta.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  {cta.secondaryCta.label}
+                </a>
+              ) : cta.secondaryCta.label.trim() ? (
+                <Link
+                  href={cta.secondaryCta.href || "/"}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  {cta.secondaryCta.label}
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

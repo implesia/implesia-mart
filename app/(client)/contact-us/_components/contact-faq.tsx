@@ -5,11 +5,14 @@ import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { contactCopy } from "../../_data/contact/contact";
+import { useContactSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 
 export function ContactFaq({ className }: { className?: string }) {
-  const { faq } = contactCopy;
-  const defaultOpen = faq.items[0]?.id ? [faq.items[0].id] : [];
+  const { faq } = useContactSections();
+  if (!isContentActive(faq)) return null;
+  const items = faq.items.filter(isContentActive);
+  const defaultOpen = items[0]?.id ? [items[0].id] : [];
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -23,7 +26,7 @@ export function ContactFaq({ className }: { className?: string }) {
 
         <div className="mx-auto max-w-3xl">
           <Accordion defaultValue={defaultOpen} className="flex flex-col gap-3">
-            {faq.items.map((item) => (
+            {items.map((item) => (
               <AccordionItem
                 key={item.id}
                 value={item.id}

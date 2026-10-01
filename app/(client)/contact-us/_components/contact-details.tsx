@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 
+import { useContactSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { FacebookIcon, LinkedinIcon } from "../../_components/common/brand-icons";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { contactCopy } from "../../_data/contact/contact";
 
 const socialIcons = {
   facebook: FacebookIcon,
@@ -12,7 +15,12 @@ const socialIcons = {
 } as const;
 
 export function ContactDetails({ className }: { className?: string }) {
-  const { direct } = contactCopy;
+  const { direct } = useContactSections();
+  if (!isContentActive(direct)) return null;
+  const channels = direct.channels.filter(isContentActive);
+  const social = direct.social.filter(
+    (item) => item.href.trim() && isContentActive(item),
+  );
 
   return (
     <div className={cn("flex flex-col justify-center gap-5", className)}>
@@ -24,7 +32,7 @@ export function ContactDetails({ className }: { className?: string }) {
       </div>
 
       <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
-        {direct.channels.map((c) => {
+        {channels.map((c) => {
           const isInternal = c.href.startsWith("/");
           const content = (
             <>
@@ -45,12 +53,12 @@ export function ContactDetails({ className }: { className?: string }) {
           );
 
           return isInternal ? (
-            <Link key={c.title} href={c.href} className={linkClass}>
+            <Link key={c.id} href={c.href} className={linkClass}>
               {content}
             </Link>
           ) : (
             <a
-              key={c.title}
+              key={c.id}
               href={c.href}
               {...(c.href.startsWith("http")
                 ? { target: "_blank", rel: "noopener noreferrer" }
@@ -64,13 +72,17 @@ export function ContactDetails({ className }: { className?: string }) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-4">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700">
-          <MaterialIcon name="payments" className="text-[16px] text-primary" filled />
-          {direct.badge}
-        </div>
+        {direct.badge.trim() ? (
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700">
+            <MaterialIcon name="payments" className="text-[16px] text-primary" filled />
+            {direct.badge}
+          </div>
+        ) : (
+          <span />
+        )}
 
         <div className="flex items-center gap-2">
-          {direct.social.map((s) => {
+          {social.map((s) => {
             const Icon = socialIcons[s.platform];
             return (
               <a

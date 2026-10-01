@@ -10,6 +10,11 @@ import {
   type AboutSections,
 } from "./about-sections";
 import {
+  readContactSections,
+  seedContactSections,
+  type ContactSections,
+} from "./contact-sections";
+import {
   readHomeSections,
   seedHomeSections,
   type HomeSections,
@@ -97,6 +102,18 @@ export function useAboutSections() {
 
   useEffect(() => {
     const sync = () => setSections(readAboutSections());
+    sync();
+    return subscribe(sync);
+  }, []);
+
+  return sections;
+}
+
+export function useContactSections() {
+  const [sections, setSections] = useState<ContactSections>(seedContactSections);
+
+  useEffect(() => {
+    const sync = () => setSections(readContactSections());
     sync();
     return subscribe(sync);
   }, []);

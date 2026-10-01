@@ -8,6 +8,10 @@ import {
   AboutSectionManager,
 } from "../../about/_components/section-manager";
 import {
+  ContactSectionFallback,
+  ContactSectionManager,
+} from "../../contact/_components/section-manager";
+import {
   SustainabilitySectionFallback,
   SustainabilitySectionManager,
 } from "../../sustainability/_components/section-manager";
@@ -45,6 +49,14 @@ export default async function AdminCmsPageSection({
     return (
       <Suspense fallback={<AboutSectionFallback />}>
         <AboutSectionManager sectionId={section.id} />
+      </Suspense>
+    );
+  }
+
+  if (slug === "contact") {
+    return (
+      <Suspense fallback={<ContactSectionFallback />}>
+        <ContactSectionManager sectionId={section.id} />
       </Suspense>
     );
   }
