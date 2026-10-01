@@ -1,6 +1,7 @@
 "use client";
 
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -23,7 +24,7 @@ export function TrustBadges({ className }: { className?: string }) {
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {values.items.map((item) => (
+          {values.items.filter(isContentActive).map((item) => (
             <div
               key={item.id}
               className="rounded-2xl border border-neutral-200/90 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5"

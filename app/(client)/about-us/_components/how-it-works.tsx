@@ -1,6 +1,7 @@
 "use client";
 
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -25,7 +26,7 @@ export function HowItWorks({ className }: { className?: string }) {
         </div>
 
         <ol className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
-          {howItWorks.steps.map((step) => (
+          {howItWorks.steps.filter(isContentActive).map((step) => (
             <li
               key={step.id}
               className="flex flex-col rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5"

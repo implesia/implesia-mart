@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { isExternalHref, type AboutDressBlock, type AboutLink } from "@/lib/mart-mock/about-sections";
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -12,11 +13,12 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 
 export function CustomDresses({ className }: { className?: string }) {
   const { dresses } = useAboutSections();
-  if (!dresses.length) return null;
+  const visible = dresses.filter(isContentActive);
+  if (!visible.length) return null;
 
   return (
     <div className={className}>
-      {dresses.map((dress) => (
+      {visible.map((dress) => (
         <DressBlock key={dress.id} dress={dress} />
       ))}
     </div>
@@ -25,7 +27,9 @@ export function CustomDresses({ className }: { className?: string }) {
 
 function DressBlock({ dress }: { dress: AboutDressBlock }) {
   const images = dress.gallery.filter((image) => image.src);
-  const features = dress.features.filter((feature) => feature.title.trim() || feature.description.trim());
+  const features = dress.features.filter(
+    (feature) => isContentActive(feature) && (feature.title.trim() || feature.description.trim()),
+  );
 
   return (
     <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">

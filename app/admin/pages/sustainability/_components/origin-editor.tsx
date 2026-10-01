@@ -2,195 +2,583 @@
 
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
-import { blankSustainImage, readSustainabilitySections, saveSustainabilitySections, type SustainImage } from "@/lib/mart-mock/sustainability-sections";
+import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import {
+  readSustainabilitySections,
+  saveSustainabilitySections,
+  type SustainImage,
+  type SustainOrigin,
+} from "@/lib/mart-mock/sustainability-sections";
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+import { cn } from "@/lib/utils";
 
-import { SectionCopyForm } from "../../../home/_components/section-copy-form";
-import { AddButton, DrawerOverlay, ImagePanel, MissingLine, RecordList, replaceSearch, SavedLine, SustainHeader, useFocusWhenClosed, useSustainNav } from "./sustain-shared";
+import { AdminFormModal } from "../../../_components/admin-form-modal";
+import {
+  adminButtonClass,
+  adminFieldClass,
+  FieldError,
+  FieldLabel,
+} from "../../../_components/admin-ui";
+import { FormCloseGuard } from "../../../_components/form-close-guard";
+import { ImageField, MultiImageUpload } from "../../../_components/image-field";
+import {
+  IconButton,
+  replaceSearch,
+  SustainHeader,
+  useSustainNav,
+} from "./sustain-shared";
+
+type OriginDraft = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  quote: string;
+  images: SustainImage[];
+};
+
+function draftFrom(origin: SustainOrigin): OriginDraft {
+  return {
+    eyebrow: origin.eyebrow,
+    title: origin.title,
+    body: origin.body,
+    quote: origin.quote,
+    images: origin.images.map((image) => ({
+      ...image,
+      isActive: image.isActive !== false,
+    })),
+  };
+}
+
+function newImageId(index: number) {
+  return `origin-photo-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 6)}`;
+}
 
 export function SustainabilityOriginEditor() {
   const { origin } = useSustainabilitySections();
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
-  const selected = params.get("image");
-  const creating = selected === "new";
-  const opened = selected && selected !== "new" ? (origin.images.find((item) => item.id === selected) ?? null) : null;
-  const drawerOpen = creating || Boolean(opened);
+  const editing = params.has("edit") || params.has("image");
   const [notice, setNotice] = useState("");
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
-  const focusRef = useFocusWhenClosed(drawerOpen);
+  const focusEdit = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+  const empty =
+    !origin.title.trim() &&
+    !origin.body.trim() &&
+    !origin.quote.trim() &&
+    origin.images.length === 0;
 
-  function setImage(id: string | null) {
+  useEffect(() => {
+    if (editing || !returnFocus.current) return;
+    returnFocus.current = false;
+    focusEdit.current?.focus();
+  }, [editing]);
+
+  function setEditing(open: boolean) {
+    if (!open) returnFocus.current = true;
     replaceSearch(router, pathname, (next) => {
-      if (id) next.set("image", id);
-      else next.delete("image");
+      if (open) next.set("edit", "origin");
+      else {
+        next.delete("edit");
+        next.delete("image");
+      }
     });
   }
 
-  function flash(message: string) {
-    setNotice(message);
-    window.setTimeout(() => {
-      setNotice("");
-      setSavedId(null);
-    }, 1600);
-  }
-
-  function saveCopy(next: Record<string, string>) {
+  function save(draft: OriginDraft) {
     const doc = readSustainabilitySections();
     saveSustainabilitySections({
       ...doc,
-      origin: { ...doc.origin, eyebrow: next.eyebrow ?? "", title: next.title ?? "", body: next.body ?? "", quote: next.quote ?? "" },
+      origin: {
+        eyebrow: draft.eyebrow.trim(),
+        title: draft.title.trim(),
+        body: draft.body.trim(),
+        quote: draft.quote.trim(),
+        images: draft.images.map((image) => ({
+          id: image.id,
+          src: image.src,
+          alt: image.alt.trim(),
+          isActive: image.isActive !== false,
+        })),
+      },
     });
-  }
-
-  function saveItem(draft: Pick<SustainImage, "src" | "alt">) {
-    const doc = readSustainabilitySections();
-    if (creating) {
-      const item = { ...blankSustainImage(), ...draft };
-      saveSustainabilitySections({ ...doc, origin: { ...doc.origin, images: [...doc.origin.images, item] } });
-      setSavedId(item.id);
-      focusRef.current = `sustain-origin-${item.id}`;
-    } else if (selected) {
-      saveSustainabilitySections({
-        ...doc,
-        origin: { ...doc.origin, images: doc.origin.images.map((item) => (item.id === selected ? { ...item, ...draft } : item)) },
-      });
-      setSavedId(selected);
-      focusRef.current = `sustain-origin-${selected}`;
-    }
-    flash("Saved");
-    setImage(null);
-  }
-
-  function remove(id: string) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({ ...doc, origin: { ...doc.origin, images: doc.origin.images.filter((item) => item.id !== id) } });
-    if (selected === id) setImage(null);
-    setConfirmId(null);
-    flash("Removed");
-  }
-
-  function move(id: string, direction: -1 | 1) {
-    const doc = readSustainabilitySections();
-    const index = doc.origin.images.findIndex((item) => item.id === id);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.origin.images.length) return;
-    const next = [...doc.origin.images];
-    const [item] = next.splice(index, 1);
-    if (!item) return;
-    next.splice(target, 0, item);
-    saveSustainabilitySections({ ...doc, origin: { ...doc.origin, images: next } });
-  }
-
-  function dropOn(targetId: string) {
-    if (!dragId || dragId === targetId) {
-      setDragId(null);
-      setOverId(null);
-      return;
-    }
-    const doc = readSustainabilitySections();
-    const next = [...doc.origin.images];
-    const from = next.findIndex((item) => item.id === dragId);
-    const to = next.findIndex((item) => item.id === targetId);
-    if (from < 0 || to < 0) return;
-    const [item] = next.splice(from, 1);
-    if (!item) return;
-    next.splice(to, 0, item);
-    saveSustainabilitySections({ ...doc, origin: { ...doc.origin, images: next } });
-    setDragId(null);
-    setOverId(null);
+    setNotice("Saved.");
+    window.setTimeout(() => setNotice(""), 1600);
+    setEditing(false);
   }
 
   return (
     <div className="min-w-0 space-y-4">
-      <SustainHeader sectionId="origin" title="Point of view" description="Why quality is a responsibility." extra={<AddButton onClick={() => setImage("new")}>Add photo</AddButton>} />
-      <SavedLine notice={notice} open={drawerOpen} />
-      <MissingLine show={Boolean(selected && selected !== "new" && !opened)} onClose={() => setImage(null)} />
-      <section className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90">
-        <div className="px-4 pt-4 sm:px-5">
-          <h2 className="text-sm font-semibold text-neutral-950">Storefront preview</h2>
-          <p className="mt-1 text-sm text-neutral-500">Shown on the sustainability page. Photos stay in this order.</p>
-        </div>
-        <div className="p-4 sm:p-5">
-          <div className="grid items-start gap-6 rounded-2xl bg-[#f5f6f8] p-4 xl:grid-cols-2 sm:p-5">
-            <div>
-              <p className="text-xs font-medium tracking-wide text-primary uppercase">{origin.eyebrow}</p>
-              <p className="mt-2 text-xl font-semibold text-neutral-950">{origin.title}</p>
-              <p className="mt-3 text-sm leading-relaxed text-neutral-600">{origin.body}</p>
-              {origin.quote ? <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm text-neutral-700 italic ring-1 ring-neutral-200">{origin.quote}</p> : null}
-            </div>
-            <ul className="grid grid-cols-2 gap-2">
-              {origin.images.map((image) => (
-                <li key={image.id}>
-                  <button type="button" aria-label={image.alt || "Photo"} onClick={() => setImage(image.id)} className="relative block aspect-square w-full overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200">
-                    {image.src ? <Image src={image.src} alt="" fill sizes="180px" className="object-cover" /> : <span className="grid size-full place-items-center text-xs text-neutral-500">Photo</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-      <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
-        <SectionCopyForm
-          values={{ eyebrow: origin.eyebrow, title: origin.title, body: origin.body, quote: origin.quote }}
-          fields={[
-            { name: "eyebrow", label: "Eyebrow" },
-            { name: "title", label: "Title", wide: true },
-            { name: "body", label: "Body", multiline: true, rows: 5, wide: true },
-            { name: "quote", label: "Quote", multiline: true, rows: 3, wide: true },
-          ]}
-          saveLabel="Save heading"
-          onSave={saveCopy}
-        />
-      </section>
-      <RecordList
-        headingId="sustain-origin-list"
-        title={origin.images.length === 1 ? "1 photo" : `${origin.images.length} photos`}
-        emptyTitle="No photos yet"
-        emptyBody="Add the photos shown beside the point of view."
-        emptyAction="Add photo"
-        onEmpty={() => setImage("new")}
-        items={origin.images.map((image) => ({
-          id: image.id,
-          buttonId: `sustain-origin-${image.id}`,
-          title: image.alt || "No description",
-          meta: "Photo",
-          reorder: image.alt || "photo",
-          imageSrc: image.src,
-        }))}
-        selected={selected}
-        savedId={savedId}
-        confirmId={confirmId}
-        dragId={dragId}
-        overId={overId}
-        onOpen={setImage}
-        onDrag={setDragId}
-        onOver={setOverId}
-        onDrop={dropOn}
-        onMove={move}
-        onAskRemove={setConfirmId}
-        onRemove={remove}
-        removeLabel="Remove photo"
+      <SustainHeader
+        sectionId="origin"
+        title="Point of view"
+        description="Why quality is a responsibility."
+        extra={
+          <button
+            ref={focusEdit}
+            type="button"
+            onClick={() => setEditing(true)}
+            className={adminButtonClass.primary}
+          >
+            <MaterialIcon name="edit" className="text-[18px]" />
+            Edit point of view
+          </button>
+        }
       />
-      {drawerOpen ? (
-        <DrawerOverlay titleId="sustain-origin-drawer" onClose={() => setImage(null)}>
-          <ImagePanel
-            key={selected}
-            creating={creating}
-            titleId="sustain-origin-drawer"
-            initial={opened ? { src: opened.src, alt: opened.alt } : { src: "", alt: "" }}
-            notice={notice}
-            onClose={() => setImage(null)}
-            onSave={saveItem}
-          />
-        </DrawerOverlay>
+
+      {notice ? (
+        <p role="status" className="text-sm font-medium text-emerald-800">
+          {notice} This section is up to date.
+        </p>
+      ) : null}
+
+      <section
+        className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+        aria-labelledby="sustain-origin-card-heading"
+      >
+        <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
+          <h2
+            id="sustain-origin-card-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
+            Point of view
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Shown on the sustainability page. Words on the left, photos on the
+            right, two in each row.
+          </p>
+        </div>
+        {empty ? (
+          <div className="px-4 py-12 text-center">
+            <p className="text-sm font-semibold text-neutral-950">
+              No point of view yet
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+              Add the heading, the quote, and the photos shown beside them.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-admin-canvas p-4 sm:p-5">
+            <OriginPreview origin={origin} />
+          </div>
+        )}
+      </section>
+
+      {editing ? (
+        <OriginFormModal
+          origin={origin}
+          onClose={() => setEditing(false)}
+          onSave={save}
+        />
       ) : null}
     </div>
+  );
+}
+
+function OriginPreview({ origin }: { origin: SustainOrigin }) {
+  return (
+    <div className="grid items-start gap-6 rounded-2xl bg-admin-canvas lg:grid-cols-2">
+      <div>
+        <p className="text-xs font-medium tracking-wide text-primary uppercase">
+          {origin.eyebrow.trim() || "Eyebrow"}
+        </p>
+        <p className="mt-2 text-xl font-semibold text-neutral-950">
+          {origin.title.trim() || "Title"}
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-neutral-600">
+          {origin.body.trim() || "Body"}
+        </p>
+        {origin.quote.trim() ? (
+          <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm text-neutral-700 italic ring-1 ring-neutral-200">
+            {origin.quote}
+          </p>
+        ) : null}
+      </div>
+      {origin.images.length === 0 ? (
+        <p className="grid min-h-40 place-items-center rounded-2xl bg-white text-sm text-neutral-500 ring-1 ring-neutral-200">
+          No photos yet
+        </p>
+      ) : (
+        <ul className="grid grid-cols-2 gap-2">
+          {origin.images.map((image, index) => {
+            const hidden = image.isActive === false;
+            return (
+              <li key={image.id} className={cn(hidden && "opacity-50")}>
+                <div className="relative aspect-square overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200">
+                  {image.src ? (
+                    <Image
+                      src={image.src}
+                      alt=""
+                      fill
+                      sizes="180px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="grid size-full place-items-center text-xs text-neutral-500">
+                      Photo {index + 1}
+                    </span>
+                  )}
+                  {hidden ? (
+                    <span className="absolute top-2 left-2 rounded-full bg-neutral-950/80 px-2 py-0.5 text-[11px] font-semibold text-white">
+                      Hidden
+                    </span>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function OriginFormModal({
+  origin,
+  onClose,
+  onSave,
+}: {
+  origin: SustainOrigin;
+  onClose: () => void;
+  onSave: (draft: OriginDraft) => void;
+}) {
+  const initial = draftFrom(origin);
+  const [draft, setDraft] = useState(initial);
+  const [baseline] = useState(initial);
+  const [titleError, setTitleError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const formId = useId();
+
+  function save() {
+    if (saving || uploading > 0) return;
+    if (!draft.title.trim()) {
+      setTitleError("Title is required.");
+      return;
+    }
+    if (draft.images.some((image) => !image.src)) {
+      setPhotoError("Add an image, or remove the empty photo.");
+      return;
+    }
+    setSaving(true);
+    onSave(draft);
+  }
+
+  function updateImages(images: SustainImage[]) {
+    setDraft((current) => ({ ...current, images }));
+    setPhotoError("");
+  }
+
+  function moveImage(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    setDraft((current) => {
+      if (target < 0 || target >= current.images.length) return current;
+      const images = [...current.images];
+      const [item] = images.splice(index, 1);
+      if (!item) return current;
+      images.splice(target, 0, item);
+      return { ...current, images };
+    });
+  }
+
+  return (
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
+      <AdminFormModal titleId="sustain-origin-drawer-title" size="lg">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+          <div className="min-w-0">
+            <h2
+              id="sustain-origin-drawer-title"
+              className="text-lg font-semibold text-neutral-950"
+            >
+              Edit point of view
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Update the heading, quote, and photos for this section.
+            </p>
+          </div>
+          <button
+            type="button"
+            data-form-dismiss=""
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <MaterialIcon name="close" className="text-[20px]" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4">
+          <section aria-labelledby={`${formId}-content`}>
+            <h3
+              id={`${formId}-content`}
+              className="text-sm font-semibold text-neutral-950"
+            >
+              Content
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              The words on the left of this section.
+            </p>
+            <div className="mt-3 grid gap-3">
+              <div>
+                <FieldLabel htmlFor={`${formId}-eyebrow`}>Eyebrow</FieldLabel>
+                <input
+                  id={`${formId}-eyebrow`}
+                  autoFocus
+                  value={draft.eyebrow}
+                  placeholder="Short line above the title"
+                  onChange={(event) =>
+                    setDraft({ ...draft, eyebrow: event.target.value })
+                  }
+                  className={adminFieldClass}
+                />
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${formId}-title`}>
+                  Title <span className="text-red-700">*</span>
+                </FieldLabel>
+                <input
+                  id={`${formId}-title`}
+                  value={draft.title}
+                  placeholder="The main line of this section"
+                  aria-invalid={titleError ? true : undefined}
+                  aria-describedby={
+                    titleError ? `${formId}-title-error` : undefined
+                  }
+                  onChange={(event) => {
+                    setDraft({ ...draft, title: event.target.value });
+                    setTitleError("");
+                  }}
+                  className={cn(
+                    adminFieldClass,
+                    titleError && "border-red-400",
+                  )}
+                />
+                {titleError ? (
+                  <div id={`${formId}-title-error`}>
+                    <FieldError message={titleError} />
+                  </div>
+                ) : null}
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${formId}-body`}>Body</FieldLabel>
+                <textarea
+                  id={`${formId}-body`}
+                  value={draft.body}
+                  rows={5}
+                  placeholder="The paragraph under the title"
+                  onChange={(event) =>
+                    setDraft({ ...draft, body: event.target.value })
+                  }
+                  className={cn(adminFieldClass, "h-auto py-3")}
+                />
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${formId}-quote`}>Quote</FieldLabel>
+                <textarea
+                  id={`${formId}-quote`}
+                  value={draft.quote}
+                  rows={3}
+                  placeholder="The line in the white box"
+                  onChange={(event) =>
+                    setDraft({ ...draft, quote: event.target.value })
+                  }
+                  className={cn(adminFieldClass, "h-auto py-3")}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section
+            className="border-t border-neutral-100 pt-5"
+            aria-labelledby={`${formId}-photos`}
+          >
+            <h3
+              id={`${formId}-photos`}
+              className="text-sm font-semibold text-neutral-950"
+            >
+              Photos
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              Drop or pick several images at once. They appear beside the text,
+              two in each row, in this order. Hide a photo to keep it here
+              without showing it on the website.
+            </p>
+            <div className="mt-3">
+              <MultiImageUpload
+                inputId={`${formId}-upload`}
+                onBusy={(busy) =>
+                  setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
+                }
+                onUploaded={(srcs) => {
+                  setDraft((current) => ({
+                    ...current,
+                    images: [
+                      ...current.images,
+                      ...srcs.map((src, index) => ({
+                        id: newImageId(index),
+                        src,
+                        alt: "",
+                        isActive: true,
+                      })),
+                    ],
+                  }));
+                  setPhotoError("");
+                }}
+              />
+            </div>
+            {photoError ? (
+              <div className="mt-3">
+                <FieldError message={photoError} />
+              </div>
+            ) : null}
+            {draft.images.length === 0 ? (
+              <p className="mt-3 text-sm text-neutral-500">No photos yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {draft.images.map((image, index) => (
+                  <li
+                    key={image.id}
+                    className="rounded-2xl bg-admin-canvas p-3"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-neutral-950">
+                        Photo {index + 1}
+                      </p>
+                      <div className="flex items-center">
+                        <IconButton
+                          label={`Move photo ${index + 1} earlier`}
+                          icon="arrow_upward"
+                          disabled={index === 0}
+                          onClick={() => moveImage(index, -1)}
+                        />
+                        <IconButton
+                          label={`Move photo ${index + 1} later`}
+                          icon="arrow_downward"
+                          disabled={index === draft.images.length - 1}
+                          onClick={() => moveImage(index, 1)}
+                        />
+                        <IconButton
+                          label={`Remove photo ${index + 1}`}
+                          icon="delete"
+                          danger
+                          onClick={() =>
+                            updateImages(
+                              draft.images.filter(
+                                (item) => item.id !== image.id,
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                    <ImageField
+                      compact
+                      variant="thumb"
+                      label=""
+                      value={image.src}
+                      confirmRemove
+                      onBusy={(busy) =>
+                        setUploading((count) =>
+                          Math.max(0, count + (busy ? 1 : -1)),
+                        )
+                      }
+                      onChange={(src) =>
+                        updateImages(
+                          draft.images.map((item) =>
+                            item.id === image.id ? { ...item, src } : item,
+                          ),
+                        )
+                      }
+                    />
+                    <label className="mt-3 block">
+                      <span className="mb-1.5 block text-sm font-medium text-neutral-700">
+                        Description
+                      </span>
+                      <input
+                        value={image.alt}
+                        placeholder="What this photo shows"
+                        aria-label={`Description for photo ${index + 1}`}
+                        onChange={(event) =>
+                          updateImages(
+                            draft.images.map((item) =>
+                              item.id === image.id
+                                ? { ...item, alt: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                        className={adminFieldClass}
+                      />
+                    </label>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-sm text-neutral-600">
+                        {image.isActive !== false
+                          ? "Visible on the website"
+                          : "Hidden from the website"}
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={image.isActive !== false}
+                        aria-label={
+                          image.isActive !== false
+                            ? `Hide photo ${index + 1}`
+                            : `Show photo ${index + 1}`
+                        }
+                        onClick={() =>
+                          updateImages(
+                            draft.images.map((item) =>
+                              item.id === image.id
+                                ? {
+                                    ...item,
+                                    isActive: item.isActive === false,
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className={cn(
+                          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                          image.isActive !== false
+                            ? "bg-primary"
+                            : "bg-neutral-300",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "absolute top-0.5 size-5 rounded-full bg-white transition-all",
+                            image.isActive !== false ? "left-5" : "left-0.5",
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+          <button
+            type="button"
+            data-form-dismiss=""
+            onClick={onClose}
+            className={adminButtonClass.secondary}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || uploading > 0}
+            className={adminButtonClass.primary}
+          >
+            {saving ? "Saving…" : uploading > 0 ? "Uploading…" : "Save changes"}
+          </button>
+        </div>
+      </AdminFormModal>
+    </FormCloseGuard>
   );
 }

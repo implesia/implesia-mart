@@ -4,11 +4,28 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { blankSustainStat, readSustainabilitySections, saveSustainabilitySections, type SustainStat } from "@/lib/mart-mock/sustainability-sections";
+import {
+  blankSustainStat,
+  readSustainabilitySections,
+  saveSustainabilitySections,
+  type SustainStat,
+} from "@/lib/mart-mock/sustainability-sections";
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
 
 import { SectionCopyForm } from "../../../home/_components/section-copy-form";
-import { AddButton, DrawerOverlay, iconLabel, MissingLine, RecordList, replaceSearch, SavedLine, StatPanel, SustainHeader, useFocusWhenClosed, useSustainNav } from "./sustain-shared";
+import {
+  AddButton,
+  DrawerOverlay,
+  iconLabel,
+  MissingLine,
+  RecordList,
+  replaceSearch,
+  SavedLine,
+  StatPanel,
+  SustainHeader,
+  useFocusWhenClosed,
+  useSustainNav,
+} from "./sustain-shared";
 
 export function SustainabilityImpactEditor() {
   const { impact } = useSustainabilitySections();
@@ -16,7 +33,10 @@ export function SustainabilityImpactEditor() {
   const { pathname, router } = useSustainNav();
   const selected = params.get("edit");
   const creating = selected === "new";
-  const opened = selected && selected !== "new" ? (impact.stats.find((item) => item.id === selected) ?? null) : null;
+  const opened =
+    selected && selected !== "new"
+      ? (impact.stats.find((item) => item.id === selected) ?? null)
+      : null;
   const drawerOpen = creating || Boolean(opened);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -44,21 +64,34 @@ export function SustainabilityImpactEditor() {
     const doc = readSustainabilitySections();
     saveSustainabilitySections({
       ...doc,
-      impact: { ...doc.impact, kicker: next.kicker ?? "", title: next.title ?? "", subtitle: next.subtitle ?? "" },
+      impact: {
+        ...doc.impact,
+        kicker: next.kicker ?? "",
+        title: next.title ?? "",
+        subtitle: next.subtitle ?? "",
+      },
     });
   }
 
-  function saveItem(draft: Pick<SustainStat, "icon" | "value" | "label">) {
+  function saveItem(draft: Pick<SustainStat, "icon" | "value" | "label" | "isActive">) {
     const doc = readSustainabilitySections();
     if (creating) {
       const item = { ...blankSustainStat(), ...draft };
-      saveSustainabilitySections({ ...doc, impact: { ...doc.impact, stats: [...doc.impact.stats, item] } });
+      saveSustainabilitySections({
+        ...doc,
+        impact: { ...doc.impact, stats: [...doc.impact.stats, item] },
+      });
       setSavedId(item.id);
       focusRef.current = `sustain-impact-${item.id}`;
     } else if (selected) {
       saveSustainabilitySections({
         ...doc,
-        impact: { ...doc.impact, stats: doc.impact.stats.map((item) => (item.id === selected ? { ...item, ...draft } : item)) },
+        impact: {
+          ...doc.impact,
+          stats: doc.impact.stats.map((item) =>
+            item.id === selected ? { ...item, ...draft } : item,
+          ),
+        },
       });
       setSavedId(selected);
       focusRef.current = `sustain-impact-${selected}`;
@@ -69,7 +102,13 @@ export function SustainabilityImpactEditor() {
 
   function remove(id: string) {
     const doc = readSustainabilitySections();
-    saveSustainabilitySections({ ...doc, impact: { ...doc.impact, stats: doc.impact.stats.filter((item) => item.id !== id) } });
+    saveSustainabilitySections({
+      ...doc,
+      impact: {
+        ...doc.impact,
+        stats: doc.impact.stats.filter((item) => item.id !== id),
+      },
+    });
     if (selected === id) setEdit(null);
     setConfirmId(null);
     flash("Removed");
@@ -84,7 +123,10 @@ export function SustainabilityImpactEditor() {
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveSustainabilitySections({ ...doc, impact: { ...doc.impact, stats: next } });
+    saveSustainabilitySections({
+      ...doc,
+      impact: { ...doc.impact, stats: next },
+    });
   }
 
   function dropOn(targetId: string) {
@@ -101,35 +143,65 @@ export function SustainabilityImpactEditor() {
     const [item] = next.splice(from, 1);
     if (!item) return;
     next.splice(to, 0, item);
-    saveSustainabilitySections({ ...doc, impact: { ...doc.impact, stats: next } });
+    saveSustainabilitySections({
+      ...doc,
+      impact: { ...doc.impact, stats: next },
+    });
     setDragId(null);
     setOverId(null);
   }
 
   return (
     <div className="min-w-0 space-y-4">
-      <SustainHeader sectionId="impact" title="Habits" description="COD, returns, checks, and packing stats." extra={<AddButton onClick={() => setEdit("new")}>Add stat</AddButton>} />
+      <SustainHeader
+        sectionId="impact"
+        title="Habits"
+        description="COD, returns, checks, and packing stats."
+        extra={<AddButton onClick={() => setEdit("new")}>Add stat</AddButton>}
+      />
       <SavedLine notice={notice} open={drawerOpen} />
-      <MissingLine show={Boolean(selected && selected !== "new" && !opened)} onClose={() => setEdit(null)} />
+      <MissingLine
+        show={Boolean(selected && selected !== "new" && !opened)}
+        onClose={() => setEdit(null)}
+      />
       <section className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90">
         <div className="px-4 pt-4 sm:px-5">
-          <h2 className="text-sm font-semibold text-neutral-950">Storefront preview</h2>
-          <p className="mt-1 text-sm text-neutral-500">Shown under the hero. Stats stay in this order.</p>
+          <h2 className="text-sm font-semibold text-neutral-950">
+            Storefront preview
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Shown under the hero. Stats stay in this order.
+          </p>
         </div>
         <div className="p-4 sm:p-5">
           <div className="rounded-2xl bg-[#f5f6f8] p-4 sm:p-5">
             <div className="mx-auto mb-4 max-w-2xl text-center">
-              <p className="text-xs font-medium tracking-wide text-primary uppercase">{impact.kicker}</p>
-              <p className="mt-2 text-xl font-semibold text-neutral-950">{impact.title}</p>
+              <p className="text-xs font-medium tracking-wide text-primary uppercase">
+                {impact.kicker}
+              </p>
+              <p className="mt-2 text-xl font-semibold text-neutral-950">
+                {impact.title}
+              </p>
               <p className="mt-2 text-sm text-neutral-600">{impact.subtitle}</p>
             </div>
             <ul className="grid grid-cols-2 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white xl:grid-cols-4">
               {impact.stats.map((stat) => (
                 <li key={stat.id}>
-                  <button type="button" onClick={() => setEdit(stat.id)} className="flex w-full flex-col items-center gap-1 px-3 py-3 text-center">
-                    <MaterialIcon name={stat.icon || "notes"} className="text-[18px] text-primary" />
-                    <span className="text-sm font-semibold text-neutral-950">{stat.value}</span>
-                    <span className="text-[11px] text-neutral-600">{stat.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEdit(stat.id)}
+                    className="flex w-full flex-col items-center gap-1 px-3 py-3 text-center"
+                  >
+                    <MaterialIcon
+                      name={stat.icon || "notes"}
+                      className="text-[18px] text-primary"
+                    />
+                    <span className="text-sm font-semibold text-neutral-950">
+                      {stat.value}
+                    </span>
+                    <span className="text-[11px] text-neutral-600">
+                      {stat.label}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -139,11 +211,21 @@ export function SustainabilityImpactEditor() {
       </section>
       <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
         <SectionCopyForm
-          values={{ kicker: impact.kicker, title: impact.title, subtitle: impact.subtitle }}
+          values={{
+            kicker: impact.kicker,
+            title: impact.title,
+            subtitle: impact.subtitle,
+          }}
           fields={[
             { name: "kicker", label: "Eyebrow" },
             { name: "title", label: "Title" },
-            { name: "subtitle", label: "Subtitle", multiline: true, rows: 3, wide: true },
+            {
+              name: "subtitle",
+              label: "Subtitle",
+              multiline: true,
+              rows: 3,
+              wide: true,
+            },
           ]}
           saveLabel="Save heading"
           onSave={saveCopy}
@@ -151,7 +233,9 @@ export function SustainabilityImpactEditor() {
       </section>
       <RecordList
         headingId="sustain-impact-list"
-        title={impact.stats.length === 1 ? "1 stat" : `${impact.stats.length} stats`}
+        title={
+          impact.stats.length === 1 ? "1 stat" : `${impact.stats.length} stats`
+        }
         emptyTitle="No stats yet"
         emptyBody="Add the habits shown under the hero."
         emptyAction="Add stat"
@@ -160,6 +244,7 @@ export function SustainabilityImpactEditor() {
           id: item.id,
           buttonId: `sustain-impact-${item.id}`,
           title: item.label || "Empty stat",
+          active: item.isActive !== false,
           meta: `${item.value || "No value"} · ${iconLabel(item.icon)}`,
           reorder: item.label || "stat",
           icon: item.icon,
@@ -179,12 +264,21 @@ export function SustainabilityImpactEditor() {
         removeLabel="Remove stat"
       />
       {drawerOpen ? (
-        <DrawerOverlay titleId="sustain-impact-drawer" onClose={() => setEdit(null)}>
+        <DrawerOverlay titleId="sustain-impact-drawer">
           <StatPanel
             key={selected}
             creating={creating}
             titleId="sustain-impact-drawer"
-            initial={opened ? { icon: opened.icon, value: opened.value, label: opened.label } : { icon: "verified", value: "", label: "" }}
+            initial={
+              opened
+                ? {
+                    icon: opened.icon,
+                    value: opened.value,
+                    label: opened.label,
+                    isActive: opened.isActive,
+                  }
+                : { icon: "verified", value: "", label: "", isActive: true }
+            }
             notice={notice}
             onClose={() => setEdit(null)}
             onSave={saveItem}

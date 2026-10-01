@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { productsForSlugs } from "@/lib/mart-mock/home-sections";
-import { useHomeSections } from "@/lib/mart-mock/hooks";
+import { useAdminProducts, useHomeSections } from "@/lib/mart-mock/hooks";
 
 import { ProductCard } from "../../products/_components/product-card";
 import { Container } from "../common/container";
@@ -11,7 +11,12 @@ import { MaterialIcon } from "../common/material-icon";
 
 export function FeaturedProductsSection() {
   const { featured } = useHomeSections();
-  const featuredProducts = productsForSlugs(featured.slugs);
+  const adminProducts = useAdminProducts();
+  const hidden = new Set(
+    (adminProducts ?? []).filter((product) => !product.published).map((product) => product.slug),
+  );
+  const featuredProducts = productsForSlugs(featured.slugs).filter((product) => !hidden.has(product.slug));
+  if (featuredProducts.length === 0) return null;
 
   return (
     <section

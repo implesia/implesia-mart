@@ -13,9 +13,16 @@ import {
   type CatalogChoice,
   type FeaturedSection,
 } from "@/lib/mart-mock/home-sections";
-import { formatTaka } from "@/lib/mart-mock/store";
+import { formatTaka, getAdminProduct } from "@/lib/mart-mock/store";
 
-import { adminButtonClass, adminFieldClass, FieldError, FieldLabel } from "../../_components/admin-ui";
+import { AdminFormModal } from "../../_components/admin-form-modal";
+import { FormCloseGuard } from "../../_components/form-close-guard";
+import {
+  adminButtonClass,
+  adminFieldClass,
+  FieldError,
+  FieldLabel,
+} from "../../_components/admin-ui";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
 
@@ -33,6 +40,7 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
   const used = new Set(slugs);
   const unused = choices.filter((item) => !used.has(item.slug));
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [baseline, setBaseline] = useState<Draft | null>(null);
   const [productError, setProductError] = useState("");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -52,26 +60,22 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
     setProductError("");
     if (!selected) {
       setDraft(null);
+      setBaseline(null);
       return;
     }
     const doc = readHomeSections();
     const taken = new Set(doc.featured.slugs);
     if (selected === "new") {
       const next = catalogChoices().find((item) => !taken.has(item.slug));
-      setDraft(next ? { slug: next.slug } : null);
+      const nextDraft = next ? { slug: next.slug } : null;
+      setDraft(nextDraft);
+      setBaseline(nextDraft);
       return;
     }
-    setDraft(taken.has(selected) ? { slug: selected } : null);
+    const nextDraft = taken.has(selected) ? { slug: selected } : null;
+    setDraft(nextDraft);
+    setBaseline(nextDraft);
   }, [selected]);
-
-  useEffect(() => {
-    if (!draft) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [draft]);
 
   useEffect(() => {
     if (draft || !focusId.current) return;
@@ -85,7 +89,9 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
     if (id) next.set("edit", id);
     else next.delete("edit");
     const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }
 
   function flash(message: string) {
@@ -116,7 +122,10 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
         setProductError("That product is already featured.");
         return;
       }
-      saveHomeSections({ ...doc, featured: { ...doc.featured, slugs: [...current, draft.slug] } });
+      saveHomeSections({
+        ...doc,
+        featured: { ...doc.featured, slugs: [...current, draft.slug] },
+      });
     } else if (selected) {
       if (draft.slug !== selected && current.includes(draft.slug)) {
         setSaving(false);
@@ -143,7 +152,10 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
     const doc = readHomeSections();
     saveHomeSections({
       ...doc,
-      featured: { ...doc.featured, slugs: doc.featured.slugs.filter((item) => item !== slug) },
+      featured: {
+        ...doc.featured,
+        slugs: doc.featured.slugs.filter((item) => item !== slug),
+      },
     });
     if (selected === slug) setEdit(null);
     setConfirmId(null);
@@ -181,7 +193,9 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
     setOverId(null);
   }
 
-  const missing = Boolean(selected && selected !== "new" && resolved === selected && !draft);
+  const missing = Boolean(
+    selected && selected !== "new" && resolved === selected && !draft,
+  );
   const draftProduct = draft ? bySlug.get(draft.slug) : undefined;
   const editingTitle = draftProduct?.title || "Product";
 
@@ -196,7 +210,11 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
             type="button"
             onClick={() => setEdit("new")}
             disabled={unused.length === 0}
-            title={unused.length === 0 ? "Every catalog product is already featured." : undefined}
+            title={
+              unused.length === 0
+                ? "Every catalog product is already featured."
+                : undefined
+            }
             className={adminButtonClass.primary}
           >
             <MaterialIcon name="add" className="text-[18px]" />
@@ -213,23 +231,40 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
       {missing ? (
         <p className="rounded-2xl bg-white px-4 py-3 text-sm text-neutral-600 ring-1 ring-neutral-200/90">
           This product is no longer in the featured list.{" "}
-          <button type="button" onClick={() => setEdit(null)} className="font-medium text-primary">
+          <button
+            type="button"
+            onClick={() => setEdit(null)}
+            className="font-medium text-primary"
+          >
             Close
           </button>
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl bg-[#f5f6f8] ring-1 ring-neutral-200/90" aria-labelledby="featured-preview-heading">
+      <section
+        className="overflow-hidden rounded-2xl bg-[#f5f6f8] ring-1 ring-neutral-200/90"
+        aria-labelledby="featured-preview-heading"
+      >
         <div className="px-4 pt-4 sm:px-5">
-          <h2 id="featured-preview-heading" className="text-sm font-semibold text-neutral-950">
+          <h2
+            id="featured-preview-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
             Storefront preview
           </h2>
-          <p className="mt-0.5 text-sm text-neutral-500">Shown on the home page, in this order. Every product in the list appears there.</p>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            Shown on the home page, in this order. Every product in the list
+            appears there.
+          </p>
         </div>
         <div className="px-4 py-4 sm:px-5">
           <div className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 sm:px-5 sm:py-5">
             <SectionCopyForm
-              values={{ heading: section.heading, viewAllLabel: section.viewAllLabel, viewAllHref: section.viewAllHref }}
+              values={{
+                heading: section.heading,
+                viewAllLabel: section.viewAllLabel,
+                viewAllHref: section.viewAllHref,
+              }}
               fields={[
                 { name: "heading", label: "Heading", wide: true },
                 { name: "viewAllLabel", label: "View all label" },
@@ -247,9 +282,12 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
 
             {slugs.length === 0 ? (
               <div className="px-2 py-10 text-center">
-                <p className="text-sm font-semibold text-neutral-950">No featured products yet</p>
+                <p className="text-sm font-semibold text-neutral-950">
+                  No featured products yet
+                </p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-                  Add a catalog product so it appears in the featured row on the home page.
+                  Add a catalog product so it appears in the featured row on the
+                  home page.
                 </p>
                 <button
                   type="button"
@@ -277,14 +315,24 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
                       >
                         <span className="relative aspect-4/5 bg-neutral-100">
                           {product ? (
-                            <Image src={product.imageSrc} alt="" fill sizes="(max-width: 1280px) 40vw, 20vw" className="object-cover" />
+                            <Image
+                              src={product.imageSrc}
+                              alt=""
+                              fill
+                              sizes="(max-width: 1280px) 40vw, 20vw"
+                              className="object-cover"
+                            />
                           ) : null}
                         </span>
                         <span className="min-w-0 px-2.5 py-2.5">
                           <span className="block truncate text-sm font-semibold text-neutral-950">
                             {product?.title || "Product unavailable"}
                           </span>
-                          {product ? <span className="mt-0.5 block text-xs text-neutral-500">{formatTaka(product.price)}</span> : null}
+                          {product ? (
+                            <span className="mt-0.5 block text-xs text-neutral-500">
+                              {formatTaka(product.price)}
+                            </span>
+                          ) : null}
                         </span>
                       </button>
                     </li>
@@ -297,9 +345,15 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
       </section>
 
       {slugs.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-labelledby="featured-list-heading">
+        <section
+          className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+          aria-labelledby="featured-list-heading"
+        >
           <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
-            <h2 id="featured-list-heading" className="text-sm font-semibold text-neutral-950">
+            <h2
+              id="featured-list-heading"
+              className="text-sm font-semibold text-neutral-950"
+            >
               {slugs.length === 1 ? "1 product" : `${slugs.length} products`}
             </h2>
           </div>
@@ -321,7 +375,10 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
                     "border-t border-neutral-100 first:border-t-0",
                     selected === slug && "bg-primary/5",
                     savedId === slug && "bg-emerald-50",
-                    overId === slug && dragId && dragId !== slug && "bg-primary/10",
+                    overId === slug &&
+                      dragId &&
+                      dragId !== slug &&
+                      "bg-primary/10",
                     dragId === slug && "opacity-60",
                   )}
                 >
@@ -342,7 +399,10 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
                         }}
                         className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
-                        <MaterialIcon name="drag_indicator" className="text-[18px]" />
+                        <MaterialIcon
+                          name="drag_indicator"
+                          className="text-[18px]"
+                        />
                       </button>
                       <button
                         id={`featured-${slug}`}
@@ -350,13 +410,24 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
                         onClick={() => setEdit(slug)}
                         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
-                        <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
+                        <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                          {index + 1}
+                        </span>
                         <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                           {product ? (
-                            <Image src={product.imageSrc} alt="" fill sizes="48px" className="object-cover" />
+                            <Image
+                              src={product.imageSrc}
+                              alt=""
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                            />
                           ) : (
                             <span className="grid size-full place-items-center text-neutral-400">
-                              <MaterialIcon name="image" className="text-[18px]" />
+                              <MaterialIcon
+                                name="image"
+                                className="text-[18px]"
+                              />
                             </span>
                           )}
                         </span>
@@ -364,28 +435,59 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
                           <span className="block truncate text-sm font-semibold text-neutral-950">
                             {product?.title || "Product unavailable"}
                           </span>
-                          <span className="block truncate text-xs text-neutral-500">{product ? formatTaka(product.price) : "Not in the catalog"}</span>
+                          <span className="block truncate text-xs text-neutral-500">
+                            {product
+                              ? formatTaka(product.price)
+                              : "Not in the catalog"}
+                          </span>
                         </span>
                       </button>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                      <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => move(slug, -1)} />
-                      <IconButton label="Move later" icon="arrow_downward" disabled={index === slugs.length - 1} onClick={() => move(slug, 1)} />
-                      <button type="button" onClick={() => setEdit(slug)} className={adminButtonClass.quiet}>
+                      <IconButton
+                        label="Move earlier"
+                        icon="arrow_upward"
+                        disabled={index === 0}
+                        onClick={() => move(slug, -1)}
+                      />
+                      <IconButton
+                        label="Move later"
+                        icon="arrow_downward"
+                        disabled={index === slugs.length - 1}
+                        onClick={() => move(slug, 1)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEdit(slug)}
+                        className={adminButtonClass.quiet}
+                      >
                         Edit
                       </button>
                       {confirmId === slug ? (
                         <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                           Remove from the home page?
-                          <button type="button" onClick={() => remove(slug)} className="font-semibold underline">
+                          <button
+                            type="button"
+                            onClick={() => remove(slug)}
+                            className="font-semibold underline"
+                          >
                             Yes
                           </button>
-                          <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmId(null)}
+                            className="font-semibold"
+                          >
                             No
                           </button>
                         </span>
                       ) : (
-                        <IconButton label="Remove product" icon="delete" danger onClick={() => setConfirmId(slug)} />
+                        <IconButton
+                          label="Remove product"
+                          icon="delete"
+                          danger
+                          onClick={() => setConfirmId(slug)}
+                        />
                       )}
                     </div>
                   </div>
@@ -396,83 +498,116 @@ export function FeaturedProducts({ section }: { section: FeaturedSection }) {
         </section>
       ) : null}
 
-      {draft ? (
-        <div className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40" role="presentation" onClick={() => setEdit(null)}>
-          <div
-            key={selected ?? "closed"}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="featured-drawer-title"
-            className="force-light flex h-full w-full max-w-md flex-col bg-white shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setEdit(null);
-            }}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-              <div className="min-w-0">
-                <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{creating ? "Add product" : "Edit product"}</p>
-                <h2 id="featured-drawer-title" className="mt-1 truncate text-lg font-semibold text-neutral-950">
-                  {creating ? "New product" : editingTitle}
-                </h2>
-              </div>
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setEdit(null)}
-                className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      {draft && baseline ? (
+        <FormCloseGuard baseline={baseline} value={draft} onClose={() => setEdit(null)}>
+        <AdminFormModal
+          key={selected ?? "closed"}
+          titleId="featured-drawer-title"
+          size="sm"
+        >
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+            <div className="min-w-0">
+              <h2
+                id="featured-drawer-title"
+                className="text-lg font-semibold text-neutral-950"
               >
-                <MaterialIcon name="close" className="text-[20px]" />
-              </button>
+                {creating ? "Add product" : "Edit product"}
+              </h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                {creating
+                  ? "Choose a product for the featured row."
+                  : "Change the featured product."}
+              </p>
             </div>
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-              {draftProduct ? <ProductPreview product={draftProduct} /> : null}
-              <div>
-                <FieldLabel htmlFor={productId}>
-                  Product <span className="text-red-700">*</span>
-                </FieldLabel>
-                <select
-                  id={productId}
-                  autoFocus
-                  value={draft.slug}
-                  onChange={(event) => {
-                    setDraft({ slug: event.target.value });
-                    setProductError("");
-                  }}
-                  aria-invalid={productError ? true : undefined}
-                  aria-describedby={productError ? `${productId}-error` : undefined}
-                  className={cn(adminFieldClass, productError && "border-red-400")}
-                >
-                  {choices.map((item) => (
-                    <option key={item.slug} value={item.slug} disabled={used.has(item.slug) && item.slug !== (creating ? "" : selected)}>
-                      {item.title}
-                    </option>
-                  ))}
-                </select>
-                {productError ? (
-                  <div id={`${productId}-error`}>
-                    <FieldError message={productError} />
-                  </div>
-                ) : (
-                  <p className="mt-1.5 text-xs text-neutral-500">Products already in this list stay unavailable.</p>
+            <button
+              type="button"
+              data-form-dismiss=""
+              aria-label="Close"
+              title="Close"
+              onClick={() => setEdit(null)}
+              className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <MaterialIcon name="close" className="text-[20px]" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            {draftProduct ? <ProductPreview product={draftProduct} /> : null}
+            <div>
+              <FieldLabel htmlFor={productId}>
+                Product <span className="text-red-700">*</span>
+              </FieldLabel>
+              <select
+                id={productId}
+                autoFocus
+                value={draft.slug}
+                onChange={(event) => {
+                  setDraft({ slug: event.target.value });
+                  setProductError("");
+                }}
+                aria-invalid={productError ? true : undefined}
+                aria-describedby={
+                  productError ? `${productId}-error` : undefined
+                }
+                className={cn(
+                  adminFieldClass,
+                  productError && "border-red-400",
                 )}
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-              {notice ? (
-                <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
-                  {notice}
+              >
+                {choices.map((item) => (
+                  <option
+                    key={item.slug}
+                    value={item.slug}
+                    disabled={
+                      used.has(item.slug) &&
+                      item.slug !== (creating ? "" : selected)
+                    }
+                  >
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+              {productError ? (
+                <div id={`${productId}-error`}>
+                  <FieldError message={productError} />
+                </div>
+              ) : (
+                <p className="mt-1.5 text-xs text-neutral-500">
+                  Products already in this list stay unavailable.{" "}
+                  {getAdminProduct(draft.slug)?.published === false
+                    ? "This product is hidden, so it stays off the website until you publish it on the product page."
+                    : "Visibility follows the product’s Live or Hidden status."}
                 </p>
-              ) : null}
-              <button type="button" onClick={() => setEdit(null)} className={adminButtonClass.secondary}>
-                Cancel
-              </button>
-              <button type="button" onClick={save} disabled={saving} className={adminButtonClass.primary}>
-                {saving ? "Saving…" : creating ? "Save product" : "Save changes"}
-              </button>
+              )}
             </div>
           </div>
-        </div>
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+            {notice ? (
+              <p
+                role="status"
+                className="mr-auto text-sm font-medium text-emerald-800"
+              >
+                {notice}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              data-form-dismiss=""
+              onClick={() => setEdit(null)}
+              className={adminButtonClass.secondary}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className={adminButtonClass.primary}
+            >
+              {saving ? "Saving…" : creating ? "Save product" : "Save changes"}
+            </button>
+          </div>
+        </AdminFormModal>
+        </FormCloseGuard>
       ) : null}
     </div>
   );
@@ -482,11 +617,21 @@ function ProductPreview({ product }: { product: CatalogChoice }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-[#f5f6f8] p-3">
       <span className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-white">
-        <Image src={product.imageSrc} alt="" fill sizes="64px" className="object-cover" />
+        <Image
+          src={product.imageSrc}
+          alt=""
+          fill
+          sizes="64px"
+          className="object-cover"
+        />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-neutral-950">{product.title}</span>
-        <span className="mt-0.5 block text-xs text-neutral-500">{formatTaka(product.price)}</span>
+        <span className="block truncate text-sm font-semibold text-neutral-950">
+          {product.title}
+        </span>
+        <span className="mt-0.5 block text-xs text-neutral-500">
+          {formatTaka(product.price)}
+        </span>
       </span>
     </div>
   );

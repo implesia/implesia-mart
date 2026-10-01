@@ -8,7 +8,17 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { cn } from "@/lib/utils";
 
-import { adminButtonClass, adminFieldClass, AdminPageHeader, FieldError, FieldLabel } from "../../../_components/admin-ui";
+import { AdminFormModal } from "../../../_components/admin-form-modal";
+import {
+  ActiveStatusField,
+  adminButtonClass,
+  adminFieldClass,
+  AdminPageHeader,
+  FieldError,
+  FieldLabel,
+  VisibilityBadge,
+} from "../../../_components/admin-ui";
+import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { ImageField } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
 
@@ -48,15 +58,6 @@ export function useFocusWhenClosed(open: boolean) {
   const focusRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [open]);
-
-  useEffect(() => {
     if (open || !focusRef.current) return;
     const id = focusRef.current;
     focusRef.current = null;
@@ -66,7 +67,11 @@ export function useFocusWhenClosed(open: boolean) {
   return focusRef;
 }
 
-export function replaceSearch(router: ReturnType<typeof useRouter>, pathname: string, mutate: (params: URLSearchParams) => void) {
+export function replaceSearch(
+  router: ReturnType<typeof useRouter>,
+  pathname: string,
+  mutate: (params: URLSearchParams) => void,
+) {
   const next = new URLSearchParams(window.location.search);
   mutate(next);
   const query = next.toString();
@@ -93,15 +98,27 @@ export function SustainHeader({
   const page = findCmsPage("sustainability");
   return (
     <div>
-      <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-sm text-neutral-500">
-        <Link href="/admin/pages/sustainability" className="font-medium hover:text-neutral-950">
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-3 flex flex-wrap items-center gap-1 text-sm text-neutral-500"
+      >
+        <Link
+          href="/admin/pages/sustainability"
+          className="font-medium hover:text-neutral-950"
+        >
           Sustainability
         </Link>
-        <MaterialIcon name="chevron_right" className="text-[16px] text-neutral-300" />
+        <MaterialIcon
+          name="chevron_right"
+          className="text-[16px] text-neutral-300"
+        />
         <span className="font-medium text-neutral-950">{title}</span>
       </nav>
       {page ? (
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="Sustainability sections">
+        <div
+          className="mb-4 flex gap-2 overflow-x-auto pb-1"
+          aria-label="Sustainability sections"
+        >
           {page.sections.map((section) => {
             const active = section.id === sectionId;
             return (
@@ -111,7 +128,9 @@ export function SustainHeader({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "inline-flex h-9 shrink-0 items-center rounded-full px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  active ? "bg-neutral-950 font-medium text-white" : "bg-white font-medium text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
+                  active
+                    ? "bg-neutral-950 font-medium text-white"
+                    : "bg-white font-medium text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
                 )}
               >
                 {section.label}
@@ -125,7 +144,12 @@ export function SustainHeader({
         description={description}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <a href="/sustainability" target="_blank" rel="noreferrer" className={adminButtonClass.secondary}>
+            <a
+              href="/sustainability"
+              target="_blank"
+              rel="noreferrer"
+              className={adminButtonClass.secondary}
+            >
               View on site
               <MaterialIcon name="open_in_new" className="text-[18px]" />
             </a>
@@ -146,61 +170,68 @@ export function SavedLine({ notice, open }: { notice: string; open: boolean }) {
   );
 }
 
-export function MissingLine({ show, onClose }: { show: boolean; onClose: () => void }) {
+export function MissingLine({
+  show,
+  onClose,
+}: {
+  show: boolean;
+  onClose: () => void;
+}) {
   if (!show) return null;
   return (
     <p className="rounded-2xl bg-white px-4 py-3 text-sm text-neutral-600 ring-1 ring-neutral-200/90">
       This record is no longer here.{" "}
-      <button type="button" onClick={onClose} className="font-medium text-primary">
+      <button
+        type="button"
+        onClick={onClose}
+        className="font-medium text-primary"
+      >
         Close
       </button>
     </p>
   );
 }
 
-export function DrawerOverlay({ titleId, onClose, children }: { titleId: string; onClose: () => void; children: ReactNode }) {
+export function DrawerOverlay({
+  titleId,
+  children,
+}: {
+  titleId: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40" role="presentation" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="force-light flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") onClose();
-        }}
-      >
-        {children}
-      </div>
-    </div>
+    <AdminFormModal titleId={titleId} size="sm">
+      {children}
+    </AdminFormModal>
   );
 }
 
 function DrawerHead({
-  kicker,
   title,
+  description,
   titleId,
   onClose,
   closeLabel = "Close",
 }: {
-  kicker: string;
   title: string;
+  description: string;
   titleId?: string;
   onClose: () => void;
   closeLabel?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+    <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
       <div className="min-w-0">
-        <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{kicker}</p>
-        <h2 id={titleId} className="mt-1 line-clamp-2 text-lg font-semibold text-neutral-950">
+        <h2 id={titleId} className="text-lg font-semibold text-neutral-950">
           {title}
         </h2>
+        <p className="mt-1 text-sm text-neutral-500">{description}</p>
       </div>
       <button
         type="button"
+        data-form-dismiss=""
         aria-label={closeLabel}
+        title={closeLabel}
         onClick={onClose}
         className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
@@ -230,23 +261,48 @@ function DrawerFoot({
   creating: boolean;
 }) {
   return (
-    <div className="mt-auto flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+    <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
       {notice ? (
-        <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
+        <p
+          role="status"
+          className="mr-auto text-sm font-medium text-emerald-800"
+        >
           {notice}
         </p>
       ) : null}
-      <button type="button" onClick={onClose} className={adminButtonClass.secondary}>
+      <button
+        type="button"
+        data-form-dismiss=""
+        onClick={onClose}
+        className={adminButtonClass.secondary}
+      >
         Cancel
       </button>
-      <button type="button" onClick={onSave} disabled={saving || uploading} className={adminButtonClass.primary}>
-        {saving ? "Saving…" : uploading ? "Uploading…" : creating ? createLabel : editLabel}
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving || uploading}
+        className={adminButtonClass.primary}
+      >
+        {saving
+          ? "Saving…"
+          : uploading
+            ? "Uploading…"
+            : creating
+              ? createLabel
+              : editLabel}
       </button>
     </div>
   );
 }
 
-export function IconPicker({ value, onChange }: { value: string; onChange: (name: string) => void }) {
+export function IconPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+}) {
   return (
     <div>
       <FieldLabel>Icon</FieldLabel>
@@ -260,7 +316,9 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (name
             onClick={() => onChange(icon.name)}
             className={cn(
               "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-              value === icon.name ? "bg-primary/10 text-primary ring-primary/30" : "bg-white text-neutral-600 ring-neutral-200",
+              value === icon.name
+                ? "bg-primary/10 text-primary ring-primary/30"
+                : "bg-white text-neutral-600 ring-neutral-200",
             )}
           >
             <MaterialIcon name={icon.name} className="text-[20px]" />
@@ -276,6 +334,7 @@ export function TextPanel({
   noun,
   titleId,
   initial,
+  active = true,
   notice,
   onClose,
   onSave,
@@ -284,15 +343,17 @@ export function TextPanel({
   noun: string;
   titleId?: string;
   initial: string;
+  active?: boolean;
   notice: string;
   onClose: () => void;
-  onSave: (text: string) => void;
+  onSave: (text: string, isActive: boolean) => void;
 }) {
   const [text, setText] = useState(initial);
+  const [isActive, setActive] = useState(active !== false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fieldId = useId();
-  const title = text.trim() || noun;
+  const baseline = useRef({ text: initial, isActive: active !== false });
 
   function save() {
     if (saving) return;
@@ -302,13 +363,26 @@ export function TextPanel({
       return;
     }
     setSaving(true);
-    onSave(next);
+    onSave(next, isActive);
   }
 
   return (
-    <div className="flex min-h-full flex-col border-t border-neutral-100 first:border-t-0">
-      <DrawerHead kicker={creating ? `Add ${noun.toLowerCase()}` : `Edit ${noun.toLowerCase()}`} title={creating ? `New ${noun.toLowerCase()}` : title} titleId={titleId} onClose={onClose} />
-      <div className="flex-1 space-y-4 px-5 py-4">
+    <FormCloseGuard baseline={baseline.current} value={{ text, isActive }} onClose={onClose}>
+    <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
+      <DrawerHead
+        title={
+          creating ? `Add ${noun.toLowerCase()}` : `Edit ${noun.toLowerCase()}`
+        }
+        description={
+          creating
+            ? `Write the new ${noun.toLowerCase()}.`
+            : `Update this ${noun.toLowerCase()}.`
+        }
+        titleId={titleId}
+        onClose={onClose}
+      />
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <ActiveStatusField checked={isActive} onChange={setActive} />
         <div>
           <FieldLabel htmlFor={fieldId}>
             {noun} <span className="text-red-700">*</span>
@@ -318,13 +392,18 @@ export function TextPanel({
             autoFocus
             value={text}
             rows={5}
+            placeholder={`Write the ${noun.toLowerCase()}`}
             onChange={(event) => {
               setText(event.target.value);
               setError("");
             }}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${fieldId}-error` : undefined}
-            className={cn(adminFieldClass, "h-auto py-3", error && "border-red-400")}
+            className={cn(
+              adminFieldClass,
+              "h-auto py-3",
+              error && "border-red-400",
+            )}
           />
           {error ? (
             <div id={`${fieldId}-error`}>
@@ -333,8 +412,16 @@ export function TextPanel({
           ) : null}
         </div>
       </div>
-      <DrawerFoot notice={notice} onClose={onClose} onSave={save} saving={saving} creating={creating} createLabel={`Save ${noun.toLowerCase()}`} />
+      <DrawerFoot
+        notice={notice}
+        onClose={onClose}
+        onSave={save}
+        saving={saving}
+        creating={creating}
+        createLabel={`Save ${noun.toLowerCase()}`}
+      />
     </div>
+    </FormCloseGuard>
   );
 }
 
@@ -348,18 +435,18 @@ export function StatPanel({
 }: {
   creating: boolean;
   titleId?: string;
-  initial: { icon: string; value: string; label: string };
+  initial: { icon: string; value: string; label: string; isActive?: boolean };
   notice: string;
   onClose: () => void;
-  onSave: (draft: { icon: string; value: string; label: string }) => void;
+  onSave: (draft: { icon: string; value: string; label: string; isActive: boolean }) => void;
 }) {
-  const [draft, setDraft] = useState(initial);
+  const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
+  const baseline = useRef(draft);
   const [valueError, setValueError] = useState("");
   const [labelError, setLabelError] = useState("");
   const [saving, setSaving] = useState(false);
   const valueId = useId();
   const labelId = useId();
-  const title = draft.label.trim() || "Stat";
 
   function save() {
     if (saving) return;
@@ -369,14 +456,29 @@ export function StatPanel({
     setLabelError(label ? "" : "Label is required.");
     if (!value || !label) return;
     setSaving(true);
-    onSave({ icon: draft.icon || "verified", value, label });
+    onSave({ icon: draft.icon || "verified", value, label, isActive: draft.isActive });
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <DrawerHead kicker={creating ? "Add stat" : "Edit stat"} title={creating ? "New stat" : title} titleId={titleId} onClose={onClose} />
-      <div className="flex-1 space-y-4 px-5 py-4">
-        <IconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
+    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <DrawerHead
+        title={creating ? "Add stat" : "Edit stat"}
+        description={
+          creating ? "Add a number and a short label." : "Update this stat."
+        }
+        titleId={titleId}
+        onClose={onClose}
+      />
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={draft.isActive}
+          onChange={(isActive) => setDraft({ ...draft, isActive })}
+        />
+        <IconPicker
+          value={draft.icon}
+          onChange={(icon) => setDraft({ ...draft, icon })}
+        />
         <div>
           <FieldLabel htmlFor={valueId}>
             Value <span className="text-red-700">*</span>
@@ -385,6 +487,7 @@ export function StatPanel({
             id={valueId}
             autoFocus
             value={draft.value}
+            placeholder="64"
             onChange={(event) => {
               setDraft({ ...draft, value: event.target.value });
               setValueError("");
@@ -406,6 +509,7 @@ export function StatPanel({
           <input
             id={labelId}
             value={draft.label}
+            placeholder="Districts we deliver to"
             onChange={(event) => {
               setDraft({ ...draft, label: event.target.value });
               setLabelError("");
@@ -421,8 +525,16 @@ export function StatPanel({
           ) : null}
         </div>
       </div>
-      <DrawerFoot notice={notice} onClose={onClose} onSave={save} saving={saving} creating={creating} createLabel="Save stat" />
+      <DrawerFoot
+        notice={notice}
+        onClose={onClose}
+        onSave={save}
+        saving={saving}
+        creating={creating}
+        createLabel="Save stat"
+      />
     </div>
+    </FormCloseGuard>
   );
 }
 
@@ -438,18 +550,18 @@ export function CardPanel({
   creating: boolean;
   noun: string;
   titleId?: string;
-  initial: { icon: string; title: string; description: string };
+  initial: { icon: string; title: string; description: string; isActive?: boolean };
   notice: string;
   onClose: () => void;
-  onSave: (draft: { icon: string; title: string; description: string }) => void;
+  onSave: (draft: { icon: string; title: string; description: string; isActive: boolean }) => void;
 }) {
-  const [draft, setDraft] = useState(initial);
+  const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
+  const baseline = useRef(draft);
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
   const [saving, setSaving] = useState(false);
   const titleField = useId();
   const descriptionId = useId();
-  const title = draft.title.trim() || noun;
 
   function save() {
     if (saving) return;
@@ -459,14 +571,38 @@ export function CardPanel({
     setDescriptionError(nextDescription ? "" : "Description is required.");
     if (!nextTitle || !nextDescription) return;
     setSaving(true);
-    onSave({ icon: draft.icon || "verified", title: nextTitle, description: nextDescription });
+    onSave({
+      icon: draft.icon || "verified",
+      title: nextTitle,
+      description: nextDescription,
+      isActive: draft.isActive,
+    });
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <DrawerHead kicker={creating ? `Add ${noun.toLowerCase()}` : `Edit ${noun.toLowerCase()}`} title={creating ? `New ${noun.toLowerCase()}` : title} titleId={titleId} onClose={onClose} />
-      <div className="flex-1 space-y-4 px-5 py-4">
-        <IconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
+    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <DrawerHead
+        title={
+          creating ? `Add ${noun.toLowerCase()}` : `Edit ${noun.toLowerCase()}`
+        }
+        description={
+          creating
+            ? `Add a new ${noun.toLowerCase()}.`
+            : `Update this ${noun.toLowerCase()}.`
+        }
+        titleId={titleId}
+        onClose={onClose}
+      />
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={draft.isActive}
+          onChange={(isActive) => setDraft({ ...draft, isActive })}
+        />
+        <IconPicker
+          value={draft.icon}
+          onChange={(icon) => setDraft({ ...draft, icon })}
+        />
         <div>
           <FieldLabel htmlFor={titleField}>
             Title <span className="text-red-700">*</span>
@@ -475,6 +611,7 @@ export function CardPanel({
             id={titleField}
             autoFocus
             value={draft.title}
+            placeholder="What this point is called"
             onChange={(event) => {
               setDraft({ ...draft, title: event.target.value });
               setTitleError("");
@@ -497,13 +634,20 @@ export function CardPanel({
             id={descriptionId}
             value={draft.description}
             rows={4}
+            placeholder="A short explanation"
             onChange={(event) => {
               setDraft({ ...draft, description: event.target.value });
               setDescriptionError("");
             }}
             aria-invalid={descriptionError ? true : undefined}
-            aria-describedby={descriptionError ? `${descriptionId}-error` : undefined}
-            className={cn(adminFieldClass, "h-auto py-3", descriptionError && "border-red-400")}
+            aria-describedby={
+              descriptionError ? `${descriptionId}-error` : undefined
+            }
+            className={cn(
+              adminFieldClass,
+              "h-auto py-3",
+              descriptionError && "border-red-400",
+            )}
           />
           {descriptionError ? (
             <div id={`${descriptionId}-error`}>
@@ -512,8 +656,16 @@ export function CardPanel({
           ) : null}
         </div>
       </div>
-      <DrawerFoot notice={notice} onClose={onClose} onSave={save} saving={saving} creating={creating} createLabel={`Save ${noun.toLowerCase()}`} />
+      <DrawerFoot
+        notice={notice}
+        onClose={onClose}
+        onSave={save}
+        saving={saving}
+        creating={creating}
+        createLabel={`Save ${noun.toLowerCase()}`}
+      />
     </div>
+    </FormCloseGuard>
   );
 }
 
@@ -527,16 +679,16 @@ export function BadgePanel({
 }: {
   creating: boolean;
   titleId?: string;
-  initial: { icon: string; label: string };
+  initial: { icon: string; label: string; isActive?: boolean };
   notice: string;
   onClose: () => void;
-  onSave: (draft: { icon: string; label: string }) => void;
+  onSave: (draft: { icon: string; label: string; isActive: boolean }) => void;
 }) {
-  const [draft, setDraft] = useState(initial);
+  const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
+  const baseline = useRef(draft);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fieldId = useId();
-  const title = draft.label.trim() || "Badge";
 
   function save() {
     if (saving) return;
@@ -546,14 +698,32 @@ export function BadgePanel({
       return;
     }
     setSaving(true);
-    onSave({ icon: draft.icon || "check_circle", label });
+    onSave({ icon: draft.icon || "check_circle", label, isActive: draft.isActive });
   }
 
   return (
-    <div className="flex min-h-full flex-col border-t border-neutral-100 first:border-t-0">
-      <DrawerHead kicker={creating ? "Add badge" : "Edit badge"} title={creating ? "New badge" : title} titleId={titleId} onClose={onClose} closeLabel="Close badge" />
-      <div className="flex-1 space-y-4 px-5 py-4">
-        <IconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
+    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
+      <DrawerHead
+        title={creating ? "Add badge" : "Edit badge"}
+        description={
+          creating
+            ? "Add a short badge for this section."
+            : "Update this badge."
+        }
+        titleId={titleId}
+        onClose={onClose}
+        closeLabel="Close badge"
+      />
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={draft.isActive}
+          onChange={(isActive) => setDraft({ ...draft, isActive })}
+        />
+        <IconPicker
+          value={draft.icon}
+          onChange={(icon) => setDraft({ ...draft, icon })}
+        />
         <div>
           <FieldLabel htmlFor={fieldId}>
             Label <span className="text-red-700">*</span>
@@ -562,6 +732,7 @@ export function BadgePanel({
             id={fieldId}
             autoFocus
             value={draft.label}
+            placeholder="Checked before delivery"
             onChange={(event) => {
               setDraft({ ...draft, label: event.target.value });
               setError("");
@@ -577,8 +748,16 @@ export function BadgePanel({
           ) : null}
         </div>
       </div>
-      <DrawerFoot notice={notice} onClose={onClose} onSave={save} saving={saving} creating={creating} createLabel="Save badge" />
+      <DrawerFoot
+        notice={notice}
+        onClose={onClose}
+        onSave={save}
+        saving={saving}
+        creating={creating}
+        createLabel="Save badge"
+      />
     </div>
+    </FormCloseGuard>
   );
 }
 
@@ -586,23 +765,29 @@ export function ImagePanel({
   creating,
   titleId,
   initial,
+  publishable = false,
   notice,
   onClose,
   onSave,
 }: {
   creating: boolean;
   titleId?: string;
-  initial: { src: string; alt: string };
+  initial: { src: string; alt: string; isActive?: boolean };
+  publishable?: boolean;
   notice: string;
   onClose: () => void;
-  onSave: (draft: { src: string; alt: string }) => void;
+  onSave: (draft: { src: string; alt: string; isActive?: boolean }) => void;
 }) {
-  const [draft, setDraft] = useState(initial);
+  const [draft, setDraft] = useState(() => ({
+    src: initial.src,
+    alt: initial.alt,
+    isActive: initial.isActive !== false,
+  }));
+  const baseline = useRef(draft);
   const [imageError, setImageError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const altId = useId();
-  const title = draft.alt.trim() || "Photo";
 
   function save() {
     if (saving || uploading) return;
@@ -611,15 +796,46 @@ export function ImagePanel({
       return;
     }
     setSaving(true);
-    onSave({ src: draft.src, alt: draft.alt.trim() });
+    onSave({
+      src: draft.src,
+      alt: draft.alt.trim(),
+      ...(publishable ? { isActive: draft.isActive } : {}),
+    });
   }
 
   return (
-    <div className="flex min-h-full flex-col border-t border-neutral-100 first:border-t-0">
-      <DrawerHead kicker={creating ? "Add photo" : "Edit photo"} title={creating ? "New photo" : title} titleId={titleId} onClose={onClose} closeLabel="Close photo" />
-      <div className="flex-1 space-y-4 px-5 py-4">
+    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
+      <DrawerHead
+        title={creating ? "Add photo" : "Edit photo"}
+        description={
+          creating ? "Add a photo for this section." : "Update this photo."
+        }
+        titleId={titleId}
+        onClose={onClose}
+        closeLabel="Close photo"
+      />
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        {publishable ? (
+          <ActiveStatusField
+            checked={draft.isActive}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
+          />
+        ) : null}
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-neutral-200">
-          {draft.src ? <Image src={draft.src} alt="" fill sizes="400px" className="object-cover" /> : <span className="grid size-full place-items-center text-sm text-neutral-500">Photo</span>}
+          {draft.src ? (
+            <Image
+              src={draft.src}
+              alt=""
+              fill
+              sizes="400px"
+              className="object-cover"
+            />
+          ) : (
+            <span className="grid size-full place-items-center text-sm text-neutral-500">
+              Photo
+            </span>
+          )}
         </div>
         <ImageField
           value={draft.src}
@@ -637,12 +853,31 @@ export function ImagePanel({
         ) : null}
         <div>
           <FieldLabel htmlFor={altId}>Image description</FieldLabel>
-          <input id={altId} value={draft.alt} onChange={(event) => setDraft({ ...draft, alt: event.target.value })} className={adminFieldClass} />
-          <p className="mt-1.5 text-xs text-neutral-500">Read by screen readers when the photo is shown.</p>
+          <input
+            id={altId}
+            value={draft.alt}
+            placeholder="What the photo shows"
+            onChange={(event) =>
+              setDraft({ ...draft, alt: event.target.value })
+            }
+            className={adminFieldClass}
+          />
+          <p className="mt-1.5 text-xs text-neutral-500">
+            Read by screen readers when the photo is shown.
+          </p>
         </div>
       </div>
-      <DrawerFoot notice={notice} onClose={onClose} onSave={save} saving={saving} uploading={uploading} creating={creating} createLabel="Save photo" />
+      <DrawerFoot
+        notice={notice}
+        onClose={onClose}
+        onSave={save}
+        saving={saving}
+        uploading={uploading}
+        creating={creating}
+        createLabel="Save photo"
+      />
     </div>
+    </FormCloseGuard>
   );
 }
 
@@ -654,6 +889,7 @@ export type ListItem = {
   reorder: string;
   imageSrc?: string;
   icon?: string;
+  active?: boolean;
 };
 
 export function RecordList({
@@ -700,7 +936,10 @@ export function RecordList({
   removeLabel: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-labelledby={headingId}>
+    <section
+      className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+      aria-labelledby={headingId}
+    >
       <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
         <h2 id={headingId} className="text-sm font-semibold text-neutral-950">
           {title}
@@ -709,8 +948,14 @@ export function RecordList({
       {items.length === 0 ? (
         <div className="px-4 py-10 text-center">
           <p className="text-sm font-semibold text-neutral-950">{emptyTitle}</p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">{emptyBody}</p>
-          <button type="button" onClick={onEmpty} className={cn(adminButtonClass.primary, "mt-4")}>
+          <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+            {emptyBody}
+          </p>
+          <button
+            type="button"
+            onClick={onEmpty}
+            className={cn(adminButtonClass.primary, "mt-4")}
+          >
             <MaterialIcon name="add" className="text-[18px]" />
             {emptyAction}
           </button>
@@ -732,7 +977,10 @@ export function RecordList({
                 "border-t border-neutral-100 first:border-t-0",
                 selected === item.id && "bg-primary/5",
                 savedId === item.id && "bg-emerald-50",
-                overId === item.id && dragId && dragId !== item.id && "bg-primary/10",
+                overId === item.id &&
+                  dragId &&
+                  dragId !== item.id &&
+                  "bg-primary/10",
                 dragId === item.id && "opacity-60",
               )}
             >
@@ -753,7 +1001,10 @@ export function RecordList({
                     }}
                     className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
-                    <MaterialIcon name="drag_indicator" className="text-[18px]" />
+                    <MaterialIcon
+                      name="drag_indicator"
+                      className="text-[18px]"
+                    />
                   </button>
                   <button
                     id={item.buttonId}
@@ -761,46 +1012,96 @@ export function RecordList({
                     onClick={() => onOpen(item.id)}
                     className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
-                    <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
+                    <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                      {index + 1}
+                    </span>
                     {item.imageSrc !== undefined ? (
                       <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                         {item.imageSrc ? (
-                          <Image src={item.imageSrc} alt="" fill sizes="48px" className="object-cover" />
+                          <Image
+                            src={item.imageSrc}
+                            alt=""
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                          />
                         ) : (
                           <span className="grid size-full place-items-center text-neutral-400">
-                            <MaterialIcon name="image" className="text-[18px]" />
+                            <MaterialIcon
+                              name="image"
+                              className="text-[18px]"
+                            />
                           </span>
                         )}
                       </span>
                     ) : item.icon ? (
                       <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-admin-canvas text-primary">
-                        <MaterialIcon name={item.icon} className="text-[22px]" />
+                        <MaterialIcon
+                          name={item.icon}
+                          className="text-[22px]"
+                        />
                       </span>
                     ) : null}
                     <span className="min-w-0">
-                      <span className="line-clamp-2 text-sm font-semibold text-neutral-950">{item.title}</span>
-                      <span className="mt-0.5 line-clamp-2 block text-xs text-neutral-500">{item.meta}</span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="line-clamp-2 text-sm font-semibold text-neutral-950">
+                          {item.title}
+                        </span>
+                        {item.active === undefined ? null : (
+                          <VisibilityBadge active={item.active} />
+                        )}
+                      </span>
+                      <span className="mt-0.5 line-clamp-2 block text-xs text-neutral-500">
+                        {item.meta}
+                      </span>
                     </span>
                   </button>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                  <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => onMove(item.id, -1)} />
-                  <IconButton label="Move later" icon="arrow_downward" disabled={index === items.length - 1} onClick={() => onMove(item.id, 1)} />
-                  <button type="button" onClick={() => onOpen(item.id)} className={adminButtonClass.quiet}>
+                  <IconButton
+                    label="Move earlier"
+                    icon="arrow_upward"
+                    disabled={index === 0}
+                    onClick={() => onMove(item.id, -1)}
+                  />
+                  <IconButton
+                    label="Move later"
+                    icon="arrow_downward"
+                    disabled={index === items.length - 1}
+                    onClick={() => onMove(item.id, 1)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onOpen(item.id)}
+                    className={adminButtonClass.quiet}
+                  >
                     Edit
                   </button>
                   {confirmId === item.id ? (
                     <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                       Remove from the page?
-                      <button type="button" onClick={() => onRemove(item.id)} className="font-semibold underline">
+                      <button
+                        type="button"
+                        onClick={() => onRemove(item.id)}
+                        className="font-semibold underline"
+                      >
                         Yes
                       </button>
-                      <button type="button" onClick={() => onAskRemove(null)} className="font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => onAskRemove(null)}
+                        className="font-semibold"
+                      >
                         No
                       </button>
                     </span>
                   ) : (
-                    <IconButton label={removeLabel} icon="delete" danger onClick={() => onAskRemove(item.id)} />
+                    <IconButton
+                      label={removeLabel}
+                      icon="delete"
+                      danger
+                      onClick={() => onAskRemove(item.id)}
+                    />
                   )}
                 </div>
               </div>
@@ -842,9 +1143,23 @@ export function IconButton({
   );
 }
 
-export function AddButton({ children, onClick, secondary }: { children: ReactNode; onClick: () => void; secondary?: boolean }) {
+export function AddButton({
+  children,
+  onClick,
+  secondary,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  secondary?: boolean;
+}) {
   return (
-    <button type="button" onClick={onClick} className={secondary ? adminButtonClass.secondary : adminButtonClass.primary}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        secondary ? adminButtonClass.secondary : adminButtonClass.primary
+      }
+    >
       <MaterialIcon name="add" className="text-[18px]" />
       {children}
     </button>

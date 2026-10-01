@@ -12,13 +12,16 @@ import {
   saveHomeSections,
   type CategoriesSection,
 } from "@/lib/mart-mock/home-sections";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 
-import { adminButtonClass, adminFieldClass, FieldError, FieldLabel } from "../../_components/admin-ui";
+import { AdminFormModal } from "../../_components/admin-form-modal";
+import { ActiveStatusField, adminButtonClass, adminFieldClass, FieldError, FieldLabel, VisibilityBadge } from "../../_components/admin-ui";
+import { FormCloseGuard } from "../../_components/form-close-guard";
 import { ImageField } from "../../_components/image-field";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
 
-type Draft = { label: string; imageSrc: string; href: string };
+type Draft = { label: string; imageSrc: string; href: string; isActive: boolean };
 
 export function CategoryTiles({ section }: { section: CategoriesSection }) {
   const params = useSearchParams();
@@ -28,6 +31,7 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
   const creating = selected === "new";
   const tiles = section.tiles;
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [baseline, setBaseline] = useState<Draft | null>(null);
   const [labelError, setLabelError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -48,24 +52,22 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
     setLabelError("");
     if (!selected) {
       setDraft(null);
+      setBaseline(null);
       return;
     }
     if (selected === "new") {
-      setDraft({ label: "", imageSrc: "", href: "/products" });
+      const next = { label: "", imageSrc: "", href: "/products", isActive: true };
+      setDraft(next);
+      setBaseline(next);
       return;
     }
     const tile = readHomeSections().categories.tiles.find((entry) => entry.id === selected);
-    setDraft(tile ? { label: tile.label, imageSrc: tile.imageSrc, href: tile.href } : null);
+    const next = tile
+      ? { label: tile.label, imageSrc: tile.imageSrc, href: tile.href, isActive: tile.isActive !== false }
+      : null;
+    setDraft(next);
+    setBaseline(next);
   }, [selected]);
-
-  useEffect(() => {
-    if (!draft) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [draft]);
 
   useEffect(() => {
     if (draft || !focusId.current) return;
@@ -106,7 +108,7 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
     const doc = readHomeSections();
     const href = draft.href.trim();
     const imageSrc = draft.imageSrc;
-    const saved = creating ? { ...blankCategoryTile(), label, href, imageSrc } : null;
+    const saved = creating ? { ...blankCategoryTile(), label, href, imageSrc, isActive: draft.isActive } : null;
     if (saved) {
       saveHomeSections({ ...doc, categories: { ...doc.categories, tiles: [...doc.categories.tiles, saved] } });
     } else if (selected) {
@@ -115,7 +117,7 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
         categories: {
           ...doc.categories,
           tiles: doc.categories.tiles.map((entry) =>
-            entry.id === selected ? { ...entry, label, href, imageSrc } : entry,
+            entry.id === selected ? { ...entry, label, href, imageSrc, isActive: draft.isActive } : entry,
           ),
         },
       });
@@ -315,7 +317,10 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                         )}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-neutral-950">{tile.label || "Untitled category"}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-neutral-950">{tile.label || "Untitled category"}</span>
+                          <VisibilityBadge active={isContentActive(tile)} />
+                        </span>
                         <span className="block truncate text-xs text-neutral-500">{tile.href || "/products"}</span>
                       </span>
                     </button>
@@ -347,36 +352,29 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
         </section>
       ) : null}
 
-      {draft ? (
-        <div className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40" role="presentation" onClick={() => setEdit(null)}>
-          <div
-            key={selected ?? "closed"}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="category-drawer-title"
-            className="force-light flex h-full w-full max-w-md flex-col bg-white shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setEdit(null);
-            }}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+      {draft && baseline ? (
+        <FormCloseGuard baseline={baseline} value={draft} onClose={() => setEdit(null)}>
+        <AdminFormModal key={selected ?? "closed"} titleId="category-drawer-title" size="sm">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
               <div className="min-w-0">
-                <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{creating ? "Add category" : "Edit category"}</p>
-                <h2 id="category-drawer-title" className="mt-1 truncate text-lg font-semibold text-neutral-950">
-                  {creating ? "New category" : editingLabel}
+                <h2 id="category-drawer-title" className="text-lg font-semibold text-neutral-950">
+                  {creating ? "Add category" : "Edit category"}
                 </h2>
+                <p className="mt-1 text-sm text-neutral-500">{creating ? "Create a category tile for the home page." : "Update this category tile."}</p>
               </div>
               <button
                 type="button"
+                data-form-dismiss=""
                 aria-label="Close"
+                title="Close"
                 onClick={() => setEdit(null)}
                 className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 <MaterialIcon name="close" className="text-[20px]" />
               </button>
             </div>
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              <ActiveStatusField checked={draft.isActive} onChange={(isActive) => setDraft({ ...draft, isActive })} />
               <div className="relative flex min-h-28 overflow-hidden rounded-2xl bg-neutral-800">
                 {draft.imageSrc ? (
                   <Image src={draft.imageSrc} alt="" fill sizes="400px" className="object-cover" />
@@ -400,6 +398,7 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                   id={labelId}
                   autoFocus
                   value={draft.label}
+                  placeholder="Trending gadgets"
                   onChange={(event) => {
                     setDraft({ ...draft, label: event.target.value });
                     setLabelError("");
@@ -426,21 +425,21 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                 <p className="mt-1.5 text-xs text-neutral-500">Where this category goes when a customer taps it. Blank uses the products page.</p>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
               {notice ? (
                 <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
                   {notice}
                 </p>
               ) : null}
-              <button type="button" onClick={() => setEdit(null)} className={adminButtonClass.secondary}>
+              <button type="button" data-form-dismiss="" onClick={() => setEdit(null)} className={adminButtonClass.secondary}>
                 Cancel
               </button>
               <button type="button" onClick={save} disabled={saving || uploading} className={adminButtonClass.primary}>
                 {saving ? "Saving…" : uploading ? "Uploading…" : creating ? "Save category" : "Save changes"}
               </button>
             </div>
-          </div>
-        </div>
+        </AdminFormModal>
+        </FormCloseGuard>
       ) : null}
     </div>
   );

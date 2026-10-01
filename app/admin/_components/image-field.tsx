@@ -152,6 +152,7 @@ export function ImageField({
   label = "Image",
   compact = false,
   confirmRemove = false,
+  variant = "default",
   onBusy,
 }: {
   value: string;
@@ -159,6 +160,7 @@ export function ImageField({
   label?: string;
   compact?: boolean;
   confirmRemove?: boolean;
+  variant?: "default" | "thumb";
   onBusy?: (busy: boolean) => void;
 }) {
   const inputId = useId();
@@ -192,6 +194,8 @@ export function ImageField({
     }
   }
 
+  const thumb = variant === "thumb";
+
   return (
     <div>
       {label ? <FieldLabel htmlFor={inputId}>{label}</FieldLabel> : null}
@@ -216,14 +220,21 @@ export function ImageField({
           void upload(event.dataTransfer.files?.[0]);
         }}
         className={cn(
-          "overflow-hidden rounded-2xl bg-[#f7f8fa] ring-1 ring-neutral-200",
+          "overflow-hidden bg-[#f7f8fa] ring-1 ring-neutral-200",
+          thumb
+            ? "flex items-center gap-3 rounded-xl p-2"
+            : "rounded-2xl",
           dragging && "ring-2 ring-primary",
         )}
       >
         <div
           className={cn(
-            "relative bg-[#071820]",
-            compact ? "aspect-square" : "aspect-video",
+            "relative shrink-0 bg-[#071820]",
+            thumb
+              ? "size-16 overflow-hidden rounded-lg"
+              : compact
+                ? "aspect-square"
+                : "aspect-video",
           )}
         >
           {value ? (
@@ -231,32 +242,41 @@ export function ImageField({
               src={value}
               alt=""
               fill
-              sizes="640px"
-              className="object-contain p-3"
+              sizes={thumb ? "64px" : "640px"}
+              className={thumb ? "object-cover" : "object-contain p-3"}
             />
           ) : (
-            <div className="grid h-full place-items-center px-6 text-center text-white/55">
+            <div className="grid h-full place-items-center px-2 text-center text-white/55">
               <div>
                 <MaterialIcon
                   name="add_photo_alternate"
-                  className="text-[28px]"
+                  className={thumb ? "text-[20px]" : "text-[28px]"}
                 />
-                <p className="mt-2 text-sm">Drop an image here</p>
+                {thumb ? null : (
+                  <p className="mt-2 text-sm">Drop an image here</p>
+                )}
               </div>
             </div>
           )}
           {dragging ? (
-            <div className="absolute inset-0 grid place-items-center bg-primary/80 text-sm font-semibold text-white">
+            <div className="absolute inset-0 grid place-items-center bg-primary/80 text-center text-xs font-semibold text-white">
               Drop to upload
             </div>
           ) : null}
           {uploading ? (
-            <div className="absolute inset-0 grid place-items-center bg-black/45 text-sm font-semibold text-white">
+            <div className="absolute inset-0 grid place-items-center bg-black/45 text-center text-xs font-semibold text-white">
               Uploading…
             </div>
           ) : null}
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-neutral-200 bg-white px-3 py-2">
+        <div
+          className={cn(
+            "flex min-w-0 items-center justify-between gap-2",
+            thumb
+              ? "flex-1"
+              : "border-t border-neutral-200 bg-white px-3 py-2",
+          )}
+        >
           <label
             htmlFor={inputId}
             className="inline-flex h-9 cursor-pointer items-center rounded-full bg-neutral-950 px-3 text-xs font-semibold text-white hover:bg-neutral-800"

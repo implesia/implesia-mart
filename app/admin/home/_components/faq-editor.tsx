@@ -12,12 +12,22 @@ import {
   type FaqItem,
   type FaqSectionContent,
 } from "@/lib/mart-mock/home-sections";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 
-import { adminButtonClass, adminFieldClass, FieldError, FieldLabel } from "../../_components/admin-ui";
+import { AdminFormModal } from "../../_components/admin-form-modal";
+import {
+  ActiveStatusField,
+  adminButtonClass,
+  adminFieldClass,
+  FieldError,
+  FieldLabel,
+  VisibilityBadge,
+} from "../../_components/admin-ui";
+import { FormCloseGuard } from "../../_components/form-close-guard";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
 
-type Draft = Pick<FaqItem, "category" | "question" | "answer">;
+type Draft = Pick<FaqItem, "category" | "question" | "answer" | "isActive">;
 
 const CATEGORY_ICONS: Record<string, string> = {
   "অর্ডার ট্র্যাকিং": "package_2",
@@ -36,7 +46,10 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
   const creating = selected === "new";
   const items = section.items;
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [errors, setErrors] = useState<{ question?: string; answer?: string }>({});
+  const [baseline, setBaseline] = useState<Draft | null>(null);
+  const [errors, setErrors] = useState<{ question?: string; answer?: string }>(
+    {},
+  );
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -55,25 +68,35 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
     setErrors({});
     if (!selected) {
       setDraft(null);
+      setBaseline(null);
       return;
     }
     if (selected === "new") {
       const blank = blankFaq();
-      setDraft({ category: blank.category, question: blank.question, answer: blank.answer });
+      const next = {
+        category: blank.category,
+        question: blank.question,
+        answer: blank.answer,
+        isActive: true,
+      };
+      setDraft(next);
+      setBaseline(next);
       return;
     }
-    const item = readHomeSections().faq.items.find((entry) => entry.id === selected);
-    setDraft(item ? { category: item.category, question: item.question, answer: item.answer } : null);
+    const item = readHomeSections().faq.items.find(
+      (entry) => entry.id === selected,
+    );
+    const next = item
+      ? {
+          category: item.category,
+          question: item.question,
+          answer: item.answer,
+          isActive: item.isActive !== false,
+        }
+      : null;
+    setDraft(next);
+    setBaseline(next);
   }, [selected]);
-
-  useEffect(() => {
-    if (!draft) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [draft]);
 
   useEffect(() => {
     if (draft || !focusId.current) return;
@@ -87,7 +110,9 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
     if (id) next.set("edit", id);
     else next.delete("edit");
     const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }
 
   function flash(message: string) {
@@ -118,8 +143,11 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
     const doc = readHomeSections();
     const category = draft.category.trim();
     if (creating) {
-      const item = { ...blankFaq(), category, question, answer };
-      saveHomeSections({ ...doc, faq: { ...doc.faq, items: [...doc.faq.items, item] } });
+      const item = { ...blankFaq(), category, question, answer, isActive: draft.isActive };
+      saveHomeSections({
+        ...doc,
+        faq: { ...doc.faq, items: [...doc.faq.items, item] },
+      });
       setSavedId(item.id);
       focusId.current = item.id;
     } else if (selected) {
@@ -127,7 +155,11 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
         ...doc,
         faq: {
           ...doc.faq,
-          items: doc.faq.items.map((entry) => (entry.id === selected ? { ...entry, category, question, answer } : entry)),
+          items: doc.faq.items.map((entry) =>
+            entry.id === selected
+              ? { ...entry, category, question, answer, isActive: draft.isActive }
+              : entry,
+          ),
         },
       });
       setSavedId(selected);
@@ -140,7 +172,13 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
 
   function remove(id: string) {
     const doc = readHomeSections();
-    saveHomeSections({ ...doc, faq: { ...doc.faq, items: doc.faq.items.filter((item) => item.id !== id) } });
+    saveHomeSections({
+      ...doc,
+      faq: {
+        ...doc.faq,
+        items: doc.faq.items.filter((item) => item.id !== id),
+      },
+    });
     if (selected === id) setEdit(null);
     setConfirmId(null);
     flash("Removed");
@@ -177,7 +215,9 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
     setOverId(null);
   }
 
-  const missing = Boolean(selected && selected !== "new" && resolved === selected && !draft);
+  const missing = Boolean(
+    selected && selected !== "new" && resolved === selected && !draft,
+  );
   const editingTitle = draft?.question.trim() || "Question";
 
   return (
@@ -187,7 +227,11 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
         description="Manage the questions and answers displayed on your storefront."
         sectionId="faq"
         extra={
-          <button type="button" onClick={() => setEdit("new")} className={adminButtonClass.primary}>
+          <button
+            type="button"
+            onClick={() => setEdit("new")}
+            className={adminButtonClass.primary}
+          >
             <MaterialIcon name="add" className="text-[18px]" />
             Add question
           </button>
@@ -202,19 +246,30 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
       {missing ? (
         <p className="rounded-2xl bg-white px-4 py-3 text-sm text-neutral-600 ring-1 ring-neutral-200/90">
           This question is no longer here.{" "}
-          <button type="button" onClick={() => setEdit(null)} className="font-medium text-primary">
+          <button
+            type="button"
+            onClick={() => setEdit(null)}
+            className="font-medium text-primary"
+          >
             Close
           </button>
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl bg-[#f7f8f8] ring-1 ring-neutral-200/90" aria-labelledby="faq-preview-heading">
+      <section
+        className="overflow-hidden rounded-2xl bg-[#f7f8f8] ring-1 ring-neutral-200/90"
+        aria-labelledby="faq-preview-heading"
+      >
         <div className="px-4 pt-4 sm:px-5">
-          <h2 id="faq-preview-heading" className="text-sm font-semibold text-neutral-950">
+          <h2
+            id="faq-preview-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
             Storefront preview
           </h2>
           <p className="mt-0.5 text-sm text-neutral-500">
-            Shown on the home page in this order, split into two columns. Every question in the list appears there.
+            Shown on the home page in this order, split into two columns. Every
+            question in the list appears there.
           </p>
         </div>
         <div className="px-4 py-4 sm:px-5">
@@ -230,7 +285,12 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
               fields={[
                 { name: "kicker", label: "Eyebrow" },
                 { name: "title", label: "Title" },
-                { name: "subtitle", label: "Subtitle", multiline: true, wide: true },
+                {
+                  name: "subtitle",
+                  label: "Subtitle",
+                  multiline: true,
+                  wide: true,
+                },
                 { name: "moreLabel", label: "More link label" },
                 { name: "moreHref", label: "More link" },
               ]}
@@ -247,11 +307,18 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
             />
             {items.length === 0 ? (
               <div className="px-2 py-10 text-center">
-                <p className="text-sm font-semibold text-neutral-950">No questions yet</p>
-                <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-                  Add a question so customers can find a short answer on the home page.
+                <p className="text-sm font-semibold text-neutral-950">
+                  No questions yet
                 </p>
-                <button type="button" onClick={() => setEdit("new")} className={cn(adminButtonClass.primary, "mt-4")}>
+                <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+                  Add a question so customers can find a short answer on the
+                  home page.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEdit("new")}
+                  className={cn(adminButtonClass.primary, "mt-4")}
+                >
                   <MaterialIcon name="add" className="text-[18px]" />
                   Add question
                 </button>
@@ -273,11 +340,23 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
                             )}
                           >
                             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
-                              <MaterialIcon name={CATEGORY_ICONS[item.category] ?? "help_outline"} className="text-[18px]" />
+                              <MaterialIcon
+                                name={
+                                  CATEGORY_ICONS[item.category] ??
+                                  "help_outline"
+                                }
+                                className="text-[18px]"
+                              />
                             </span>
                             <span className="min-w-0">
-                              <span className="block text-sm font-semibold text-neutral-950">{item.question || "Untitled question"}</span>
-                              {item.category ? <span className="mt-1 block text-xs text-neutral-500">{item.category}</span> : null}
+                              <span className="block text-sm font-semibold text-neutral-950">
+                                {item.question || "Untitled question"}
+                              </span>
+                              {item.category ? (
+                                <span className="mt-1 block text-xs text-neutral-500">
+                                  {item.category}
+                                </span>
+                              ) : null}
                             </span>
                           </button>
                         </li>
@@ -291,9 +370,15 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
       </section>
 
       {items.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-labelledby="faq-list-heading">
+        <section
+          className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+          aria-labelledby="faq-list-heading"
+        >
           <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
-            <h2 id="faq-list-heading" className="text-sm font-semibold text-neutral-950">
+            <h2
+              id="faq-list-heading"
+              className="text-sm font-semibold text-neutral-950"
+            >
               {items.length === 1 ? "1 question" : `${items.length} questions`}
             </h2>
           </div>
@@ -313,7 +398,10 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
                   "border-t border-neutral-100 first:border-t-0",
                   selected === item.id && "bg-primary/5",
                   savedId === item.id && "bg-emerald-50",
-                  overId === item.id && dragId && dragId !== item.id && "bg-primary/10",
+                  overId === item.id &&
+                    dragId &&
+                    dragId !== item.id &&
+                    "bg-primary/10",
                   dragId === item.id && "opacity-60",
                 )}
               >
@@ -334,7 +422,10 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
                       }}
                       className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <MaterialIcon name="drag_indicator" className="text-[18px]" />
+                      <MaterialIcon
+                        name="drag_indicator"
+                        className="text-[18px]"
+                      />
                     </button>
                     <button
                       id={`faq-${item.id}`}
@@ -342,34 +433,73 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
                       onClick={() => setEdit(item.id)}
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
+                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                        {index + 1}
+                      </span>
                       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-700">
-                        <MaterialIcon name={CATEGORY_ICONS[item.category] ?? "help_outline"} className="text-[18px]" />
+                        <MaterialIcon
+                          name={CATEGORY_ICONS[item.category] ?? "help_outline"}
+                          className="text-[18px]"
+                        />
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-neutral-950">{item.question || "Untitled question"}</span>
-                        <span className="block truncate text-xs text-neutral-500">{item.category || "No category"}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-neutral-950">
+                            {item.question || "Untitled question"}
+                          </span>
+                          <VisibilityBadge active={isContentActive(item)} />
+                        </span>
+                        <span className="block truncate text-xs text-neutral-500">
+                          {item.category || "No category"}
+                        </span>
                       </span>
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                    <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => move(item.id, -1)} />
-                    <IconButton label="Move later" icon="arrow_downward" disabled={index === items.length - 1} onClick={() => move(item.id, 1)} />
-                    <button type="button" onClick={() => setEdit(item.id)} className={adminButtonClass.quiet}>
+                    <IconButton
+                      label="Move earlier"
+                      icon="arrow_upward"
+                      disabled={index === 0}
+                      onClick={() => move(item.id, -1)}
+                    />
+                    <IconButton
+                      label="Move later"
+                      icon="arrow_downward"
+                      disabled={index === items.length - 1}
+                      onClick={() => move(item.id, 1)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEdit(item.id)}
+                      className={adminButtonClass.quiet}
+                    >
                       Edit
                     </button>
                     {confirmId === item.id ? (
                       <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                         Remove from the home page?
-                        <button type="button" onClick={() => remove(item.id)} className="font-semibold underline">
+                        <button
+                          type="button"
+                          onClick={() => remove(item.id)}
+                          className="font-semibold underline"
+                        >
                           Yes
                         </button>
-                        <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmId(null)}
+                          className="font-semibold"
+                        >
                           No
                         </button>
                       </span>
                     ) : (
-                      <IconButton label="Remove question" icon="delete" danger onClick={() => setConfirmId(item.id)} />
+                      <IconButton
+                        label="Remove question"
+                        icon="delete"
+                        danger
+                        onClick={() => setConfirmId(item.id)}
+                      />
                     )}
                   </div>
                 </div>
@@ -379,114 +509,163 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
         </section>
       ) : null}
 
-      {draft ? (
-        <div className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40" role="presentation" onClick={() => setEdit(null)}>
-          <div
-            key={selected ?? "closed"}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="faq-drawer-title"
-            className="force-light flex h-full w-full max-w-md flex-col bg-white shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setEdit(null);
-            }}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-              <div className="min-w-0">
-                <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{creating ? "Add question" : "Edit question"}</p>
-                <h2 id="faq-drawer-title" className="mt-1 line-clamp-2 text-lg font-semibold text-neutral-950">
-                  {creating ? "New question" : editingTitle}
-                </h2>
-              </div>
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setEdit(null)}
-                className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      {draft && baseline ? (
+        <FormCloseGuard baseline={baseline} value={draft} onClose={() => setEdit(null)}>
+        <AdminFormModal
+          key={selected ?? "closed"}
+          titleId="faq-drawer-title"
+          size="md"
+        >
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+            <div className="min-w-0">
+              <h2
+                id="faq-drawer-title"
+                className="text-lg font-semibold text-neutral-950"
               >
-                <MaterialIcon name="close" className="text-[20px]" />
-              </button>
+                {creating ? "Add question" : "Edit question"}
+              </h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                {creating
+                  ? "Add a question and answer for the home page."
+                  : "Update this question."}
+              </p>
             </div>
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-              <div className="rounded-2xl border border-neutral-200/90 px-4 py-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
-                    <MaterialIcon name={CATEGORY_ICONS[draft.category.trim()] ?? "help_outline"} className="text-[18px]" />
-                  </span>
-                  <p className="min-w-0 text-sm font-semibold text-neutral-950">{draft.question.trim() || "Question"}</p>
-                </div>
-                {draft.answer.trim() ? <p className="mt-3 border-t border-neutral-100 pt-3 text-sm leading-relaxed text-neutral-600">{draft.answer}</p> : null}
+            <button
+              type="button"
+              data-form-dismiss=""
+              aria-label="Close"
+              title="Close"
+              onClick={() => setEdit(null)}
+              className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <MaterialIcon name="close" className="text-[20px]" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            <div className="rounded-2xl border border-neutral-200/90 px-4 py-4">
+              <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
+                  <MaterialIcon
+                    name={
+                      CATEGORY_ICONS[draft.category.trim()] ?? "help_outline"
+                    }
+                    className="text-[18px]"
+                  />
+                </span>
+                <p className="min-w-0 text-sm font-semibold text-neutral-950">
+                  {draft.question.trim() || "Question"}
+                </p>
               </div>
-              <div>
-                <FieldLabel htmlFor={`${questionId}-category`}>Category</FieldLabel>
-                <input
-                  id={`${questionId}-category`}
-                  value={draft.category}
-                  onChange={(event) => setDraft({ ...draft, category: event.target.value })}
-                  className={adminFieldClass}
-                />
-              </div>
-              <div>
-                <FieldLabel htmlFor={questionId}>
-                  Question <span className="text-red-700">*</span>
-                </FieldLabel>
-                <input
-                  id={questionId}
-                  autoFocus
-                  value={draft.question}
-                  onChange={(event) => {
-                    setDraft({ ...draft, question: event.target.value });
-                    setErrors((current) => ({ ...current, question: undefined }));
-                  }}
-                  aria-invalid={errors.question ? true : undefined}
-                  aria-describedby={errors.question ? `${questionId}-error` : undefined}
-                  className={cn(adminFieldClass, errors.question && "border-red-400")}
-                />
-                {errors.question ? (
-                  <div id={`${questionId}-error`}>
-                    <FieldError message={errors.question} />
-                  </div>
-                ) : null}
-              </div>
-              <div>
-                <FieldLabel htmlFor={`${questionId}-answer`}>
-                  Answer <span className="text-red-700">*</span>
-                </FieldLabel>
-                <textarea
-                  id={`${questionId}-answer`}
-                  value={draft.answer}
-                  rows={5}
-                  onChange={(event) => {
-                    setDraft({ ...draft, answer: event.target.value });
-                    setErrors((current) => ({ ...current, answer: undefined }));
-                  }}
-                  aria-invalid={errors.answer ? true : undefined}
-                  aria-describedby={errors.answer ? `${questionId}-answer-error` : undefined}
-                  className={cn(adminFieldClass, "h-auto py-3", errors.answer && "border-red-400")}
-                />
-                {errors.answer ? (
-                  <div id={`${questionId}-answer-error`}>
-                    <FieldError message={errors.answer} />
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-              {notice ? (
-                <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
-                  {notice}
+              {draft.answer.trim() ? (
+                <p className="mt-3 border-t border-neutral-100 pt-3 text-sm leading-relaxed text-neutral-600">
+                  {draft.answer}
                 </p>
               ) : null}
-              <button type="button" onClick={() => setEdit(null)} className={adminButtonClass.secondary}>
-                Cancel
-              </button>
-              <button type="button" onClick={save} disabled={saving} className={adminButtonClass.primary}>
-                {saving ? "Saving…" : creating ? "Save question" : "Save changes"}
-              </button>
+            </div>
+            <ActiveStatusField
+              checked={draft.isActive !== false}
+              onChange={(isActive) => setDraft({ ...draft, isActive })}
+            />
+            <div>
+                <FieldLabel htmlFor={`${questionId}-category`}>
+                  Category
+                </FieldLabel>
+              <input
+                id={`${questionId}-category`}
+                value={draft.category}
+                placeholder="Orders"
+                onChange={(event) =>
+                  setDraft({ ...draft, category: event.target.value })
+                }
+                className={adminFieldClass}
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor={questionId}>
+                Question <span className="text-red-700">*</span>
+              </FieldLabel>
+              <input
+                id={questionId}
+                autoFocus
+                value={draft.question}
+                placeholder="How do I place an order?"
+                onChange={(event) => {
+                  setDraft({ ...draft, question: event.target.value });
+                  setErrors((current) => ({ ...current, question: undefined }));
+                }}
+                aria-invalid={errors.question ? true : undefined}
+                aria-describedby={
+                  errors.question ? `${questionId}-error` : undefined
+                }
+                className={cn(
+                  adminFieldClass,
+                  errors.question && "border-red-400",
+                )}
+              />
+              {errors.question ? (
+                <div id={`${questionId}-error`}>
+                  <FieldError message={errors.question} />
+                </div>
+              ) : null}
+            </div>
+            <div>
+              <FieldLabel htmlFor={`${questionId}-answer`}>
+                Answer <span className="text-red-700">*</span>
+              </FieldLabel>
+              <textarea
+                id={`${questionId}-answer`}
+                value={draft.answer}
+                rows={5}
+                placeholder="The answer customers should see"
+                onChange={(event) => {
+                  setDraft({ ...draft, answer: event.target.value });
+                  setErrors((current) => ({ ...current, answer: undefined }));
+                }}
+                aria-invalid={errors.answer ? true : undefined}
+                aria-describedby={
+                  errors.answer ? `${questionId}-answer-error` : undefined
+                }
+                className={cn(
+                  adminFieldClass,
+                  "h-auto py-3",
+                  errors.answer && "border-red-400",
+                )}
+              />
+              {errors.answer ? (
+                <div id={`${questionId}-answer-error`}>
+                  <FieldError message={errors.answer} />
+                </div>
+              ) : null}
             </div>
           </div>
-        </div>
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+            {notice ? (
+              <p
+                role="status"
+                className="mr-auto text-sm font-medium text-emerald-800"
+              >
+                {notice}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              data-form-dismiss=""
+              onClick={() => setEdit(null)}
+              className={adminButtonClass.secondary}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className={adminButtonClass.primary}
+            >
+              {saving ? "Saving…" : creating ? "Save question" : "Save changes"}
+            </button>
+          </div>
+        </AdminFormModal>
+        </FormCloseGuard>
       ) : null}
     </div>
   );

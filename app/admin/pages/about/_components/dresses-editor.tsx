@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -14,15 +14,20 @@ import {
   type AboutDressBlock,
 } from "@/lib/mart-mock/about-sections";
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
+import { AdminFormModal } from "../../../_components/admin-form-modal";
 import {
+  ActiveStatusField,
   adminButtonClass,
   adminFieldClass,
   AdminPageHeader,
   FieldError,
   FieldLabel,
+  VisibilityBadge,
 } from "../../../_components/admin-ui";
+import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { ImageField, MultiImageUpload } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
 
@@ -53,15 +58,6 @@ export function AboutDressesEditor() {
   const [notice, setNotice] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const page = findCmsPage("about");
-
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [drawerOpen]);
 
   function openDress(id: string | null) {
     const next = new URLSearchParams(window.location.search);
@@ -253,8 +249,11 @@ export function AboutDressesEditor() {
                         {index + 1}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-neutral-950">
-                          {dress.title.trim() || "Untitled custom dress"}
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-neutral-950">
+                            {dress.title.trim() || "Untitled custom dress"}
+                          </span>
+                          <VisibilityBadge active={isContentActive(dress)} />
                         </span>
                         {dress.kicker ? (
                           <span className="mt-0.5 block truncate text-xs text-primary">
@@ -359,31 +358,16 @@ export function AboutDressesEditor() {
       </section>
 
       {drawerOpen ? (
-        <div
-          className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40"
-          role="presentation"
-          onClick={() => openDress(null)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="about-dress-drawer-title"
-            className="force-light flex h-full w-full max-w-xl flex-col overflow-y-auto bg-white shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") openDress(null);
-            }}
-          >
-            <DressForm
-              key={dressId}
-              creating={creating}
-              initial={editing ?? blankDress()}
-              notice={notice}
-              onClose={() => openDress(null)}
-              onSave={saveDress}
-            />
-          </div>
-        </div>
+        <AdminFormModal titleId="about-dress-drawer-title" size="lg">
+          <DressForm
+            key={dressId}
+            creating={creating}
+            initial={editing ?? blankDress()}
+            notice={notice}
+            onClose={() => openDress(null)}
+            onSave={saveDress}
+          />
+        </AdminFormModal>
       ) : null}
     </div>
   );
@@ -402,7 +386,8 @@ function DressForm({
   onClose: () => void;
   onSave: (dress: AboutDressBlock) => void;
 }) {
-  const [dress, setDress] = useState(initial);
+  const [dress, setDress] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
+  const baseline = useRef(dress);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -435,24 +420,27 @@ function DressForm({
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+    <FormCloseGuard baseline={baseline.current} value={dress} onClose={onClose}>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
-            {creating ? "New custom dress" : "Edit custom dress"}
-          </p>
           <h2
             id="about-dress-drawer-title"
-            className="mt-1 text-lg font-semibold text-neutral-950"
+            className="text-lg font-semibold text-neutral-950"
           >
-            {creating
-              ? "Add custom dress"
-              : dress.title.trim() || "Custom dress"}
+            {creating ? "Add custom dress" : "Edit custom dress"}
           </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            {creating
+              ? "Add the writing, buttons, and photos for this block."
+              : "Update this custom dress block."}
+          </p>
         </div>
         <button
           type="button"
+          data-form-dismiss=""
           aria-label="Close"
+          title="Close"
           onClick={onClose}
           className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
@@ -460,7 +448,11 @@ function DressForm({
         </button>
       </div>
 
-      <div className="flex-1 space-y-6 px-5 py-4">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={dress.isActive !== false}
+          onChange={(isActive) => setDress({ ...dress, isActive })}
+        />
         <section aria-labelledby={`${formId}-content`}>
           <h3
             id={`${formId}-content`}
@@ -827,7 +819,7 @@ function DressForm({
         {error ? <FieldError message={error} /> : null}
       </div>
 
-      <div className="mt-auto flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
         {notice ? (
           <p
             role="status"
@@ -838,6 +830,7 @@ function DressForm({
         ) : null}
         <button
           type="button"
+          data-form-dismiss=""
           onClick={onClose}
           className={adminButtonClass.secondary}
         >
@@ -859,6 +852,7 @@ function DressForm({
         </button>
       </div>
     </div>
+    </FormCloseGuard>
   );
 }
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -14,15 +14,20 @@ import {
   type AboutStoryBlock,
 } from "@/lib/mart-mock/about-sections";
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
+import { AdminFormModal } from "../../../_components/admin-form-modal";
 import {
+  ActiveStatusField,
   adminButtonClass,
   adminFieldClass,
   AdminPageHeader,
   FieldError,
   FieldLabel,
+  VisibilityBadge,
 } from "../../../_components/admin-ui";
+import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { ImageField, MultiImageUpload } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
 
@@ -41,15 +46,6 @@ export function AboutStoryEditor() {
   const [notice, setNotice] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const page = findCmsPage("about");
-
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [drawerOpen]);
 
   function openStory(id: string | null) {
     const next = new URLSearchParams(window.location.search);
@@ -241,8 +237,11 @@ export function AboutStoryEditor() {
                         {index + 1}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-neutral-950">
-                          {story.title.trim() || "Untitled story"}
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-neutral-950">
+                            {story.title.trim() || "Untitled story"}
+                          </span>
+                          <VisibilityBadge active={isContentActive(story)} />
                         </span>
                         {story.kicker ? (
                           <span className="mt-0.5 block truncate text-xs text-primary">
@@ -342,31 +341,16 @@ export function AboutStoryEditor() {
       </section>
 
       {drawerOpen ? (
-        <div
-          className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40"
-          role="presentation"
-          onClick={() => openStory(null)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="about-story-drawer-title"
-            className="force-light flex h-full w-full max-w-xl flex-col overflow-y-auto bg-white shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") openStory(null);
-            }}
-          >
-            <StoryForm
-              key={storyId}
-              creating={creating}
-              initial={editing ?? blankStory()}
-              notice={notice}
-              onClose={() => openStory(null)}
-              onSave={saveStory}
-            />
-          </div>
-        </div>
+        <AdminFormModal titleId="about-story-drawer-title" size="lg">
+          <StoryForm
+            key={storyId}
+            creating={creating}
+            initial={editing ?? blankStory()}
+            notice={notice}
+            onClose={() => openStory(null)}
+            onSave={saveStory}
+          />
+        </AdminFormModal>
       ) : null}
     </div>
   );
@@ -385,7 +369,8 @@ function StoryForm({
   onClose: () => void;
   onSave: (story: AboutStoryBlock) => void;
 }) {
-  const [story, setStory] = useState(initial);
+  const [story, setStory] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
+  const baseline = useRef(story);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -409,22 +394,27 @@ function StoryForm({
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+    <FormCloseGuard baseline={baseline.current} value={story} onClose={onClose}>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
-            {creating ? "New story" : "Edit story"}
-          </p>
           <h2
             id="about-story-drawer-title"
-            className="mt-1 text-lg font-semibold text-neutral-950"
+            className="text-lg font-semibold text-neutral-950"
           >
-            {creating ? "Add story" : story.title.trim() || "Story"}
+            {creating ? "Add story" : "Edit story"}
           </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            {creating
+              ? "Write the story, button, and photos together."
+              : "Update this story."}
+          </p>
         </div>
         <button
           type="button"
+          data-form-dismiss=""
           aria-label="Close"
+          title="Close"
           onClick={onClose}
           className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
@@ -432,7 +422,11 @@ function StoryForm({
         </button>
       </div>
 
-      <div className="flex-1 space-y-6 px-5 py-4">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={story.isActive !== false}
+          onChange={(isActive) => setStory({ ...story, isActive })}
+        />
         <section aria-labelledby={`${formId}-content`}>
           <h3
             id={`${formId}-content`}
@@ -679,7 +673,7 @@ function StoryForm({
         {error ? <FieldError message={error} /> : null}
       </div>
 
-      <div className="mt-auto flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
         {notice ? (
           <p
             role="status"
@@ -690,6 +684,7 @@ function StoryForm({
         ) : null}
         <button
           type="button"
+          data-form-dismiss=""
           onClick={onClose}
           className={adminButtonClass.secondary}
         >
@@ -711,6 +706,7 @@ function StoryForm({
         </button>
       </div>
     </div>
+    </FormCloseGuard>
   );
 }
 

@@ -25,6 +25,7 @@ export type AboutStatItem = {
   icon: string;
   value: string;
   label: string;
+  isActive?: boolean;
 };
 
 export type AboutFeatureItem = {
@@ -32,6 +33,7 @@ export type AboutFeatureItem = {
   icon: string;
   title: string;
   description: string;
+  isActive?: boolean;
 };
 
 export type AboutStepItem = {
@@ -40,12 +42,14 @@ export type AboutStepItem = {
   icon: string;
   title: string;
   description: string;
+  isActive?: boolean;
 };
 
 export type AboutCard = {
   icon: string;
   title: string;
   description: string;
+  isActive?: boolean;
 };
 
 export type AboutHeroContent = {
@@ -64,6 +68,7 @@ export type AboutStoryBlock = {
   paragraphs: AboutParagraph[];
   cta: AboutLink;
   images: AboutImage[];
+  isActive?: boolean;
 };
 
 export type AboutDressBlock = {
@@ -75,6 +80,7 @@ export type AboutDressBlock = {
   primaryCta: AboutLink;
   secondaryCta: AboutLink;
   gallery: AboutImage[];
+  isActive?: boolean;
 };
 
 export type AboutValuesContent = {
@@ -318,6 +324,7 @@ export function blankDress(): AboutDressBlock {
     primaryCta: { label: "", href: "" },
     secondaryCta: { label: "", href: "" },
     gallery: [],
+    isActive: true,
   };
 }
 
@@ -329,6 +336,7 @@ export function blankStory(): AboutStoryBlock {
     paragraphs: [blankParagraph()],
     cta: { label: "", href: "" },
     images: [],
+    isActive: true,
   };
 }
 
@@ -400,6 +408,7 @@ function normalizeDress(item: Partial<AboutDressBlock>, index: number): AboutDre
     primaryCta: { label: item.primaryCta?.label ?? "", href: item.primaryCta?.href ?? "" },
     secondaryCta: { label: item.secondaryCta?.label ?? "", href: item.secondaryCta?.href ?? "" },
     gallery: item.gallery ?? [],
+    isActive: item.isActive !== false,
   };
 }
 
@@ -414,15 +423,16 @@ function normalizeStory(
     paragraphs: item.paragraphs ?? [],
     cta: { label: item.cta?.label ?? "", href: item.cta?.href ?? "" },
     images: item.images ?? [],
+    isActive: item.isActive !== false,
   };
 }
 
 export function blankStat(): AboutStatItem {
-  return { id: newId("stat"), icon: "verified", value: "", label: "" };
+  return { id: newId("stat"), icon: "verified", value: "", label: "", isActive: true };
 }
 
 export function blankFeature(): AboutFeatureItem {
-  return { id: newId("feature"), icon: "verified", title: "", description: "" };
+  return { id: newId("feature"), icon: "verified", title: "", description: "", isActive: true };
 }
 
 export function blankStep(count: number): AboutStepItem {
@@ -432,6 +442,7 @@ export function blankStep(count: number): AboutStepItem {
     icon: "task_alt",
     title: "",
     description: "",
+    isActive: true,
   };
 }
 

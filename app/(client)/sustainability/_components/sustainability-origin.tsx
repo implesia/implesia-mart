@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -33,7 +34,7 @@ export function SustainabilityOrigin({ className }: { className?: string }) {
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            {origin.images.map((image) => (
+            {origin.images.filter(isContentActive).map((image) => (
               <div
                 key={image.id}
                 className="relative aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-4/5"

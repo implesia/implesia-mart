@@ -5,11 +5,27 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { blankFeature, readAboutSections, saveAboutSections, type AboutFeatureItem } from "@/lib/mart-mock/about-sections";
+import {
+  blankFeature,
+  readAboutSections,
+  saveAboutSections,
+  type AboutFeatureItem,
+} from "@/lib/mart-mock/about-sections";
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
-import { adminButtonClass, adminFieldClass, AdminPageHeader, FieldError, FieldLabel } from "../../../_components/admin-ui";
+import { AdminFormModal } from "../../../_components/admin-form-modal";
+import {
+  ActiveStatusField,
+  adminButtonClass,
+  adminFieldClass,
+  AdminPageHeader,
+  FieldError,
+  FieldLabel,
+  VisibilityBadge,
+} from "../../../_components/admin-ui";
+import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
 import { SectionCopyForm } from "../../../home/_components/section-copy-form";
 
@@ -33,14 +49,19 @@ const ICONS: { name: string; label: string }[] = [
   { name: "shield", label: "Shield" },
 ];
 
-type Draft = Pick<AboutFeatureItem, "icon" | "title" | "description">;
+type Draft = Pick<AboutFeatureItem, "icon" | "title" | "description" | "isActive">;
 
 function emptyDraft(): Draft {
-  return { icon: "verified", title: "", description: "" };
+  return { icon: "verified", title: "", description: "", isActive: true };
 }
 
 function draftFromItem(item: AboutFeatureItem): Draft {
-  return { icon: item.icon, title: item.title, description: item.description };
+  return {
+    icon: item.icon,
+    title: item.title,
+    description: item.description,
+    isActive: item.isActive !== false,
+  };
 }
 
 function iconChoices(current: string) {
@@ -59,7 +80,10 @@ export function AboutValuesEditor() {
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
-  const opened = selected && selected !== "new" ? (values.items.find((item) => item.id === selected) ?? null) : null;
+  const opened =
+    selected && selected !== "new"
+      ? (values.items.find((item) => item.id === selected) ?? null)
+      : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -68,15 +92,6 @@ export function AboutValuesEditor() {
   const focusId = useRef<string | null>(null);
   const page = findCmsPage("about");
   const drawerOpen = creating || Boolean(opened);
-
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [drawerOpen]);
 
   useEffect(() => {
     if (drawerOpen || !focusId.current) return;
@@ -90,7 +105,9 @@ export function AboutValuesEditor() {
     if (id) next.set("edit", id);
     else next.delete("edit");
     const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }
 
   function flash(message: string) {
@@ -117,8 +134,17 @@ export function AboutValuesEditor() {
   function saveItem(draft: Draft) {
     const doc = readAboutSections();
     if (creating) {
-      const item = { ...blankFeature(), icon: draft.icon, title: draft.title, description: draft.description };
-      saveAboutSections({ ...doc, values: { ...doc.values, items: [...doc.values.items, item] } });
+      const item = {
+        ...blankFeature(),
+        icon: draft.icon,
+        title: draft.title,
+        description: draft.description,
+        isActive: draft.isActive,
+      };
+      saveAboutSections({
+        ...doc,
+        values: { ...doc.values, items: [...doc.values.items, item] },
+      });
       setSavedId(item.id);
       focusId.current = `about-value-${item.id}`;
     } else if (selected) {
@@ -127,7 +153,15 @@ export function AboutValuesEditor() {
         values: {
           ...doc.values,
           items: doc.values.items.map((item) =>
-            item.id === selected ? { ...item, icon: draft.icon, title: draft.title, description: draft.description } : item,
+            item.id === selected
+              ? {
+                  ...item,
+                  icon: draft.icon,
+                  title: draft.title,
+                  description: draft.description,
+                  isActive: draft.isActive,
+                }
+              : item,
           ),
         },
       });
@@ -140,7 +174,13 @@ export function AboutValuesEditor() {
 
   function remove(id: string) {
     const doc = readAboutSections();
-    saveAboutSections({ ...doc, values: { ...doc.values, items: doc.values.items.filter((item) => item.id !== id) } });
+    saveAboutSections({
+      ...doc,
+      values: {
+        ...doc.values,
+        items: doc.values.items.filter((item) => item.id !== id),
+      },
+    });
     if (selected === id) setEdit(null);
     setConfirmId(null);
     flash("Removed");
@@ -183,15 +223,27 @@ export function AboutValuesEditor() {
   return (
     <div className="min-w-0 space-y-4">
       <div>
-        <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-sm text-neutral-500">
-          <Link href="/admin/pages/about" className="font-medium hover:text-neutral-950">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-3 flex flex-wrap items-center gap-1 text-sm text-neutral-500"
+        >
+          <Link
+            href="/admin/pages/about"
+            className="font-medium hover:text-neutral-950"
+          >
             About
           </Link>
-          <MaterialIcon name="chevron_right" className="text-[16px] text-neutral-300" />
+          <MaterialIcon
+            name="chevron_right"
+            className="text-[16px] text-neutral-300"
+          />
           <span className="font-medium text-neutral-950">Values</span>
         </nav>
         {page ? (
-          <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="About sections">
+          <div
+            className="mb-4 flex gap-2 overflow-x-auto pb-1"
+            aria-label="About sections"
+          >
             {page.sections.map((section) => {
               const active = section.id === "values";
               return (
@@ -201,7 +253,9 @@ export function AboutValuesEditor() {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex h-9 shrink-0 items-center rounded-full px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                    active ? "bg-neutral-950 font-medium text-white" : "bg-white font-medium text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
+                    active
+                      ? "bg-neutral-950 font-medium text-white"
+                      : "bg-white font-medium text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
                   )}
                 >
                   {section.label}
@@ -215,11 +269,20 @@ export function AboutValuesEditor() {
           description="Quality, COD, delivery, and returns."
           action={
             <div className="flex flex-wrap items-center gap-2">
-              <a href="/about-us" target="_blank" rel="noreferrer" className={adminButtonClass.secondary}>
+              <a
+                href="/about-us"
+                target="_blank"
+                rel="noreferrer"
+                className={adminButtonClass.secondary}
+              >
                 View on site
                 <MaterialIcon name="open_in_new" className="text-[18px]" />
               </a>
-              <button type="button" onClick={() => setEdit("new")} className={adminButtonClass.primary}>
+              <button
+                type="button"
+                onClick={() => setEdit("new")}
+                className={adminButtonClass.primary}
+              >
                 <MaterialIcon name="add" className="text-[18px]" />
                 Add value
               </button>
@@ -236,25 +299,43 @@ export function AboutValuesEditor() {
       {missing ? (
         <p className="rounded-2xl bg-white px-4 py-3 text-sm text-neutral-600 ring-1 ring-neutral-200/90">
           This value is no longer here.{" "}
-          <button type="button" onClick={() => setEdit(null)} className="font-medium text-primary">
+          <button
+            type="button"
+            onClick={() => setEdit(null)}
+            className="font-medium text-primary"
+          >
             Close
           </button>
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90" aria-labelledby="about-values-preview-heading">
+      <section
+        className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90"
+        aria-labelledby="about-values-preview-heading"
+      >
         <div className="px-4 pt-4 sm:px-5">
-          <h2 id="about-values-preview-heading" className="text-sm font-semibold text-neutral-950">
+          <h2
+            id="about-values-preview-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
             Storefront preview
           </h2>
-          <p className="mt-1 text-sm text-neutral-500">Shown on the about page. Values stay in this order.</p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Shown on the about page. Values stay in this order.
+          </p>
         </div>
         <div className="p-4 sm:p-5">
           <div className="rounded-2xl bg-[#f5f6f8] p-4 sm:p-5">
             <div className="mx-auto mb-5 max-w-2xl text-center">
-              <p className="text-xs font-medium tracking-wide text-primary uppercase">{values.kicker}</p>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-neutral-950">{values.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-neutral-600">{values.subtitle}</p>
+              <p className="text-xs font-medium tracking-wide text-primary uppercase">
+                {values.kicker}
+              </p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-neutral-950">
+                {values.title}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                {values.subtitle}
+              </p>
             </div>
             <ul className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {items.map((item) => (
@@ -265,10 +346,18 @@ export function AboutValuesEditor() {
                     className="h-full w-full rounded-2xl border border-neutral-200/90 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-5"
                   >
                     <span className="mx-auto mb-2.5 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <MaterialIcon name={item.icon || "notes"} filled className="text-[20px]" />
+                      <MaterialIcon
+                        name={item.icon || "notes"}
+                        filled
+                        className="text-[20px]"
+                      />
                     </span>
-                    <span className="mb-1 block text-sm font-semibold text-neutral-950">{item.title}</span>
-                    <span className="block text-xs leading-relaxed text-neutral-600">{item.description}</span>
+                    <span className="mb-1 block text-sm font-semibold text-neutral-950">
+                      {item.title}
+                    </span>
+                    <span className="block text-xs leading-relaxed text-neutral-600">
+                      {item.description}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -279,28 +368,52 @@ export function AboutValuesEditor() {
 
       <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
         <SectionCopyForm
-          values={{ kicker: values.kicker, title: values.title, subtitle: values.subtitle }}
+          values={{
+            kicker: values.kicker,
+            title: values.title,
+            subtitle: values.subtitle,
+          }}
           fields={[
             { name: "kicker", label: "Eyebrow" },
             { name: "title", label: "Title" },
-            { name: "subtitle", label: "Subtitle", multiline: true, rows: 3, wide: true },
+            {
+              name: "subtitle",
+              label: "Subtitle",
+              multiline: true,
+              rows: 3,
+              wide: true,
+            },
           ]}
           saveLabel="Save heading"
           onSave={saveCopy}
         />
       </section>
 
-      <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-labelledby="about-values-list-heading">
+      <section
+        className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+        aria-labelledby="about-values-list-heading"
+      >
         <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
-          <h2 id="about-values-list-heading" className="text-sm font-semibold text-neutral-950">
+          <h2
+            id="about-values-list-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
             {items.length === 1 ? "1 value" : `${items.length} values`}
           </h2>
         </div>
         {items.length === 0 ? (
           <div className="px-4 py-10 text-center">
-            <p className="text-sm font-semibold text-neutral-950">No values yet</p>
-            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">Add the points shown under the heading.</p>
-            <button type="button" onClick={() => setEdit("new")} className={cn(adminButtonClass.primary, "mt-4")}>
+            <p className="text-sm font-semibold text-neutral-950">
+              No values yet
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+              Add the points shown under the heading.
+            </p>
+            <button
+              type="button"
+              onClick={() => setEdit("new")}
+              className={cn(adminButtonClass.primary, "mt-4")}
+            >
               <MaterialIcon name="add" className="text-[18px]" />
               Add value
             </button>
@@ -322,7 +435,10 @@ export function AboutValuesEditor() {
                   "border-t border-neutral-100 first:border-t-0",
                   selected === item.id && "bg-primary/5",
                   savedId === item.id && "bg-emerald-50",
-                  overId === item.id && dragId && dragId !== item.id && "bg-primary/10",
+                  overId === item.id &&
+                    dragId &&
+                    dragId !== item.id &&
+                    "bg-primary/10",
                   dragId === item.id && "opacity-60",
                 )}
               >
@@ -343,7 +459,10 @@ export function AboutValuesEditor() {
                       }}
                       className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <MaterialIcon name="drag_indicator" className="text-[18px]" />
+                      <MaterialIcon
+                        name="drag_indicator"
+                        className="text-[18px]"
+                      />
                     </button>
                     <button
                       id={`about-value-${item.id}`}
@@ -351,34 +470,73 @@ export function AboutValuesEditor() {
                       onClick={() => setEdit(item.id)}
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
+                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                        {index + 1}
+                      </span>
                       <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-admin-canvas text-primary">
-                        <MaterialIcon name={item.icon || "notes"} className="text-[22px]" />
+                        <MaterialIcon
+                          name={item.icon || "notes"}
+                          className="text-[22px]"
+                        />
                       </span>
                       <span className="min-w-0">
-                        <span className="line-clamp-2 text-sm font-semibold text-neutral-950">{item.title || "Empty value"}</span>
-                        <span className="mt-0.5 line-clamp-2 block text-xs text-neutral-500">{item.description || iconLabel(item.icon)}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="line-clamp-2 text-sm font-semibold text-neutral-950">
+                            {item.title || "Empty value"}
+                          </span>
+                          <VisibilityBadge active={isContentActive(item)} />
+                        </span>
+                        <span className="mt-0.5 line-clamp-2 block text-xs text-neutral-500">
+                          {item.description || iconLabel(item.icon)}
+                        </span>
                       </span>
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                    <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => move(item.id, -1)} />
-                    <IconButton label="Move later" icon="arrow_downward" disabled={index === items.length - 1} onClick={() => move(item.id, 1)} />
-                    <button type="button" onClick={() => setEdit(item.id)} className={adminButtonClass.quiet}>
+                    <IconButton
+                      label="Move earlier"
+                      icon="arrow_upward"
+                      disabled={index === 0}
+                      onClick={() => move(item.id, -1)}
+                    />
+                    <IconButton
+                      label="Move later"
+                      icon="arrow_downward"
+                      disabled={index === items.length - 1}
+                      onClick={() => move(item.id, 1)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEdit(item.id)}
+                      className={adminButtonClass.quiet}
+                    >
                       Edit
                     </button>
                     {confirmId === item.id ? (
                       <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                         Remove from the about page?
-                        <button type="button" onClick={() => remove(item.id)} className="font-semibold underline">
+                        <button
+                          type="button"
+                          onClick={() => remove(item.id)}
+                          className="font-semibold underline"
+                        >
                           Yes
                         </button>
-                        <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmId(null)}
+                          className="font-semibold"
+                        >
                           No
                         </button>
                       </span>
                     ) : (
-                      <IconButton label="Remove value" icon="delete" danger onClick={() => setConfirmId(item.id)} />
+                      <IconButton
+                        label="Remove value"
+                        icon="delete"
+                        danger
+                        onClick={() => setConfirmId(item.id)}
+                      />
                     )}
                   </div>
                 </div>
@@ -416,12 +574,12 @@ function ValueDrawer({
   onSave: (draft: Draft) => void;
 }) {
   const [draft, setDraft] = useState(initial);
+  const baseline = useRef(draft);
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
   const [saving, setSaving] = useState(false);
   const titleId = useId();
   const descriptionId = useId();
-  const title = draft.title.trim() || "Value";
 
   function save() {
     if (saving) return;
@@ -431,125 +589,165 @@ function ValueDrawer({
     setDescriptionError(nextDescription ? "" : "Description is required.");
     if (!nextTitle || !nextDescription) return;
     setSaving(true);
-    onSave({ icon: draft.icon || "verified", title: nextTitle, description: nextDescription });
+    onSave({
+      icon: draft.icon || "verified",
+      title: nextTitle,
+      description: nextDescription,
+      isActive: draft.isActive,
+    });
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40" role="presentation" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="about-values-drawer-title"
-        className="force-light flex h-full w-full max-w-md flex-col bg-white shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") onClose();
-        }}
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{creating ? "Add value" : "Edit value"}</p>
-            <h2 id="about-values-drawer-title" className="mt-1 line-clamp-2 text-lg font-semibold text-neutral-950">
-              {creating ? "New value" : title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <AdminFormModal titleId="about-values-drawer-title" size="sm">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+        <div className="min-w-0">
+          <h2
+            id="about-values-drawer-title"
+            className="text-lg font-semibold text-neutral-950"
           >
-            <MaterialIcon name="close" className="text-[20px]" />
-          </button>
+            {creating ? "Add value" : "Edit value"}
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            {creating
+              ? "Add a principle for the about page."
+              : "Update this principle."}
+          </p>
         </div>
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          <div className="rounded-2xl bg-white px-4 py-3 text-center ring-1 ring-neutral-200">
-            <span className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <MaterialIcon name={draft.icon || "notes"} filled className="text-[20px]" />
-            </span>
-            <p className="text-sm font-semibold text-neutral-950">{draft.title.trim() || "Title"}</p>
-            <p className="mt-1 text-xs leading-relaxed text-neutral-500">{draft.description.trim() || "Description"}</p>
+        <button
+          type="button"
+          data-form-dismiss=""
+          aria-label="Close"
+          title="Close"
+          onClick={onClose}
+          className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <MaterialIcon name="close" className="text-[20px]" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={draft.isActive !== false}
+          onChange={(isActive) => setDraft({ ...draft, isActive })}
+        />
+        <div className="rounded-2xl bg-white px-4 py-3 text-center ring-1 ring-neutral-200">
+          <span className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <MaterialIcon
+              name={draft.icon || "notes"}
+              filled
+              className="text-[20px]"
+            />
+          </span>
+          <p className="text-sm font-semibold text-neutral-950">
+            {draft.title.trim() || "Title"}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+            {draft.description.trim() || "Description"}
+          </p>
+        </div>
+        <div>
+          <FieldLabel>Icon</FieldLabel>
+          <div className="flex flex-wrap gap-1.5">
+            {iconChoices(draft.icon).map((icon) => (
+              <button
+                key={icon.name}
+                type="button"
+                aria-pressed={draft.icon === icon.name}
+                aria-label={icon.label}
+                onClick={() => setDraft({ ...draft, icon: icon.name })}
+                className={cn(
+                  "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  draft.icon === icon.name
+                    ? "bg-primary/10 text-primary ring-primary/30"
+                    : "bg-white text-neutral-600 ring-neutral-200",
+                )}
+              >
+                <MaterialIcon name={icon.name} className="text-[20px]" />
+              </button>
+            ))}
           </div>
-          <div>
-            <FieldLabel>Icon</FieldLabel>
-            <div className="flex flex-wrap gap-1.5">
-              {iconChoices(draft.icon).map((icon) => (
-                <button
-                  key={icon.name}
-                  type="button"
-                  aria-pressed={draft.icon === icon.name}
-                  aria-label={icon.label}
-                  onClick={() => setDraft({ ...draft, icon: icon.name })}
-                  className={cn(
-                    "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                    draft.icon === icon.name ? "bg-primary/10 text-primary ring-primary/30" : "bg-white text-neutral-600 ring-neutral-200",
-                  )}
-                >
-                  <MaterialIcon name={icon.name} className="text-[20px]" />
-                </button>
-              ))}
+        </div>
+        <div>
+          <FieldLabel htmlFor={titleId}>
+            Title <span className="text-red-700">*</span>
+          </FieldLabel>
+          <input
+            id={titleId}
+            autoFocus
+            value={draft.title}
+            placeholder="Quality checked"
+            onChange={(event) => {
+              setDraft({ ...draft, title: event.target.value });
+              setTitleError("");
+            }}
+            aria-invalid={titleError ? true : undefined}
+            aria-describedby={titleError ? `${titleId}-error` : undefined}
+            className={cn(adminFieldClass, titleError && "border-red-400")}
+          />
+          {titleError ? (
+            <div id={`${titleId}-error`}>
+              <FieldError message={titleError} />
             </div>
-          </div>
-          <div>
-            <FieldLabel htmlFor={titleId}>
-              Title <span className="text-red-700">*</span>
-            </FieldLabel>
-            <input
-              id={titleId}
-              autoFocus
-              value={draft.title}
-              onChange={(event) => {
-                setDraft({ ...draft, title: event.target.value });
-                setTitleError("");
-              }}
-              aria-invalid={titleError ? true : undefined}
-              aria-describedby={titleError ? `${titleId}-error` : undefined}
-              className={cn(adminFieldClass, titleError && "border-red-400")}
-            />
-            {titleError ? (
-              <div id={`${titleId}-error`}>
-                <FieldError message={titleError} />
-              </div>
-            ) : null}
-          </div>
-          <div>
-            <FieldLabel htmlFor={descriptionId}>
-              Description <span className="text-red-700">*</span>
-            </FieldLabel>
-            <textarea
-              id={descriptionId}
-              value={draft.description}
-              rows={4}
-              onChange={(event) => {
-                setDraft({ ...draft, description: event.target.value });
-                setDescriptionError("");
-              }}
-              aria-invalid={descriptionError ? true : undefined}
-              aria-describedby={descriptionError ? `${descriptionId}-error` : undefined}
-              className={cn(adminFieldClass, "h-auto py-3", descriptionError && "border-red-400")}
-            />
-            {descriptionError ? (
-              <div id={`${descriptionId}-error`}>
-                <FieldError message={descriptionError} />
-              </div>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-          {notice ? (
-            <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
-              {notice}
-            </p>
           ) : null}
-          <button type="button" onClick={onClose} className={adminButtonClass.secondary}>
-            Cancel
-          </button>
-          <button type="button" onClick={save} disabled={saving} className={adminButtonClass.primary}>
-            {saving ? "Saving…" : creating ? "Save value" : "Save changes"}
-          </button>
+        </div>
+        <div>
+          <FieldLabel htmlFor={descriptionId}>
+            Description <span className="text-red-700">*</span>
+          </FieldLabel>
+          <textarea
+            id={descriptionId}
+            value={draft.description}
+            rows={4}
+            placeholder="What this principle means for customers"
+            onChange={(event) => {
+              setDraft({ ...draft, description: event.target.value });
+              setDescriptionError("");
+            }}
+            aria-invalid={descriptionError ? true : undefined}
+            aria-describedby={
+              descriptionError ? `${descriptionId}-error` : undefined
+            }
+            className={cn(
+              adminFieldClass,
+              "h-auto py-3",
+              descriptionError && "border-red-400",
+            )}
+          />
+          {descriptionError ? (
+            <div id={`${descriptionId}-error`}>
+              <FieldError message={descriptionError} />
+            </div>
+          ) : null}
         </div>
       </div>
-    </div>
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+        {notice ? (
+          <p
+            role="status"
+            className="mr-auto text-sm font-medium text-emerald-800"
+          >
+            {notice}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          data-form-dismiss=""
+          onClick={onClose}
+          className={adminButtonClass.secondary}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className={adminButtonClass.primary}
+        >
+          {saving ? "Saving…" : creating ? "Save value" : "Save changes"}
+        </button>
+      </div>
+    </AdminFormModal>
+    </FormCloseGuard>
   );
 }
 

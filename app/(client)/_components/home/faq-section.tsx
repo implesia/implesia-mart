@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/accordion";
 
 import { useHomeSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import type { FaqItem } from "@/lib/mart-mock/home-sections";
 
 import { Container } from "../common/container";
@@ -67,9 +68,11 @@ function FaqColumn({
 
 export function FaqSection() {
   const { faq } = useHomeSections();
+  const visible = faq.items.filter(isContentActive);
+  if (visible.length === 0) return null;
   const columns = [
-    faq.items.filter((_, index) => index % 2 === 0),
-    faq.items.filter((_, index) => index % 2 === 1),
+    visible.filter((_, index) => index % 2 === 0),
+    visible.filter((_, index) => index % 2 === 1),
   ];
 
   return (

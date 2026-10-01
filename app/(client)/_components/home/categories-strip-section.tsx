@@ -4,11 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { useHomeSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 
 import { Container } from "../common/container";
 
 export function CategoriesStripSection() {
   const { categories } = useHomeSections();
+  const tiles = categories.tiles.filter(isContentActive);
+  if (tiles.length === 0) return null;
 
   return (
     <section
@@ -24,7 +27,7 @@ export function CategoriesStripSection() {
             {categories.heading}
           </h2>
           <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            {categories.tiles.map((tile) => (
+            {tiles.map((tile) => (
               <li key={tile.id}>
                 <Link
                   href={tile.href || "/products"}

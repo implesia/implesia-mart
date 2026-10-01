@@ -42,6 +42,7 @@ import {
   STOCK_STATUS_TONE,
   StockStatusBadge,
 } from "../../_components/admin-ui";
+import { UnsavedChangesDialog } from "../../_components/unsaved-changes-dialog";
 import { ImageField } from "../../_components/image-field";
 import {
   ProductCopyFields,
@@ -937,51 +938,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       </div>
 
       {leaveHref ? (
-        <div
-          className="fixed inset-0 z-40 grid place-items-center bg-neutral-950/40 p-4"
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setLeaveHref(null);
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`${formId}-leave-title`}
-            className="w-full max-w-sm rounded-2xl bg-white p-5 ring-1 ring-neutral-200"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setLeaveHref(null);
-            }}
-          >
-            <h2
-              id={`${formId}-leave-title`}
-              className="text-base font-semibold text-neutral-950"
-            >
-              Unsaved changes
-            </h2>
-            <p className="mt-1 text-sm text-neutral-600">
-              Leave this page? The product details you entered will not be
-              saved.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                className={adminButtonClass.secondary}
-                onClick={() => setLeaveHref(null)}
-                autoFocus
-              >
-                Stay
-              </button>
-              <button
-                type="button"
-                className={adminButtonClass.primary}
-                onClick={confirmLeave}
-              >
-                Leave without saving
-              </button>
-            </div>
-          </div>
-        </div>
+        <UnsavedChangesDialog onStay={() => setLeaveHref(null)} onDiscard={confirmLeave} />
       ) : null}
     </form>
   );

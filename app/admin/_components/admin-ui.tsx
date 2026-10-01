@@ -85,7 +85,8 @@ export const ORDER_STATUS_MARK: Record<OrderStatus, string> = {
   returned: "bg-neutral-400",
 };
 
-export const adminCardClass = "rounded-2xl bg-admin-surface ring-1 ring-neutral-200/90";
+export const adminCardClass =
+  "rounded-2xl bg-admin-surface ring-1 ring-neutral-200/90";
 export const adminButtonClass = {
   primary:
     "inline-flex h-10 items-center justify-center gap-2 rounded-full bg-neutral-950 px-4 text-sm font-medium text-white hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:bg-neutral-100 disabled:text-neutral-400",
@@ -154,15 +155,26 @@ export function FieldError({ message }: { message?: string }) {
 
 export function AdminLoading() {
   return (
-    <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-busy="true" />
+    <div
+      className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90"
+      aria-busy="true"
+    />
   );
 }
 
-export function AdminEmpty({ title, detail }: { title: string; detail?: string }) {
+export function AdminEmpty({
+  title,
+  detail,
+}: {
+  title: string;
+  detail?: string;
+}) {
   return (
     <div className="px-5 py-16 text-center">
       <p className="text-sm font-semibold text-neutral-950">{title}</p>
-      {detail ? <p className="mt-1 text-sm text-neutral-500">{detail}</p> : null}
+      {detail ? (
+        <p className="mt-1 text-sm text-neutral-500">{detail}</p>
+      ) : null}
     </div>
   );
 }
@@ -189,12 +201,68 @@ export function AdminNotice({
   );
 }
 
+export function VisibilityBadge({ active }: { active: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        active
+          ? "bg-emerald-50 text-emerald-800"
+          : "bg-neutral-100 text-neutral-600",
+      )}
+    >
+      {active ? "Active" : "Inactive"}
+    </span>
+  );
+}
+
+export function ActiveStatusField({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (active: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-200/90 px-4 py-3">
+      <span>
+        <span className="block text-sm font-medium text-neutral-950">
+          {checked ? "Active" : "Inactive"}
+        </span>
+        <span className="mt-0.5 block text-sm text-neutral-500">
+          {checked ? "Visible on the website" : "Hidden from the website"}
+        </span>
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={checked ? "Active" : "Inactive"}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          checked ? "bg-primary" : "bg-neutral-300",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 size-5 rounded-full bg-white transition-all",
+            checked ? "left-5" : "left-0.5",
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+
 export function PaymentBadge({ collected = false }: { collected?: boolean }) {
   return (
     <span
       className={cn(
         "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-        collected ? "bg-emerald-50 text-emerald-800" : "bg-neutral-100 text-neutral-700",
+        collected
+          ? "bg-emerald-50 text-emerald-800"
+          : "bg-neutral-100 text-neutral-700",
       )}
     >
       {collected ? "Collected" : "Cash on delivery"}

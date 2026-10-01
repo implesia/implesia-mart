@@ -1,6 +1,7 @@
 "use client";
 
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -8,7 +9,8 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 
 export function MissionVision({ className }: { className?: string }) {
   const { mission } = useAboutSections();
-  const cards = [mission.vision, mission.mission];
+  const cards = [mission.vision, mission.mission].filter(isContentActive);
+  if (cards.length === 0) return null;
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>

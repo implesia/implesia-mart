@@ -5,12 +5,12 @@ import { MOCK_EVENT } from "./store";
 const KEY = "implesia.admin.sustainability-sections.v1";
 
 export type SustainLink = { label: string; href: string };
-export type SustainImage = { id: string; src: string; alt: string };
+export type SustainImage = { id: string; src: string; alt: string; isActive?: boolean };
 export type SustainMedia = { src: string; alt: string };
-export type SustainStat = { id: string; icon: string; value: string; label: string };
-export type SustainCard = { id: string; icon: string; title: string; description: string };
-export type SustainTextItem = { id: string; text: string };
-export type SustainBadge = { id: string; icon: string; label: string };
+export type SustainStat = { id: string; icon: string; value: string; label: string; isActive?: boolean };
+export type SustainCard = { id: string; icon: string; title: string; description: string; isActive?: boolean };
+export type SustainTextItem = { id: string; text: string; isActive?: boolean };
+export type SustainBadge = { id: string; icon: string; label: string; isActive?: boolean };
 
 export type SustainHero = {
   eyebrow: string;
@@ -227,21 +227,21 @@ export function saveSustainabilitySections(next: SustainabilitySections) {
 }
 
 export function blankSustainImage(): SustainImage {
-  return { id: newId("image"), src: "", alt: "" };
+  return { id: newId("image"), src: "", alt: "", isActive: true };
 }
 
 export function blankSustainStat(): SustainStat {
-  return { id: newId("stat"), icon: "verified", value: "", label: "" };
+  return { id: newId("stat"), icon: "verified", value: "", label: "", isActive: true };
 }
 
 export function blankSustainCard(): SustainCard {
-  return { id: newId("card"), icon: "verified", title: "", description: "" };
+  return { id: newId("card"), icon: "verified", title: "", description: "", isActive: true };
 }
 
 export function blankSustainText(): SustainTextItem {
-  return { id: newId("text"), text: "" };
+  return { id: newId("text"), text: "", isActive: true };
 }
 
 export function blankSustainBadge(): SustainBadge {
-  return { id: newId("badge"), icon: "check_circle", label: "" };
+  return { id: newId("badge"), icon: "check_circle", label: "", isActive: true };
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useHomeSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../common/container";
@@ -100,7 +101,7 @@ export function NewsletterSection() {
             )}
 
             <ul className="mt-8 flex w-full flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-8">
-              {newsletter.perks.map((perk) => (
+              {newsletter.perks.filter(isContentActive).map((perk) => (
                 <li
                   key={perk.id}
                   className="flex items-center gap-2 text-xs text-white/65 sm:text-sm"

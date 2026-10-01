@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -34,7 +35,7 @@ export function SustainabilityDurability({ className }: { className?: string }) 
             </p>
 
             <ul className="mt-5 space-y-2.5">
-              {durability.bullets.map((bullet) => (
+              {durability.bullets.filter(isContentActive).map((bullet) => (
                 <li key={bullet.id} className="flex items-start gap-2.5 text-sm text-white/85">
                   <MaterialIcon
                     name="check_circle"

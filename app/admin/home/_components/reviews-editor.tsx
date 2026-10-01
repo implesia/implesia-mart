@@ -14,22 +14,38 @@ import {
   type ReviewItem,
   type ReviewsSection,
 } from "@/lib/mart-mock/home-sections";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 
-import { adminButtonClass, adminFieldClass, FieldError, FieldLabel } from "../../_components/admin-ui";
+import { AdminFormModal } from "../../_components/admin-form-modal";
+import {
+  ActiveStatusField,
+  adminButtonClass,
+  adminFieldClass,
+  FieldError,
+  FieldLabel,
+  VisibilityBadge,
+} from "../../_components/admin-ui";
+import { FormCloseGuard } from "../../_components/form-close-guard";
 import { ImageField } from "../../_components/image-field";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
 
-type Draft = Pick<ReviewItem, "product" | "channel" | "imageSrc" | "imageAlt">;
+type Draft = Pick<ReviewItem, "product" | "channel" | "imageSrc" | "imageAlt" | "isActive">;
 
 const CHANNELS: ReviewItem["channel"][] = ["WhatsApp", "Messenger"];
 
 function emptyDraft(): Draft {
-  return { product: "", channel: "WhatsApp", imageSrc: "", imageAlt: "" };
+  return { product: "", channel: "WhatsApp", imageSrc: "", imageAlt: "", isActive: true };
 }
 
 function draftFromItem(item: ReviewItem): Draft {
-  return { product: item.product, channel: item.channel, imageSrc: item.imageSrc, imageAlt: item.imageAlt };
+  return {
+    product: item.product,
+    channel: item.channel,
+    imageSrc: item.imageSrc,
+    imageAlt: item.imageAlt,
+    isActive: item.isActive !== false,
+  };
 }
 
 export function CustomerReviews({ section }: { section: ReviewsSection }) {
@@ -39,7 +55,10 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
   const selected = params.get("edit");
   const creating = selected === "new";
   const items = section.items;
-  const opened = selected && selected !== "new" ? (items.find((item) => item.id === selected) ?? null) : null;
+  const opened =
+    selected && selected !== "new"
+      ? (items.find((item) => item.id === selected) ?? null)
+      : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -59,7 +78,9 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
     if (id) next.set("edit", id);
     else next.delete("edit");
     const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }
 
   function flash(message: string) {
@@ -70,7 +91,9 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
     }, 1600);
   }
 
-  function patchCopy(partial: Partial<Pick<ReviewsSection, "kicker" | "title" | "subtitle">>) {
+  function patchCopy(
+    partial: Partial<Pick<ReviewsSection, "kicker" | "title" | "subtitle">>,
+  ) {
     const doc = readHomeSections();
     saveHomeSections({ ...doc, reviews: { ...doc.reviews, ...partial } });
   }
@@ -79,7 +102,10 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
     const doc = readHomeSections();
     if (creating) {
       const item = { ...blankReview(), ...draft };
-      saveHomeSections({ ...doc, reviews: { ...doc.reviews, items: [...doc.reviews.items, item] } });
+      saveHomeSections({
+        ...doc,
+        reviews: { ...doc.reviews, items: [...doc.reviews.items, item] },
+      });
       setSavedId(item.id);
       focusId.current = item.id;
     } else if (selected) {
@@ -87,7 +113,9 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
         ...doc,
         reviews: {
           ...doc.reviews,
-          items: doc.reviews.items.map((entry) => (entry.id === selected ? { ...entry, ...draft } : entry)),
+          items: doc.reviews.items.map((entry) =>
+            entry.id === selected ? { ...entry, ...draft } : entry,
+          ),
         },
       });
       setSavedId(selected);
@@ -99,7 +127,13 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
 
   function remove(id: string) {
     const doc = readHomeSections();
-    saveHomeSections({ ...doc, reviews: { ...doc.reviews, items: doc.reviews.items.filter((item) => item.id !== id) } });
+    saveHomeSections({
+      ...doc,
+      reviews: {
+        ...doc.reviews,
+        items: doc.reviews.items.filter((item) => item.id !== id),
+      },
+    });
     if (selected === id) setEdit(null);
     setConfirmId(null);
     flash("Removed");
@@ -145,7 +179,11 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
         description="Manage the customer review screenshots displayed on your storefront."
         sectionId="reviews"
         extra={
-          <button type="button" onClick={() => setEdit("new")} className={adminButtonClass.primary}>
+          <button
+            type="button"
+            onClick={() => setEdit("new")}
+            className={adminButtonClass.primary}
+          >
             <MaterialIcon name="add" className="text-[18px]" />
             Add review
           </button>
@@ -160,38 +198,73 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
       {missing ? (
         <p className="rounded-2xl bg-white px-4 py-3 text-sm text-neutral-600 ring-1 ring-neutral-200/90">
           This review is no longer here.{" "}
-          <button type="button" onClick={() => setEdit(null)} className="font-medium text-primary">
+          <button
+            type="button"
+            onClick={() => setEdit(null)}
+            className="font-medium text-primary"
+          >
             Close
           </button>
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl bg-[#f5f6f8] ring-1 ring-neutral-200/90" aria-labelledby="reviews-preview-heading">
+      <section
+        className="overflow-hidden rounded-2xl bg-[#f5f6f8] ring-1 ring-neutral-200/90"
+        aria-labelledby="reviews-preview-heading"
+      >
         <div className="px-4 pt-4 sm:px-5">
-          <h2 id="reviews-preview-heading" className="text-sm font-semibold text-neutral-950">
+          <h2
+            id="reviews-preview-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
             Storefront preview
           </h2>
-          <p className="mt-0.5 text-sm text-neutral-500">Shown on the home page, in this order. Every review in the list appears there.</p>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            Shown on the home page, in this order. Every review in the list
+            appears there.
+          </p>
         </div>
         <div className="px-4 py-4 sm:px-5">
           <div className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 sm:px-5 sm:py-5">
             <SectionCopyForm
-              values={{ kicker: section.kicker, title: section.title, subtitle: section.subtitle }}
+              values={{
+                kicker: section.kicker,
+                title: section.title,
+                subtitle: section.subtitle,
+              }}
               fields={[
                 { name: "kicker", label: "Eyebrow" },
                 { name: "title", label: "Title" },
-                { name: "subtitle", label: "Subtitle", multiline: true, wide: true },
+                {
+                  name: "subtitle",
+                  label: "Subtitle",
+                  multiline: true,
+                  wide: true,
+                },
               ]}
               saveLabel="Save heading"
-              onSave={(next) => patchCopy({ kicker: next.kicker ?? "", title: next.title ?? "", subtitle: next.subtitle ?? "" })}
+              onSave={(next) =>
+                patchCopy({
+                  kicker: next.kicker ?? "",
+                  title: next.title ?? "",
+                  subtitle: next.subtitle ?? "",
+                })
+              }
             />
             {items.length === 0 ? (
               <div className="px-2 py-10 text-center">
-                <p className="text-sm font-semibold text-neutral-950">No reviews yet</p>
-                <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-                  Add a customer screenshot so it appears in the review row on the home page.
+                <p className="text-sm font-semibold text-neutral-950">
+                  No reviews yet
                 </p>
-                <button type="button" onClick={() => setEdit("new")} className={cn(adminButtonClass.primary, "mt-4")}>
+                <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+                  Add a customer screenshot so it appears in the review row on
+                  the home page.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEdit("new")}
+                  className={cn(adminButtonClass.primary, "mt-4")}
+                >
                   <MaterialIcon name="add" className="text-[18px]" />
                   Add review
                 </button>
@@ -210,13 +283,23 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
                     >
                       <span className="relative aspect-[4/5] bg-neutral-100">
                         {item.imageSrc ? (
-                          <Image src={item.imageSrc} alt="" fill sizes="(max-width: 1280px) 40vw, 20vw" className="object-cover object-top" />
+                          <Image
+                            src={item.imageSrc}
+                            alt=""
+                            fill
+                            sizes="(max-width: 1280px) 40vw, 20vw"
+                            className="object-cover object-top"
+                          />
                         ) : (
-                          <span className="grid size-full place-items-center px-3 text-center text-xs text-neutral-500">Screenshot</span>
+                          <span className="grid size-full place-items-center px-3 text-center text-xs text-neutral-500">
+                            Screenshot
+                          </span>
                         )}
                       </span>
                       <span className="min-w-0 px-2.5 py-2.5">
-                        <span className="block truncate text-sm font-semibold text-neutral-950">{item.product || "Untitled review"}</span>
+                        <span className="block truncate text-sm font-semibold text-neutral-950">
+                          {item.product || "Untitled review"}
+                        </span>
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
                           <ChannelMark channel={item.channel} />
                           {item.channel}
@@ -232,9 +315,15 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
       </section>
 
       {items.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-labelledby="reviews-list-heading">
+        <section
+          className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+          aria-labelledby="reviews-list-heading"
+        >
           <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
-            <h2 id="reviews-list-heading" className="text-sm font-semibold text-neutral-950">
+            <h2
+              id="reviews-list-heading"
+              className="text-sm font-semibold text-neutral-950"
+            >
               {items.length === 1 ? "1 review" : `${items.length} reviews`}
             </h2>
           </div>
@@ -254,7 +343,10 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
                   "border-t border-neutral-100 first:border-t-0",
                   selected === item.id && "bg-primary/5",
                   savedId === item.id && "bg-emerald-50",
-                  overId === item.id && dragId && dragId !== item.id && "bg-primary/10",
+                  overId === item.id &&
+                    dragId &&
+                    dragId !== item.id &&
+                    "bg-primary/10",
                   dragId === item.id && "opacity-60",
                 )}
               >
@@ -275,7 +367,10 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
                       }}
                       className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <MaterialIcon name="drag_indicator" className="text-[18px]" />
+                      <MaterialIcon
+                        name="drag_indicator"
+                        className="text-[18px]"
+                      />
                     </button>
                     <button
                       id={`review-${item.id}`}
@@ -283,18 +378,34 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
                       onClick={() => setEdit(item.id)}
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
+                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                        {index + 1}
+                      </span>
                       <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                         {item.imageSrc ? (
-                          <Image src={item.imageSrc} alt="" fill sizes="48px" className="object-cover object-top" />
+                          <Image
+                            src={item.imageSrc}
+                            alt=""
+                            fill
+                            sizes="48px"
+                            className="object-cover object-top"
+                          />
                         ) : (
                           <span className="grid size-full place-items-center text-neutral-400">
-                            <MaterialIcon name="image" className="text-[18px]" />
+                            <MaterialIcon
+                              name="image"
+                              className="text-[18px]"
+                            />
                           </span>
                         )}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-neutral-950">{item.product || "Untitled review"}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-neutral-950">
+                            {item.product || "Untitled review"}
+                          </span>
+                          <VisibilityBadge active={isContentActive(item)} />
+                        </span>
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
                           <ChannelMark channel={item.channel} />
                           {item.channel}
@@ -303,23 +414,50 @@ export function CustomerReviews({ section }: { section: ReviewsSection }) {
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                    <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => move(item.id, -1)} />
-                    <IconButton label="Move later" icon="arrow_downward" disabled={index === items.length - 1} onClick={() => move(item.id, 1)} />
-                    <button type="button" onClick={() => setEdit(item.id)} className={adminButtonClass.quiet}>
+                    <IconButton
+                      label="Move earlier"
+                      icon="arrow_upward"
+                      disabled={index === 0}
+                      onClick={() => move(item.id, -1)}
+                    />
+                    <IconButton
+                      label="Move later"
+                      icon="arrow_downward"
+                      disabled={index === items.length - 1}
+                      onClick={() => move(item.id, 1)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEdit(item.id)}
+                      className={adminButtonClass.quiet}
+                    >
                       Edit
                     </button>
                     {confirmId === item.id ? (
                       <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                         Remove from the home page?
-                        <button type="button" onClick={() => remove(item.id)} className="font-semibold underline">
+                        <button
+                          type="button"
+                          onClick={() => remove(item.id)}
+                          className="font-semibold underline"
+                        >
                           Yes
                         </button>
-                        <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmId(null)}
+                          className="font-semibold"
+                        >
                           No
                         </button>
                       </span>
                     ) : (
-                      <IconButton label="Remove review" icon="delete" danger onClick={() => setConfirmId(item.id)} />
+                      <IconButton
+                        label="Remove review"
+                        icon="delete"
+                        danger
+                        onClick={() => setConfirmId(item.id)}
+                      />
                     )}
                   </div>
                 </div>
@@ -357,19 +495,12 @@ function ReviewDrawer({
   onSave: (draft: Draft) => void;
 }) {
   const [draft, setDraft] = useState(initial);
+  const baseline = useRef(draft);
   const [productError, setProductError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const productId = useId();
   const title = draft.product.trim() || "Review";
-
-  useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, []);
 
   function save() {
     if (saving || uploading) return;
@@ -383,119 +514,171 @@ function ReviewDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40" role="presentation" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reviews-drawer-title"
-        className="force-light flex h-full w-full max-w-md flex-col bg-white shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") onClose();
-        }}
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{creating ? "Add review" : "Edit review"}</p>
-            <h2 id="reviews-drawer-title" className="mt-1 truncate text-lg font-semibold text-neutral-950">
-              {creating ? "New review" : title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <AdminFormModal titleId="reviews-drawer-title" size="md">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+        <div className="min-w-0">
+          <h2
+            id="reviews-drawer-title"
+            className="text-lg font-semibold text-neutral-950"
           >
-            <MaterialIcon name="close" className="text-[20px]" />
-          </button>
+            {creating ? "Add review" : "Edit review"}
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            {creating
+              ? "Add a customer review for the home page."
+              : "Update this review."}
+          </p>
         </div>
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200">
-            <div className="relative aspect-[4/5] max-h-52 bg-neutral-100">
-              {draft.imageSrc ? (
-                <Image src={draft.imageSrc} alt="" fill sizes="400px" className="object-cover object-top" />
-              ) : (
-                <span className="grid size-full place-items-center text-sm text-neutral-500">Screenshot</span>
-              )}
-            </div>
-            <div className="px-3 py-2.5">
-              <p className="truncate text-sm font-semibold text-neutral-950">{draft.product.trim() || "Product"}</p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
-                <ChannelMark channel={draft.channel} />
-                {draft.channel}
-              </p>
-            </div>
+        <button
+          type="button"
+          data-form-dismiss=""
+          aria-label="Close"
+          title="Close"
+          onClick={onClose}
+          className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <MaterialIcon name="close" className="text-[20px]" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={draft.isActive !== false}
+          onChange={(isActive) => setDraft({ ...draft, isActive })}
+        />
+        <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200">
+          <div className="relative aspect-[4/5] max-h-52 bg-neutral-100">
+            {draft.imageSrc ? (
+              <Image
+                src={draft.imageSrc}
+                alt=""
+                fill
+                sizes="400px"
+                className="object-cover object-top"
+              />
+            ) : (
+              <span className="grid size-full place-items-center text-sm text-neutral-500">
+                Screenshot
+              </span>
+            )}
           </div>
-          <ImageField value={draft.imageSrc} onChange={(imageSrc) => setDraft({ ...draft, imageSrc })} onBusy={setUploading} confirmRemove />
-          <div>
-            <FieldLabel htmlFor={productId}>
-              Product <span className="text-red-700">*</span>
-            </FieldLabel>
-            <input
-              id={productId}
-              autoFocus
-              value={draft.product}
-              onChange={(event) => {
-                setDraft({ ...draft, product: event.target.value });
-                setProductError("");
-              }}
-              aria-invalid={productError ? true : undefined}
-              aria-describedby={productError ? `${productId}-error` : undefined}
-              className={cn(adminFieldClass, productError && "border-red-400")}
-            />
-            {productError ? (
-              <div id={`${productId}-error`}>
-                <FieldError message={productError} />
-              </div>
-            ) : null}
-          </div>
-          <div>
-            <FieldLabel htmlFor={`${productId}-channel`}>Channel</FieldLabel>
-            <select
-              id={`${productId}-channel`}
-              value={draft.channel}
-              onChange={(event) => setDraft({ ...draft, channel: event.target.value as ReviewItem["channel"] })}
-              className={adminFieldClass}
-            >
-              {CHANNELS.map((channel) => (
-                <option key={channel} value={channel}>
-                  {channel}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <FieldLabel htmlFor={`${productId}-alt`}>Image description</FieldLabel>
-            <input
-              id={`${productId}-alt`}
-              value={draft.imageAlt}
-              onChange={(event) => setDraft({ ...draft, imageAlt: event.target.value })}
-              className={adminFieldClass}
-            />
-            <p className="mt-1.5 text-xs text-neutral-500">Read by screen readers when the screenshot is shown.</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-          {notice ? (
-            <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
-              {notice}
+          <div className="px-3 py-2.5">
+            <p className="truncate text-sm font-semibold text-neutral-950">
+              {draft.product.trim() || "Product"}
             </p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
+              <ChannelMark channel={draft.channel} />
+              {draft.channel}
+            </p>
+          </div>
+        </div>
+        <ImageField
+          value={draft.imageSrc}
+          onChange={(imageSrc) => setDraft({ ...draft, imageSrc })}
+          onBusy={setUploading}
+          confirmRemove
+        />
+        <div>
+          <FieldLabel htmlFor={productId}>
+            Product <span className="text-red-700">*</span>
+          </FieldLabel>
+          <input
+            id={productId}
+            autoFocus
+            value={draft.product}
+            placeholder="Product name"
+            onChange={(event) => {
+              setDraft({ ...draft, product: event.target.value });
+              setProductError("");
+            }}
+            aria-invalid={productError ? true : undefined}
+            aria-describedby={productError ? `${productId}-error` : undefined}
+            className={cn(adminFieldClass, productError && "border-red-400")}
+          />
+          {productError ? (
+            <div id={`${productId}-error`}>
+              <FieldError message={productError} />
+            </div>
           ) : null}
-          <button type="button" onClick={onClose} className={adminButtonClass.secondary}>
-            Cancel
-          </button>
-          <button type="button" onClick={save} disabled={saving || uploading} className={adminButtonClass.primary}>
-            {saving ? "Saving…" : uploading ? "Uploading…" : creating ? "Save review" : "Save changes"}
-          </button>
+        </div>
+        <div>
+          <FieldLabel htmlFor={`${productId}-channel`}>Channel</FieldLabel>
+          <select
+            id={`${productId}-channel`}
+            value={draft.channel}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                channel: event.target.value as ReviewItem["channel"],
+              })
+            }
+            className={adminFieldClass}
+          >
+            {CHANNELS.map((channel) => (
+              <option key={channel} value={channel}>
+                {channel}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <FieldLabel htmlFor={`${productId}-alt`}>
+            Image description
+          </FieldLabel>
+          <input
+            id={`${productId}-alt`}
+            value={draft.imageAlt}
+            placeholder="What the screenshot shows"
+            onChange={(event) =>
+              setDraft({ ...draft, imageAlt: event.target.value })
+            }
+            className={adminFieldClass}
+          />
+          <p className="mt-1.5 text-xs text-neutral-500">
+            Read by screen readers when the screenshot is shown.
+          </p>
         </div>
       </div>
-    </div>
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+        {notice ? (
+          <p
+            role="status"
+            className="mr-auto text-sm font-medium text-emerald-800"
+          >
+            {notice}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          data-form-dismiss=""
+          onClick={onClose}
+          className={adminButtonClass.secondary}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving || uploading}
+          className={adminButtonClass.primary}
+        >
+          {saving
+            ? "Saving…"
+            : uploading
+              ? "Uploading…"
+              : creating
+                ? "Save review"
+                : "Save changes"}
+        </button>
+      </div>
+    </AdminFormModal>
+    </FormCloseGuard>
   );
 }
 
 function ChannelMark({ channel }: { channel: ReviewItem["channel"] }) {
-  if (channel === "WhatsApp") return <WhatsAppIcon className="size-3.5 text-[#25D366]" />;
+  if (channel === "WhatsApp")
+    return <WhatsAppIcon className="size-3.5 text-[#25D366]" />;
   return <MaterialIcon name="chat" className="text-[15px] text-[#0084ff]" />;
 }
 

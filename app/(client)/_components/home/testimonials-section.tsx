@@ -1,13 +1,14 @@
 "use client";
 
 import { useHomeSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 
 import { Container } from "../common/container";
 import { ReviewGallery, type ReviewShot } from "./review-gallery";
 
 export function TestimonialsSection() {
   const { reviews } = useHomeSections();
-  const shots: ReviewShot[] = reviews.items.map((item) => ({
+  const shots: ReviewShot[] = reviews.items.filter(isContentActive).map((item) => ({
     id: item.id,
     imageSrc: item.imageSrc,
     imageAlt: item.imageAlt,
@@ -15,6 +16,8 @@ export function TestimonialsSection() {
     channel: item.channel,
     ready: Boolean(item.imageSrc),
   }));
+
+  if (shots.length === 0) return null;
 
   return (
     <section

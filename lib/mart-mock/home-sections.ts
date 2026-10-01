@@ -20,6 +20,7 @@ export type TrustItem = {
   icon: string;
   label: string;
   href: string;
+  isActive?: boolean;
 };
 
 export type CategoryTile = {
@@ -27,6 +28,7 @@ export type CategoryTile = {
   label: string;
   imageSrc: string;
   href: string;
+  isActive?: boolean;
 };
 
 export type CategoriesSection = {
@@ -54,6 +56,7 @@ export type ReviewItem = {
   imageAlt: string;
   product: string;
   channel: "WhatsApp" | "Messenger";
+  isActive?: boolean;
 };
 
 export type ReviewsSection = {
@@ -68,6 +71,7 @@ export type FaqItem = {
   category: string;
   question: string;
   answer: string;
+  isActive?: boolean;
 };
 
 export type FaqSectionContent = {
@@ -83,6 +87,7 @@ export type NewsletterPerk = {
   id: string;
   icon: string;
   label: string;
+  isActive?: boolean;
 };
 
 export type NewsletterContent = {
@@ -286,11 +291,11 @@ export function productsForSlugs(slugs: string[]): Product[] {
 }
 
 export function blankTrustItem(): TrustItem {
-  return { id: newId("trust"), icon: "verified", label: "", href: "/shipping-returns" };
+  return { id: newId("trust"), icon: "verified", label: "", href: "/shipping-returns", isActive: true };
 }
 
 export function blankCategoryTile(): CategoryTile {
-  return { id: newId("tile"), label: "", imageSrc: "", href: "/products" };
+  return { id: newId("tile"), label: "", imageSrc: "", href: "/products", isActive: true };
 }
 
 export function blankReview(): ReviewItem {
@@ -300,13 +305,14 @@ export function blankReview(): ReviewItem {
     imageAlt: "",
     product: "",
     channel: "WhatsApp",
+    isActive: true,
   };
 }
 
 export function blankFaq(): FaqItem {
-  return { id: newId("faq"), category: "", question: "", answer: "" };
+  return { id: newId("faq"), category: "", question: "", answer: "", isActive: true };
 }
 
 export function blankPerk(): NewsletterPerk {
-  return { id: newId("perk"), icon: "local_offer", label: "" };
+  return { id: newId("perk"), icon: "local_offer", label: "", isActive: true };
 }

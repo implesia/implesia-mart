@@ -5,11 +5,27 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { blankStat, readAboutSections, saveAboutSections, type AboutStatItem } from "@/lib/mart-mock/about-sections";
+import {
+  blankStat,
+  readAboutSections,
+  saveAboutSections,
+  type AboutStatItem,
+} from "@/lib/mart-mock/about-sections";
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
-import { adminButtonClass, adminFieldClass, AdminPageHeader, FieldError, FieldLabel } from "../../../_components/admin-ui";
+import { AdminFormModal } from "../../../_components/admin-form-modal";
+import {
+  ActiveStatusField,
+  adminButtonClass,
+  adminFieldClass,
+  AdminPageHeader,
+  FieldError,
+  FieldLabel,
+  VisibilityBadge,
+} from "../../../_components/admin-ui";
+import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
 
 const ICONS: { name: string; label: string }[] = [
@@ -32,14 +48,14 @@ const ICONS: { name: string; label: string }[] = [
   { name: "shield", label: "Shield" },
 ];
 
-type Draft = Pick<AboutStatItem, "icon" | "value" | "label">;
+type Draft = Pick<AboutStatItem, "icon" | "value" | "label" | "isActive">;
 
 function emptyDraft(): Draft {
-  return { icon: "verified", value: "", label: "" };
+  return { icon: "verified", value: "", label: "", isActive: true };
 }
 
 function draftFromStat(stat: AboutStatItem): Draft {
-  return { icon: stat.icon, value: stat.value, label: stat.label };
+  return { icon: stat.icon, value: stat.value, label: stat.label, isActive: stat.isActive !== false };
 }
 
 function iconChoices(current: string) {
@@ -58,7 +74,10 @@ export function AboutStatsEditor() {
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
-  const opened = selected && selected !== "new" ? (stats.find((stat) => stat.id === selected) ?? null) : null;
+  const opened =
+    selected && selected !== "new"
+      ? (stats.find((stat) => stat.id === selected) ?? null)
+      : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -79,7 +98,9 @@ export function AboutStatsEditor() {
     if (id) next.set("edit", id);
     else next.delete("edit");
     const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }
 
   function flash(message: string) {
@@ -93,14 +114,30 @@ export function AboutStatsEditor() {
   function commit(draft: Draft) {
     const doc = readAboutSections();
     if (creating) {
-      const stat = { ...blankStat(), icon: draft.icon, value: draft.value, label: draft.label };
+      const stat = {
+        ...blankStat(),
+        icon: draft.icon,
+        value: draft.value,
+        label: draft.label,
+        isActive: draft.isActive,
+      };
       saveAboutSections({ ...doc, stats: [...doc.stats, stat] });
       setSavedId(stat.id);
       focusId.current = stat.id;
     } else if (selected) {
       saveAboutSections({
         ...doc,
-        stats: doc.stats.map((stat) => (stat.id === selected ? { ...stat, icon: draft.icon, value: draft.value, label: draft.label } : stat)),
+        stats: doc.stats.map((stat) =>
+          stat.id === selected
+            ? {
+                ...stat,
+                icon: draft.icon,
+                value: draft.value,
+                label: draft.label,
+                isActive: draft.isActive,
+              }
+            : stat,
+        ),
       });
       setSavedId(selected);
       focusId.current = selected;
@@ -111,7 +148,10 @@ export function AboutStatsEditor() {
 
   function remove(id: string) {
     const doc = readAboutSections();
-    saveAboutSections({ ...doc, stats: doc.stats.filter((stat) => stat.id !== id) });
+    saveAboutSections({
+      ...doc,
+      stats: doc.stats.filter((stat) => stat.id !== id),
+    });
     if (selected === id) setEdit(null);
     setConfirmId(null);
     flash("Removed");
@@ -153,15 +193,27 @@ export function AboutStatsEditor() {
   return (
     <div className="min-w-0 space-y-4">
       <div>
-        <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-sm text-neutral-500">
-          <Link href="/admin/pages/about" className="font-medium hover:text-neutral-950">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-3 flex flex-wrap items-center gap-1 text-sm text-neutral-500"
+        >
+          <Link
+            href="/admin/pages/about"
+            className="font-medium hover:text-neutral-950"
+          >
             About
           </Link>
-          <MaterialIcon name="chevron_right" className="text-[16px] text-neutral-300" />
+          <MaterialIcon
+            name="chevron_right"
+            className="text-[16px] text-neutral-300"
+          />
           <span className="font-medium text-neutral-950">Stats</span>
         </nav>
         {page ? (
-          <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="About sections">
+          <div
+            className="mb-4 flex gap-2 overflow-x-auto pb-1"
+            aria-label="About sections"
+          >
             {page.sections.map((section) => {
               const active = section.id === "stats";
               return (
@@ -171,7 +223,9 @@ export function AboutStatsEditor() {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex h-9 shrink-0 items-center rounded-full px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                    active ? "bg-neutral-950 font-medium text-white" : "bg-white font-medium text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
+                    active
+                      ? "bg-neutral-950 font-medium text-white"
+                      : "bg-white font-medium text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
                   )}
                 >
                   {section.label}
@@ -185,11 +239,20 @@ export function AboutStatsEditor() {
           description="Categories, districts, COD, and returns."
           action={
             <div className="flex flex-wrap items-center gap-2">
-              <a href="/about-us" target="_blank" rel="noreferrer" className={adminButtonClass.secondary}>
+              <a
+                href="/about-us"
+                target="_blank"
+                rel="noreferrer"
+                className={adminButtonClass.secondary}
+              >
                 View on site
                 <MaterialIcon name="open_in_new" className="text-[18px]" />
               </a>
-              <button type="button" onClick={() => setEdit("new")} className={adminButtonClass.primary}>
+              <button
+                type="button"
+                onClick={() => setEdit("new")}
+                className={adminButtonClass.primary}
+              >
                 <MaterialIcon name="add" className="text-[18px]" />
                 Add stat
               </button>
@@ -206,24 +269,42 @@ export function AboutStatsEditor() {
       {missing ? (
         <p className="rounded-2xl bg-white px-4 py-3 text-sm text-neutral-600 ring-1 ring-neutral-200/90">
           This stat is no longer here.{" "}
-          <button type="button" onClick={() => setEdit(null)} className="font-medium text-primary">
+          <button
+            type="button"
+            onClick={() => setEdit(null)}
+            className="font-medium text-primary"
+          >
             Close
           </button>
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90" aria-labelledby="about-stats-preview-heading">
+      <section
+        className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90"
+        aria-labelledby="about-stats-preview-heading"
+      >
         <div className="px-4 pt-4 sm:px-5">
-          <h2 id="about-stats-preview-heading" className="text-sm font-semibold text-neutral-950">
+          <h2
+            id="about-stats-preview-heading"
+            className="text-sm font-semibold text-neutral-950"
+          >
             Storefront preview
           </h2>
-          <p className="mt-1 text-sm text-neutral-500">Shown under the about banner, in this order.</p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Shown under the about banner, in this order.
+          </p>
         </div>
         <div className="p-4 sm:p-5">
           {stats.length === 0 ? (
             <div className="rounded-2xl bg-white px-4 py-10 text-center ring-1 ring-neutral-200">
-              <p className="text-sm font-semibold text-neutral-950">No stats yet</p>
-              <button type="button" onClick={() => setEdit("new")} className={cn(adminButtonClass.primary, "mt-4")}>
+              <p className="text-sm font-semibold text-neutral-950">
+                No stats yet
+              </p>
+              <button
+                type="button"
+                onClick={() => setEdit("new")}
+                className={cn(adminButtonClass.primary, "mt-4")}
+              >
                 <MaterialIcon name="add" className="text-[18px]" />
                 Add stat
               </button>
@@ -240,10 +321,17 @@ export function AboutStatsEditor() {
                       selected === stat.id && "ring-2 ring-primary",
                     )}
                   >
-                    <MaterialIcon name={stat.icon || "notes"} className="text-[20px] text-primary" />
+                    <MaterialIcon
+                      name={stat.icon || "notes"}
+                      className="text-[20px] text-primary"
+                    />
                     <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-neutral-950 tabular-nums">{stat.value || "—"}</span>
-                      <span className="block text-xs leading-tight text-neutral-600">{stat.label || "Stat"}</span>
+                      <span className="block text-sm font-semibold text-neutral-950 tabular-nums">
+                        {stat.value || "—"}
+                      </span>
+                      <span className="block text-xs leading-tight text-neutral-600">
+                        {stat.label || "Stat"}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -254,9 +342,15 @@ export function AboutStatsEditor() {
       </section>
 
       {stats.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-labelledby="about-stats-list-heading">
+        <section
+          className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+          aria-labelledby="about-stats-list-heading"
+        >
           <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
-            <h2 id="about-stats-list-heading" className="text-sm font-semibold text-neutral-950">
+            <h2
+              id="about-stats-list-heading"
+              className="text-sm font-semibold text-neutral-950"
+            >
               {stats.length === 1 ? "1 stat" : `${stats.length} stats`}
             </h2>
           </div>
@@ -276,7 +370,10 @@ export function AboutStatsEditor() {
                   "border-t border-neutral-100 first:border-t-0",
                   selected === stat.id && "bg-primary/5",
                   savedId === stat.id && "bg-emerald-50",
-                  overId === stat.id && dragId && dragId !== stat.id && "bg-primary/10",
+                  overId === stat.id &&
+                    dragId &&
+                    dragId !== stat.id &&
+                    "bg-primary/10",
                   dragId === stat.id && "opacity-60",
                 )}
               >
@@ -297,7 +394,10 @@ export function AboutStatsEditor() {
                       }}
                       className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <MaterialIcon name="drag_indicator" className="text-[18px]" />
+                      <MaterialIcon
+                        name="drag_indicator"
+                        className="text-[18px]"
+                      />
                     </button>
                     <button
                       id={`about-stat-${stat.id}`}
@@ -305,12 +405,22 @@ export function AboutStatsEditor() {
                       onClick={() => setEdit(stat.id)}
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
+                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                        {index + 1}
+                      </span>
                       <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-admin-canvas text-primary">
-                        <MaterialIcon name={stat.icon || "notes"} className="text-[22px]" />
+                        <MaterialIcon
+                          name={stat.icon || "notes"}
+                          className="text-[22px]"
+                        />
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-neutral-950">{stat.label || "Untitled stat"}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-neutral-950">
+                            {stat.label || "Untitled stat"}
+                          </span>
+                          <VisibilityBadge active={isContentActive(stat)} />
+                        </span>
                         <span className="mt-0.5 block truncate text-xs text-neutral-500">
                           {stat.value || "No value"} · {iconLabel(stat.icon)}
                         </span>
@@ -318,23 +428,50 @@ export function AboutStatsEditor() {
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                    <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => move(stat.id, -1)} />
-                    <IconButton label="Move later" icon="arrow_downward" disabled={index === stats.length - 1} onClick={() => move(stat.id, 1)} />
-                    <button type="button" onClick={() => setEdit(stat.id)} className={adminButtonClass.quiet}>
+                    <IconButton
+                      label="Move earlier"
+                      icon="arrow_upward"
+                      disabled={index === 0}
+                      onClick={() => move(stat.id, -1)}
+                    />
+                    <IconButton
+                      label="Move later"
+                      icon="arrow_downward"
+                      disabled={index === stats.length - 1}
+                      onClick={() => move(stat.id, 1)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEdit(stat.id)}
+                      className={adminButtonClass.quiet}
+                    >
                       Edit
                     </button>
                     {confirmId === stat.id ? (
                       <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                         Remove from the about page?
-                        <button type="button" onClick={() => remove(stat.id)} className="font-semibold underline">
+                        <button
+                          type="button"
+                          onClick={() => remove(stat.id)}
+                          className="font-semibold underline"
+                        >
                           Yes
                         </button>
-                        <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmId(null)}
+                          className="font-semibold"
+                        >
                           No
                         </button>
                       </span>
                     ) : (
-                      <IconButton label="Remove stat" icon="delete" danger onClick={() => setConfirmId(stat.id)} />
+                      <IconButton
+                        label="Remove stat"
+                        icon="delete"
+                        danger
+                        onClick={() => setConfirmId(stat.id)}
+                      />
                     )}
                   </div>
                 </div>
@@ -372,20 +509,13 @@ function StatDrawer({
   onSave: (draft: Draft) => void;
 }) {
   const [draft, setDraft] = useState(initial);
+  const baseline = useRef(draft);
   const [valueError, setValueError] = useState("");
   const [labelError, setLabelError] = useState("");
   const [saving, setSaving] = useState(false);
   const valueId = useId();
   const labelId = useId();
   const title = draft.label.trim() || "Stat";
-
-  useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, []);
 
   function save() {
     if (saving) return;
@@ -395,124 +525,150 @@ function StatDrawer({
     setLabelError(label ? "" : "Label is required.");
     if (!value || !label) return;
     setSaving(true);
-    onSave({ icon: draft.icon, value, label });
+    onSave({ icon: draft.icon, value, label, isActive: draft.isActive });
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-neutral-950/40" role="presentation" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="about-stats-drawer-title"
-        className="force-light flex h-full w-full max-w-md flex-col bg-white shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") onClose();
-        }}
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{creating ? "Add stat" : "Edit stat"}</p>
-            <h2 id="about-stats-drawer-title" className="mt-1 truncate text-lg font-semibold text-neutral-950">
-              {creating ? "New stat" : title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <AdminFormModal titleId="about-stats-drawer-title" size="sm">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+        <div className="min-w-0">
+          <h2
+            id="about-stats-drawer-title"
+            className="text-lg font-semibold text-neutral-950"
           >
-            <MaterialIcon name="close" className="text-[20px]" />
-          </button>
+            {creating ? "Add stat" : "Edit stat"}
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            {creating ? "Add a number and a short label." : "Update this stat."}
+          </p>
         </div>
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
-            <MaterialIcon name={draft.icon || "notes"} className="text-[22px] text-primary" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-neutral-950">{draft.value.trim() || "Value"}</p>
-              <p className="truncate text-xs text-neutral-500">{draft.label.trim() || "Label"}</p>
-            </div>
-          </div>
-          <div>
-            <FieldLabel>Icon</FieldLabel>
-            <div className="flex flex-wrap gap-1.5">
-              {iconChoices(draft.icon).map((icon) => (
-                <button
-                  key={icon.name}
-                  type="button"
-                  aria-pressed={draft.icon === icon.name}
-                  aria-label={icon.label}
-                  onClick={() => setDraft({ ...draft, icon: icon.name })}
-                  className={cn(
-                    "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                    draft.icon === icon.name ? "bg-primary/10 text-primary ring-primary/30" : "bg-white text-neutral-600 ring-neutral-200",
-                  )}
-                >
-                  <MaterialIcon name={icon.name} className="text-[20px]" />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <FieldLabel htmlFor={valueId}>
-              Value <span className="text-red-700">*</span>
-            </FieldLabel>
-            <input
-              id={valueId}
-              autoFocus
-              value={draft.value}
-              onChange={(event) => {
-                setDraft({ ...draft, value: event.target.value });
-                setValueError("");
-              }}
-              aria-invalid={valueError ? true : undefined}
-              aria-describedby={valueError ? `${valueId}-error` : undefined}
-              className={cn(adminFieldClass, valueError && "border-red-400")}
-            />
-            {valueError ? (
-              <div id={`${valueId}-error`}>
-                <FieldError message={valueError} />
-              </div>
-            ) : null}
-          </div>
-          <div>
-            <FieldLabel htmlFor={labelId}>
-              Label <span className="text-red-700">*</span>
-            </FieldLabel>
-            <input
-              id={labelId}
-              value={draft.label}
-              onChange={(event) => {
-                setDraft({ ...draft, label: event.target.value });
-                setLabelError("");
-              }}
-              aria-invalid={labelError ? true : undefined}
-              aria-describedby={labelError ? `${labelId}-error` : undefined}
-              className={cn(adminFieldClass, labelError && "border-red-400")}
-            />
-            {labelError ? (
-              <div id={`${labelId}-error`}>
-                <FieldError message={labelError} />
-              </div>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-          {notice ? (
-            <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
-              {notice}
+        <button
+          type="button"
+          data-form-dismiss=""
+          aria-label="Close"
+          title="Close"
+          onClick={onClose}
+          className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <MaterialIcon name="close" className="text-[20px]" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <ActiveStatusField
+          checked={draft.isActive !== false}
+          onChange={(isActive) => setDraft({ ...draft, isActive })}
+        />
+        <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
+          <MaterialIcon
+            name={draft.icon || "notes"}
+            className="text-[22px] text-primary"
+          />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-neutral-950">
+              {draft.value.trim() || "Value"}
             </p>
+            <p className="truncate text-xs text-neutral-500">
+              {draft.label.trim() || "Label"}
+            </p>
+          </div>
+        </div>
+        <div>
+          <FieldLabel>Icon</FieldLabel>
+          <div className="flex flex-wrap gap-1.5">
+            {iconChoices(draft.icon).map((icon) => (
+              <button
+                key={icon.name}
+                type="button"
+                aria-pressed={draft.icon === icon.name}
+                aria-label={icon.label}
+                onClick={() => setDraft({ ...draft, icon: icon.name })}
+                className={cn(
+                  "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  draft.icon === icon.name
+                    ? "bg-primary/10 text-primary ring-primary/30"
+                    : "bg-white text-neutral-600 ring-neutral-200",
+                )}
+              >
+                <MaterialIcon name={icon.name} className="text-[20px]" />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <FieldLabel htmlFor={valueId}>
+            Value <span className="text-red-700">*</span>
+          </FieldLabel>
+          <input
+            id={valueId}
+            autoFocus
+            value={draft.value}
+            placeholder="64"
+            onChange={(event) => {
+              setDraft({ ...draft, value: event.target.value });
+              setValueError("");
+            }}
+            aria-invalid={valueError ? true : undefined}
+            aria-describedby={valueError ? `${valueId}-error` : undefined}
+            className={cn(adminFieldClass, valueError && "border-red-400")}
+          />
+          {valueError ? (
+            <div id={`${valueId}-error`}>
+              <FieldError message={valueError} />
+            </div>
           ) : null}
-          <button type="button" onClick={onClose} className={adminButtonClass.secondary}>
-            Cancel
-          </button>
-          <button type="button" onClick={save} disabled={saving} className={adminButtonClass.primary}>
-            {saving ? "Saving…" : creating ? "Save stat" : "Save changes"}
-          </button>
+        </div>
+        <div>
+          <FieldLabel htmlFor={labelId}>
+            Label <span className="text-red-700">*</span>
+          </FieldLabel>
+          <input
+            id={labelId}
+            value={draft.label}
+            placeholder="Districts we deliver to"
+            onChange={(event) => {
+              setDraft({ ...draft, label: event.target.value });
+              setLabelError("");
+            }}
+            aria-invalid={labelError ? true : undefined}
+            aria-describedby={labelError ? `${labelId}-error` : undefined}
+            className={cn(adminFieldClass, labelError && "border-red-400")}
+          />
+          {labelError ? (
+            <div id={`${labelId}-error`}>
+              <FieldError message={labelError} />
+            </div>
+          ) : null}
         </div>
       </div>
-    </div>
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+        {notice ? (
+          <p
+            role="status"
+            className="mr-auto text-sm font-medium text-emerald-800"
+          >
+            {notice}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          data-form-dismiss=""
+          onClick={onClose}
+          className={adminButtonClass.secondary}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className={adminButtonClass.primary}
+        >
+          {saving ? "Saving…" : creating ? "Save stat" : "Save changes"}
+        </button>
+      </div>
+    </AdminFormModal>
+    </FormCloseGuard>
   );
 }
 

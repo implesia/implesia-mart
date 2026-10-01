@@ -8,6 +8,7 @@ import {
   type AboutStoryBlock,
 } from "@/lib/mart-mock/about-sections";
 import { useAboutSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -15,11 +16,12 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 
 export function BrandStory({ className }: { className?: string }) {
   const { stories } = useAboutSections();
-  if (!stories.length) return null;
+  const visible = stories.filter(isContentActive);
+  if (!visible.length) return null;
 
   return (
     <div className={className}>
-      {stories.map((story) => (
+      {visible.map((story) => (
         <StoryBlock key={story.id} story={story} />
       ))}
     </div>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -34,7 +35,7 @@ export function SustainabilityQuality({ className }: { className?: string }) {
             </p>
 
             <ol className="mt-5 space-y-3">
-              {quality.steps.map((step, index) => (
+              {quality.steps.filter(isContentActive).map((step, index) => (
                 <li key={step.id} className="flex items-start gap-3">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                     {index + 1}
@@ -45,7 +46,7 @@ export function SustainabilityQuality({ className }: { className?: string }) {
             </ol>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              {quality.badges.map((badge) => (
+              {quality.badges.filter(isContentActive).map((badge) => (
                 <span
                   key={badge.id}
                   className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"

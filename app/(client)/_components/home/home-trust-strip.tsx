@@ -3,13 +3,15 @@
 import Link from "next/link";
 
 import { useHomeSections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
 export function HomeTrustStrip() {
   const { trust } = useHomeSections();
-  if (trust.length === 0) return null;
+  const visible = trust.filter(isContentActive);
+  if (visible.length === 0) return null;
 
   return (
     <section
@@ -18,7 +20,7 @@ export function HomeTrustStrip() {
     >
       <Container className="px-4 sm:px-6 lg:px-8">
         <ul className="grid grid-cols-3 divide-x divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
-          {trust.map((item) => (
+          {visible.map((item) => (
             <li key={item.id}>
               <Link
                 href={item.href || "/shipping-returns"}

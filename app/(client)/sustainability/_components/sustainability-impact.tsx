@@ -1,6 +1,7 @@
 "use client";
 
 import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -21,7 +22,7 @@ export function SustainabilityImpact({ className }: { className?: string }) {
           <p className="text-sm leading-relaxed text-neutral-600">{impact.subtitle}</p>
         </div>
         <ul className="grid grid-cols-2 divide-x divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:grid-cols-4 lg:divide-y-0">
-          {impact.stats.map((stat) => (
+          {impact.stats.filter(isContentActive).map((stat) => (
             <li
               key={stat.id}
               className="flex flex-col items-center justify-center gap-1 px-3 py-3.5 text-center sm:flex-row sm:gap-2.5 sm:px-4 sm:py-4 sm:text-left"
