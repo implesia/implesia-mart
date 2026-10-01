@@ -128,7 +128,7 @@ export function StockStatusBadge({ status }: { status: StockStatus }) {
 }
 
 export const adminFieldClass =
-  "h-11 w-full rounded-xl border border-neutral-200 bg-[#f5f6f8] px-3.5 text-sm text-neutral-950 shadow-none outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/30";
+  "h-11 w-full rounded-xl border border-neutral-200 bg-[#f5f6f8] px-3.5 text-sm text-neutral-950 shadow-none outline-none placeholder:text-neutral-400 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/30";
 
 export function FieldLabel({
   htmlFor,

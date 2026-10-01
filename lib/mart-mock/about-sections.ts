@@ -66,7 +66,8 @@ export type AboutStoryBlock = {
   images: AboutImage[];
 };
 
-export type AboutDressContent = {
+export type AboutDressBlock = {
+  id: string;
   kicker: string;
   title: string;
   subtitle: string;
@@ -91,6 +92,7 @@ export type AboutHowContent = {
 };
 
 export type AboutCtaContent = {
+  isActive: boolean;
   title: string;
   subtitle: string;
   primaryCta: AboutLink;
@@ -101,7 +103,7 @@ export type AboutSections = {
   hero: AboutHeroContent;
   stats: AboutStatItem[];
   stories: AboutStoryBlock[];
-  customDresses: AboutDressContent;
+  dresses: AboutDressBlock[];
   mission: { vision: AboutCard; mission: AboutCard };
   values: AboutValuesContent;
   howItWorks: AboutHowContent;
@@ -128,7 +130,7 @@ function writeJson(key: string, value: unknown) {
 }
 
 function newId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}`;
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 function bnStep(n: number) {
@@ -191,24 +193,27 @@ export function seedAboutSections(): AboutSections {
         })),
       },
     ],
-    customDresses: {
-      kicker: customDresses.kicker,
-      title: customDresses.title,
-      subtitle: customDresses.subtitle,
-      features: customDresses.features.map((item, index) => ({
-        id: `dress-feature-${index + 1}`,
-        icon: item.icon,
-        title: item.title,
-        description: item.description,
-      })),
-      primaryCta: link(customDresses.primaryCta),
-      secondaryCta: link(customDresses.secondaryCta),
-      gallery: customDresses.gallery.map((image, index) => ({
-        id: `dress-image-${index + 1}`,
-        src: image.src,
-        alt: image.alt,
-      })),
-    },
+    dresses: [
+      {
+        id: "dress-1",
+        kicker: customDresses.kicker,
+        title: customDresses.title,
+        subtitle: customDresses.subtitle,
+        features: customDresses.features.map((item, index) => ({
+          id: `dress-feature-${index + 1}`,
+          icon: item.icon,
+          title: item.title,
+          description: item.description,
+        })),
+        primaryCta: link(customDresses.primaryCta),
+        secondaryCta: link(customDresses.secondaryCta),
+        gallery: customDresses.gallery.map((image, index) => ({
+          id: `dress-image-${index + 1}`,
+          src: image.src,
+          alt: image.alt,
+        })),
+      },
+    ],
     mission: {
       vision: { ...missionVision.vision },
       mission: { ...missionVision.mission },
@@ -237,6 +242,7 @@ export function seedAboutSections(): AboutSections {
       })),
     },
     cta: {
+      isActive: true,
       title: shopCta.title,
       subtitle: shopCta.subtitle,
       primaryCta: link(shopCta.primaryCta),
@@ -247,6 +253,7 @@ export function seedAboutSections(): AboutSections {
 
 type StoredAboutSections = Partial<AboutSections> & {
   story?: Omit<AboutStoryBlock, "id"> & { id?: string };
+  customDresses?: Omit<AboutDressBlock, "id"> & { id?: string };
 };
 
 export function readAboutSections(): AboutSections {
@@ -264,20 +271,7 @@ export function readAboutSections(): AboutSections {
     },
     stats: stored.stats ?? seed.stats,
     stories: readStories(seed.stories, stored),
-    customDresses: {
-      ...seed.customDresses,
-      ...stored.customDresses,
-      primaryCta: {
-        ...seed.customDresses.primaryCta,
-        ...stored.customDresses?.primaryCta,
-      },
-      secondaryCta: {
-        ...seed.customDresses.secondaryCta,
-        ...stored.customDresses?.secondaryCta,
-      },
-      features: stored.customDresses?.features ?? seed.customDresses.features,
-      gallery: stored.customDresses?.gallery ?? seed.customDresses.gallery,
-    },
+    dresses: readDresses(seed.dresses, stored),
     mission: {
       vision: { ...seed.mission.vision, ...stored.mission?.vision },
       mission: { ...seed.mission.mission, ...stored.mission?.mission },
@@ -295,6 +289,7 @@ export function readAboutSections(): AboutSections {
     cta: {
       ...seed.cta,
       ...stored.cta,
+      isActive: stored.cta?.isActive ?? true,
       primaryCta: { ...seed.cta.primaryCta, ...stored.cta?.primaryCta },
       secondaryCta: { ...seed.cta.secondaryCta, ...stored.cta?.secondaryCta },
     },
@@ -313,6 +308,19 @@ export function blankParagraph(): AboutParagraph {
   return { id: newId("paragraph"), text: "" };
 }
 
+export function blankDress(): AboutDressBlock {
+  return {
+    id: newId("dress"),
+    kicker: "",
+    title: "",
+    subtitle: "",
+    features: [blankFeature()],
+    primaryCta: { label: "", href: "" },
+    secondaryCta: { label: "", href: "" },
+    gallery: [],
+  };
+}
+
 export function blankStory(): AboutStoryBlock {
   return {
     id: newId("story"),
@@ -320,7 +328,7 @@ export function blankStory(): AboutStoryBlock {
     title: "",
     paragraphs: [blankParagraph()],
     cta: { label: "", href: "" },
-    images: [blankAboutImage()],
+    images: [],
   };
 }
 
@@ -350,6 +358,49 @@ function readStories(
     ];
   }
   return seed;
+}
+
+function readDresses(seed: AboutDressBlock[], stored: StoredAboutSections): AboutDressBlock[] {
+  if (Array.isArray(stored.dresses)) return stored.dresses.map((item, index) => normalizeDress(item, index));
+  if (stored.customDresses) {
+    const base = seed[0];
+    const saved = stored.customDresses;
+    return [
+      normalizeDress(
+        {
+          id: "dress-1",
+          kicker: saved.kicker ?? base?.kicker,
+          title: saved.title ?? base?.title,
+          subtitle: saved.subtitle ?? base?.subtitle,
+          features: saved.features ?? base?.features,
+          primaryCta: {
+            label: saved.primaryCta?.label ?? base?.primaryCta.label ?? "",
+            href: saved.primaryCta?.href ?? base?.primaryCta.href ?? "",
+          },
+          secondaryCta: {
+            label: saved.secondaryCta?.label ?? base?.secondaryCta.label ?? "",
+            href: saved.secondaryCta?.href ?? base?.secondaryCta.href ?? "",
+          },
+          gallery: saved.gallery ?? base?.gallery,
+        },
+        0,
+      ),
+    ];
+  }
+  return seed;
+}
+
+function normalizeDress(item: Partial<AboutDressBlock>, index: number): AboutDressBlock {
+  return {
+    id: item.id || `dress-${index + 1}`,
+    kicker: item.kicker ?? "",
+    title: item.title ?? "",
+    subtitle: item.subtitle ?? "",
+    features: item.features ?? [],
+    primaryCta: { label: item.primaryCta?.label ?? "", href: item.primaryCta?.href ?? "" },
+    secondaryCta: { label: item.secondaryCta?.label ?? "", href: item.secondaryCta?.href ?? "" },
+    gallery: item.gallery ?? [],
+  };
 }
 
 function normalizeStory(

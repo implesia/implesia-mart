@@ -7,7 +7,6 @@ import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankAboutImage,
   blankParagraph,
   blankStory,
   readAboutSections,
@@ -24,7 +23,7 @@ import {
   FieldError,
   FieldLabel,
 } from "../../../_components/admin-ui";
-import { ImageField } from "../../../_components/image-field";
+import { ImageField, MultiImageUpload } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
 
 export function AboutStoryEditor() {
@@ -450,6 +449,7 @@ function StoryForm({
               <input
                 id={`${formId}-kicker`}
                 value={story.kicker}
+                placeholder="Short line above the title"
                 onChange={(event) =>
                   setStory({ ...story, kicker: event.target.value })
                 }
@@ -462,6 +462,7 @@ function StoryForm({
                 id={`${formId}-title`}
                 autoFocus
                 value={story.title}
+                placeholder="What this story is about"
                 onChange={(event) => {
                   setStory({ ...story, title: event.target.value });
                   setError("");
@@ -476,6 +477,7 @@ function StoryForm({
                   <textarea
                     value={paragraph.text}
                     rows={4}
+                    placeholder="A few lines of the story"
                     aria-label={`Paragraph ${index + 1}`}
                     onChange={(event) => {
                       setStory({
@@ -541,6 +543,7 @@ function StoryForm({
               <input
                 id={`${formId}-button-label`}
                 value={story.cta.label}
+                placeholder="See all products"
                 onChange={(event) => {
                   setStory({
                     ...story,
@@ -576,36 +579,43 @@ function StoryForm({
           className="border-t border-neutral-100 pt-5"
           aria-labelledby={`${formId}-images`}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3
-                id={`${formId}-images`}
-                className="text-sm font-semibold text-neutral-950"
-              >
-                Image
-              </h3>
-              <p className="mt-1 text-sm text-neutral-500">
-                Optional photos beside the story. Two fit in each row on the
-                about page.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                setStory({
-                  ...story,
-                  images: [...story.images, blankAboutImage()],
-                })
-              }
-              className={adminButtonClass.secondary}
+          <div>
+            <h3
+              id={`${formId}-images`}
+              className="text-sm font-semibold text-neutral-950"
             >
-              Add image
-            </button>
+              Images
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              Optional photos beside the story. Pick or drop several images at
+              once. Two fit in each row on the about page.
+            </p>
+          </div>
+          <div className="mt-3">
+            <MultiImageUpload
+              inputId={`${formId}-upload`}
+              onBusy={(busy) =>
+                setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
+              }
+              onUploaded={(srcs) =>
+                setStory((current) => ({
+                  ...current,
+                  images: [
+                    ...current.images,
+                    ...srcs.map((src, index) => ({
+                      id: `image-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 6)}`,
+                      src,
+                      alt: "",
+                    })),
+                  ],
+                }))
+              }
+            />
           </div>
           {story.images.length === 0 ? (
             <p className="mt-3 text-sm text-neutral-500">No photos yet.</p>
           ) : null}
-          <ul className="mt-3 space-y-3">
+          <ul className={cn("space-y-3", story.images.length > 0 && "mt-3")}>
             {story.images.map((image, index) => (
               <li key={image.id} className="rounded-xl bg-[#f5f6f8] p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
@@ -648,6 +658,7 @@ function StoryForm({
                   </span>
                   <input
                     value={image.alt}
+                    placeholder="What the picture shows"
                     aria-label={`Description for image ${index + 1}`}
                     onChange={(event) =>
                       setStory({
