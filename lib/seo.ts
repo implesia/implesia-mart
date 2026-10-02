@@ -4,7 +4,7 @@
  * per-file.
  */
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.impleasia.com"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://mart.implesia.com"
 ).replace(/\/+$/, "");
 
 export const SITE_NAME = "Implesia Mart";

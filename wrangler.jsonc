@@ -13,5 +13,27 @@
   },
   "images": {
     "binding": "IMAGES"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "VINEXT_KV_CACHE",
+      "id": "a9d00deab7364056a3ac299b743d9c98"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true
+    }
+  },
+  "routes": [
+    {
+      "pattern": "mart.implesia.com",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://mart.implesia.com",
+    "NEXT_PUBLIC_MART_API_URL": "https://mart-api.implesia.com"
   }
 }

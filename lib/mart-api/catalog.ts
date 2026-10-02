@@ -3,7 +3,9 @@ import { cache } from "react";
 import {
   categoryLabels,
   placeholderImage,
+  products as staticProducts,
 } from "@/app/(client)/_data/products/products";
+import { getProductDetailBySlug } from "@/app/(client)/_data/products/product-details";
 import type {
   ProductDetail,
   ProductSpecGroupId,
@@ -258,14 +260,17 @@ export const listStoreProducts = cache(async (): Promise<Product[]> => {
     pages = body.pages ?? 1;
     page += 1;
   }
-  return all;
+  // Production catalog is empty until products are published in admin.
+  // Keep the existing storefront visible until then.
+  return all.length > 0 ? all : staticProducts;
 });
 
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
     const list = await listStoreProducts();
     const card = list.find((product) => product.slug === slug);
-    if (!card || !catalogProductId(card.id)) return null;
+    if (!card) return null;
+    if (!catalogProductId(card.id)) return getProductDetailBySlug(slug);
     const detail = await readJson<ApiDetail>(`/api/v1/products/${card.id}`);
     if (!detail || detail.slug !== slug) return null;
     return mapDetail(detail, await getStoreDeliveryRates());
