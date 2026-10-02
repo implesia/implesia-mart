@@ -74,6 +74,7 @@ export type MockOrder = {
 };
 
 export type AdminProduct = {
+  id?: string;
   slug: string;
   title: string;
   subtitle: string;
@@ -122,6 +123,7 @@ export const DEFAULT_DELIVERY: DeliveryCharges = {
 
 export type AdminSession = {
   email: string;
+  accessToken: string;
 };
 
 function emitMockChange() {
@@ -539,16 +541,19 @@ export function readSession(): AdminSession | null {
     const raw = window.sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AdminSession;
-    if (!parsed?.email?.trim()) return null;
-    return { email: parsed.email.trim() };
+    if (!parsed?.email?.trim() || !parsed.accessToken) return null;
+    return { email: parsed.email.trim(), accessToken: parsed.accessToken };
   } catch {
     return null;
   }
 }
 
-export function writeSession(email: string) {
+export function writeSession(email: string, accessToken: string) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: email.trim() }));
+  window.sessionStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ email: email.trim(), accessToken }),
+  );
 }
 
 export function clearSession() {

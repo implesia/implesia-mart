@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { MartApiError, loginMart } from "@/lib/mart-api/products";
 import { writeSession } from "@/lib/mart-mock/store";
 
 import { adminFieldClass, FieldError, FieldLabel } from "../_components/admin-ui";
@@ -13,17 +14,27 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+  const [pending, setPending] = useState(false);
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
-    const next: { email?: string; password?: string } = {};
+    const next: { email?: string; password?: string; form?: string } = {};
     if (!email.trim()) next.email = "Enter an email.";
     if (!password.trim()) next.password = "Enter a password.";
     setErrors(next);
-    if (next.email || next.password) return;
-    writeSession(email);
-    router.replace("/admin");
+    if (next.email || next.password || pending) return;
+    setPending(true);
+    try {
+      const accessToken = await loginMart(email.trim(), password);
+      writeSession(email, accessToken);
+      router.replace("/admin");
+    } catch (error) {
+      setPending(false);
+      setErrors({
+        form: error instanceof MartApiError ? error.message : "Sign in failed.",
+      });
+    }
   }
 
   return (
@@ -31,9 +42,11 @@ export default function AdminLoginPage() {
       <div className="rounded-2xl bg-white p-5 ring-1 ring-neutral-200/90 sm:p-6">
         <p className="text-xs font-medium tracking-wide text-primary">Implesia Mart</p>
         <h1 className="mt-1 text-2xl font-semibold text-neutral-950">Admin login</h1>
-        <p className="mt-3 rounded-xl bg-primary/10 px-3 py-2 text-xs leading-relaxed text-[#0b3d39]">
-          Login is a design placeholder. Real authentication comes later.
-        </p>
+        {errors.form ? (
+          <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700">
+            {errors.form}
+          </p>
+        ) : null}
 
         <form onSubmit={submit} className="mt-5 flex flex-col gap-4" noValidate>
           <div>
@@ -64,9 +77,10 @@ export default function AdminLoginPage() {
           </div>
           <button
             type="submit"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white transition-colors hover:bg-primary/80"
+            disabled={pending}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white transition-colors hover:bg-primary/80 disabled:opacity-60"
           >
-            Sign in
+            {pending ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

@@ -18,14 +18,17 @@ import type {
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { cn } from "@/lib/utils";
 import {
+  deleteMartProduct,
+  MartApiError,
+  saveMartProduct,
+} from "@/lib/mart-api/products";
+import {
   cleanProductContent,
   emptyProductContent,
   type ProductStorefrontContent,
 } from "@/lib/mart-mock/product-content";
 import {
-  createAdminProduct,
   formatTaka,
-  saveAdminProduct,
   type AdminProduct,
   type ProductDraft,
   type StockStatus,
@@ -184,6 +187,8 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const [baseline] = useState<FormState>(() => toForm(product));
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
   const uploads = useRef(0);
   const [active, setActive] = useState<SectionId>("product-information");
@@ -305,7 +310,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     if (href) router.push(href);
   }
 
-  function save(event: React.FormEvent) {
+  async function save(event: React.FormEvent) {
     event.preventDefault();
     const nextErrors = validate(form);
     if (Object.keys(nextErrors).length > 0) {
@@ -317,9 +322,17 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     if (uploading || saving) return;
 
     const price = Number(form.price);
+    if (!Number.isInteger(price)) {
+      setSaveError("Enter the price as a whole number of taka.");
+      return;
+    }
     const compareAtPrice = form.compareAtPrice.trim()
       ? Number(form.compareAtPrice)
       : null;
+    if (compareAtPrice != null && !Number.isInteger(compareAtPrice)) {
+      setSaveError("Enter the compare-at price as a whole number of taka.");
+      return;
+    }
     const quantity = form.quantity.trim() ? Number(form.quantity) : null;
     const draft: ProductDraft = {
       title: form.title.trim(),
@@ -339,18 +352,39 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       }),
     };
 
+    setSaveError("");
     setSaving(true);
-    bypassLeave.current = true;
-    if (product) {
-      saveAdminProduct({
-        ...draft,
-        slug: product.slug,
-        custom: product.custom,
-      });
-    } else {
-      createAdminProduct(draft);
+    try {
+      await saveMartProduct(product?.id, draft);
+      bypassLeave.current = true;
+      router.push("/admin/products");
+    } catch (error) {
+      setSaving(false);
+      setSaveError(
+        error instanceof MartApiError
+          ? error.message
+          : "The product could not be saved.",
+      );
     }
-    router.push("/admin/products");
+  }
+
+  async function removeProduct() {
+    if (!product?.id || saving) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await deleteMartProduct(product.id);
+      bypassLeave.current = true;
+      router.push("/admin/products");
+    } catch (error) {
+      setSaving(false);
+      setConfirmDelete(false);
+      setSaveError(
+        error instanceof MartApiError
+          ? error.message
+          : "The product could not be deleted.",
+      );
+    }
   }
 
   const statusLine = uploading
@@ -379,6 +413,11 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             : "Add product information, pricing, inventory, media, and storefront details."
         }
       />
+      {saveError ? (
+        <p className="-mt-3 mb-5 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          {saveError}
+        </p>
+      ) : null}
       {product ? (
         <div className="-mt-3 mb-5 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 ring-1 ring-neutral-200">
@@ -405,6 +444,34 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           >
             View on site
           </Link>
+          {product.id ? (
+            confirmDelete ? (
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void removeProduct()}
+                  className="h-8 rounded-full px-3 text-xs font-semibold text-red-700 hover:bg-red-50"
+                >
+                  Delete product
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="h-8 rounded-full px-3 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+                >
+                  Keep
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="h-8 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
+              >
+                Delete
+              </button>
+            )
+          ) : null}
         </div>
       ) : null}
 
@@ -512,7 +579,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             />
             {!form.imageSrc ? (
               <p className="mt-2 text-sm text-neutral-500">
-                No image yet. You can still save the product.
+                Add a product image before saving.
               </p>
             ) : null}
             <div className="mt-3">

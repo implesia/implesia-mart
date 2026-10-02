@@ -3,14 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
-import { useAdminProducts } from "@/lib/mart-mock/hooks";
+import {
+  listMartProducts,
+  MartApiError,
+  patchMartProduct,
+  type ProductListResult,
+} from "@/lib/mart-api/products";
 import {
   formatTaka,
-  saveAdminProduct,
   type AdminProduct,
   type StockStatus,
 } from "@/lib/mart-mock/store";
@@ -63,7 +67,6 @@ function isVisibility(value: string | null): value is Visibility {
 function ProductsView() {
   const params = useSearchParams();
   const router = useRouter();
-  const products = useAdminProducts();
   const category = isCategory(params.get("category"))
     ? (params.get("category") as ProductCategoryId)
     : null;
@@ -79,10 +82,97 @@ function ProductsView() {
   const minPrice = params.get("min") ?? "";
   const maxPrice = params.get("max") ?? "";
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(
     Boolean(minPrice || maxPrice || visibility),
   );
   const [pageState, setPageState] = useState({ key: "", page: 0 });
+  const [list, setList] = useState<ProductListResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const filterKey = `${params.toString()}|${debouncedQuery}`;
+  const page = pageState.key === filterKey ? pageState.page : 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    listMartProducts({
+      q: debouncedQuery,
+      category,
+      status,
+      visibility,
+      minPrice,
+      maxPrice,
+      sort,
+      page: page + 1,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setList(result);
+        setError("");
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        setError(
+          loadError instanceof MartApiError
+            ? loadError.message
+            : "Could not load products.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    debouncedQuery,
+    category,
+    status,
+    visibility,
+    minPrice,
+    maxPrice,
+    sort,
+    page,
+  ]);
+
+  async function updateRow(
+    product: AdminProduct,
+    patch: { status?: StockStatus; published?: boolean },
+  ) {
+    if (!product.id || pendingId) return;
+    setPendingId(product.id);
+    setError("");
+    try {
+      await patchMartProduct(product.id, patch);
+      const result = await listMartProducts({
+        q: debouncedQuery,
+        category,
+        status,
+        visibility,
+        minPrice,
+        maxPrice,
+        sort,
+        page: page + 1,
+      });
+      setList(result);
+    } catch (updateError) {
+      setError(
+        updateError instanceof MartApiError
+          ? updateError.message
+          : "The product could not be updated.",
+      );
+    } finally {
+      setPendingId(null);
+    }
+  }
 
   function hrefWith(patch: Record<string, string | null>) {
     const search = new URLSearchParams(params.toString());
@@ -98,65 +188,20 @@ function ProductsView() {
     router.replace(hrefWith({ [key]: value }), { scroll: false });
   }
 
-  if (!products) return <ProductsSkeleton />;
+  if (loading && !list) return <ProductsSkeleton />;
 
-  const inCategory = category
-    ? products.filter((product) => product.categoryId === category)
-    : products;
-  const priced = inCategory.filter(
-    (product) =>
-      inPrice(product, minPrice, maxPrice) && inVisibility(product, visibility),
-  );
-  const pool = status
-    ? priced.filter((product) => product.status === status)
-    : priced;
-  const categoryCounts = {
-    all: products.filter(
-      (product) =>
-        inPrice(product, minPrice, maxPrice) &&
-        inVisibility(product, visibility) &&
-        (!status || product.status === status),
-    ).length,
-    gadgets: products.filter(
-      (product) =>
-        product.categoryId === "gadgets" &&
-        inPrice(product, minPrice, maxPrice) &&
-        inVisibility(product, visibility) &&
-        (!status || product.status === status),
-    ).length,
-    fashion: products.filter(
-      (product) =>
-        product.categoryId === "fashion" &&
-        inPrice(product, minPrice, maxPrice) &&
-        inVisibility(product, visibility) &&
-        (!status || product.status === status),
-    ).length,
-  };
-  const needle = query.trim().toLowerCase();
-  const matched = pool.filter((product) => {
-    if (!needle) return true;
-    return [
-      product.title,
-      product.subtitle,
-      product.slug,
-      ADMIN_CATEGORY_LABEL[product.categoryId],
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(needle);
-  });
-  const visible =
-    sort === "catalog"
-      ? matched
-      : [...matched].sort((a, b) => compareProducts(a, b, sort));
-  const filterKey = `${params.toString()}|${query}`;
-  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
-  const storedPage = pageState.key === filterKey ? pageState.page : 0;
-  const page = Math.min(storedPage, pageCount - 1);
-  const pageRows = visible.slice(
-    page * PAGE_SIZE,
-    page * PAGE_SIZE + PAGE_SIZE,
-  );
+  const rows = list?.items ?? [];
+  const total = list?.total ?? 0;
+  const pageCount = list?.pages ?? 0;
+  const metrics = list?.metrics ?? { total: 0, live: 0, hidden: 0, soldOut: 0 };
+  const categoryCounts = list?.categoryCounts ?? { all: 0, gadgets: 0, fashion: 0 };
+  const catalogEmpty =
+    categoryCounts.all === 0 &&
+    !status &&
+    !visibility &&
+    !minPrice &&
+    !maxPrice &&
+    !debouncedQuery;
   const advanced = Boolean(
     minPrice ||
     maxPrice ||
@@ -193,35 +238,28 @@ function ProductsView() {
         <Metric
           href={hrefWith({ status: null, visibility: null })}
           label="Products"
-          value={String(inCategory.length)}
+          value={String(metrics.total)}
           hint="In the current category"
           active={!status && !visibility}
         />
         <Metric
           href={hrefWith({ visibility: "live", status: null })}
           label="Live"
-          value={String(
-            inCategory.filter((product) => product.published).length,
-          )}
+          value={String(metrics.live)}
           hint="Published on the store"
           active={visibility === "live"}
         />
         <Metric
           href={hrefWith({ visibility: "hidden", status: null })}
           label="Hidden"
-          value={String(
-            inCategory.filter((product) => !product.published).length,
-          )}
+          value={String(metrics.hidden)}
           hint="Saved, not on the store"
           active={visibility === "hidden"}
         />
         <Metric
           href={hrefWith({ status: "sold-out", visibility: null })}
           label="Sold out"
-          value={String(
-            inCategory.filter((product) => product.status === "sold-out")
-              .length,
-          )}
+          value={String(metrics.soldOut)}
           hint="Unavailable to buy"
           active={status === "sold-out"}
         />
@@ -368,15 +406,20 @@ function ProductsView() {
           ))}
         </div>
 
-        {visible.length === 0 ? (
+        {error ? (
+          <p className="border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
+        {total === 0 ? (
           <AdminEmpty
             title={
-              products.length === 0
+              catalogEmpty
                 ? "No products have been added yet."
                 : "No products match your current filters."
             }
             detail={
-              products.length === 0
+              catalogEmpty
                 ? undefined
                 : "Clear a filter or try another search."
             }
@@ -384,11 +427,14 @@ function ProductsView() {
         ) : (
           <>
             <ul className="divide-y divide-neutral-100 lg:hidden">
-              {pageRows.map((product, index) => (
+              {rows.map((product, index) => (
                 <ProductCard
-                  key={product.slug}
+                  key={product.id}
                   product={product}
                   index={page * PAGE_SIZE + index + 1}
+                  pending={pendingId === product.id}
+                  onStock={(status) => updateRow(product, { status })}
+                  onPublished={(published) => updateRow(product, { published })}
                 />
               ))}
             </ul>
@@ -421,11 +467,16 @@ function ProductsView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pageRows.map((product, index) => (
+                  {rows.map((product, index) => (
                     <ProductRow
-                      key={product.slug}
+                      key={product.id}
                       product={product}
                       index={page * PAGE_SIZE + index + 1}
+                      pending={pendingId === product.id}
+                      onStock={(next) => updateRow(product, { status: next })}
+                      onPublished={(published) =>
+                        updateRow(product, { published })
+                      }
                     />
                   ))}
                 </tbody>
@@ -434,12 +485,12 @@ function ProductsView() {
             <ProductsPager
               page={page}
               pageCount={pageCount}
-              total={visible.length}
+              total={total}
               onPage={(next) => setPageState({ key: filterKey, page: next })}
             />
           </>
         )}
-        {products.length === 0 ? (
+        {catalogEmpty ? (
           <div className="border-t border-neutral-100 px-4 py-3 text-center">
             <Link
               href="/admin/products/new"
@@ -449,7 +500,7 @@ function ProductsView() {
             </Link>
           </div>
         ) : null}
-        {products.length > 0 && visible.length === 0 ? (
+        {!catalogEmpty && total === 0 ? (
           <div className="border-t border-neutral-100 px-4 py-3 text-center">
             <button
               type="button"
@@ -643,12 +694,18 @@ function FilterAmount({
 function ProductRow({
   product,
   index,
+  pending,
+  onStock,
+  onPublished,
 }: {
   product: AdminProduct;
   index: number;
+  pending: boolean;
+  onStock: (status: StockStatus) => void;
+  onPublished: (published: boolean) => void;
 }) {
   const router = useRouter();
-  const href = `/admin/products/${product.slug}`;
+  const href = `/admin/products/${product.id}`;
   const pinned =
     "border-b border-neutral-100 xl:sticky xl:z-10 xl:bg-white xl:group-hover:bg-neutral-50";
   return (
@@ -706,10 +763,14 @@ function ProductRow({
         <QuantityCell product={product} />
       </td>
       <td className="min-w-[10.5rem] border-b border-neutral-100 px-3 py-3 whitespace-nowrap lg:min-w-0 xl:px-4">
-        <StockSelect product={product} />
+        <StockSelect product={product} pending={pending} onChange={onStock} />
       </td>
       <td className="border-b border-neutral-100 px-3 py-3 whitespace-nowrap xl:px-4">
-        <PublishSwitch product={product} />
+        <PublishSwitch
+          product={product}
+          pending={pending}
+          onChange={onPublished}
+        />
       </td>
     </tr>
   );
@@ -718,11 +779,17 @@ function ProductRow({
 function ProductCard({
   product,
   index,
+  pending,
+  onStock,
+  onPublished,
 }: {
   product: AdminProduct;
   index: number;
+  pending: boolean;
+  onStock: (status: StockStatus) => void;
+  onPublished: (published: boolean) => void;
 }) {
-  const href = `/admin/products/${product.slug}`;
+  const href = `/admin/products/${product.id}`;
   return (
     <li className="px-4 py-3">
       <Link href={href} className="flex min-w-0 items-start gap-3">
@@ -747,8 +814,12 @@ function ProductCard({
         </span>
       </Link>
       <span className="mt-3 flex items-center justify-between gap-3 pl-[3.25rem]">
-        <StockSelect product={product} />
-        <PublishSwitch product={product} />
+        <StockSelect product={product} pending={pending} onChange={onStock} />
+        <PublishSwitch
+          product={product}
+          pending={pending}
+          onChange={onPublished}
+        />
       </span>
     </li>
   );
@@ -781,7 +852,15 @@ function QuantityCell({ product }: { product: AdminProduct }) {
   );
 }
 
-function StockSelect({ product }: { product: AdminProduct }) {
+function StockSelect({
+  product,
+  pending,
+  onChange,
+}: {
+  product: AdminProduct;
+  pending: boolean;
+  onChange: (status: StockStatus) => void;
+}) {
   return (
     <span
       className="relative inline-flex shrink-0 lg:block lg:w-full lg:min-w-0"
@@ -791,12 +870,8 @@ function StockSelect({ product }: { product: AdminProduct }) {
       <select
         aria-label={`Stock for ${product.title}`}
         value={product.status}
-        onChange={(event) =>
-          saveAdminProduct({
-            ...product,
-            status: event.target.value as StockStatus,
-          })
-        }
+        disabled={pending}
+        onChange={(event) => onChange(event.target.value as StockStatus)}
         className={cn(
           "h-8 w-max shrink-0 cursor-pointer appearance-none rounded-full py-0 pr-6 pl-2.5 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:w-full lg:max-w-full",
           STOCK_STATUS_TONE[product.status],
@@ -816,7 +891,15 @@ function StockSelect({ product }: { product: AdminProduct }) {
   );
 }
 
-function PublishSwitch({ product }: { product: AdminProduct }) {
+function PublishSwitch({
+  product,
+  pending,
+  onChange,
+}: {
+  product: AdminProduct;
+  pending: boolean;
+  onChange: (published: boolean) => void;
+}) {
   return (
     <button
       type="button"
@@ -825,9 +908,10 @@ function PublishSwitch({ product }: { product: AdminProduct }) {
       aria-label={
         product.published ? `Hide ${product.title}` : `Publish ${product.title}`
       }
+      disabled={pending}
       onClick={(event) => {
         event.stopPropagation();
-        saveAdminProduct({ ...product, published: !product.published });
+        onChange(!product.published);
       }}
       className="inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
@@ -991,36 +1075,6 @@ function ProductsSkeleton() {
       <div className="h-80 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
     </div>
   );
-}
-
-function inPrice(product: AdminProduct, minPrice: string, maxPrice: string) {
-  const min = minPrice ? Number(minPrice) : null;
-  const max = maxPrice ? Number(maxPrice) : null;
-  if (min != null && Number.isFinite(min) && product.price < min) return false;
-  if (max != null && Number.isFinite(max) && product.price > max) return false;
-  return true;
-}
-
-function inVisibility(product: AdminProduct, visibility: Visibility | null) {
-  if (visibility === "live") return product.published;
-  if (visibility === "hidden") return !product.published;
-  return true;
-}
-
-function compareProducts(a: AdminProduct, b: AdminProduct, sort: SortId) {
-  if (sort === "name-asc") return a.title.localeCompare(b.title);
-  if (sort === "name-desc") return b.title.localeCompare(a.title);
-  if (sort === "price-asc") return a.price - b.price;
-  if (sort === "price-desc") return b.price - a.price;
-  if (sort === "stock-asc") return stockRank(a) - stockRank(b);
-  if (sort === "stock-desc") return stockRank(b) - stockRank(a);
-  return 0;
-}
-
-function stockRank(product: AdminProduct) {
-  if (product.status === "sold-out") return 0;
-  if (product.quantity == null) return Number.POSITIVE_INFINITY;
-  return product.quantity;
 }
 
 export default function AdminProductsPage() {
