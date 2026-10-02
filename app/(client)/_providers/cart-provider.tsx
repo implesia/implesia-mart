@@ -56,6 +56,9 @@ const EMPTY_PRICING: CartPricing = {
   shipping: 0,
   tax: 0,
   total: 0,
+  insideDhaka: 70,
+  dhakaSuburban: 100,
+  outsideDhaka: 130,
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -78,6 +81,9 @@ function applyCart(cart: ShopCart) {
     shipping: cart.shipping,
     tax: 0,
     total: cart.total,
+    insideDhaka: cart.insideDhaka,
+    dhakaSuburban: cart.dhakaSuburban,
+    outsideDhaka: cart.outsideDhaka,
   };
   return { items, ids, pricing, itemCount: cart.itemCount };
 }
@@ -107,25 +113,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItemCount(next.itemCount);
   }, []);
 
-  const publish = useCallback(
-    (nextItems: CartLineResolved[], shipping: number) => {
-      const subtotal = nextItems.reduce((sum, item) => sum + item.lineTotal, 0);
-      const count = nextItems.reduce((sum, item) => sum + item.quantity, 0);
-      const ship = count > 0 ? shipping : 0;
-      const pricing = {
-        subtotal,
-        shipping: ship,
-        tax: 0,
-        total: subtotal + ship,
-      };
-      itemsRef.current = nextItems;
-      pricingRef.current = pricing;
-      setItems(nextItems);
-      setPricing(pricing);
-      setItemCount(count);
-    },
-    [],
-  );
+  const publish = useCallback((nextItems: CartLineResolved[]) => {
+    const subtotal = nextItems.reduce((sum, item) => sum + item.lineTotal, 0);
+    const count = nextItems.reduce((sum, item) => sum + item.quantity, 0);
+    const current = pricingRef.current;
+    const matched =
+      current.insideDhaka === current.dhakaSuburban &&
+      current.dhakaSuburban === current.outsideDhaka;
+    const ship = count > 0 && matched ? current.insideDhaka : 0;
+    const pricing = {
+      subtotal,
+      shipping: ship,
+      tax: 0,
+      total: subtotal + ship,
+      insideDhaka: current.insideDhaka,
+      dhakaSuburban: current.dhakaSuburban,
+      outsideDhaka: current.outsideDhaka,
+    };
+    itemsRef.current = nextItems;
+    pricingRef.current = pricing;
+    setItems(nextItems);
+    setPricing(pricing);
+    setItemCount(count);
+  }, []);
 
   const reloadCart = useCallback(async () => {
     const seen = epoch.current;
@@ -201,10 +211,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       desired.current.delete(slug);
       epoch.current += 1;
       inflight.current += 1;
-      publish(
-        itemsRef.current.filter((item) => item.slug !== slug),
-        pricingRef.current.shipping,
-      );
+      publish(itemsRef.current.filter((item) => item.slug !== slug));
       void removeCartItem(itemId)
         .then((cart) => {
           if (!desired.current.has(slug)) commit(cart);
@@ -240,7 +247,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             ? { ...item, quantity: next, lineTotal: item.unitPrice * next }
             : item,
         ),
-        pricingRef.current.shipping,
       );
       const ticket = (writes.current.get(slug) ?? 0) + 1;
       writes.current.set(slug, ticket);

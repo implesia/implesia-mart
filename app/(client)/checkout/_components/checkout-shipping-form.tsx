@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
 
+import type { DeliveryZone } from "@/lib/mart-api/delivery";
+
 import { useCheckoutForm } from "./checkout-form-context";
 
 type CheckoutShippingFormProps = {
@@ -38,8 +40,20 @@ function FieldError({ message }: { message?: string }) {
   return <p className="mt-1.5 text-xs text-red-500">{message}</p>;
 }
 
+const ZONES: { id: DeliveryZone; label: string; hint: string }[] = [
+  { id: "inside", label: "ঢাকার ভেতরে", hint: "শহরের মূল এলাকা" },
+  { id: "suburban", label: "ঢাকার শহরতলি", hint: "সাভার, কেরানীগঞ্জ, ধামরাই" },
+  { id: "outside", label: "ঢাকার বাইরে", hint: "অন্য সব জেলা" },
+];
+
 export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
-  const { shipping, setShippingField, errors } = useCheckoutForm();
+  const { shipping, setShippingField, errors, rates, deliveryZone, chooseDeliveryZone, pricingBusy } =
+    useCheckoutForm();
+  const prices: Record<DeliveryZone, number | null> = {
+    inside: rates?.insideDhaka ?? null,
+    suburban: rates?.dhakaSuburban ?? null,
+    outside: rates?.outsideDhaka ?? null,
+  };
 
   return (
     <section className={cn("rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5", className)}>
@@ -54,6 +68,45 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <p className="mt-1 text-sm leading-relaxed text-neutral-600">{checkoutCopy.shippingHint}</p>
         </div>
       </div>
+
+      <fieldset className="mb-5">
+        <legend className="mb-2 text-sm font-medium text-neutral-700">ডেলিভারি এলাকা</legend>
+        <div className="grid gap-2">
+          {ZONES.map((zone) => {
+            const selected = deliveryZone === zone.id;
+            const price = prices[zone.id];
+            return (
+              <label
+                key={zone.id}
+                className={cn(
+                  "flex cursor-pointer items-center gap-3 rounded-xl px-3.5 py-3 ring-1",
+                  selected ? "bg-primary/10 ring-primary" : "bg-[#f5f6f8] ring-transparent",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="delivery-zone"
+                  value={zone.id}
+                  checked={selected}
+                  disabled={pricingBusy}
+                  onChange={() => chooseDeliveryZone(zone.id)}
+                  className="size-4 accent-primary"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-neutral-950">{zone.label}</span>
+                  <span className="block text-xs text-neutral-500">{zone.hint}</span>
+                </span>
+                <span className="text-sm font-semibold tabular-nums text-neutral-950">
+                  {price == null ? "—" : `৳${price.toLocaleString("en-US")}`}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+          জেলা ও এলাকা দেখে চার্জ ঠিক হয়। ঢাকা শহরের চেয়ে দূরের এলাকায় একটু বেশি। সস্তা জোন বেছে নিলেও ঠিকানা দূর হলে সেই চার্জই বসবে।
+        </p>
+      </fieldset>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="min-w-0">

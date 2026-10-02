@@ -20,6 +20,7 @@ import type {
   ShippingHeroContent,
   ShippingSupportContent,
 } from "@/lib/mart-mock/shipping-sections";
+import type { StoreDeliveryRates } from "@/lib/mart-api/catalog";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,7 @@ import { Container } from "../../_components/common/container";
 import { JsonLd } from "../../_components/common/json-ld";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function ShippingReturnsView() {
+export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
   const sections = useShippingSections();
   const links = [
     {
@@ -206,6 +207,7 @@ export function ShippingReturnsView() {
                 showContents ? "lg:col-span-9" : "lg:col-span-12",
               )}
             >
+              <DeliveryRatesCard rates={rates} />
               {isContentActive(sections.shipping) ? (
                 <ShippingSection block={sections.shipping} />
               ) : null}
@@ -265,6 +267,39 @@ function Hero({ hero }: { hero: ShippingHeroContent }) {
           </div>
         </div>
       </Container>
+    </section>
+  );
+}
+
+function DeliveryRatesCard({ rates }: { rates: StoreDeliveryRates }) {
+  const rows = [
+    { label: "ঢাকার ভেতরে", value: rates.insideDhaka },
+    { label: "ঢাকার শহরতলি", value: rates.dhakaSuburban },
+    { label: "ঢাকার বাইরে", value: rates.outsideDhaka },
+  ];
+  return (
+    <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
+      <h2 className="mb-4 text-sm font-semibold text-neutral-950 sm:text-base">
+        ডেলিভারি চার্জ
+      </h2>
+      <ul className="space-y-2.5">
+        {rows.map((item) => (
+          <li
+            key={item.label}
+            className="flex flex-col gap-1 rounded-xl bg-[#f5f6f8] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+          >
+            <span className="text-sm font-medium text-neutral-950">
+              {item.label}
+            </span>
+            <span className="w-fit rounded-full bg-primary/12 px-3 py-1 text-xs font-semibold text-primary">
+              ৳{item.value.toLocaleString("en-US")}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs leading-relaxed text-neutral-500">
+        চেকআউটে এলাকা বেছে নিলে এই চার্জ যোগ হয়। ঢাকা শহরের চেয়ে শহরতলিতে একটু বেশি। ক্যাশ অন ডেলিভারি।
+      </p>
     </section>
   );
 }

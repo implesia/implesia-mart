@@ -1,4 +1,5 @@
 import { guestCartHeaders } from "@/lib/mart-api/cart";
+import type { DeliveryZone } from "@/lib/mart-api/delivery";
 import { MartApiError, authorizedFetch, mediaUrl } from "@/lib/mart-api/products";
 import { readSession, type OrderStatus } from "@/lib/mart-mock/store";
 
@@ -21,7 +22,7 @@ export type OrderQuote = {
   subtotal: number;
   shipping: number;
   total: number;
-  deliveryZone: "inside" | "outside";
+  deliveryZone: DeliveryZone;
 };
 
 export type MartOrderItem = {
@@ -49,7 +50,7 @@ export type MartOrder = {
   area: string;
   address: string;
   notes: string;
-  deliveryZone: "inside" | "outside";
+  deliveryZone: DeliveryZone;
   subtotal: number;
   shipping: number;
   total: number;
@@ -96,7 +97,7 @@ type ApiQuote = {
   subtotal: number;
   shipping: number;
   total: number;
-  delivery_zone: "inside" | "outside";
+  delivery_zone: DeliveryZone;
 };
 
 type ApiOrderItem = {
@@ -124,7 +125,7 @@ type ApiOrder = {
   area: string;
   address: string;
   notes: string;
-  delivery_zone: "inside" | "outside";
+  delivery_zone: DeliveryZone;
   subtotal: number;
   shipping: number;
   total: number;
@@ -204,6 +205,8 @@ async function readError(response: Response, fallback: string) {
 type QuoteInput = {
   source: "cart" | "direct";
   district: string;
+  area?: string;
+  deliveryZone?: DeliveryZone;
   items?: { productId: string; quantity: number }[];
 };
 
@@ -212,6 +215,8 @@ function quoteBody(input: QuoteInput) {
     source: input.source,
     district: input.district.trim(),
   };
+  if (input.area?.trim()) body.area = input.area.trim();
+  if (input.deliveryZone) body.delivery_zone = input.deliveryZone;
   if (input.source === "direct") {
     body.items = (input.items ?? []).map((item) => ({
       product_id: item.productId,

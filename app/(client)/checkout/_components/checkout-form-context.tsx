@@ -17,6 +17,11 @@ import {
   whenShopCartSettled,
 } from "@/lib/mart-api/cart";
 import {
+  getPublicDeliveryRates,
+  type DeliveryRates,
+  type DeliveryZone,
+} from "@/lib/mart-api/delivery";
+import {
   placeOrder,
   quoteOrder,
   type OrderQuote,
@@ -50,7 +55,9 @@ type CheckoutFormContextValue = {
   quoteReady: boolean;
   deliveryFee: number;
   grandTotal: number;
-  deliveryZone: "inside" | "outside";
+  deliveryZone: DeliveryZone;
+  rates: DeliveryRates | null;
+  chooseDeliveryZone: (zone: DeliveryZone) => void;
   orderNumber: string | null;
   canSubmit: boolean;
   changeQuantity: (line: QuoteLine, quantity: number) => void;
@@ -98,6 +105,7 @@ export function CheckoutFormProvider({
 }) {
   const { reloadCart } = useCart();
   const [shipping, setShipping] = useState<CheckoutShippingValues>(initialShipping);
+  const [rates, setRates] = useState<DeliveryRates | null>(null);
   const [directItems, setDirectItems] = useState<DirectItem[]>([]);
   const [directReady, setDirectReady] = useState(source !== "direct");
   const [quote, setQuote] = useState<OrderQuote | null>(null);
@@ -108,13 +116,23 @@ export function CheckoutFormProvider({
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const idempotencyKey = useRef(crypto.randomUUID());
+  const pickedZone = useRef(false);
+  const chosenZone = useRef<DeliveryZone | null>(null);
+  const holdZone = useRef(false);
+  const [shownZone, setShownZone] = useState<DeliveryZone>("outside");
   const ticket = useRef(0);
   const busyRef = useRef(false);
   const itemsRef = useRef(directItems);
-  itemsRef.current = directItems;
+  useEffect(() => {
+    itemsRef.current = directItems;
+  }, [directItems]);
 
   const setShippingField = useCallback(
     <K extends keyof CheckoutShippingValues>(key: K, value: CheckoutShippingValues[K]) => {
+      if (!holdZone.current && (key === "district" || key === "area")) {
+        pickedZone.current = false;
+        chosenZone.current = null;
+      }
       setShipping((prev) => ({ ...prev, [key]: value }));
       setErrors((prev) => {
         if (!prev[key]) return prev;
@@ -127,7 +145,7 @@ export function CheckoutFormProvider({
   );
 
   const refreshQuote = useCallback(
-    async (district: string, items: DirectItem[]) => {
+    async (district: string, area: string, items: DirectItem[], zone?: DeliveryZone) => {
       const current = ++ticket.current;
       setPricingBusy(true);
       try {
@@ -135,10 +153,15 @@ export function CheckoutFormProvider({
         const next = await quoteOrder({
           source,
           district,
+          area,
+          deliveryZone: zone ?? (pickedZone.current ? chosenZone.current ?? undefined : undefined),
           items: source === "direct" ? items : undefined,
         });
         if (current !== ticket.current) return null;
         setQuote(next);
+        setShownZone(next.deliveryZone);
+        chosenZone.current = next.deliveryZone;
+        holdZone.current = false;
         setPricingMessage(next.items.some((line) => !line.available) ? "এক বা একাধিক পণ্য এখন কেনা যাচ্ছে না।" : null);
         return next;
       } catch (error) {
@@ -150,6 +173,34 @@ export function CheckoutFormProvider({
       }
     },
     [source],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    getPublicDeliveryRates()
+      .then((next) => {
+        if (!cancelled) setRates(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const chooseDeliveryZone = useCallback(
+    (zone: DeliveryZone) => {
+      pickedZone.current = true;
+      chosenZone.current = zone;
+      holdZone.current = true;
+      setShownZone(zone);
+      let district = shipping.district;
+      if ((zone === "inside" || zone === "suburban") && !district.trim()) {
+        district = "ঢাকা";
+        setShipping((prev) => (prev.district.trim() ? prev : { ...prev, district }));
+      }
+      void refreshQuote(district, shipping.area, itemsRef.current, zone);
+    },
+    [refreshQuote, shipping.area, shipping.district],
   );
 
   useEffect(() => {
@@ -177,10 +228,15 @@ export function CheckoutFormProvider({
     if (source === "direct" && !directReady) return;
     if (source === "direct" && itemsRef.current.length === 0) return;
     const handle = window.setTimeout(() => {
-      void refreshQuote(shipping.district, itemsRef.current);
+      void refreshQuote(
+        shipping.district,
+        shipping.area,
+        itemsRef.current,
+        pickedZone.current ? (chosenZone.current ?? undefined) : undefined,
+      );
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [source, directReady, shipping.district, directItems, refreshQuote]);
+  }, [source, directReady, shipping.district, shipping.area, directItems, refreshQuote]);
 
   const changeQuantity = useCallback(
     (line: QuoteLine, quantity: number) => {
@@ -202,7 +258,7 @@ export function CheckoutFormProvider({
             setDirectItems(nextItems);
             itemsRef.current = nextItems;
           }
-          await refreshQuote(shipping.district, itemsRef.current);
+          await refreshQuote(shipping.district, shipping.area, itemsRef.current);
         } catch (error) {
           setPricingMessage(messageFrom(error));
           setPricingBusy(false);
@@ -211,7 +267,7 @@ export function CheckoutFormProvider({
         }
       })();
     },
-    [refreshQuote, reloadCart, shipping.district, source],
+    [refreshQuote, reloadCart, shipping.district, shipping.area, source],
   );
 
   const removeLine = useCallback(
@@ -224,7 +280,7 @@ export function CheckoutFormProvider({
             if (!line.cartItemId) return;
             await removeCartItem(line.cartItemId);
             await reloadCart();
-            await refreshQuote(shipping.district, itemsRef.current);
+            await refreshQuote(shipping.district, shipping.area, itemsRef.current);
             return;
           }
           const nextItems = itemsRef.current.filter((item) => item.productId !== line.productId);
@@ -236,7 +292,7 @@ export function CheckoutFormProvider({
             setPricingBusy(false);
             return;
           }
-          await refreshQuote(shipping.district, nextItems);
+          await refreshQuote(shipping.district, shipping.area, nextItems);
         } catch (error) {
           setPricingMessage(messageFrom(error));
           setPricingBusy(false);
@@ -245,7 +301,7 @@ export function CheckoutFormProvider({
         }
       })();
     },
-    [refreshQuote, reloadCart, shipping.district, source],
+    [refreshQuote, reloadCart, shipping.district, shipping.area, source],
   );
 
   const resetStatus = useCallback(() => {
@@ -279,6 +335,7 @@ export function CheckoutFormProvider({
         phone: shipping.phone,
         email: shipping.email,
         area: shipping.area,
+        deliveryZone: pickedZone.current ? quote.deliveryZone : undefined,
         address: shipping.address,
         notes: shipping.notes,
       });
@@ -315,7 +372,9 @@ export function CheckoutFormProvider({
       quoteReady: quote !== null || pricingMessage !== null,
       deliveryFee: quote?.shipping ?? 0,
       grandTotal: quote?.total ?? 0,
-      deliveryZone: quote?.deliveryZone ?? "outside",
+      deliveryZone: shownZone,
+      rates,
+      chooseDeliveryZone,
       orderNumber,
       canSubmit,
       changeQuantity,
@@ -332,6 +391,9 @@ export function CheckoutFormProvider({
       pricingMessage,
       pricingBusy,
       quote,
+      shownZone,
+      rates,
+      chooseDeliveryZone,
       orderNumber,
       canSubmit,
       changeQuantity,

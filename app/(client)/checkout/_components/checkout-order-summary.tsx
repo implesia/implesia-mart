@@ -131,7 +131,11 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
             <span className="text-neutral-600">
               ডেলিভারি চার্জ
               <span className="mt-0.5 block text-[11px] text-neutral-400">
-                {deliveryZone === "inside" ? "ঢাকার ভেতর" : "ঢাকার বাইরে"}
+                {deliveryZone === "inside"
+                  ? "ঢাকার ভেতর"
+                  : deliveryZone === "suburban"
+                    ? "ঢাকার শহরতলি"
+                    : "ঢাকার বাইরে"}
               </span>
             </span>
             <span className={cn("font-medium text-neutral-950", pricingBusy && "opacity-50")}>

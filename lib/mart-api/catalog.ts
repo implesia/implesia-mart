@@ -1,7 +1,13 @@
 import { cache } from "react";
 
-import { categoryLabels, placeholderImage } from "@/app/(client)/_data/products/products";
-import type { ProductDetail, ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
+import {
+  categoryLabels,
+  placeholderImage,
+} from "@/app/(client)/_data/products/products";
+import type {
+  ProductDetail,
+  ProductSpecGroupId,
+} from "@/app/(client)/_data/products/product-details";
 import type {
   Product,
   ProductBadge,
@@ -26,28 +32,49 @@ const SPEC_GROUPS = new Set<ProductSpecGroupId>([
   "general",
 ]);
 
-const DELIVERY = [
-  {
-    icon: "payments",
-    title: "ক্যাশ অন ডেলিভারি",
-    description: "প্রোডাক্ট হাতে পাওয়ার পর টাকা পরিশোধ করুন। আগে থেকে পেমেন্টের প্রয়োজন নেই।",
-  },
-  {
-    icon: "local_shipping",
-    title: "সারাদেশে ডেলিভারি",
-    description: "ঢাকার ভেতরে ২৪-৪৮ ঘণ্টা, ঢাকার বাইরে ২৪-৭২ ঘণ্টার মধ্যে ডেলিভারি পাবেন।",
-  },
-  {
-    icon: "assignment_return",
-    title: "৩ দিনের ইজি রিটার্ন",
-    description: "প্রোডাক্ট ড্যামেজ বা ভিন্ন হলে সহজে রিটার্ন বা রিপ্লেসমেন্ট করা যাবে।",
-  },
-  {
-    icon: "support_agent",
-    title: "কাস্টমার সাপোর্ট",
-    description: "অর্ডার বা প্রোডাক্ট নিয়ে যেকোনো প্রশ্নে ফোন/মেসেজে সাহায্য পাবেন।",
-  },
-];
+export type StoreDeliveryRates = {
+  insideDhaka: number;
+  dhakaSuburban: number;
+  outsideDhaka: number;
+};
+
+const FALLBACK_RATES: StoreDeliveryRates = {
+  insideDhaka: 70,
+  dhakaSuburban: 100,
+  outsideDhaka: 130,
+};
+
+function taka(value: number) {
+  return `৳${value.toLocaleString("en-US")}`;
+}
+
+function deliveryBlocks(rates: StoreDeliveryRates) {
+  return [
+    {
+      icon: "payments",
+      title: "ক্যাশ অন ডেলিভারি",
+      description:
+        "প্রোডাক্ট হাতে পাওয়ার পর টাকা পরিশোধ করুন। আগে থেকে পেমেন্টের প্রয়োজন নেই।",
+    },
+    {
+      icon: "local_shipping",
+      title: "সারাদেশে ডেলিভারি",
+      description: `ঢাকার ভেতরে ${taka(rates.insideDhaka)}, ঢাকার শহরতলি ${taka(rates.dhakaSuburban)}, ঢাকার বাইরে ${taka(rates.outsideDhaka)}। ঢাকায় ২৪-৪৮ ঘণ্টা, বাইরে ২৪-৭২ ঘণ্টা।`,
+    },
+    {
+      icon: "assignment_return",
+      title: "৩ দিনের ইজি রিটার্ন",
+      description:
+        "প্রোডাক্ট ড্যামেজ বা ভিন্ন হলে সহজে রিটার্ন বা রিপ্লেসমেন্ট করা যাবে।",
+    },
+    {
+      icon: "support_agent",
+      title: "কাস্টমার সাপোর্ট",
+      description:
+        "অর্ডার বা প্রোডাক্ট নিয়ে যেকোনো প্রশ্নে ফোন/মেসেজে সাহায্য পাবেন।",
+    },
+  ];
+}
 
 type ApiCard = {
   id: string;
@@ -97,7 +124,9 @@ function money(value: number) {
 }
 
 export function catalogProductId(id: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    id,
+  )
     ? id
     : undefined;
 }
@@ -121,9 +150,13 @@ function mapCard(item: ApiCard): Product {
   };
 }
 
-function mapDetail(item: ApiDetail): ProductDetail {
+function mapDetail(item: ApiDetail, rates: StoreDeliveryRates): ProductDetail {
   const card = mapCard(item);
-  const gallery = (item.gallery.length > 0 ? item.gallery : [{ src: item.image_src, alt: item.image_alt }])
+  const gallery = (
+    item.gallery.length > 0
+      ? item.gallery
+      : [{ src: item.image_src, alt: item.image_alt }]
+  )
     .filter((image) => image.src)
     .map((image) => ({
       src: media(image.src),
@@ -138,9 +171,9 @@ function mapDetail(item: ApiDetail): ProductDetail {
             title: "শীঘ্রই স্টকে আসছে",
             description: "লঞ্চ হওয়ার সাথে সাথে এই পেজে অর্ডার অপশন চালু হবে।",
           },
-          ...DELIVERY,
+          ...deliveryBlocks(rates),
         ]
-      : DELIVERY;
+      : deliveryBlocks(rates);
 
   return {
     ...card,
@@ -152,7 +185,10 @@ function mapDetail(item: ApiDetail): ProductDetail {
       },
       { label: item.title },
     ],
-    gallery: gallery.length > 0 ? gallery : [{ src: card.imageSrc, alt: card.imageAlt, type: "image" }],
+    gallery:
+      gallery.length > 0
+        ? gallery
+        : [{ src: card.imageSrc, alt: card.imageAlt, type: "image" }],
     tagline: item.tagline,
     stockLabel: item.stock_label,
     description: item.description,
@@ -225,11 +261,35 @@ export const listStoreProducts = cache(async (): Promise<Product[]> => {
   return all;
 });
 
-export const getStoreProduct = cache(async (slug: string): Promise<ProductDetail | null> => {
-  const list = await listStoreProducts();
-  const card = list.find((product) => product.slug === slug);
-  if (!card || !catalogProductId(card.id)) return null;
-  const detail = await readJson<ApiDetail>(`/api/v1/products/${card.id}`);
-  if (!detail || detail.slug !== slug) return null;
-  return mapDetail(detail);
-});
+export const getStoreProduct = cache(
+  async (slug: string): Promise<ProductDetail | null> => {
+    const list = await listStoreProducts();
+    const card = list.find((product) => product.slug === slug);
+    if (!card || !catalogProductId(card.id)) return null;
+    const detail = await readJson<ApiDetail>(`/api/v1/products/${card.id}`);
+    if (!detail || detail.slug !== slug) return null;
+    return mapDetail(detail, await getStoreDeliveryRates());
+  },
+);
+
+export const getStoreDeliveryRates = cache(
+  async (): Promise<StoreDeliveryRates> => {
+    const body = await readJson<{
+      inside_dhaka?: number;
+      dhaka_suburban?: number;
+      outside_dhaka?: number;
+    }>("/api/v1/delivery");
+    if (
+      typeof body?.inside_dhaka !== "number" ||
+      typeof body.dhaka_suburban !== "number" ||
+      typeof body.outside_dhaka !== "number"
+    ) {
+      return FALLBACK_RATES;
+    }
+    return {
+      insideDhaka: body.inside_dhaka,
+      dhakaSuburban: body.dhaka_suburban,
+      outsideDhaka: body.outside_dhaka,
+    };
+  },
+);

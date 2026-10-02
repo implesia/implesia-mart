@@ -1,4 +1,9 @@
-import { MART_API_URL, MartApiError, authorizedFetch, mediaUrl } from "@/lib/mart-api/products";
+import {
+  MART_API_URL,
+  MartApiError,
+  authorizedFetch,
+  mediaUrl,
+} from "@/lib/mart-api/products";
 import { readSession } from "@/lib/mart-mock/store";
 
 const GUEST_KEY = "implesia.cart.guest.v1";
@@ -24,6 +29,9 @@ export type ShopCart = {
   subtotal: number;
   shipping: number;
   total: number;
+  insideDhaka: number;
+  dhakaSuburban: number;
+  outsideDhaka: number;
 };
 
 export type CartOwner = {
@@ -42,6 +50,9 @@ export type SavedCart = {
   subtotal: number;
   shipping: number;
   total: number;
+  insideDhaka: number;
+  dhakaSuburban: number;
+  outsideDhaka: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -51,7 +62,12 @@ export type CartDirectory = {
   total: number;
   page: number;
   pages: number;
-  metrics: { carts: number; userCarts: number; guestCarts: number; units: number };
+  metrics: {
+    carts: number;
+    userCarts: number;
+    guestCarts: number;
+    units: number;
+  };
 };
 
 type ApiLine = {
@@ -76,6 +92,9 @@ type ApiShopCart = {
   subtotal: number;
   shipping: number;
   total: number;
+  inside_dhaka: number;
+  dhaka_suburban: number;
+  outside_dhaka: number;
 };
 
 type ApiSavedCart = {
@@ -92,6 +111,9 @@ type ApiSavedCart = {
   subtotal: number;
   shipping: number;
   total: number;
+  inside_dhaka: number;
+  dhaka_suburban: number;
+  outside_dhaka: number;
   created_at: string;
   updated_at: string;
 };
@@ -143,6 +165,9 @@ function mapShop(body: ApiShopCart): ShopCart {
     subtotal: body.subtotal,
     shipping: body.shipping,
     total: body.total,
+    insideDhaka: body.inside_dhaka,
+    dhakaSuburban: body.dhaka_suburban,
+    outsideDhaka: body.outside_dhaka,
   };
 }
 
@@ -161,12 +186,19 @@ function mapSaved(body: ApiSavedCart): SavedCart {
     subtotal: body.subtotal,
     shipping: body.shipping,
     total: body.total,
+    insideDhaka: body.inside_dhaka,
+    dhakaSuburban: body.dhaka_suburban,
+    outsideDhaka: body.outside_dhaka,
     createdAt: body.created_at,
     updatedAt: body.updated_at,
   };
 }
 
-async function shop(path: string, method: "GET" | "POST" | "PATCH" | "DELETE", payload?: object) {
+async function shop(
+  path: string,
+  method: "GET" | "POST" | "PATCH" | "DELETE",
+  payload?: object,
+) {
   const headers: Record<string, string> = {};
   const guest = guestToken();
   if (guest) headers["X-Cart-Token"] = guest;
@@ -177,7 +209,10 @@ async function shop(path: string, method: "GET" | "POST" | "PATCH" | "DELETE", p
     headers,
     body: payload ? JSON.stringify(payload) : undefined,
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "The cart could not be updated."));
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "The cart could not be updated."),
+    );
   return mapShop((await response.json()) as ApiShopCart);
 }
 
@@ -206,7 +241,8 @@ export async function listCarts(query: {
   owner?: "all" | "user" | "guest";
   page: number;
 }) {
-  if (!readSession()?.accessToken) throw new MartApiError("Sign in again to view carts.");
+  if (!readSession()?.accessToken)
+    throw new MartApiError("Sign in again to view carts.");
   const search = new URLSearchParams();
   if (query.q) search.set("q", query.q);
   if (query.owner && query.owner !== "all") search.set("owner", query.owner);
@@ -214,13 +250,19 @@ export async function listCarts(query: {
   search.set("page_size", "8");
 
   const response = await authorizedFetch(`/api/v1/admin/carts?${search}`);
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not load carts."));
+  if (!response.ok)
+    throw new MartApiError(await readError(response, "Could not load carts."));
   const body = (await response.json()) as {
     items: ApiSavedCart[];
     total: number;
     page: number;
     pages: number;
-    metrics: { carts: number; user_carts: number; guest_carts: number; units: number };
+    metrics: {
+      carts: number;
+      user_carts: number;
+      guest_carts: number;
+      units: number;
+    };
   };
   return {
     items: body.items.map(mapSaved),

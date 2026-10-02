@@ -1,60 +1,150 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { useDeliveryCharges } from "@/lib/mart-mock/hooks";
-import { formatTaka, saveDeliveryCharges } from "@/lib/mart-mock/store";
+import {
+  getAdminDeliveryRates,
+  saveAdminDeliveryRates,
+  type DeliveryRates,
+} from "@/lib/mart-api/delivery";
+import { MartApiError } from "@/lib/mart-api/products";
+import { formatTaka } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
 export default function AdminDeliveryPage() {
-  const stored = useDeliveryCharges();
-  const storedKey = `${stored.insideDhaka}|${stored.outsideDhaka}`;
+  const [stored, setStored] = useState<DeliveryRates | null>(null);
   const [draft, setDraft] = useState<{
     key: string;
     inside: string;
+    suburban: string;
     outside: string;
   } | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const inside = draft?.key === storedKey ? draft.inside : String(stored.insideDhaka);
-  const outside = draft?.key === storedKey ? draft.outside : String(stored.outsideDhaka);
+  useEffect(() => {
+    let cancelled = false;
+    getAdminDeliveryRates()
+      .then((rates) => {
+        if (!cancelled) {
+          setStored(rates);
+          setError(null);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) {
+          setError(
+            reason instanceof MartApiError
+              ? reason.message
+              : "Delivery rates could not be loaded.",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const storedKey = stored
+    ? `${stored.insideDhaka}|${stored.dhakaSuburban}|${stored.outsideDhaka}`
+    : "";
+  const inside =
+    draft?.key === storedKey ? draft.inside : stored ? String(stored.insideDhaka) : "";
+  const suburban =
+    draft?.key === storedKey
+      ? draft.suburban
+      : stored
+        ? String(stored.dhakaSuburban)
+        : "";
+  const outside =
+    draft?.key === storedKey ? draft.outside : stored ? String(stored.outsideDhaka) : "";
   const insideValue = parseCharge(inside);
+  const suburbanValue = parseCharge(suburban);
   const outsideValue = parseCharge(outside);
-  const dirty = inside !== String(stored.insideDhaka) || outside !== String(stored.outsideDhaka);
-  const invalid = insideValue == null || outsideValue == null;
+  const dirty =
+    stored != null &&
+    (inside !== String(stored.insideDhaka) ||
+      suburban !== String(stored.dhakaSuburban) ||
+      outside !== String(stored.outsideDhaka));
+  const invalid =
+    stored != null &&
+    (insideValue == null || suburbanValue == null || outsideValue == null);
 
-  function edit(next: { inside: string; outside: string }) {
+  function edit(next: { inside: string; suburban: string; outside: string }) {
     setDraft({ key: storedKey, ...next });
     setSaved(false);
+    setError(null);
   }
 
-  function save(event: React.FormEvent) {
+  async function save(event: FormEvent) {
     event.preventDefault();
-    if (insideValue == null || outsideValue == null) return;
-    saveDeliveryCharges({ insideDhaka: insideValue, outsideDhaka: outsideValue });
-    setSaved(true);
+    if (insideValue == null || suburbanValue == null || outsideValue == null || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const next = await saveAdminDeliveryRates({
+        insideDhaka: insideValue,
+        dhakaSuburban: suburbanValue,
+        outsideDhaka: outsideValue,
+      });
+      setStored(next);
+      setDraft(null);
+      setSaved(true);
+    } catch (reason) {
+      setError(
+        reason instanceof MartApiError
+          ? reason.message
+          : "Delivery rates could not be saved.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
+
+  const status = error
+    ? error
+    : stored == null
+      ? "Loading rates"
+      : invalid
+        ? "Enter all three rates"
+        : saving
+          ? "Saving"
+          : dirty
+            ? "Not saved yet"
+            : saved
+              ? "Saved"
+              : "Up to date";
 
   return (
-    <form onSubmit={save} className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
+    <form
+      onSubmit={save}
+      className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
+    >
       <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-neutral-950">Two rates</h2>
+          <h2 className="text-sm font-semibold text-neutral-950">Three rates</h2>
           <p className="mt-0.5 text-xs text-neutral-500">
-            Checkout picks the rate from the customer’s district.
+            City, Dhaka suburban, and the rest of the country. Checkout uses the
+            address, and never a cheaper zone than that address supports.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-sm text-neutral-500">
-            {invalid ? "Enter both rates" : dirty ? "Not saved yet" : saved ? "Saved" : "Up to date"}
+          <p
+            className={cn(
+              "text-sm",
+              error ? "text-red-600" : "text-neutral-500",
+            )}
+          >
+            {status}
           </p>
           <button
             type="submit"
-            disabled={!dirty || invalid}
+            disabled={!dirty || invalid || saving || stored == null}
             className={cn(
               "inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium",
-              !dirty || invalid
+              !dirty || invalid || saving || stored == null
                 ? "bg-neutral-100 text-neutral-400"
                 : "bg-neutral-950 text-white hover:bg-black",
             )}
@@ -64,16 +154,28 @@ export default function AdminDeliveryPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
+      <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-3">
         <ZoneCard
           id="inside-dhaka"
           icon="location_city"
           title="Inside Dhaka"
-          detail="District is ঢাকা or Dhaka."
+          detail="Dhaka city. Dhanmondi, Uttara, Mirpur, Gulshan, and the rest of the city centre."
           value={inside}
-          stored={stored.insideDhaka}
+          stored={stored?.insideDhaka ?? null}
           invalid={inside.trim() !== "" && insideValue == null}
-          onChange={(value) => edit({ inside: value, outside })}
+          disabled={stored == null || saving}
+          onChange={(value) => edit({ inside: value, suburban, outside })}
+        />
+        <ZoneCard
+          id="dhaka-suburban"
+          icon="maps_home_work"
+          title="Dhaka Suburban"
+          detail="Still in Dhaka district, but farther out. Savar, Keraniganj, Dhamrai, Dohar, Nawabganj."
+          value={suburban}
+          stored={stored?.dhakaSuburban ?? null}
+          invalid={suburban.trim() !== "" && suburbanValue == null}
+          disabled={stored == null || saving}
+          onChange={(value) => edit({ inside, suburban: value, outside })}
         />
         <ZoneCard
           id="outside-dhaka"
@@ -81,18 +183,21 @@ export default function AdminDeliveryPage() {
           title="Outside Dhaka"
           detail="Every other district. A blank district counts as outside."
           value={outside}
-          stored={stored.outsideDhaka}
+          stored={stored?.outsideDhaka ?? null}
           invalid={outside.trim() !== "" && outsideValue == null}
-          onChange={(value) => edit({ inside, outside: value })}
+          disabled={stored == null || saving}
+          onChange={(value) => edit({ inside, suburban, outside: value })}
         />
       </div>
 
       <div className="flex flex-col gap-1 border-t border-neutral-100 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <p className="text-neutral-500">Customer sees</p>
         <p className="font-medium text-neutral-950">
-          Dhaka {insideValue == null ? "—" : formatTaka(insideValue)}
+          City {insideValue == null ? "—" : formatTaka(insideValue)}
           <span className="mx-2 text-neutral-300">·</span>
-          Other districts {outsideValue == null ? "—" : formatTaka(outsideValue)}
+          Suburban {suburbanValue == null ? "—" : formatTaka(suburbanValue)}
+          <span className="mx-2 text-neutral-300">·</span>
+          Outside {outsideValue == null ? "—" : formatTaka(outsideValue)}
         </p>
       </div>
     </form>
@@ -107,6 +212,7 @@ function ZoneCard({
   value,
   stored,
   invalid,
+  disabled,
   onChange,
 }: {
   id: string;
@@ -114,17 +220,22 @@ function ZoneCard({
   title: string;
   detail: string;
   value: string;
-  stored: number;
+  stored: number | null;
   invalid: boolean;
+  disabled: boolean;
   onChange: (value: string) => void;
 }) {
-  const changed = value !== String(stored);
+  const changed = stored != null && value !== String(stored);
   return (
     <label
       htmlFor={id}
       className={cn(
         "block rounded-2xl bg-[#f7f8fa] p-4 ring-1 sm:p-5",
-        invalid ? "ring-red-200" : changed ? "ring-amber-200" : "ring-transparent",
+        invalid
+          ? "ring-red-200"
+          : changed
+            ? "ring-amber-200"
+            : "ring-transparent",
       )}
     >
       <span className="flex items-start gap-3">
@@ -132,8 +243,12 @@ function ZoneCard({
           <MaterialIcon name={icon} className="text-[22px]" />
         </span>
         <span className="min-w-0">
-          <span className="block text-sm font-semibold text-neutral-950">{title}</span>
-          <span className="mt-0.5 block text-xs leading-relaxed text-neutral-500">{detail}</span>
+          <span className="block text-sm font-semibold text-neutral-950">
+            {title}
+          </span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-neutral-500">
+            {detail}
+          </span>
         </span>
       </span>
       <span className="relative mt-4 block">
@@ -142,19 +257,27 @@ function ZoneCard({
         </span>
         <input
           id={id}
-          inputMode="decimal"
+          inputMode="numeric"
           value={value}
           aria-invalid={invalid}
+          disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
-          className="h-14 w-full rounded-2xl border border-neutral-200 bg-white pr-4 pl-10 text-2xl font-semibold tabular-nums text-neutral-950 outline-none focus:border-primary focus:ring-3 focus:ring-primary/25"
+          className="h-14 w-full rounded-2xl border border-neutral-200 bg-white pr-4 pl-10 text-2xl font-semibold tabular-nums text-neutral-950 outline-none focus:border-primary focus:ring-3 focus:ring-primary/25 disabled:text-neutral-400"
         />
       </span>
-      <span className={cn("mt-2 block text-xs", invalid ? "text-red-600" : "text-neutral-500")}>
+      <span
+        className={cn(
+          "mt-2 block text-xs",
+          invalid ? "text-red-600" : "text-neutral-500",
+        )}
+      >
         {invalid
-          ? "Use 0 or a larger number."
-          : changed
+          ? "Use 0 or a larger whole number, up to 1,000,000."
+          : changed && stored != null
             ? `Was ${formatTaka(stored)}`
-            : "Saved"}
+            : stored == null
+              ? "Loading"
+              : "Saved"}
       </span>
     </label>
   );
@@ -162,8 +285,8 @@ function ZoneCard({
 
 function parseCharge(value: string) {
   const trimmed = value.trim();
-  if (!trimmed) return null;
+  if (!/^\d+$/.test(trimmed)) return null;
   const amount = Number(trimmed);
-  if (!Number.isFinite(amount) || amount < 0) return null;
+  if (!Number.isSafeInteger(amount) || amount > 1_000_000) return null;
   return amount;
 }

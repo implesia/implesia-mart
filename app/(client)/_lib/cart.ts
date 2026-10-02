@@ -28,6 +28,9 @@ export type CartPricing = {
   shipping: number;
   tax: number;
   total: number;
+  insideDhaka: number;
+  dhakaSuburban: number;
+  outsideDhaka: number;
 };
 
 export function clampCartQty(value: number) {
@@ -83,6 +86,9 @@ export function computeCartPricing(lines: CartLineResolved[]): CartPricing {
     shipping,
     tax: 0,
     total: subtotal + shipping,
+    insideDhaka: shipping,
+    dhakaSuburban: shipping,
+    outsideDhaka: shipping,
   };
 }
 

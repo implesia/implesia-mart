@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { getStoreDeliveryRates } from "@/lib/mart-api/catalog";
+
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { ShippingReturnsView } from "./_components/shipping-returns-view";
@@ -11,7 +13,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/shipping-returns" },
 };
 
-export default function ShippingReturnsPage() {
+export default async function ShippingReturnsPage() {
+  const rates = await getStoreDeliveryRates();
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -21,7 +24,7 @@ export default function ShippingReturnsPage() {
           />
         </div>
       </Container>
-      <ShippingReturnsView />
+      <ShippingReturnsView rates={rates} />
     </main>
   );
 }

@@ -11,7 +11,11 @@ import {
   type SavedCart,
 } from "@/lib/mart-api/cart";
 import { listMartProducts, MartApiError } from "@/lib/mart-api/products";
-import { formatTaka, readSession, type AdminProduct } from "@/lib/mart-mock/store";
+import {
+  formatTaka,
+  readSession,
+  type AdminProduct,
+} from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
 import {
@@ -55,13 +59,18 @@ export default function AdminCartPage() {
         setDirectory(result);
         setError("");
         setSelectedId((current) => {
-          if (current && result.items.some((cart) => cart.id === current)) return current;
+          if (current && result.items.some((cart) => cart.id === current))
+            return current;
           return result.items[0]?.id ?? null;
         });
       })
       .catch((reason) => {
         if (!cancelled) {
-          setError(reason instanceof MartApiError ? reason.message : "Could not load carts.");
+          setError(
+            reason instanceof MartApiError
+              ? reason.message
+              : "Could not load carts.",
+          );
         }
       })
       .finally(() => {
@@ -72,7 +81,8 @@ export default function AdminCartPage() {
     };
   }, [debounced, owner, page, reloadKey]);
 
-  const selected = directory?.items.find((cart) => cart.id === selectedId) ?? null;
+  const selected =
+    directory?.items.find((cart) => cart.id === selectedId) ?? null;
   const metrics = directory?.metrics;
 
   return (
@@ -82,9 +92,14 @@ export default function AdminCartPage() {
         description="Logged-in shoppers and anonymous visitors can both add products. This page shows who added which product, and how many."
       />
       {error ? (
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
       ) : null}
-      <section aria-label="Cart summary" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section
+        aria-label="Cart summary"
+        className="grid grid-cols-2 gap-3 xl:grid-cols-4"
+      >
         <Metric label="Carts with items" value={metrics?.carts} />
         <Metric label="Logged in" value={metrics?.userCarts} />
         <Metric label="Anonymous" value={metrics?.guestCarts} />
@@ -95,7 +110,9 @@ export default function AdminCartPage() {
         <section className="min-w-0 overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
           <div className="space-y-3 border-b border-neutral-100 px-4 py-4 sm:px-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-neutral-950">Shopper carts</h2>
+              <h2 className="text-sm font-semibold text-neutral-950">
+                Shopper carts
+              </h2>
               <div className="flex rounded-full bg-admin-subtle p-1">
                 {FILTERS.map((filter) => (
                   <button
@@ -133,7 +150,8 @@ export default function AdminCartPage() {
           </div>
           {loading && !directory ? (
             <div className="h-48 animate-pulse bg-neutral-50" />
-          ) : error && !directory ? null : !directory || directory.items.length === 0 ? (
+          ) : error && !directory ? null : !directory ||
+            directory.items.length === 0 ? (
             <AdminEmpty
               title="No carts yet."
               detail="A cart appears here after a logged-in shopper or an anonymous visitor adds a product."
@@ -147,7 +165,9 @@ export default function AdminCartPage() {
                     onClick={() => setSelectedId(cart.id)}
                     className={cn(
                       "flex w-full items-start gap-3 px-4 py-3 text-left sm:px-5",
-                      selectedId === cart.id ? "bg-primary/5" : "hover:bg-neutral-50",
+                      selectedId === cart.id
+                        ? "bg-primary/5"
+                        : "hover:bg-neutral-50",
                     )}
                   >
                     <OwnerBadge kind={cart.owner.kind} />
@@ -156,14 +176,18 @@ export default function AdminCartPage() {
                         {ownerLabel(cart)}
                       </span>
                       <span className="mt-0.5 block truncate text-xs text-neutral-500">
-                        {cart.items.map((item) => `${item.title} × ${item.quantity}`).join(", ")}
+                        {cart.items
+                          .map((item) => `${item.title} × ${item.quantity}`)
+                          .join(", ")}
                       </span>
                     </span>
                     <span className="shrink-0 text-right">
                       <span className="block text-sm font-semibold tabular-nums text-neutral-950">
                         {formatTaka(cart.total)}
                       </span>
-                      <span className="block text-xs text-neutral-500">{when(cart.updatedAt)}</span>
+                      <span className="block text-xs text-neutral-500">
+                        {when(cart.updatedAt)}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -221,16 +245,24 @@ function CartDetail({ cart }: { cart: SavedCart | null }) {
             {cart.owner.role ? ` · ${cart.owner.role}` : ""}
           </p>
         ) : (
-          <p className="mt-1 text-xs text-neutral-500">Select a cart to see its products.</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Select a cart to see its products.
+          </p>
         )}
       </div>
       {!cart ? (
-        <AdminEmpty title="Nothing selected." detail="Choose a cart from the list." />
+        <AdminEmpty
+          title="Nothing selected."
+          detail="Choose a cart from the list."
+        />
       ) : (
         <>
           <ul className="divide-y divide-neutral-100">
             {cart.items.map((item) => (
-              <li key={item.id} className="flex items-start gap-3 px-4 py-3 sm:px-5">
+              <li
+                key={item.id}
+                className="flex items-start gap-3 px-4 py-3 sm:px-5"
+              >
                 <Thumb src={item.imageSrc} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-neutral-950">
@@ -254,7 +286,15 @@ function CartDetail({ cart }: { cart: SavedCart | null }) {
           </ul>
           <dl className="space-y-2 border-t border-neutral-100 px-4 py-4 text-sm sm:px-5">
             <Row label="Subtotal" value={formatTaka(cart.subtotal)} />
-            <Row label="Delivery" value={formatTaka(cart.shipping)} />
+            <Row
+              label="Delivery"
+              value={
+                cart.insideDhaka === cart.dhakaSuburban &&
+                cart.dhakaSuburban === cart.outsideDhaka
+                  ? formatTaka(cart.shipping)
+                  : `City ${formatTaka(cart.insideDhaka)} · suburban ${formatTaka(cart.dhakaSuburban)} · other ${formatTaka(cart.outsideDhaka)}`
+              }
+            />
             <div className="flex items-center justify-between pt-1 text-base font-semibold text-neutral-950">
               <dt>Total</dt>
               <dd className="tabular-nums">{formatTaka(cart.total)}</dd>
@@ -302,9 +342,12 @@ function AddPanel({ onAdded }: { onAdded: () => void }) {
   return (
     <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
       <div className="border-b border-neutral-100 px-4 py-4 sm:px-5">
-        <h2 className="text-sm font-semibold text-neutral-950">Add as {email ?? "you"}</h2>
+        <h2 className="text-sm font-semibold text-neutral-950">
+          Add as {email ?? "you"}
+        </h2>
         <p className="mt-1 text-xs text-neutral-500">
-          This adds to the signed-in account. A visitor who is not signed in gets their own cart.
+          This adds to the signed-in account. A visitor who is not signed in
+          gets their own cart.
         </p>
         <label className="relative mt-3 block">
           <MaterialIcon
@@ -320,16 +363,23 @@ function AddPanel({ onAdded }: { onAdded: () => void }) {
           />
         </label>
       </div>
-      {message ? <p className="px-4 py-2 text-sm text-red-700 sm:px-5">{message}</p> : null}
+      {message ? (
+        <p className="px-4 py-2 text-sm text-red-700 sm:px-5">{message}</p>
+      ) : null}
       <ul className="divide-y divide-neutral-100">
         {products.map((product) => (
-          <li key={product.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+          <li
+            key={product.id}
+            className="flex items-center gap-3 px-4 py-3 sm:px-5"
+          >
             <Thumb src={product.imageSrc} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-neutral-950">
                 {product.title}
               </span>
-              <span className="block text-xs text-neutral-500">{formatTaka(product.price)}</span>
+              <span className="block text-xs text-neutral-500">
+                {formatTaka(product.price)}
+              </span>
             </span>
             <button
               type="button"
@@ -361,7 +411,13 @@ function AddPanel({ onAdded }: { onAdded: () => void }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number | undefined }) {
+function Metric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | undefined;
+}) {
   return (
     <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200/90">
       <p className="text-xs text-neutral-500">{label}</p>

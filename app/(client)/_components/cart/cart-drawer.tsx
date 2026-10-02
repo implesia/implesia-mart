@@ -58,14 +58,19 @@ export function CartDrawer() {
               <span className="mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <MaterialIcon name="shopping_bag" className="text-[32px]" />
               </span>
-              <h3 className="mb-2 font-headline-sm text-on-background">কার্ট খালি</h3>
+              <h3 className="mb-2 font-headline-sm text-on-background">
+                কার্ট খালি
+              </h3>
               <p className="mb-6 max-w-xs text-body-md text-on-surface-variant">
                 পছন্দের গ্যাজেট কার্টে যোগ করে সহজেই অর্ডার সম্পন্ন করুন।
               </p>
               <Link
                 href="/products"
                 onClick={closeCart}
-                className={cn(buttonVariants({ size: "lg" }), "rounded-full px-6")}
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "rounded-full px-6",
+                )}
               >
                 প্রোডাক্ট দেখুন
               </Link>
@@ -157,7 +162,10 @@ export function CartDrawer() {
             <div className="mb-3 flex items-center justify-between text-body-md">
               <span className="text-on-surface-variant">ডেলিভারি</span>
               <span className="font-medium text-on-surface">
-                {formatCartMoney(pricing.shipping)}
+                {pricing.insideDhaka === pricing.dhakaSuburban &&
+                pricing.dhakaSuburban === pricing.outsideDhaka
+                  ? formatCartMoney(pricing.shipping)
+                  : "চেকআউটে"}
               </span>
             </div>
             <div className="mb-4 flex items-center justify-between rounded-xl bg-surface-container-low px-4 py-3">

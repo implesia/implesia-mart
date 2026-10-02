@@ -188,7 +188,16 @@ export default function AdminOrderDetailPage() {
             </ul>
             <dl className="space-y-2 border-t border-neutral-100 px-4 py-4 text-sm sm:px-5">
               <TotalLine label="Subtotal" value={formatTaka(order.subtotal)} />
-              <TotalLine label={order.deliveryZone === "inside" ? "Delivery, inside Dhaka" : "Delivery, outside Dhaka"} value={formatTaka(order.shipping)} />
+              <TotalLine
+                label={
+                  order.deliveryZone === "inside"
+                    ? "Delivery, inside Dhaka"
+                    : order.deliveryZone === "suburban"
+                      ? "Delivery, Dhaka suburban"
+                      : "Delivery, outside Dhaka"
+                }
+                value={formatTaka(order.shipping)}
+              />
               <TotalLine label="Total" value={formatTaka(order.total)} strong />
             </dl>
           </section>
