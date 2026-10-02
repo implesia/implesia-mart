@@ -36,6 +36,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin", label: "Overview", icon: "dashboard", exact: true },
       { href: "/admin/orders", label: "Orders", icon: "receipt_long" },
       { href: "/admin/products", label: "Products", icon: "inventory_2" },
+      { href: "/admin/cart", label: "Cart", icon: "shopping_cart" },
       { href: "/admin/delivery", label: "Delivery charges", icon: "local_shipping" },
     ],
   },
@@ -161,6 +162,7 @@ export function isWideAdminPath(pathname: string) {
     pathname.startsWith("/admin/orders/") ||
     pathname === "/admin/products" ||
     pathname.startsWith("/admin/products/") ||
+    pathname === "/admin/cart" ||
     pathname === "/admin/delivery"
   ) {
     return true;

@@ -124,6 +124,7 @@ export const DEFAULT_DELIVERY: DeliveryCharges = {
 export type AdminSession = {
   email: string;
   accessToken: string;
+  refreshToken?: string;
 };
 
 function emitMockChange() {
@@ -535,6 +536,8 @@ export function saveDeliveryCharges(charges: DeliveryCharges) {
   writeJson(DELIVERY_KEY, charges);
 }
 
+const SESSION_EVENT = "implesia-admin-session";
+
 export function readSession(): AdminSession | null {
   if (typeof window === "undefined") return null;
   try {
@@ -542,21 +545,27 @@ export function readSession(): AdminSession | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AdminSession;
     if (!parsed?.email?.trim() || !parsed.accessToken) return null;
-    return { email: parsed.email.trim(), accessToken: parsed.accessToken };
+    return {
+      email: parsed.email.trim(),
+      accessToken: parsed.accessToken,
+      refreshToken: parsed.refreshToken || undefined,
+    };
   } catch {
     return null;
   }
 }
 
-export function writeSession(email: string, accessToken: string) {
+export function writeSession(email: string, accessToken: string, refreshToken: string) {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(
     SESSION_KEY,
-    JSON.stringify({ email: email.trim(), accessToken }),
+    JSON.stringify({ email: email.trim(), accessToken, refreshToken }),
   );
+  window.dispatchEvent(new Event(SESSION_EVENT));
 }
 
 export function clearSession() {
   if (typeof window === "undefined") return;
   window.sessionStorage.removeItem(SESSION_KEY);
+  window.dispatchEvent(new Event(SESSION_EVENT));
 }

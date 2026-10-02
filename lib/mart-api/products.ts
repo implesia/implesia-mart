@@ -5,7 +5,9 @@ import {
   type ProductStorefrontContent,
 } from "@/lib/mart-mock/product-content";
 import {
+  clearSession,
   readSession,
+  writeSession,
   type AdminProduct,
   type ProductDraft,
   type StockStatus,
@@ -60,12 +62,60 @@ export function withSavedMedia(draft: ProductDraft, saved: SavedProduct): Produc
   };
 }
 
-function authToken() {
-  const token = readSession()?.accessToken;
-  if (!token) {
-    throw new MartApiError("Sign in again to manage products.");
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function refreshAccessToken() {
+  const session = readSession();
+  if (!session?.refreshToken) return false;
+  let response: Response;
+  try {
+    response = await fetch(`${MART_API_URL}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: session.refreshToken }),
+    });
+  } catch {
+    return false;
   }
-  return token;
+  if (!response.ok) return false;
+  const body = (await response.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+  };
+  if (!body.access_token || !body.refresh_token) return false;
+  writeSession(session.email, body.access_token, body.refresh_token);
+  return true;
+}
+
+function refreshOnce() {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAccessToken().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+/** Sends an API request and replaces an expired access token before retrying once. */
+export async function authorizedFetch(path: string, init?: RequestInit, attempt = 0) {
+  const headers = new Headers(init?.headers);
+  const access = readSession()?.accessToken;
+  if (access) headers.set("Authorization", `Bearer ${access}`);
+
+  let response: Response;
+  try {
+    response = await fetch(`${MART_API_URL}${path}`, { ...init, headers });
+  } catch {
+    throw new MartApiError("Could not reach the API.");
+  }
+
+  if (response.status !== 401 || attempt > 0 || !readSession()) return response;
+  const refreshed = await refreshOnce();
+  if (!refreshed) {
+    clearSession();
+    return response;
+  }
+  return authorizedFetch(path, init, attempt + 1);
 }
 
 async function readError(response: Response, fallback: string) {
@@ -194,16 +244,10 @@ function formDataFor(
 }
 
 async function sendProduct(path: string, method: "POST" | "PATCH", body: FormData) {
-  let response: Response;
-  try {
-    response = await fetch(`${MART_API_URL}${path}`, {
-      method,
-      headers: { Authorization: `Bearer ${authToken()}` },
-      body,
-    });
-  } catch {
-    throw new MartApiError("Could not reach the product API.");
+  if (!readSession()?.accessToken) {
+    throw new MartApiError("Sign in again to manage products.");
   }
+  const response = await authorizedFetch(path, { method, body });
   if (!response.ok) throw new MartApiError(await readError(response, "The product could not be saved."));
   return (await response.json()) as SavedProduct;
 }
@@ -220,9 +264,12 @@ export async function loginMart(email: string, password: string) {
     throw new MartApiError("Could not reach the product API.");
   }
   if (!response.ok) throw new MartApiError(await readError(response, "Sign in failed."));
-  const body = (await response.json()) as { access_token?: string };
-  if (!body.access_token) throw new MartApiError("Sign in failed.");
-  return body.access_token;
+  const body = (await response.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+  };
+  if (!body.access_token || !body.refresh_token) throw new MartApiError("Sign in failed.");
+  return { accessToken: body.access_token, refreshToken: body.refresh_token };
 }
 
 export async function saveMartProduct(productId: string | undefined, draft: ProductDraft) {
@@ -312,6 +359,7 @@ export type ProductListQuery = {
   maxPrice?: string;
   sort?: string;
   page: number;
+  pageSize?: number;
 };
 
 export type ProductListResult = {
@@ -392,19 +440,10 @@ function cardToProduct(item: ApiCard): AdminProduct {
 }
 
 async function apiFetch(path: string, init?: RequestInit) {
-  let response: Response;
-  try {
-    response = await fetch(`${MART_API_URL}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${authToken()}`,
-        ...init?.headers,
-      },
-    });
-  } catch {
-    throw new MartApiError("Could not reach the product API.");
+  if (!readSession()?.accessToken) {
+    throw new MartApiError("Sign in again to manage products.");
   }
-  return response;
+  return authorizedFetch(path, init);
 }
 
 function wholeNumber(value: string | undefined) {
@@ -426,7 +465,7 @@ export async function listMartProducts(query: ProductListQuery): Promise<Product
   if (maxPrice) search.set("max_price", maxPrice);
   if (query.sort && query.sort !== "catalog") search.set("sort", query.sort);
   search.set("page", String(query.page));
-  search.set("page_size", "10");
+  search.set("page_size", String(query.pageSize ?? 10));
   const response = await apiFetch(`/api/v1/admin/products?${search.toString()}`);
   if (!response.ok) {
     throw new MartApiError(await readError(response, "Could not load products."));

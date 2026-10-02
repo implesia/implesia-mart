@@ -6,8 +6,17 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+
+import {
+  getShopCart,
+  removeCartItem,
+  setCartItemQuantity,
+  syncShopAdd,
+  type ShopCart,
+} from "@/lib/mart-api/cart";
 
 import {
   CART_STORAGE_KEY,
@@ -45,14 +54,26 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+function indexShopCart(cart: ShopCart) {
+  return new Map(cart.items.map((item) => [item.slug, item.id]));
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [lines, setLines] = useState<CartLineStored[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const remoteItems = useRef(new Map<string, string>());
 
   useEffect(() => {
     setLines(readCartFromStorage());
     setHydrated(true);
+    getShopCart()
+      .then((cart) => {
+        remoteItems.current = indexShopCart(cart);
+      })
+      .catch(() => {
+        /* The storefront still works from this browser if the API is down. */
+      });
   }, []);
 
   useEffect(() => {
@@ -95,6 +116,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         );
       });
 
+      void syncShopAdd(slug, addQty)
+        .then((cart) => {
+          if (cart) remoteItems.current = indexShopCart(cart);
+        })
+        .catch(() => {
+          /* Local cart stays. A missing catalog product is not an API product. */
+        });
+
       if (options?.openDrawer !== false) openCart();
       return true;
     },
@@ -102,7 +131,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const removeItem = useCallback((slug: string) => {
+    const itemId = remoteItems.current.get(slug);
     setLines((prev) => prev.filter((line) => line.slug !== slug));
+    if (!itemId) return;
+    void removeCartItem(itemId)
+      .then((cart) => {
+        remoteItems.current = indexShopCart(cart);
+      })
+      .catch(() => undefined);
   }, []);
 
   const setQuantity = useCallback((slug: string, quantity: number) => {
@@ -115,6 +151,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         ),
       ),
     );
+    const itemId = remoteItems.current.get(slug);
+    if (!itemId) return;
+    void setCartItemQuantity(itemId, nextQty)
+      .then((cart) => {
+        remoteItems.current = indexShopCart(cart);
+      })
+      .catch(() => undefined);
   }, []);
 
   const clearCart = useCallback(() => setLines([]), []);

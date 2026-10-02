@@ -54,8 +54,15 @@ let sessionCache: AdminSession | null | undefined;
 
 function getSessionSnapshot() {
   const next = readSession();
-  if (sessionCache && next && sessionCache.email === next.email)
+  if (
+    sessionCache &&
+    next &&
+    sessionCache.email === next.email &&
+    sessionCache.accessToken === next.accessToken &&
+    sessionCache.refreshToken === next.refreshToken
+  ) {
     return sessionCache;
+  }
   if (!sessionCache && !next) return sessionCache ?? null;
   sessionCache = next;
   return next;
