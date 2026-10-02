@@ -16,14 +16,14 @@ export function CheckoutPlaceOrderButton({
   className,
   fullWidth = true,
 }: CheckoutPlaceOrderButtonProps) {
-  const { status, submitOrder, errorMessage } = useCheckoutForm();
+  const { status, submitOrder, errorMessage, canSubmit } = useCheckoutForm();
   const submitting = status === "submitting";
 
   return (
     <div className={cn(fullWidth && "w-full")}>
       <button
         type="button"
-        disabled={submitting}
+        disabled={submitting || !canSubmit}
         onClick={() => {
           void submitOrder();
         }}

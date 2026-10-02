@@ -263,9 +263,34 @@ async function productIdForSlug(slug: string) {
   return catalogIds.get(slug) ?? null;
 }
 
-/** Records a storefront add when the product exists in the catalog API. */
-export async function syncShopAdd(slug: string, quantity: number) {
+let lastSync: Promise<ShopCart | null> = Promise.resolve(null);
+
+async function syncShopAddNow(slug: string, quantity: number) {
   const productId = await productIdForSlug(slug);
   if (!productId) return null;
   return addCartItem(productId, quantity);
+}
+
+/** Records a storefront add when the product exists in the catalog API. */
+export function syncShopAdd(slug: string, quantity: number) {
+  const run = lastSync.then(
+    () => syncShopAddNow(slug, quantity),
+    () => syncShopAddNow(slug, quantity),
+  );
+  lastSync = run;
+  return run;
+}
+
+export function whenShopCartSettled() {
+  return lastSync;
+}
+
+export function lookupProductId(slug: string) {
+  return productIdForSlug(slug);
+}
+
+export function guestCartHeaders(): Record<string, string> {
+  const guest = guestToken();
+  if (!guest) return {};
+  return { "X-Cart-Token": guest };
 }

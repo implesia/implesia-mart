@@ -12,6 +12,11 @@ export function setBuyQuantity(next: number) {
   listeners.forEach((listener) => listener());
 }
 
+/** Reads the latest value, so repeated clicks each change the number. */
+export function adjustBuyQuantity(delta: number) {
+  setBuyQuantity(quantity + delta);
+}
+
 export function subscribeBuyQuantity(listener: Listener) {
   listeners.add(listener);
   return () => {

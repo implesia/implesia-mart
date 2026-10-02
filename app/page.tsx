@@ -9,8 +9,11 @@ import { HomeTrustStrip } from "./(client)/_components/home/home-trust-strip";
 import { NewsletterSection } from "./(client)/_components/home/newsletter-section";
 import { TestimonialsSection } from "./(client)/_components/home/testimonials-section";
 import { JsonLd } from "./(client)/_components/common/json-ld";
+import { listStoreProducts } from "@/lib/mart-api/catalog";
 import { faqSections } from "./(client)/_data/home/home";
 import { DEFAULT_DESCRIPTION, DEFAULT_TITLE } from "@/lib/seo";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   /* Absolute form bypasses the root layout's "%s | Site Name" template,
@@ -38,7 +41,8 @@ const faqJsonLd = {
   })),
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const products = await listStoreProducts();
   return (
     <>
       <JsonLd data={faqJsonLd} />
@@ -46,8 +50,8 @@ export default function HomePage() {
         <HeroSection />
         <HomeTrustStrip />
         <CategoriesStripSection />
-        <FeaturedProductsSection />
-        <CategoryShowcaseSection />
+        <FeaturedProductsSection products={products} />
+        <CategoryShowcaseSection products={products} />
         <TestimonialsSection />
         <FaqSection />
         <NewsletterSection />

@@ -24,14 +24,8 @@ export function CheckoutSuccess() {
           <p className="text-xs text-neutral-500">অর্ডার নম্বর</p>
           <p className="mt-1 text-lg font-semibold tracking-wide text-neutral-950">{orderNumber}</p>
           <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-            এই নম্বর ডিজাইন মক — অর্ডার সেভ হয়নি।
+            ক্যাশ অন ডেলিভারি। অর্ডারটি সেভ হয়েছে।
           </p>
-          <Link
-            href={`/order-status?order=${orderNumber}`}
-            className="mt-3 inline-flex text-sm font-semibold text-primary"
-          >
-            স্ট্যাটাস দেখুন
-          </Link>
         </div>
       ) : null}
       <div className="mx-auto flex w-full max-w-sm flex-col items-stretch justify-center gap-2 sm:max-w-none sm:flex-row sm:items-center">

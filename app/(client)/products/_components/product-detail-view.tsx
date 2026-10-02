@@ -35,9 +35,11 @@ export function ProductDetailLayout({ product }: { product: ProductDetail }) {
             badge={
               product.status === "coming-soon"
                 ? "কামিং সুন"
-                : product.badge
-                  ? badgeLabel[product.badge]
-                  : undefined
+                : product.status === "sold-out"
+                  ? "শেষ"
+                  : product.badge
+                    ? badgeLabel[product.badge]
+                    : undefined
             }
             images={product.gallery}
           />

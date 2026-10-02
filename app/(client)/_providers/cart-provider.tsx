@@ -11,34 +11,28 @@ import {
 } from "react";
 
 import {
+  addCartItem,
   getShopCart,
+  lookupProductId,
   removeCartItem,
   setCartItemQuantity,
-  syncShopAdd,
   type ShopCart,
 } from "@/lib/mart-api/cart";
 
 import {
-  CART_STORAGE_KEY,
   clampCartQty,
-  computeCartPricing,
-  getAvailableProductBySlug,
-  readCartFromStorage,
-  resolveCartLines,
-  sanitizeCartLines,
-  writeCartToStorage,
+  MAX_CART_QTY,
   type CartLineResolved,
-  type CartLineStored,
   type CartPricing,
 } from "../_lib/cart";
 
 type AddItemOptions = {
   openDrawer?: boolean;
+  productId?: string;
 };
 
 type CartContextValue = {
   hydrated: boolean;
-  lines: CartLineStored[];
   items: CartLineResolved[];
   pricing: CartPricing;
   itemCount: number;
@@ -46,133 +40,242 @@ type CartContextValue = {
   openCart: () => void;
   closeCart: () => void;
   setCartOpen: (open: boolean) => void;
-  addItem: (slug: string, quantity?: number, options?: AddItemOptions) => boolean;
+  addItem: (
+    slug: string,
+    quantity?: number,
+    options?: AddItemOptions,
+  ) => Promise<boolean>;
   removeItem: (slug: string) => void;
-  setQuantity: (slug: string, quantity: number) => void;
-  clearCart: () => void;
+  adjustQuantity: (slug: string, delta: number) => void;
+  readQuantity: (slug: string) => number;
+  reloadCart: () => Promise<void>;
+};
+
+const EMPTY_PRICING: CartPricing = {
+  subtotal: 0,
+  shipping: 0,
+  tax: 0,
+  total: 0,
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-function indexShopCart(cart: ShopCart) {
-  return new Map(cart.items.map((item) => [item.slug, item.id]));
+function applyCart(cart: ShopCart) {
+  const items: CartLineResolved[] = cart.items.map((item) => ({
+    id: item.productId,
+    slug: item.slug,
+    title: item.title,
+    meta: "",
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    lineTotal: item.lineTotal,
+    imageSrc: item.imageSrc,
+    imageAlt: item.title,
+  }));
+  const ids = new Map(cart.items.map((item) => [item.slug, item.id]));
+  const pricing: CartPricing = {
+    subtotal: cart.subtotal,
+    shipping: cart.shipping,
+    tax: 0,
+    total: cart.total,
+  };
+  return { items, ids, pricing, itemCount: cart.itemCount };
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [lines, setLines] = useState<CartLineStored[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [items, setItems] = useState<CartLineResolved[]>([]);
+  const [pricing, setPricing] = useState<CartPricing>(EMPTY_PRICING);
+  const [itemCount, setItemCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const remoteItems = useRef(new Map<string, string>());
+  const ids = useRef(new Map<string, string>());
+  const itemsRef = useRef<CartLineResolved[]>([]);
+  const pricingRef = useRef<CartPricing>(EMPTY_PRICING);
+  const desired = useRef(new Map<string, number>());
+  const writes = useRef(new Map<string, number>());
+  const epoch = useRef(0);
+  const inflight = useRef(0);
+  const flight = useRef(0);
 
-  useEffect(() => {
-    setLines(readCartFromStorage());
-    setHydrated(true);
-    getShopCart()
-      .then((cart) => {
-        remoteItems.current = indexShopCart(cart);
-      })
-      .catch(() => {
-        /* The storefront still works from this browser if the API is down. */
-      });
+  const commit = useCallback((cart: ShopCart) => {
+    const next = applyCart(cart);
+    ids.current = next.ids;
+    itemsRef.current = next.items;
+    pricingRef.current = next.pricing;
+    setItems(next.items);
+    setPricing(next.pricing);
+    setItemCount(next.itemCount);
   }, []);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    writeCartToStorage(lines);
-  }, [lines, hydrated]);
+  const publish = useCallback(
+    (nextItems: CartLineResolved[], shipping: number) => {
+      const subtotal = nextItems.reduce((sum, item) => sum + item.lineTotal, 0);
+      const count = nextItems.reduce((sum, item) => sum + item.quantity, 0);
+      const ship = count > 0 ? shipping : 0;
+      const pricing = {
+        subtotal,
+        shipping: ship,
+        tax: 0,
+        total: subtotal + ship,
+      };
+      itemsRef.current = nextItems;
+      pricingRef.current = pricing;
+      setItems(nextItems);
+      setPricing(pricing);
+      setItemCount(count);
+    },
+    [],
+  );
+
+  const reloadCart = useCallback(async () => {
+    const seen = epoch.current;
+    const ticket = ++flight.current;
+    try {
+      const cart = await getShopCart();
+      if (
+        ticket !== flight.current ||
+        seen !== epoch.current ||
+        inflight.current > 0
+      )
+        return;
+      commit(cart);
+    } catch {
+      if (ticket !== flight.current) return;
+    } finally {
+      if (ticket === flight.current) setHydrated(true);
+    }
+  }, [commit]);
 
   useEffect(() => {
-    if (!hydrated) return;
-
-    const onStorage = (event: StorageEvent) => {
-      if (event.key !== CART_STORAGE_KEY) return;
-      setLines(readCartFromStorage());
+    let cancelled = false;
+    const seen = epoch.current;
+    const ticket = ++flight.current;
+    getShopCart()
+      .then((cart) => {
+        if (
+          cancelled ||
+          ticket !== flight.current ||
+          seen !== epoch.current ||
+          inflight.current > 0
+        ) {
+          return;
+        }
+        commit(cart);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled && ticket === flight.current) setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
     };
-
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [hydrated]);
+  }, [commit]);
 
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);
   const setCartOpen = useCallback((open: boolean) => setIsOpen(open), []);
 
   const addItem = useCallback(
-    (slug: string, quantity = 1, options?: AddItemOptions) => {
-      if (!getAvailableProductBySlug(slug)) return false;
-
-      const addQty = clampCartQty(quantity);
-      setLines((prev) => {
-        const existing = prev.find((line) => line.slug === slug);
-        if (!existing) {
-          return sanitizeCartLines([...prev, { slug, quantity: addQty }]);
-        }
-        return sanitizeCartLines(
-          prev.map((line) =>
-            line.slug === slug
-              ? { ...line, quantity: clampCartQty(line.quantity + addQty) }
-              : line,
-          ),
-        );
-      });
-
-      void syncShopAdd(slug, addQty)
-        .then((cart) => {
-          if (cart) remoteItems.current = indexShopCart(cart);
-        })
-        .catch(() => {
-          /* Local cart stays. A missing catalog product is not an API product. */
-        });
-
+    async (slug: string, quantity = 1, options?: AddItemOptions) => {
+      const productId = options?.productId || (await lookupProductId(slug));
+      if (!productId) return false;
       if (options?.openDrawer !== false) openCart();
-      return true;
+      epoch.current += 1;
+      inflight.current += 1;
+      try {
+        commit(await addCartItem(productId, clampCartQty(quantity)));
+        return true;
+      } catch {
+        return false;
+      } finally {
+        inflight.current -= 1;
+      }
     },
-    [openCart],
+    [commit, openCart],
   );
 
-  const removeItem = useCallback((slug: string) => {
-    const itemId = remoteItems.current.get(slug);
-    setLines((prev) => prev.filter((line) => line.slug !== slug));
-    if (!itemId) return;
-    void removeCartItem(itemId)
-      .then((cart) => {
-        remoteItems.current = indexShopCart(cart);
-      })
-      .catch(() => undefined);
-  }, []);
+  const removeItem = useCallback(
+    (slug: string) => {
+      const itemId = ids.current.get(slug);
+      if (!itemId) return;
+      desired.current.delete(slug);
+      epoch.current += 1;
+      inflight.current += 1;
+      publish(
+        itemsRef.current.filter((item) => item.slug !== slug),
+        pricingRef.current.shipping,
+      );
+      void removeCartItem(itemId)
+        .then((cart) => {
+          if (!desired.current.has(slug)) commit(cart);
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          inflight.current -= 1;
+        });
+    },
+    [commit, publish],
+  );
 
-  const setQuantity = useCallback((slug: string, quantity: number) => {
-    if (!getAvailableProductBySlug(slug)) return;
-    const nextQty = clampCartQty(quantity);
-    setLines((prev) =>
-      sanitizeCartLines(
-        prev.map((line) =>
-          line.slug === slug ? { ...line, quantity: nextQty } : line,
-        ),
-      ),
+  const readQuantity = useCallback((slug: string) => {
+    return (
+      desired.current.get(slug) ??
+      itemsRef.current.find((item) => item.slug === slug)?.quantity ??
+      1
     );
-    const itemId = remoteItems.current.get(slug);
-    if (!itemId) return;
-    void setCartItemQuantity(itemId, nextQty)
-      .then((cart) => {
-        remoteItems.current = indexShopCart(cart);
-      })
-      .catch(() => undefined);
   }, []);
 
-  const clearCart = useCallback(() => setLines([]), []);
-
-  const items = useMemo(() => resolveCartLines(lines), [lines]);
-  const pricing = useMemo(() => computeCartPricing(items), [items]);
-  const itemCount = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantity, 0),
-    [items],
+  const adjustQuantity = useCallback(
+    (slug: string, delta: number) => {
+      const itemId = ids.current.get(slug);
+      if (!itemId || !delta) return;
+      const current = readQuantity(slug);
+      const next = Math.max(1, Math.min(MAX_CART_QTY, current + delta));
+      if (next === current) return;
+      desired.current.set(slug, next);
+      epoch.current += 1;
+      publish(
+        itemsRef.current.map((item) =>
+          item.slug === slug
+            ? { ...item, quantity: next, lineTotal: item.unitPrice * next }
+            : item,
+        ),
+        pricingRef.current.shipping,
+      );
+      const ticket = (writes.current.get(slug) ?? 0) + 1;
+      writes.current.set(slug, ticket);
+      window.setTimeout(() => {
+        const qty = desired.current.get(slug);
+        if (qty == null || writes.current.get(slug) !== ticket) return;
+        inflight.current += 1;
+        void setCartItemQuantity(itemId, qty)
+          .then((cart) => {
+            if (
+              writes.current.get(slug) !== ticket ||
+              desired.current.get(slug) !== qty
+            )
+              return;
+            desired.current.delete(slug);
+            commit(cart);
+          })
+          .catch(() => {
+            if (writes.current.get(slug) !== ticket) return;
+            desired.current.delete(slug);
+            void getShopCart()
+              .then(commit)
+              .catch(() => undefined);
+          })
+          .finally(() => {
+            inflight.current -= 1;
+          });
+      }, 160);
+    },
+    [commit, publish, readQuantity],
   );
 
   const value = useMemo<CartContextValue>(
     () => ({
       hydrated,
-      lines,
       items,
       pricing,
       itemCount,
@@ -182,12 +285,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setCartOpen,
       addItem,
       removeItem,
-      setQuantity,
-      clearCart,
+      adjustQuantity,
+      readQuantity,
+      reloadCart,
     }),
     [
       hydrated,
-      lines,
       items,
       pricing,
       itemCount,
@@ -197,8 +300,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setCartOpen,
       addItem,
       removeItem,
-      setQuantity,
-      clearCart,
+      adjustQuantity,
+      readQuantity,
+      reloadCart,
     ],
   );
 

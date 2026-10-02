@@ -3,8 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { productsForSlugs } from "@/lib/mart-mock/home-sections";
-import { useAdminProducts, useHomeSections } from "@/lib/mart-mock/hooks";
+import { useHomeSections } from "@/lib/mart-mock/hooks";
 
 import { ProductCard } from "../../products/_components/product-card";
 import {
@@ -115,12 +114,8 @@ function CategoryProductRow({
   );
 }
 
-export function CategoryShowcaseSection() {
+export function CategoryShowcaseSection({ products }: { products: Product[] }) {
   const { showcase } = useHomeSections();
-  const adminProducts = useAdminProducts();
-  const hidden = new Set(
-    (adminProducts ?? []).filter((product) => !product.published).map((product) => product.slug),
-  );
 
   return (
     <section
@@ -129,7 +124,11 @@ export function CategoryShowcaseSection() {
     >
       <Container className="space-y-4 px-4 sm:px-6 lg:px-8">
         {showcase.map((row) => {
-          const items = productsForSlugs(row.slugs).filter((product) => !hidden.has(product.slug));
+          const items = (
+            row.id === "gadgets" || row.id === "fashion"
+              ? products.filter((product) => product.categoryId === row.id)
+              : products
+          ).slice(0, 4);
           if (items.length === 0) return null;
           return (
             <CategoryProductRow

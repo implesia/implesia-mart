@@ -9,8 +9,6 @@ import { CATALOG_PAGE_SIZE, loadCatalogPage } from "../_lib/load-catalog-page";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
   categoryLabels,
-  FEATURED_PRODUCT_SLUGS,
-  LATEST_PRODUCT_SLUGS,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   productFilters,
@@ -28,7 +26,7 @@ import { ProductsToolbar } from "./products-toolbar";
 type SortId = ProductSortId;
 type AvailabilityId = ProductStatus;
 
-const DEFAULT_AVAILABILITY: AvailabilityId[] = ["available"];
+const DEFAULT_AVAILABILITY: AvailabilityId[] = ["available", "sold-out"];
 
 function formatTaka(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
@@ -123,12 +121,7 @@ export function ProductsCatalog({
 
   const filteredProducts = useMemo(() => {
     const [minPrice, maxPrice] = priceRange;
-    const viewSlugs =
-      activeView === "featured"
-        ? FEATURED_PRODUCT_SLUGS
-        : activeView === "latest"
-          ? LATEST_PRODUCT_SLUGS
-          : null;
+    const anyFeatured = products.some((product) => product.featured);
 
     const matched = products.filter((product) => {
       const matchesAvailability =
@@ -142,9 +135,8 @@ export function ProductsCatalog({
           : categories.includes(product.categoryId);
 
       const matchesBadge = badge ? product.badge === badge : true;
-      const matchesView = viewSlugs
-        ? (viewSlugs as readonly string[]).includes(product.slug)
-        : true;
+      const matchesView =
+        activeView === "featured" ? (anyFeatured ? Boolean(product.featured) : true) : true;
 
       const matchesMin = product.price >= minPrice;
       const matchesMax = product.price <= maxPrice;
@@ -187,17 +179,12 @@ export function ProductsCatalog({
   }
 
   const categoryCounts = useMemo(() => {
-    const viewSlugs =
-      activeView === "featured"
-        ? FEATURED_PRODUCT_SLUGS
-        : activeView === "latest"
-          ? LATEST_PRODUCT_SLUGS
-          : null;
+    const anyFeatured = products.some((product) => product.featured);
     const counts: Record<ProductCategoryId, number> = { gadgets: 0, fashion: 0 };
     for (const product of products) {
       if (!availability.includes(product.status)) continue;
       if (badge && product.badge !== badge) continue;
-      if (viewSlugs && !(viewSlugs as readonly string[]).includes(product.slug)) continue;
+      if (activeView === "featured" && anyFeatured && !product.featured) continue;
       if (product.price < priceRange[0] || product.price > priceRange[1]) continue;
       counts[product.categoryId] += 1;
     }
@@ -205,17 +192,16 @@ export function ProductsCatalog({
   }, [activeView, availability, badge, priceRange, products]);
 
   const availabilityCounts = useMemo(() => {
-    const viewSlugs =
-      activeView === "featured"
-        ? FEATURED_PRODUCT_SLUGS
-        : activeView === "latest"
-          ? LATEST_PRODUCT_SLUGS
-          : null;
-    const counts: Record<ProductStatus, number> = { available: 0, "coming-soon": 0 };
+    const anyFeatured = products.some((product) => product.featured);
+    const counts: Record<ProductStatus, number> = {
+      available: 0,
+      "sold-out": 0,
+      "coming-soon": 0,
+    };
     for (const product of products) {
       if (!categories.includes(product.categoryId)) continue;
       if (badge && product.badge !== badge) continue;
-      if (viewSlugs && !(viewSlugs as readonly string[]).includes(product.slug)) continue;
+      if (activeView === "featured" && anyFeatured && !product.featured) continue;
       if (product.price < priceRange[0] || product.price > priceRange[1]) continue;
       counts[product.status] += 1;
     }

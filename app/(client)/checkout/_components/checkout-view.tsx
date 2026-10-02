@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -28,26 +26,7 @@ const pagePad =
   "px-4 pt-2 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 lg:px-8 lg:pb-10";
 
 export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
-  const router = useRouter();
-  const { hydrated, items, addItem } = useCart();
-  const seededRef = useRef(false);
-  const [seedReady, setSeedReady] = useState(!seedSlug);
-
-  useEffect(() => {
-    if (!hydrated || seededRef.current) return;
-
-    if (!seedSlug) {
-      setSeedReady(true);
-      return;
-    }
-
-    const ok = addItem(seedSlug, seedQty ?? 1, { openDrawer: false });
-    seededRef.current = true;
-    setSeedReady(true);
-    if (ok) {
-      router.replace("/checkout", { scroll: false });
-    }
-  }, [hydrated, seedSlug, seedQty, addItem, router]);
+  const { hydrated, items } = useCart();
 
   const productHref = seedSlug
     ? `/products/${seedSlug}`
@@ -55,7 +34,7 @@ export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
       ? `/products/${items[0].slug}`
       : "/products";
 
-  if (!hydrated || !seedReady) {
+  if (!hydrated) {
     return (
       <div className="w-full bg-[#f5f6f8]">
         <Container className={cn(pagePad)}>
@@ -70,20 +49,15 @@ export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
   }
 
   return (
-    <CheckoutFormProvider>
-      <CheckoutReadyView productHref={productHref} hasItems={items.length > 0} />
+    <CheckoutFormProvider source={seedSlug ? "direct" : "cart"} seedSlug={seedSlug} seedQty={seedQty}>
+      <CheckoutReadyView productHref={productHref} />
     </CheckoutFormProvider>
   );
 }
 
-function CheckoutReadyView({
-  productHref,
-  hasItems,
-}: {
-  productHref: string;
-  hasItems: boolean;
-}) {
-  const { status } = useCheckoutForm();
+function CheckoutReadyView({ productHref }: { productHref: string }) {
+  const { status, quote, quoteReady, pricingMessage } = useCheckoutForm();
+  const hasItems = (quote?.items.length ?? 0) > 0;
 
   if (status === "success") {
     return (
@@ -91,6 +65,20 @@ function CheckoutReadyView({
         <Container className={cn(pagePad, "lg:pb-10")}>
           <CheckoutPageHeader productHref="/products" />
           <CheckoutSuccess />
+        </Container>
+      </div>
+    );
+  }
+
+  if (!quoteReady) {
+    return (
+      <div className="w-full bg-[#f5f6f8]">
+        <Container className={cn(pagePad)}>
+          <div className="h-24 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90 sm:h-28" />
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-12">
+            <div className="h-72 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90 sm:h-80 lg:col-span-7" />
+            <div className="h-72 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90 sm:h-80 lg:col-span-5" />
+          </div>
         </Container>
       </div>
     );
@@ -107,7 +95,7 @@ function CheckoutReadyView({
             </span>
             <h2 className="mb-2 text-xl font-semibold text-neutral-950">{checkoutCopy.emptyTitle}</h2>
             <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-neutral-600">
-              {checkoutCopy.emptyBody}
+              {pricingMessage ?? checkoutCopy.emptyBody}
             </p>
             <Link
               href="/products"

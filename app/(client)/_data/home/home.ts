@@ -48,7 +48,7 @@ export const heroSlides: HeroSlide[] = [
       ? money(sunsetLamp.compareAtPrice)
       : undefined,
     discountLabel: discountLabel(sunsetLamp.price, sunsetLamp.compareAtPrice),
-    primaryCta: { label: "এখনই অর্ডার", href: `/products/${sunsetLamp.slug}` },
+    primaryCta: { label: "এখনই অর্ডার", href: "/products" },
     secondaryCta: { label: "সব গ্যাজেট", href: "/products" },
     imageSrc: "/images/products/lamp/lamp-5.jpg",
     imageAlt: sunsetLamp.imageAlt,
@@ -65,8 +65,8 @@ export const heroSlides: HeroSlide[] = [
       ? money(selfieStand.compareAtPrice)
       : undefined,
     discountLabel: discountLabel(selfieStand.price, selfieStand.compareAtPrice),
-    primaryCta: { label: "অর্ডার করুন", href: `/products/${selfieStand.slug}` },
-    secondaryCta: { label: "বিস্তারিত", href: `/products/${selfieStand.slug}` },
+    primaryCta: { label: "অর্ডার করুন", href: "/products" },
+    secondaryCta: { label: "বিস্তারিত", href: "/products" },
     imageSrc: "/images/products/selfie-stand/stand-1.jpg",
     imageAlt: selfieStand.imageAlt,
     accent: "teal",
@@ -78,7 +78,7 @@ export const heroSlides: HeroSlide[] = [
     description:
       "মাপ ও ডিজাইন অনুযায়ী এমব্রয়ডারি গাউন — স্পেশাল ডে-তে নিজের লুক নিজেই নির্ধারণ করুন।",
     priceLabel: `শুরু ${money(womensGown.price)}`,
-    primaryCta: { label: "কাস্টম অর্ডার", href: `/products/${womensGown.slug}` },
+    primaryCta: { label: "কাস্টম অর্ডার", href: "/products" },
     secondaryCta: { label: "সব ড্রেস", href: "/products" },
     imageSrc: womensGown.imageSrc,
     imageAlt: womensGown.imageAlt,
@@ -91,7 +91,7 @@ export const heroSlides: HeroSlide[] = [
     description:
       "কালার, ডিটেইল ও মাপ কাস্টমাইজ করে হাতে তৈরি — ছোট্ট তারকার পার্টি লুক সম্পূর্ণ।",
     priceLabel: `শুরু ${money(babyFrock.price)}`,
-    primaryCta: { label: "অর্ডার করুন", href: `/products/${babyFrock.slug}` },
+    primaryCta: { label: "অর্ডার করুন", href: "/products" },
     secondaryCta: { label: "যোগাযোগ", href: "/contact-us" },
     imageSrc: babyFrock.imageSrc,
     imageAlt: babyFrock.imageAlt,
@@ -110,7 +110,7 @@ export type BestSellingProduct = {
   imageSrc: string;
   imageAlt: string;
   badge?: "New" | "Best Seller" | "Limited";
-  status: "available" | "coming-soon";
+  status: "available" | "sold-out" | "coming-soon";
 };
 
 /** Curated home carousel — available picks first, then upcoming gadgets. */
@@ -157,8 +157,8 @@ export const flashSale = {
     "সীমিত সময়ের অফার — ক্যাশ অন ডেলিভারিতে অর্ডার করুন, সারাদেশে ঘরে বসেই পৌঁছে যাবে।",
   badge: "আজকের ডিল",
   cta: "এখনই অর্ডার",
-  ctaHref: `/products/${sunsetLamp.slug}`,
-  secondaryCta: { label: "বিস্তারিত দেখুন", href: `/products/${sunsetLamp.slug}` },
+  ctaHref: "/products",
+  secondaryCta: { label: "বিস্তারিত দেখুন", href: "/products" },
   priceLabel: money(sunsetLamp.price),
   compareAtLabel: sunsetLamp.compareAtPrice
     ? money(sunsetLamp.compareAtPrice)

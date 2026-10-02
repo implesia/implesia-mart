@@ -7,8 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
-import { formatCartMoney, MAX_CART_QTY } from "../../_lib/cart";
-import { useCart } from "../../_providers/cart-provider";
+import { formatCartMoney } from "../../_lib/cart";
 
 import { CheckoutPlaceOrderButton } from "./checkout-place-order-button";
 import { useCheckoutForm } from "./checkout-form-context";
@@ -20,8 +19,17 @@ const TRUST_ITEMS = [
 ] as const;
 
 export function CheckoutOrderSummary({ className }: { className?: string }) {
-  const { items, pricing, setQuantity, removeItem } = useCart();
-  const { deliveryFee, grandTotal, deliveryZone } = useCheckoutForm();
+  const {
+    quote,
+    deliveryFee,
+    grandTotal,
+    deliveryZone,
+    pricingBusy,
+    pricingMessage,
+    changeQuantity,
+    removeLine,
+  } = useCheckoutForm();
+  const items = quote?.items ?? [];
 
   return (
     <aside className={cn("min-w-0 lg:col-span-5", className)}>
@@ -42,27 +50,32 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
 
         <div className="flex max-h-[min(50vh,22rem)] flex-col gap-3.5 overflow-y-auto pr-0.5 sm:max-h-none sm:overflow-visible">
           {items.map((item) => (
-            <div key={item.slug} className="flex items-start gap-2.5 sm:gap-3">
+            <div key={item.productId} className="flex items-start gap-2.5 sm:gap-3">
               <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-[#f5f6f8] ring-1 ring-neutral-200/90 sm:size-20">
-                <Image
-                  src={item.imageSrc}
-                  alt={item.imageAlt}
-                  fill
-                  className="object-contain p-1.5"
-                  sizes="80px"
-                />
+                {item.imageSrc ? (
+                  <Image
+                    src={item.imageSrc}
+                    alt={item.title}
+                    fill
+                    className="object-contain p-1.5"
+                    sizes="80px"
+                  />
+                ) : null}
               </div>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="line-clamp-2 text-sm font-medium text-neutral-950">{item.title}</h3>
-                    <p className="mt-0.5 line-clamp-1 text-xs text-neutral-500">{item.meta}</p>
+                    {item.available ? null : (
+                      <p className="mt-0.5 text-xs text-red-500">এখন কেনা যাচ্ছে না</p>
+                    )}
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeItem(item.slug)}
-                    className="shrink-0 rounded-full p-1 text-neutral-400 transition-colors hover:bg-[#f5f6f8] hover:text-red-500"
+                    onClick={() => removeLine(item)}
+                    disabled={pricingBusy}
+                    className="shrink-0 rounded-full p-1 text-neutral-400 transition-colors hover:bg-[#f5f6f8] hover:text-red-500 disabled:opacity-40"
                     aria-label={`${item.title} সরান`}
                   >
                     <MaterialIcon name="close" className="text-[16px]" />
@@ -74,8 +87,8 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                     <button
                       type="button"
                       className="flex size-8 items-center justify-center hover:text-primary disabled:opacity-40"
-                      onClick={() => setQuantity(item.slug, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
+                      onClick={() => changeQuantity(item, item.quantity - 1)}
+                      disabled={pricingBusy || item.quantity <= 1}
                       aria-label="পরিমাণ কমান"
                     >
                       <MaterialIcon name="remove" className="text-[16px]" />
@@ -84,14 +97,14 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                     <button
                       type="button"
                       className="flex size-8 items-center justify-center hover:text-primary disabled:opacity-40"
-                      onClick={() => setQuantity(item.slug, item.quantity + 1)}
-                      disabled={item.quantity >= MAX_CART_QTY}
+                      onClick={() => changeQuantity(item, item.quantity + 1)}
+                      disabled={pricingBusy || !item.available || item.quantity >= item.maxQuantity}
                       aria-label="পরিমাণ বাড়ান"
                     >
                       <MaterialIcon name="add" className="text-[16px]" />
                     </button>
                   </div>
-                  <span className="text-sm font-semibold text-neutral-950">
+                  <span className={cn("text-sm font-semibold text-neutral-950", pricingBusy && "opacity-50")}>
                     {formatCartMoney(item.lineTotal)}
                   </span>
                 </div>
@@ -110,7 +123,9 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-neutral-600">সাবটোটাল</span>
-            <span className="font-medium text-neutral-950">{formatCartMoney(pricing.subtotal)}</span>
+            <span className={cn("font-medium text-neutral-950", pricingBusy && "opacity-50")}>
+              {formatCartMoney(quote?.subtotal ?? 0)}
+            </span>
           </div>
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-neutral-600">
@@ -119,14 +134,19 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                 {deliveryZone === "inside" ? "ঢাকার ভেতর" : "ঢাকার বাইরে"}
               </span>
             </span>
-            <span className="font-medium text-neutral-950">{formatCartMoney(deliveryFee)}</span>
+            <span className={cn("font-medium text-neutral-950", pricingBusy && "opacity-50")}>
+              {formatCartMoney(deliveryFee)}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f6f8] px-3.5 py-3.5">
           <span className="text-base font-semibold text-neutral-950">সর্বমোট</span>
-          <span className="text-base font-semibold text-primary">{formatCartMoney(grandTotal)}</span>
+          <span className={cn("text-base font-semibold text-primary", pricingBusy && "opacity-50")}>
+            {formatCartMoney(grandTotal)}
+          </span>
         </div>
+        {pricingMessage ? <p className="text-center text-xs text-red-500">{pricingMessage}</p> : null}
 
         <div className="hidden lg:block">
           <CheckoutPlaceOrderButton />

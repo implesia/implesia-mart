@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { catalogProductId } from "@/lib/mart-api/catalog";
 import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -31,7 +32,8 @@ const BADGE_LABEL: Record<ProductBadge, string> = {
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
-  const stockStatus = useCatalogStockStatus(product.slug, product.status);
+  const overlay = useCatalogStockStatus(product.slug, product.status);
+  const stockStatus = catalogProductId(product.id) ? product.status : overlay;
   const isComingSoon = stockStatus === "coming-soon";
   const isSoldOut = stockStatus === "sold-out";
   const isFashion = product.categoryId === "fashion";
@@ -39,10 +41,15 @@ export function ProductCard({ product }: ProductCardProps) {
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const ok = addItem(product.slug, 1, { openDrawer: true });
-    if (!ok) return;
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 1400);
+    void (async () => {
+      const ok = await addItem(product.slug, 1, {
+        openDrawer: true,
+        productId: catalogProductId(product.id),
+      });
+      if (!ok) return;
+      setJustAdded(true);
+      window.setTimeout(() => setJustAdded(false), 1400);
+    })();
   }
 
   const discountPct =

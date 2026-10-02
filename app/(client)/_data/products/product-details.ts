@@ -2,6 +2,7 @@ import {
   getProductGalleryItems,
   getProductMedia,
   type ProductGalleryItem,
+  type ProductMediaId,
 } from "./product-media";
 import { categoryLabels, products, type Product } from "./products";
 
@@ -189,7 +190,7 @@ type DetailContent = {
 };
 
 function assembleDetail(product: Product, content: DetailContent): ProductDetail {
-  const media = getProductMedia(product.id);
+  const media = getProductMedia(product.id as ProductMediaId);
   const isComingSoon = product.status === "coming-soon";
 
   return {
@@ -202,7 +203,7 @@ function assembleDetail(product: Product, content: DetailContent): ProductDetail
       { label: categoryLabels[product.categoryId], href: "/products" },
       { label: product.title },
     ],
-    gallery: getProductGalleryItems(product.id),
+    gallery: getProductGalleryItems(product.id as ProductMediaId),
     description: content.description,
     keyFeatures: content.keyFeatures,
     suitableFor: content.suitableFor,

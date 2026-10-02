@@ -2,20 +2,17 @@
 
 import Link from "next/link";
 
-import { productsForSlugs } from "@/lib/mart-mock/home-sections";
-import { useAdminProducts, useHomeSections } from "@/lib/mart-mock/hooks";
+import { useHomeSections } from "@/lib/mart-mock/hooks";
 
+import type { Product } from "../../_data/products/products";
 import { ProductCard } from "../../products/_components/product-card";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
-export function FeaturedProductsSection() {
+export function FeaturedProductsSection({ products }: { products: Product[] }) {
   const { featured } = useHomeSections();
-  const adminProducts = useAdminProducts();
-  const hidden = new Set(
-    (adminProducts ?? []).filter((product) => !product.published).map((product) => product.slug),
-  );
-  const featuredProducts = productsForSlugs(featured.slugs).filter((product) => !hidden.has(product.slug));
+  const flagged = products.filter((product) => product.featured);
+  const featuredProducts = (flagged.length > 0 ? flagged : products).slice(0, 4);
   if (featuredProducts.length === 0) return null;
 
   return (

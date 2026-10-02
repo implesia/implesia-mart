@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { JsonLd } from "../../_components/common/json-ld";
-import {
-  CatalogProductView,
-  CustomProductView,
-} from "../_components/product-detail-view";
-import { getProductDetailBySlug } from "../../_data/products/product-details";
-import { products } from "../../_data/products/products";
+import { notFound } from "next/navigation";
+
+import { getStoreProduct } from "@/lib/mart-api/catalog";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
-}
+import { JsonLd } from "../../_components/common/json-ld";
+import { ProductDetailLayout } from "../_components/product-detail-view";
+
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,
@@ -18,15 +15,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductDetailBySlug(slug);
+  const product = await getStoreProduct(slug);
 
   if (!product) {
-    return { title: "প্রোডাক্ট পাওয়া যায়নি" };
+    return { title: "প্রোডাক্ট পাওয়া যায়নি", robots: { index: false, follow: false } };
   }
 
   const url = `/products/${product.slug}`;
   const keywords = [product.title, product.subtitle, product.tagline].filter(
-    (v): v is string => Boolean(v),
+    (value): value is string => Boolean(value),
   );
 
   return {
@@ -39,22 +36,23 @@ export async function generateMetadata({
       url,
       title: product.title,
       description: product.description,
-      images: [
-        {
-          url: product.imageSrc,
-          alt: product.imageAlt,
-          width: 900,
-          height: 900,
-        },
-      ],
+      images: product.imageSrc
+        ? [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }]
+        : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: product.title,
       description: product.description,
-      images: [product.imageSrc],
+      images: product.imageSrc ? [product.imageSrc] : undefined,
     },
   };
+}
+
+function availability(status: string) {
+  if (status === "coming-soon") return "https://schema.org/PreOrder";
+  if (status === "sold-out") return "https://schema.org/OutOfStock";
+  return "https://schema.org/InStock";
 }
 
 export default async function ProductDetailsPage({
@@ -63,17 +61,16 @@ export default async function ProductDetailsPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductDetailBySlug(slug);
-  if (!product) return <CustomProductView slug={slug} />;
+  const product = await getStoreProduct(slug);
+  if (!product) notFound();
 
   const productUrl = absoluteUrl(`/products/${product.slug}`);
-
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.title,
     description: product.description,
-    image: [absoluteUrl(product.imageSrc)],
+    image: product.imageSrc ? [absoluteUrl(product.imageSrc)] : undefined,
     sku: product.id,
     brand: { "@type": "Brand", name: SITE_NAME },
     offers: {
@@ -81,23 +78,10 @@ export default async function ProductDetailsPage({
       url: productUrl,
       priceCurrency: "BDT",
       price: product.price,
-      availability:
-        product.status === "coming-soon"
-          ? "https://schema.org/PreOrder"
-          : "https://schema.org/InStock",
+      availability: availability(product.status),
       itemCondition: "https://schema.org/NewCondition",
     },
-    ...(product.reviews
-      ? {
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: product.reviews.average,
-            reviewCount: product.reviews.total,
-          },
-        }
-      : {}),
   };
-
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -113,7 +97,7 @@ export default async function ProductDetailsPage({
     <>
       <JsonLd data={productJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
-      <CatalogProductView product={product} />
+      <ProductDetailLayout product={product} />
     </>
   );
 }

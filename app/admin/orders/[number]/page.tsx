@@ -3,24 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { useOrders } from "@/lib/mart-mock/hooks";
-import {
-  formatTaka,
-  ORDER_STATUSES,
-  orderGrandTotal,
-  orderItemsTotal,
-  updateOrder,
-  whatsappHref,
-  type OrderStatus,
-} from "@/lib/mart-mock/store";
+import { getOrder, patchOrder, type MartOrder } from "@/lib/mart-api/orders";
+import { MartApiError } from "@/lib/mart-api/products";
+import { formatTaka, ORDER_STATUSES, whatsappHref, type OrderStatus } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
 import {
   ADMIN_ORDER_STATUS_LABEL,
-  AdminLoading,
   AdminNotice,
   adminButtonClass,
   adminFieldClass,
@@ -35,68 +27,93 @@ const STATUS_HINT: Record<OrderStatus, string> = {
   confirmed: "Hand it to the courier, then mark it shipped.",
   shipped: "Mark delivered once the customer has it.",
   delivered: "Completed.",
-  cancelled: "This order will not be delivered.",
-  returned: "The customer sent this back.",
+  cancelled: "Stock was returned once. Cancelling again does not add more.",
+  returned: "Stock was returned once.",
 };
 
 const FLOW: OrderStatus[] = ["new", "confirmed", "shipped", "delivered"];
 
 export default function AdminOrderDetailPage() {
   const params = useParams<{ number: string }>();
-  const number = decodeURIComponent(params.number ?? "");
-  const orders = useOrders();
-  const order = orders?.find((item) => item.number === number) ?? null;
-  const [draft, setDraft] = useState<{ number: string; courier: string; tracking: string } | null>(null);
+  const orderId = decodeURIComponent(params.number ?? "");
+  const [order, setOrder] = useState<MartOrder | null>(null);
+  const [missing, setMissing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [courier, setCourier] = useState("");
+  const [tracking, setTracking] = useState("");
 
-  if (!orders) return <DetailSkeleton />;
+  useEffect(() => {
+    let cancelled = false;
+    void getOrder(orderId)
+      .then((next) => {
+        if (cancelled) return;
+        setOrder(next);
+        setCourier(next.courierName);
+        setTracking(next.trackingNumber);
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) return;
+        if (reason instanceof MartApiError && reason.message === "Order not found") setMissing(true);
+        else setError(reason instanceof MartApiError ? reason.message : "Could not load this order.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId]);
+
+  if (!order && !missing && !error) return <DetailSkeleton />;
 
   if (!order) {
     return (
       <section className="rounded-2xl bg-white px-5 py-16 text-center ring-1 ring-neutral-200/90">
-        <h1 className="text-lg font-semibold text-neutral-950">Order not found</h1>
-        <p className="mt-1 text-sm text-neutral-500">This number is not in the order list.</p>
-        <Link href="/admin/orders" className="mt-4 inline-flex text-sm font-medium text-primary">
-          Back to orders
-        </Link>
+        <h1 className="text-lg font-semibold text-neutral-950">{missing ? "Order not found" : "Could not load the order"}</h1>
+        <p className="mt-1 text-sm text-neutral-500">{error ?? "This order is not in the list."}</p>
+        <Link href="/admin/orders" className="mt-4 inline-flex text-sm font-medium text-primary">Back to orders</Link>
       </section>
     );
   }
 
-  const shipment =
-    draft?.number === order.number
-      ? { courier: draft.courier, tracking: draft.tracking }
-      : { courier: order.courierName, tracking: order.trackingNumber };
-  const shipmentDirty = shipment.courier !== order.courierName || shipment.tracking !== order.trackingNumber;
-  const showShipment = order.status === "shipped" || order.courierName.trim().length > 0 || order.trackingNumber.trim().length > 0;
   const closed = order.status === "cancelled" || order.status === "returned";
+  const shipmentDirty = courier !== order.courierName || tracking !== order.trackingNumber;
+  const showShipment = order.status === "shipped" || order.courierName.trim().length > 0 || order.trackingNumber.trim().length > 0;
 
-  function changeStatus(status: OrderStatus) {
-    updateOrder(order!.number, {
-      status,
-      courierName: status === "shipped" ? shipment.courier : order!.courierName,
-      trackingNumber: status === "shipped" ? shipment.tracking : order!.trackingNumber,
-    });
-    setNotice(`Status set to ${ADMIN_ORDER_STATUS_LABEL[status]}.`);
+  async function changeStatus(status: OrderStatus) {
+    try {
+      const saved = await patchOrder(order!.id, {
+        status,
+        courierName: status === "shipped" ? courier : undefined,
+        trackingNumber: status === "shipped" ? tracking : undefined,
+      });
+      setOrder(saved);
+      setNotice(`Status set to ${ADMIN_ORDER_STATUS_LABEL[status]}.`);
+      setError(null);
+    } catch (reason) {
+      setError(reason instanceof MartApiError ? reason.message : "Could not update this order.");
+    }
   }
 
-  function saveShipment() {
-    updateOrder(order!.number, {
-      courierName: shipment.courier,
-      trackingNumber: shipment.tracking,
-    });
-    setNotice("Shipment saved.");
+  async function saveShipment() {
+    try {
+      const saved = await patchOrder(order!.id, { courierName: courier, trackingNumber: tracking });
+      setOrder(saved);
+      setNotice("Shipment saved.");
+      setError(null);
+    } catch (reason) {
+      setError(reason instanceof MartApiError ? reason.message : "Could not update this order.");
+    }
   }
 
   return (
     <div className="space-y-4">
-      {order.note.trim() ? (
+      {order.notes.trim() ? (
         <AdminNotice tone="warning">
           <span className="font-semibold">Delivery note. </span>
-          {order.note}
+          {order.notes}
         </AdminNotice>
       ) : null}
       {notice ? <AdminNotice tone="success">{notice}</AdminNotice> : null}
+      {error ? <p className="text-sm text-red-500">{error}</p> : null}
 
       <section className="rounded-2xl bg-white px-4 py-4 ring-1 ring-neutral-200/90 sm:px-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -111,10 +128,12 @@ export default function AdminOrderDetailPage() {
               Placed {formatPlaced(order.createdAt)}
               <span className="text-neutral-300"> · </span>
               {closed ? "Not collected" : "To collect"}
+              <span className="text-neutral-300"> · </span>
+              {order.anonymous ? "Anonymous" : "Account"}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:items-end">
-            <p className="text-3xl font-semibold tracking-tight tabular-nums text-neutral-950">{formatTaka(orderGrandTotal(order))}</p>
+            <p className="text-3xl font-semibold tracking-tight tabular-nums text-neutral-950">{formatTaka(order.total)}</p>
             <div className="flex flex-wrap gap-2">
               <a href={`tel:${order.phone}`} className={adminButtonClass.primary}>
                 <MaterialIcon name="call" className="text-[18px]" />
@@ -145,31 +164,32 @@ export default function AdminOrderDetailPage() {
             </div>
             <ul>
               {order.items.map((item) => (
-                <li key={`${item.slug}-${item.unitPrice}`} className="border-b border-neutral-100 last:border-b-0">
+                <li key={item.id} className="border-b border-neutral-100 last:border-b-0">
                   <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
                     <span className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-                      <Image src={item.imageSrc} alt="" fill sizes="56px" className="object-cover" />
+                      {item.imageSrc ? <Image src={item.imageSrc} alt="" fill sizes="56px" className="object-cover" /> : null}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <Link href={`/admin/products/${item.slug}`} className="block truncate text-sm font-semibold text-neutral-950 hover:text-primary">
-                        {item.title}
-                      </Link>
-                      <span className="mt-0.5 block truncate text-xs text-neutral-500">{item.slug}</span>
+                      {item.productId ? (
+                        <Link href={`/admin/products/${item.productId}`} className="block truncate text-sm font-semibold text-neutral-950 hover:text-primary">
+                          {item.title}
+                        </Link>
+                      ) : (
+                        <span className="block truncate text-sm font-semibold text-neutral-950">{item.title}</span>
+                      )}
                       <span className="mt-1 block text-xs text-neutral-600">
                         {formatTaka(item.unitPrice)} × {item.quantity}
                       </span>
                     </span>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums text-neutral-950">
-                      {formatTaka(item.unitPrice * item.quantity)}
-                    </span>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums text-neutral-950">{formatTaka(item.lineTotal)}</span>
                   </div>
                 </li>
               ))}
             </ul>
             <dl className="space-y-2 border-t border-neutral-100 px-4 py-4 text-sm sm:px-5">
-              <TotalLine label="Subtotal" value={formatTaka(orderItemsTotal(order))} />
-              <TotalLine label="Delivery" value={formatTaka(order.deliveryCharge)} />
-              <TotalLine label="Total" value={formatTaka(orderGrandTotal(order))} strong />
+              <TotalLine label="Subtotal" value={formatTaka(order.subtotal)} />
+              <TotalLine label={order.deliveryZone === "inside" ? "Delivery, inside Dhaka" : "Delivery, outside Dhaka"} value={formatTaka(order.shipping)} />
+              <TotalLine label="Total" value={formatTaka(order.total)} strong />
             </dl>
           </section>
         </div>
@@ -178,26 +198,21 @@ export default function AdminOrderDetailPage() {
           <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
             <h2 className="text-sm font-semibold text-neutral-950">Customer</h2>
             <p className="mt-3 text-base font-semibold text-neutral-950">{order.customerName}</p>
-            <a href={`tel:${order.phone}`} className="mt-1 inline-flex text-sm font-medium text-primary">
-              {order.phone}
-            </a>
-            <p className="mt-3 text-sm leading-relaxed text-neutral-700">{order.address}</p>
+            <a href={`tel:${order.phone}`} className="mt-1 inline-flex text-sm font-medium text-primary">{order.phone}</a>
+            {order.email ? <p className="mt-1 text-sm text-neutral-600">{order.email}</p> : null}
+            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+              {order.address}
+              <span className="mt-1 block text-neutral-500">{order.area}, {order.district}</span>
+            </p>
           </section>
 
           <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
             <h2 className="text-sm font-semibold text-neutral-950">Fulfillment</h2>
             <div className="mt-3">
               <FieldLabel htmlFor="order-status">Status</FieldLabel>
-              <select
-                id="order-status"
-                value={order.status}
-                onChange={(event) => changeStatus(event.target.value as OrderStatus)}
-                className={adminFieldClass}
-              >
+              <select id="order-status" value={order.status} onChange={(event) => void changeStatus(event.target.value as OrderStatus)} className={adminFieldClass}>
                 {ORDER_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {ADMIN_ORDER_STATUS_LABEL[status]}
-                  </option>
+                  <option key={status} value={status}>{ADMIN_ORDER_STATUS_LABEL[status]}</option>
                 ))}
               </select>
             </div>
@@ -205,31 +220,13 @@ export default function AdminOrderDetailPage() {
               <div className="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4">
                 <div>
                   <FieldLabel htmlFor="courier-name">Courier</FieldLabel>
-                  <input
-                    id="courier-name"
-                    value={shipment.courier}
-                    onChange={(event) =>
-                      setDraft({ number: order.number, courier: event.target.value, tracking: shipment.tracking })
-                    }
-                    placeholder="Courier name"
-                    className={adminFieldClass}
-                  />
+                  <input id="courier-name" value={courier} onChange={(event) => setCourier(event.target.value)} placeholder="Courier name" className={adminFieldClass} />
                 </div>
                 <div>
                   <FieldLabel htmlFor="tracking-number">Tracking number</FieldLabel>
-                  <input
-                    id="tracking-number"
-                    value={shipment.tracking}
-                    onChange={(event) =>
-                      setDraft({ number: order.number, courier: shipment.courier, tracking: event.target.value })
-                    }
-                    placeholder="Tracking number"
-                    className={adminFieldClass}
-                  />
+                  <input id="tracking-number" value={tracking} onChange={(event) => setTracking(event.target.value)} placeholder="Tracking number" className={adminFieldClass} />
                 </div>
-                <button type="button" onClick={saveShipment} disabled={!shipmentDirty} className={adminButtonClass.primary}>
-                  Save shipment
-                </button>
+                <button type="button" onClick={() => void saveShipment()} disabled={!shipmentDirty} className={adminButtonClass.primary}>Save shipment</button>
               </div>
             ) : null}
             {showShipment && order.status !== "shipped" ? (
@@ -245,17 +242,7 @@ export default function AdminOrderDetailPage() {
             <dl className="mt-3 space-y-3 text-sm">
               <Info label="Method" value="Cash on delivery" />
               <Info label="Status" value={closed ? "Not collected" : "To collect"} />
-              <Info label="Amount" value={formatTaka(orderGrandTotal(order))} />
-            </dl>
-          </section>
-
-          <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
-            <h2 className="text-sm font-semibold text-neutral-950">Delivery</h2>
-            <dl className="mt-3 space-y-3 text-sm">
-              <Info label="Address" value={order.address} />
-              <Info label="Charge" value={formatTaka(order.deliveryCharge)} />
-              <Info label="Courier" value={order.courierName.trim() || "Not assigned"} />
-              <Info label="Tracking" value={order.trackingNumber.trim() || "Not assigned"} />
+              <Info label="Amount" value={formatTaka(order.total)} />
             </dl>
           </section>
         </div>
@@ -269,12 +256,7 @@ function Lifecycle({ status, placed }: { status: OrderStatus; placed: string }) 
     status === "cancelled" || status === "returned"
       ? [
           { id: "placed", label: "Order placed", detail: formatPlaced(placed), state: "done" as const },
-          {
-            id: status,
-            label: ADMIN_ORDER_STATUS_LABEL[status],
-            detail: STATUS_HINT[status],
-            state: "current" as const,
-          },
+          { id: status, label: ADMIN_ORDER_STATUS_LABEL[status], detail: STATUS_HINT[status], state: "current" as const },
         ]
       : FLOW.map((step, index) => {
           const current = FLOW.indexOf(status);
@@ -298,7 +280,6 @@ function Lifecycle({ status, placed }: { status: OrderStatus; placed: string }) 
           <span className={cn("pb-4", index === steps.length - 1 && "pb-0")}>
             <span className="block text-sm font-semibold text-neutral-950">{step.label}</span>
             <span className="mt-0.5 block text-xs text-neutral-500">{step.detail}</span>
-            <span className="sr-only">{step.state}</span>
           </span>
         </li>
       ))}

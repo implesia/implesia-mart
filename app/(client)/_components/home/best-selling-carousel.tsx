@@ -217,10 +217,12 @@ export function BestSellingCarousel() {
                         )}
                         aria-label={`${product.name} কার্টে যুক্ত করুন`}
                         onClick={() => {
-                          const ok = addItem(product.slug, 1, { openDrawer: true });
-                          if (!ok) return;
-                          setAddedSlug(product.slug);
-                          window.setTimeout(() => setAddedSlug(null), 1200);
+                          void (async () => {
+                            const ok = await addItem(product.slug, 1, { openDrawer: true });
+                            if (!ok) return;
+                            setAddedSlug(product.slug);
+                            window.setTimeout(() => setAddedSlug(null), 1200);
+                          })();
                         }}
                       >
                         <MaterialIcon

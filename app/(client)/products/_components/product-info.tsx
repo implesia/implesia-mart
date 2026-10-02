@@ -2,22 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { catalogProductId } from "@/lib/mart-api/catalog";
 import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
-import { useCart } from "../../_providers/cart-provider";
-import {
-  getBuyQuantity,
-  setBuyQuantity,
-  subscribeBuyQuantity,
-} from "./buy-quantity-store";
+import { setBuyQuantity } from "./buy-quantity-store";
+import { usePurchaseQuantity } from "./use-purchase-quantity";
 import { ProductSupportPanel } from "./product-support-panel";
 
 function formatPrice(value: number) {
@@ -33,14 +30,11 @@ const TRUST_BADGES = [
 
 export function ProductInfo({ product }: { product: ProductDetail }) {
   const router = useRouter();
-  const { addItem } = useCart();
-  const quantity = useSyncExternalStore(
-    subscribeBuyQuantity,
-    getBuyQuantity,
-    () => 1,
-  );
+  const { quantity, inCart, atMin, atMax, decrease, increase, addItem, openCart, selected } =
+    usePurchaseQuantity(product.slug);
   const [justAdded, setJustAdded] = useState(false);
-  const stockStatus = useCatalogStockStatus(product.slug, product.status);
+  const overlay = useCatalogStockStatus(product.slug, product.status);
+  const stockStatus = catalogProductId(product.id) ? product.status : overlay;
   const isComingSoon = stockStatus === "coming-soon";
   const isSoldOut = stockStatus === "sold-out";
 
@@ -49,16 +43,26 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
   }, [product.slug]);
 
   function handleAddToCart() {
-    const ok = addItem(product.slug, quantity, { openDrawer: true });
-    if (!ok) return;
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 1600);
+    void (async () => {
+      if (inCart) {
+        openCart();
+        setJustAdded(true);
+        window.setTimeout(() => setJustAdded(false), 1600);
+        return;
+      }
+      const ok = await addItem(product.slug, selected(), {
+        openDrawer: true,
+        productId: catalogProductId(product.id),
+      });
+      if (!ok) return;
+      setJustAdded(true);
+      window.setTimeout(() => setJustAdded(false), 1600);
+    })();
   }
 
   function handleBuyNow() {
-    const ok = addItem(product.slug, quantity, { openDrawer: false });
-    if (!ok) return;
-    router.push("/checkout");
+    const qty = Math.min(5, Math.max(1, selected()));
+    router.push(`/checkout?product=${encodeURIComponent(product.slug)}&qty=${qty}`);
   }
 
   const discountPct =
@@ -207,8 +211,8 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
               <button
                 type="button"
                 className="flex size-9 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40 sm:size-10"
-                onClick={() => setBuyQuantity(quantity - 1)}
-                disabled={quantity <= 1}
+                onClick={decrease}
+                disabled={atMin}
                 aria-label="পরিমাণ কমান"
               >
                 <MaterialIcon name="remove" className="text-[18px]" />
@@ -219,8 +223,8 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
               <button
                 type="button"
                 className="flex size-9 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40 sm:size-10"
-                onClick={() => setBuyQuantity(quantity + 1)}
-                disabled={quantity >= 5}
+                onClick={increase}
+                disabled={atMax}
                 aria-label="পরিমাণ বাড়ান"
               >
                 <MaterialIcon name="add" className="text-[18px]" />

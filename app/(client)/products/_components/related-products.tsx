@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { catalogProductId } from "@/lib/mart-api/catalog";
+
 import { useCart } from "../../_providers/cart-provider";
 
 type RelatedProduct = {
@@ -19,7 +21,7 @@ type RelatedProduct = {
   priceLabel: string;
   imageSrc: string;
   imageAlt: string;
-  status?: "available" | "coming-soon";
+  status?: "available" | "sold-out" | "coming-soon";
 };
 
 export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
@@ -104,6 +106,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
       >
         {items.map((p) => {
           const isComingSoon = p.status === "coming-soon";
+          const isSoldOut = p.status === "sold-out";
 
           return (
             <SwiperSlide key={p.id} className="!h-auto">
@@ -115,13 +118,13 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                     fill
                     className={cn(
                       "object-contain p-3 transition-transform duration-700 group-hover:scale-105 sm:p-4",
-                      isComingSoon && "opacity-60 grayscale-35",
+                      (isComingSoon || isSoldOut) && "opacity-60 grayscale-35",
                     )}
                     sizes="(max-width: 640px) 70vw, (max-width: 1024px) 40vw, 25vw"
                   />
-                  {isComingSoon ? (
+                  {isComingSoon || isSoldOut ? (
                     <span className="absolute top-3 left-3 rounded-full bg-on-surface/80 px-2.5 py-1 text-[9px] tracking-widest text-white uppercase sm:top-4 sm:left-4 sm:px-3 sm:text-[10px]">
-                      কামিং সুন
+                      {isSoldOut ? "শেষ" : "কামিং সুন"}
                     </span>
                   ) : (
                     <Button
@@ -135,7 +138,10 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        addItem(p.slug, 1, { openDrawer: true });
+                        void addItem(p.slug, 1, {
+                          openDrawer: true,
+                          productId: catalogProductId(p.id),
+                        });
                       }}
                     >
                       <MaterialIcon name="add_shopping_cart" className="text-primary" />

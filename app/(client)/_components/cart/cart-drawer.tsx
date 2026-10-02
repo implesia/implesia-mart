@@ -26,7 +26,7 @@ export function CartDrawer() {
     itemCount,
     isOpen,
     setCartOpen,
-    setQuantity,
+    adjustQuantity,
     removeItem,
     closeCart,
   } = useCart();
@@ -116,7 +116,7 @@ export function CartDrawer() {
                         <button
                           type="button"
                           className="flex size-8 items-center justify-center text-on-surface hover:text-primary disabled:opacity-40"
-                          onClick={() => setQuantity(item.slug, item.quantity - 1)}
+                          onClick={() => adjustQuantity(item.slug, -1)}
                           disabled={item.quantity <= 1}
                           aria-label="পরিমাণ কমান"
                         >
@@ -128,7 +128,7 @@ export function CartDrawer() {
                         <button
                           type="button"
                           className="flex size-8 items-center justify-center text-on-surface hover:text-primary disabled:opacity-40"
-                          onClick={() => setQuantity(item.slug, item.quantity + 1)}
+                          onClick={() => adjustQuantity(item.slug, 1)}
                           disabled={item.quantity >= MAX_CART_QTY}
                           aria-label="পরিমাণ বাড়ান"
                         >

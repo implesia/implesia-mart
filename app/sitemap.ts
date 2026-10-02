@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 
-import { blogPosts } from "./(client)/_data/blogs/blogs";
-import { products } from "./(client)/_data/products/products";
+import { listStoreProducts } from "@/lib/mart-api/catalog";
 import { absoluteUrl } from "@/lib/seo";
+
+import { blogPosts } from "./(client)/_data/blogs/blogs";
 
 const STATIC_ROUTES: {
   path: string;
@@ -20,7 +21,8 @@ const STATIC_ROUTES: {
   { path: "/privacy-policy", priority: 0.3, changeFrequency: "yearly" },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const products = await listStoreProducts();
   const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((route) => ({

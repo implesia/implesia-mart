@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 
+import { listStoreProducts } from "@/lib/mart-api/catalog";
+import { absoluteUrl } from "@/lib/seo";
+
 import { Container } from "../_components/common/container";
 import { JsonLd } from "../_components/common/json-ld";
-import { products, readCatalogQuery } from "../_data/products/products";
+import { readCatalogQuery } from "../_data/products/products";
 import { ProductsCatalog } from "./_components/products-catalog";
-import { absoluteUrl } from "@/lib/seo";
+
+export const revalidate = 60;
 
 const DESCRIPTION =
   "ট্রেন্ডিং গ্যাজেট থেকে হাতে তৈরি গর্জিয়াস ড্রেস — ইমপ্লেসিয়া মার্টের সব প্রোডাক্ট এক জায়গায়, ক্যাশ অন ডেলিভারিতে সারাদেশে ডেলিভারি সহ।";
@@ -21,17 +25,6 @@ const breadcrumbJsonLd = {
       item: absoluteUrl("/products"),
     },
   ],
-};
-
-const itemListJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  itemListElement: products.map((product, index) => ({
-    "@type": "ListItem",
-    position: index + 1,
-    url: absoluteUrl(`/products/${product.slug}`),
-    name: product.title,
-  })),
 };
 
 type ProductsPageProps = {
@@ -63,14 +56,24 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductsPage({
-  searchParams,
-}: ProductsPageProps) {
+export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const params = (await searchParams) ?? {};
   const catalog = readCatalogQuery({
     category: firstParam(params.category),
     view: firstParam(params.view),
   });
+  const products = await listStoreProducts();
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: products.map((product, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: absoluteUrl(`/products/${product.slug}`),
+      name: product.title,
+    })),
+  };
+
   return (
     <main className="force-light w-full bg-[#f5f6f8] text-neutral-950">
       <JsonLd data={breadcrumbJsonLd} />
@@ -85,11 +88,7 @@ export default async function ProductsPage({
             initialBadge={catalog.badge}
             initialView={catalog.view}
             initialCollectionTitle={
-              catalog.category
-                ? undefined
-                : catalog.view
-                  ? catalog.title
-                  : undefined
+              catalog.category ? undefined : catalog.view ? catalog.title : undefined
             }
           />
         </div>

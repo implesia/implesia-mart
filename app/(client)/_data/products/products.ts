@@ -1,11 +1,11 @@
 import { getProductMedia, type ProductMediaId } from "./product-media";
 
 export type ProductBadge = "New" | "Best Seller" | "Limited";
-export type ProductStatus = "available" | "coming-soon";
+export type ProductStatus = "available" | "sold-out" | "coming-soon";
 export type ProductCategoryId = "gadgets" | "fashion";
 
 export type Product = {
-  id: ProductMediaId;
+  id: string;
   slug: string;
   title: string;
   subtitle: string;
@@ -17,6 +17,7 @@ export type Product = {
   badge?: ProductBadge;
   status: ProductStatus;
   categoryId: ProductCategoryId;
+  featured?: boolean;
 };
 
 export const categoryLabels: Record<ProductCategoryId, string> = {
@@ -200,6 +201,7 @@ export const productFilters = {
   ],
   availability: [
     { id: "available", label: "স্টকে আছে" },
+    { id: "sold-out", label: "শেষ" },
     { id: "coming-soon", label: "শীঘ্রই আসছে" },
   ],
   sortOptions: [
