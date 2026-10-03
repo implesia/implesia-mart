@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
 import { formatCartMoney } from "../../_lib/cart";
+import { rememberOrder } from "../../_lib/saved-orders";
 
 import { useCheckoutForm } from "./checkout-form-context";
 
@@ -112,13 +113,20 @@ export function CheckoutSuccess() {
   const total = quote?.total ?? 0;
 
   useEffect(() => {
+    if (orderNumber) {
+      rememberOrder({
+        number: orderNumber,
+        phone: shipping.phone,
+        name: shipping.name,
+      });
+    }
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     dialogRef.current?.focus();
     return () => {
       document.body.style.overflow = previous;
     };
-  }, []);
+  }, [orderNumber, shipping.name, shipping.phone]);
 
   async function copyNumber() {
     if (!orderNumber) return;
@@ -251,6 +259,9 @@ export function CheckoutSuccess() {
             <p className="mt-1 font-mono text-xl font-semibold tracking-[0.08em] text-neutral-950">
               {orderNumber}
             </p>
+            <p className="mt-2 text-[11px] leading-relaxed text-neutral-500">
+              এই ব্রাউজারে সেভ হয়েছে। পরে আমার অর্ডার থেকে দেখা যাবে।
+            </p>
             <button
               type="button"
               onClick={() => void copyNumber()}
@@ -305,23 +316,33 @@ export function CheckoutSuccess() {
         </ol>
 
         <div
-          className="order-line mt-5 flex flex-col gap-2 sm:flex-row"
+          className="order-line mt-5 flex flex-col gap-2"
           style={{ ["--delay" as string]: "0.64s" }}
         >
-          <Link
-            href="/products"
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-          >
-            {checkoutCopy.successShop}
-          </Link>
-          <Link
-            href="/"
-            className={cn(
-              "inline-flex h-11 flex-1 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-950 transition-colors hover:border-primary/40",
-            )}
-          >
-            {checkoutCopy.successHome}
-          </Link>
+          {orderNumber ? (
+            <Link
+              href={`/order-status?order=${encodeURIComponent(orderNumber)}`}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+            >
+              {checkoutCopy.successTrack}
+            </Link>
+          ) : null}
+          <div className="flex gap-2">
+            <Link
+              href="/products"
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-950 transition-colors hover:border-primary/40"
+            >
+              {checkoutCopy.successShop}
+            </Link>
+            <Link
+              href="/"
+              className={cn(
+                "inline-flex h-11 flex-1 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-950 transition-colors hover:border-primary/40",
+              )}
+            >
+              {checkoutCopy.successHome}
+            </Link>
+          </div>
         </div>
       </div>
     </div>

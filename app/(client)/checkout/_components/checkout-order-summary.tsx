@@ -67,6 +67,11 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="line-clamp-2 text-sm font-medium text-neutral-950">{item.title}</h3>
+                    {item.selection.length > 0 ? (
+                      <p className="mt-0.5 text-xs text-primary">
+                        {item.selection.map((choice) => `${choice.name}: ${choice.label}`).join(" · ")}
+                      </p>
+                    ) : null}
                     {item.available ? null : (
                       <p className="mt-0.5 text-xs text-red-500">এখন কেনা যাচ্ছে না</p>
                     )}

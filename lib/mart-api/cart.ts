@@ -18,6 +18,7 @@ export type CartLine = {
   quantity: number;
   lineTotal: number;
   available: boolean;
+  selection: { name: string; label: string; swatch: string }[];
   addedAt?: string;
 };
 
@@ -86,6 +87,7 @@ type ApiLine = {
   quantity: number;
   line_total: number;
   available: boolean;
+  selection?: { name: string; label: string; swatch?: string }[];
   added_at?: string;
 };
 
@@ -163,6 +165,11 @@ function mapLine(item: ApiLine): CartLine {
     quantity: item.quantity,
     lineTotal: item.line_total,
     available: item.available,
+    selection: (item.selection ?? []).map((choice) => ({
+      name: choice.name,
+      label: choice.label,
+      swatch: choice.swatch ?? "",
+    })),
     addedAt: item.added_at,
   };
 }
@@ -238,8 +245,19 @@ export function getShopCart() {
   return shop("", "GET");
 }
 
-export function addCartItem(productId: string, quantity: number) {
-  return shop("/items", "POST", { product_id: productId, quantity });
+export function addCartItem(
+  productId: string,
+  quantity: number,
+  selection: { groupId: string; valueId: string }[] = [],
+) {
+  return shop("/items", "POST", {
+    product_id: productId,
+    quantity,
+    selection: selection.map((choice) => ({
+      group_id: choice.groupId,
+      value_id: choice.valueId,
+    })),
+  });
 }
 
 export function setCartItemQuantity(itemId: string, quantity: number) {

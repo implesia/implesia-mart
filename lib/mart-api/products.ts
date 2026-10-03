@@ -191,6 +191,16 @@ function contentPayload(content: ProductStorefrontContent) {
       question: row.question,
       answer: row.answer,
     })),
+    options: content.options.map((group) => ({
+      id: group.id,
+      name: group.name,
+      kind: group.kind,
+      values: group.values.map((value) => ({
+        id: value.id,
+        label: value.label,
+        swatch: value.swatch,
+      })),
+    })),
   };
 }
 
@@ -301,6 +311,13 @@ const SPEC_GROUPS = new Set<string>([
 type ApiGallery = { id?: string; src?: string; alt?: string };
 type ApiSpec = { id?: string; label?: string; value?: string; group?: string };
 type ApiFaq = { id?: string; question?: string; answer?: string };
+type ApiOptionValue = { id?: string; label?: string; swatch?: string };
+type ApiOption = {
+  id?: string;
+  name?: string;
+  kind?: string;
+  values?: ApiOptionValue[];
+};
 type ApiContent = {
   tagline?: string;
   description?: string;
@@ -321,6 +338,7 @@ type ApiContent = {
   quality_body?: string;
   specs?: ApiSpec[];
   faqs?: ApiFaq[];
+  options?: ApiOption[];
 };
 
 type ApiCard = {
@@ -413,6 +431,20 @@ function contentFromApi(content: ApiContent | undefined): ProductStorefrontConte
       question: row.question ?? "",
       answer: row.answer ?? "",
     })),
+    options: (content.options ?? [])
+      .filter((group) => group.name && (group.values ?? []).some((value) => value.label))
+      .map((group, index) => ({
+        id: group.id || `option-${index + 1}`,
+        name: group.name ?? "",
+        kind: group.kind === "color" || group.kind === "size" ? group.kind : "text",
+        values: (group.values ?? [])
+          .filter((value) => value.label)
+          .map((value, valueIndex) => ({
+            id: value.id || `value-${valueIndex + 1}`,
+            label: value.label ?? "",
+            swatch: value.swatch ?? "",
+          })),
+      })),
     qualityImageSrc: mediaUrl(content.quality_image_src ?? ""),
     qualityImageAlt: content.quality_image_alt ?? "",
   };

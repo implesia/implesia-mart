@@ -4,6 +4,8 @@ import {
   type ProductGalleryItem,
   type ProductMediaId,
 } from "./product-media";
+import type { ProductOptionGroup } from "@/lib/mart-mock/product-content";
+
 import { categoryLabels, products, type Product } from "./products";
 
 export type ProductFaq = {
@@ -46,6 +48,7 @@ export type ProductDetail = Product & {
   howToUse?: string[];
   faqs?: ProductFaq[];
   colorOptions?: { id: string; name: string; swatch: string }[];
+  purchaseOptions?: ProductOptionGroup[];
   materialDetails?: ProductSpecItem[];
   delivery: { icon: string; title: string; description: string }[];
   details: {

@@ -18,4 +18,5 @@ export const checkoutCopy = {
   successBody: "অর্ডার আমাদের কাছে পৌঁছেছে। শীঘ্রই মোবাইলে কল বা মেসেজ করে কনফার্ম করা হবে।",
   successShop: "আরও কেনাকাটা",
   successHome: "হোমে যান",
+  successTrack: "অর্ডার দেখুন",
 } as const;

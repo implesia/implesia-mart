@@ -33,6 +33,27 @@ export type ProductFaqRow = {
   answer: string;
 };
 
+export type ProductOptionKind = "color" | "size" | "text";
+
+export type ProductOptionValue = {
+  id: string;
+  label: string;
+  swatch: string;
+};
+
+export type ProductOptionGroup = {
+  id: string;
+  name: string;
+  kind: ProductOptionKind;
+  values: ProductOptionValue[];
+};
+
+export type ChosenOption = {
+  name: string;
+  label: string;
+  swatch: string;
+};
+
 /** Copy the product page actually renders, separate from price and stock status. */
 export type ProductStorefrontContent = {
   tagline: string;
@@ -52,6 +73,7 @@ export type ProductStorefrontContent = {
   qualityBody: string;
   specs: ProductSpecRow[];
   faqs: ProductFaqRow[];
+  options: ProductOptionGroup[];
 };
 
 export type ManagedProductFields = {
@@ -104,6 +126,7 @@ export function emptyProductContent(): ProductStorefrontContent {
     qualityBody: DEFAULT_QUALITY_BODY,
     specs: [],
     faqs: [],
+    options: [],
   };
 }
 
@@ -143,6 +166,7 @@ export function seedProductContent(slug: string): ProductStorefrontContent {
       question: item.question,
       answer: item.answer,
     })),
+    options: [],
   };
 }
 
@@ -162,6 +186,7 @@ export function mergeProductContent(
     storyBullets: stored.storyBullets ?? seed.storyBullets,
     specs: stored.specs ?? seed.specs,
     faqs: stored.faqs ?? seed.faqs,
+    options: stored.options ?? seed.options,
   };
 }
 
@@ -192,6 +217,15 @@ export function cleanProductContent(content: ProductStorefrontContent): ProductS
     faqs: content.faqs
       .map((item) => ({ ...item, question: item.question.trim(), answer: item.answer.trim() }))
       .filter((item) => item.question && item.answer),
+    options: content.options
+      .map((group) => ({
+        ...group,
+        name: group.name.trim(),
+        values: group.values
+          .map((value) => ({ ...value, label: value.label.trim(), swatch: value.swatch.trim() }))
+          .filter((value) => value.label),
+      }))
+      .filter((group) => group.name && group.values.length > 0),
   };
 }
 

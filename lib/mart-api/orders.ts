@@ -14,6 +14,7 @@ export type QuoteLine = {
   lineTotal: number;
   available: boolean;
   maxQuantity: number;
+  selection: { name: string; label: string; swatch: string }[];
 };
 
 export type OrderQuote = {
@@ -35,6 +36,7 @@ export type MartOrderItem = {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  selection: { name: string; label: string; swatch: string }[];
 };
 
 export type MartOrder = {
@@ -90,6 +92,7 @@ type ApiQuoteLine = {
   line_total: number;
   available: boolean;
   max_quantity: number;
+  selection?: { name: string; label: string; swatch?: string }[];
 };
 
 type ApiQuote = {
@@ -111,6 +114,7 @@ type ApiOrderItem = {
   unit_price: number;
   quantity: number;
   line_total: number;
+  selection?: { name: string; label: string; swatch?: string }[];
 };
 
 type ApiOrder = {
@@ -137,6 +141,14 @@ type ApiOrder = {
   created_at: string;
 };
 
+function mapSelection(selection: { name: string; label: string; swatch?: string }[] | undefined) {
+  return (selection ?? []).map((choice) => ({
+    name: choice.name,
+    label: choice.label,
+    swatch: choice.swatch ?? "",
+  }));
+}
+
 function mapQuote(body: ApiQuote): OrderQuote {
   return {
     items: body.items.map((item) => ({
@@ -150,6 +162,7 @@ function mapQuote(body: ApiQuote): OrderQuote {
       lineTotal: item.line_total,
       available: item.available,
       maxQuantity: item.max_quantity,
+      selection: mapSelection(item.selection),
     })),
     itemCount: body.item_count,
     subtotal: body.subtotal,
@@ -191,6 +204,7 @@ function mapOrder(body: ApiOrder): MartOrder {
       unitPrice: item.unit_price,
       quantity: item.quantity,
       lineTotal: item.line_total,
+      selection: mapSelection(item.selection),
     })),
   };
 }
@@ -210,7 +224,7 @@ type QuoteInput = {
   district: string;
   area?: string;
   deliveryZone?: DeliveryZone;
-  items?: { productId: string; quantity: number }[];
+  items?: { productId: string; quantity: number; selection?: { groupId: string; valueId: string }[] }[];
 };
 
 function quoteBody(input: QuoteInput) {
@@ -224,6 +238,10 @@ function quoteBody(input: QuoteInput) {
     body.items = (input.items ?? []).map((item) => ({
       product_id: item.productId,
       quantity: item.quantity,
+      selection: (item.selection ?? []).map((choice) => ({
+        group_id: choice.groupId,
+        value_id: choice.valueId,
+      })),
     }));
   }
   return body;
@@ -332,6 +350,108 @@ export async function getOrder(orderId: string) {
   const response = await authorizedFetch(`/api/v1/admin/orders/${orderId}`);
   if (!response.ok) throw new MartApiError(await readError(response, "Could not load this order."));
   return mapOrder((await response.json()) as ApiOrder);
+}
+
+export type PublicOrderItem = {
+  title: string;
+  slug: string;
+  imageSrc: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+  selection: { name: string; label: string; swatch: string }[];
+};
+
+export type PublicOrder = {
+  number: string;
+  status: OrderStatus;
+  customerName: string;
+  phone: string;
+  district: string;
+  area: string;
+  address: string;
+  notes: string;
+  deliveryZone: DeliveryZone;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  courierName: string;
+  trackingNumber: string;
+  paymentMethod: "cod";
+  items: PublicOrderItem[];
+  createdAt: string;
+};
+
+type ApiPublicOrderItem = {
+  title: string;
+  slug: string;
+  image_src: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+  selection?: { name: string; label: string; swatch?: string }[];
+};
+
+type ApiPublicOrder = {
+  number: string;
+  status: OrderStatus;
+  customer_name: string;
+  phone: string;
+  district: string;
+  area: string;
+  address: string;
+  notes: string;
+  delivery_zone: DeliveryZone;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  courier_name: string;
+  tracking_number: string;
+  payment_method: "cod";
+  items: ApiPublicOrderItem[];
+  created_at: string;
+};
+
+function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
+  return {
+    number: body.number,
+    status: body.status,
+    customerName: body.customer_name,
+    phone: body.phone,
+    district: body.district,
+    area: body.area,
+    address: body.address,
+    notes: body.notes,
+    deliveryZone: body.delivery_zone,
+    subtotal: body.subtotal,
+    shipping: body.shipping,
+    total: body.total,
+    courierName: body.courier_name,
+    trackingNumber: body.tracking_number,
+    paymentMethod: body.payment_method,
+    createdAt: body.created_at,
+    items: body.items.map((item) => ({
+      title: item.title,
+      slug: item.slug,
+      imageSrc: mediaUrl(item.image_src),
+      unitPrice: item.unit_price,
+      quantity: item.quantity,
+      lineTotal: item.line_total,
+      selection: mapSelection(item.selection),
+    })),
+  };
+}
+
+export async function lookupPublicOrder(number: string, phone: string) {
+  const response = await authorizedFetch("/api/v1/orders/lookup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ number: number.trim(), phone: phone.trim() }),
+  });
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Order not found."));
+  }
+  return mapPublicOrder((await response.json()) as ApiPublicOrder);
 }
 
 export async function patchOrder(

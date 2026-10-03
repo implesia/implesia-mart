@@ -136,13 +136,13 @@ export default function Header() {
               <div className="flex items-center gap-1 sm:gap-2 lg:gap-2.5">
                 <ThemeToggle className="hidden size-9 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950 lg:inline-flex [&_.material-symbols-outlined]:text-[22px]" />
 
-                <button
-                  type="button"
+                <Link
+                  href="/order-status"
                   className="hidden size-9 items-center justify-center rounded-md text-neutral-800 transition-colors hover:bg-neutral-100 lg:inline-flex"
-                  aria-label="অ্যাকাউন্ট"
+                  aria-label="আমার অর্ডার"
                 >
-                  <MaterialIcon name="person" className="text-[22px]" />
-                </button>
+                  <MaterialIcon name="receipt_long" className="text-[22px]" />
+                </Link>
 
                 <CartTrigger variant="summary" />
 
@@ -354,13 +354,14 @@ export default function Header() {
                 variant="button"
                 onNavigate={() => setMenuPath(null)}
               />
-              <button
-                type="button"
+              <Link
+                href="/order-status"
+                onClick={() => setMenuPath(null)}
                 className="inline-flex h-11 items-center justify-center rounded-full border border-neutral-200 text-sm font-medium dark:border-white/15"
               >
-                <MaterialIcon name="person" className="mr-1.5 text-[18px]" />
-                অ্যাকাউন্ট
-              </button>
+                <MaterialIcon name="receipt_long" className="mr-1.5 text-[18px]" />
+                আমার অর্ডার
+              </Link>
             </div>
 
             <div className="mt-2 pb-2">

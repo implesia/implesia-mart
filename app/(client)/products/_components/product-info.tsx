@@ -14,6 +14,14 @@ import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { setBuyQuantity } from "./buy-quantity-store";
+import { ProductPurchaseOptions } from "./product-purchase-options";
+import {
+  activePicks,
+  defaultPicks,
+  picksFromChoices,
+  rememberBuySelection,
+  setActivePicks,
+} from "./purchase-selection";
 import { usePurchaseQuantity } from "./use-purchase-quantity";
 import { ProductSupportPanel } from "./product-support-panel";
 
@@ -32,15 +40,33 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
   const router = useRouter();
   const { quantity, inCart, atMin, atMax, decrease, increase, addItem, openCart, selected } =
     usePurchaseQuantity(product.slug);
+  const groups = product.purchaseOptions ?? [];
+  const [choices, setChoices] = useState<Record<string, string>>({});
   const [justAdded, setJustAdded] = useState(false);
   const overlay = useCatalogStockStatus(product.slug, product.status);
   const stockStatus = catalogProductId(product.id) ? product.status : overlay;
   const isComingSoon = stockStatus === "coming-soon";
   const isSoldOut = stockStatus === "sold-out";
 
+  const optionKey = groups.map((group) => `${group.id}:${group.values.map((value) => value.id).join(",")}`).join("|");
+
   useEffect(() => {
     setBuyQuantity(1);
-  }, [product.slug]);
+    const nextGroups = product.purchaseOptions ?? [];
+    const next = Object.fromEntries(defaultPicks(nextGroups).map((pick) => [pick.groupId, pick.valueId]));
+    setChoices(next);
+    setActivePicks(picksFromChoices(nextGroups, next));
+    // optionKey already captures the group and value ids for this product.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.slug, optionKey]);
+
+  function choose(groupId: string, valueId: string) {
+    setChoices((current) => {
+      const next = { ...current, [groupId]: valueId };
+      setActivePicks(picksFromChoices(groups, next));
+      return next;
+    });
+  }
 
   function handleAddToCart() {
     void (async () => {
@@ -53,6 +79,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
       const ok = await addItem(product.slug, selected(), {
         openDrawer: true,
         productId: catalogProductId(product.id),
+        selection: activePicks(),
       });
       if (!ok) return;
       setJustAdded(true);
@@ -62,6 +89,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
 
   function handleBuyNow() {
     const qty = Math.min(5, Math.max(1, selected()));
+    rememberBuySelection(product.slug, activePicks());
     router.push(`/checkout?product=${encodeURIComponent(product.slug)}&qty=${qty}`);
   }
 
@@ -168,6 +196,8 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           </div>
         </div>
       ) : null}
+
+      <ProductPurchaseOptions groups={groups} choices={choices} onChoose={choose} />
 
       {isSoldOut ? (
         <div className="mb-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-4 sm:mb-8 sm:p-6">

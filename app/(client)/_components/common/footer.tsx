@@ -28,6 +28,7 @@ const companyLinks = [
 ] as const;
 
 const supportLinks = [
+  { href: "/order-status", label: "আমার অর্ডার" },
   { href: "/faqs", label: "প্রশ্নোত্তর" },
   { href: "/shipping-returns", label: "শিপিং ও রিটার্ন" },
   { href: "/privacy-policy", label: "গোপনীয়তা নীতি" },
@@ -226,6 +227,9 @@ export default function Footer() {
             </Link>
             <Link href="/shipping-returns" className="transition-colors hover:text-white">
               শিপিং
+            </Link>
+            <Link href="/order-status" className="transition-colors hover:text-white">
+              আমার অর্ডার
             </Link>
             <Link href="/faqs" className="transition-colors hover:text-white">
               প্রশ্নোত্তর

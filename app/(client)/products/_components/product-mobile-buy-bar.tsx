@@ -11,6 +11,7 @@ import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
+import { activePicks, rememberBuySelection } from "./purchase-selection";
 import { usePurchaseQuantity } from "./use-purchase-quantity";
 
 function formatPrice(value: number) {
@@ -38,6 +39,7 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
 
   function handleBuyNow() {
     const qty = Math.min(5, Math.max(1, selected()));
+    rememberBuySelection(product.slug, activePicks());
     router.push(
       `/checkout?product=${encodeURIComponent(product.slug)}&qty=${qty}`,
     );
@@ -51,6 +53,7 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
     void addItem(product.slug, selected(), {
       openDrawer: true,
       productId: catalogProductId(product.id),
+      selection: activePicks(),
     });
   }
 

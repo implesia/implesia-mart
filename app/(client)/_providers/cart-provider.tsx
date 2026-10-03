@@ -19,6 +19,7 @@ import {
   type ShopCart,
 } from "@/lib/mart-api/cart";
 
+import { optionSummary } from "../products/_components/purchase-selection";
 import {
   clampCartQty,
   MAX_CART_QTY,
@@ -29,6 +30,7 @@ import {
 type AddItemOptions = {
   openDrawer?: boolean;
   productId?: string;
+  selection?: { groupId: string; valueId: string }[];
 };
 
 type CartContextValue = {
@@ -71,7 +73,7 @@ function applyCart(cart: ShopCart) {
     id: item.productId,
     slug: item.slug,
     title: item.title,
-    meta: "",
+    meta: optionSummary(item.selection ?? []),
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.lineTotal,
@@ -205,7 +207,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       epoch.current += 1;
       inflight.current += 1;
       try {
-        commit(await addCartItem(productId, clampCartQty(quantity)));
+        commit(await addCartItem(productId, clampCartQty(quantity), options?.selection));
         return true;
       } catch {
         return false;

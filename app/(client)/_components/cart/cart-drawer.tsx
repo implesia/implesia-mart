@@ -102,6 +102,9 @@ export function CartDrawer() {
                         >
                           {item.title}
                         </Link>
+                        {item.meta ? (
+                          <p className="mt-0.5 text-label-sm text-primary">{item.meta}</p>
+                        ) : null}
                         <p className="mt-0.5 text-label-sm text-outline">
                           {formatCartMoney(item.unitPrice)} / পিস
                         </p>

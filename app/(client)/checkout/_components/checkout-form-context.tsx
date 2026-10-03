@@ -34,11 +34,16 @@ import {
   validateShipping,
   type CheckoutShippingValues,
 } from "../../_lib/emailjs";
+import { readBuySelection } from "../../products/_components/purchase-selection";
 import { useCart } from "../../_providers/cart-provider";
 
 type OrderSource = "cart" | "direct";
 
-type DirectItem = { productId: string; quantity: number };
+type DirectItem = {
+  productId: string;
+  quantity: number;
+  selection?: { groupId: string; valueId: string }[];
+};
 
 type CheckoutFormContextValue = {
   shipping: CheckoutShippingValues;
@@ -86,6 +91,7 @@ const emptyQuote: OrderQuote = {
   shipping: 0,
   total: 0,
   deliveryZone: "outside",
+  deliveryAvailable: false,
 };
 
 function messageFrom(error: unknown) {
@@ -222,7 +228,7 @@ export function CheckoutFormProvider({
         setDirectReady(true);
         return;
       }
-      setDirectItems([{ productId, quantity }]);
+      setDirectItems([{ productId, quantity, selection: readBuySelection(seedSlug) }]);
       setDirectReady(true);
     });
     return () => {

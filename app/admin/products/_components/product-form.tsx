@@ -52,6 +52,7 @@ import {
   ProductDetailFields,
   ProductGalleryFields,
 } from "./product-content-fields";
+import { ProductOptionsFields } from "./product-options-fields";
 
 const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
   { value: "", label: "None" },
@@ -65,6 +66,7 @@ const SECTIONS = [
   { id: "product-media", label: "Media" },
   { id: "product-pricing", label: "Pricing" },
   { id: "product-inventory", label: "Inventory" },
+  { id: "product-options", label: "Options" },
   { id: "product-details", label: "Product details" },
   { id: "product-organization", label: "Organization" },
   { id: "product-publishing", label: "Publishing" },
@@ -800,6 +802,14 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 and coming soon replace this note on the product page.
               </p>
             </div>
+          </FormSection>
+
+          <FormSection
+            id="product-options"
+            title="Options"
+            description="Color, size, or any other choice. The customer picks one value from each group before ordering."
+          >
+            <ProductOptionsFields content={form.content} onChange={setContent} />
           </FormSection>
 
           <FormSection

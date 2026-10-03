@@ -128,6 +128,12 @@ type ApiDetail = ApiCard & {
   quality_image_alt: string;
   specs: { label: string; value: string; group: string }[];
   faqs: { question: string; answer: string }[];
+  options?: {
+    id: string;
+    name: string;
+    kind: string;
+    values: { id: string; label: string; swatch: string }[];
+  }[];
   related: ApiCard[];
 };
 
@@ -215,6 +221,18 @@ function mapDetail(item: ApiDetail, rates: StoreDeliveryRates): ProductDetail {
     whatsInBox: item.package_items,
     howToUse: item.how_to_use,
     faqs: item.faqs,
+    purchaseOptions: (item.options ?? [])
+      .filter((group) => group.values.length > 0)
+      .map((group) => ({
+        id: group.id,
+        name: group.name,
+        kind: group.kind === "color" || group.kind === "size" ? group.kind : "text",
+        values: group.values.map((value) => ({
+          id: value.id,
+          label: value.label,
+          swatch: value.swatch,
+        })),
+      })),
     materialDetails: item.specs.map((spec) => ({
       label: spec.label,
       value: spec.value,

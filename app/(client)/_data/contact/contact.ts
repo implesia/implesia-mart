@@ -105,6 +105,7 @@ export const contactCopy = {
       { label: "শুক্রবার", value: "দুপুর ২টা – রাত ১০টা" },
     ],
     quickLinks: [
+      { icon: "receipt_long", label: "আমার অর্ডার", href: "/order-status" },
       { icon: "help", label: "সাধারণ প্রশ্নোত্তর", href: "/faqs" },
       { icon: "local_shipping", label: "শিপিং ও রিটার্ন", href: "/shipping-returns" },
       { icon: "storefront", label: "সব প্রোডাক্ট", href: "/products" },
@@ -124,7 +125,7 @@ export const contactCopy = {
         id: "order-status",
         question: "অর্ডার স্ট্যাটাস কীভাবে জানব?",
         answer:
-          "অর্ডারের সময় দেওয়া নম্বরে ডেলিভারি টিম যোগাযোগ করবে। সরাসরি কল করেও জানতে পারবেন।",
+          "আমার অর্ডার পেজে অর্ডার নম্বর আর চেকআউটের মোবাইল মিলিয়ে স্ট্যাটাস দেখুন। না পেলে কল বা হোয়াটসঅ্যাপ করুন।",
       },
       {
         id: "cod-question",
