@@ -1,19 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import {
-  blankBadge,
-  blankUseItem,
-  moveList,
-  readPrivacySections,
-  savePrivacySections,
+  getPrivacyUsage,
+  savePrivacyUsage,
   type PrivacyBadge,
   type PrivacyUsage,
   type PrivacyUseItem,
-} from "@/lib/mart-mock/privacy-sections";
-import { usePrivacySections } from "@/lib/mart-mock/hooks";
+} from "@/lib/mart-api/privacy-usage";
+import { blankBadge, blankUseItem, moveList } from "@/lib/mart-mock/privacy-sections";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
@@ -50,7 +47,7 @@ type Draft = {
 function draftFrom(block: PrivacyUsage): Draft {
   return {
     isActive: block.isActive !== false,
-    icon: block.icon,
+    icon: block.icon || "query_stats",
     navLabel: block.navLabel,
     heading: block.heading,
     intro: block.intro,
@@ -59,7 +56,7 @@ function draftFrom(block: PrivacyUsage): Draft {
       isActive: item.isActive !== false,
     })),
     protectionActive: block.protection.isActive !== false,
-    protectionIcon: block.protection.icon,
+    protectionIcon: block.protection.icon || "verified_user",
     protectionTitle: block.protection.title,
     protectionBody: block.protection.body,
     badges: block.protection.badges.map((item) => ({
@@ -70,52 +67,90 @@ function draftFrom(block: PrivacyUsage): Draft {
 }
 
 export function PrivacyUsageEditor() {
-  const { usage } = usePrivacySections();
+  const [usage, setUsage] = useState<PrivacyUsage | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = usePrivacyNav();
   const editing = params.get("edit") === "usage";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getPrivacyUsage()
+      .then((next) => {
+        if (active) setUsage(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the use section.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setPrivacyQuery(router, pathname, open, "usage");
   }
 
-  function save(draft: Draft) {
-    const doc = readPrivacySections();
-    savePrivacySections({
-      ...doc,
-      usage: {
-        isActive: draft.isActive,
-        icon: draft.icon,
-        navLabel: draft.navLabel.trim(),
-        heading: draft.heading.trim(),
-        intro: draft.intro.trim(),
-        items: draft.items.map((item) => ({
+  async function save(draft: Draft) {
+    const saved = await savePrivacyUsage({
+      isActive: draft.isActive,
+      icon: draft.icon,
+      navLabel: draft.navLabel.trim(),
+      heading: draft.heading.trim(),
+      intro: draft.intro.trim(),
+      items: draft.items.map((item) => ({
+        id: item.id,
+        title: item.title.trim(),
+        description: item.description.trim(),
+        isActive: item.isActive !== false,
+      })),
+      protection: {
+        isActive: draft.protectionActive,
+        icon: draft.protectionIcon,
+        title: draft.protectionTitle.trim(),
+        body: draft.protectionBody.trim(),
+        badges: draft.badges.map((item) => ({
           id: item.id,
-          title: item.title.trim(),
-          description: item.description.trim(),
+          icon: item.icon,
+          label: item.label.trim(),
           isActive: item.isActive !== false,
         })),
-        protection: {
-          isActive: draft.protectionActive,
-          icon: draft.protectionIcon,
-          title: draft.protectionTitle.trim(),
-          body: draft.protectionBody.trim(),
-          badges: draft.badges.map((item) => ({
-            id: item.id,
-            icon: item.icon,
-            label: item.label.trim(),
-            isActive: item.isActive !== false,
-          })),
-        },
       },
     });
+    setUsage(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!usage) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <PrivacyHeader
+          sectionId="usage"
+          title="Use"
+          description="How data is used and protected."
+          editLabel="Edit use"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the use section…"}</p>
+      </div>
+    );
+  }
+
+  const empty =
+    !usage.heading.trim() &&
+    !usage.intro.trim() &&
+    usage.items.length === 0 &&
+    !usage.protection.title.trim() &&
+    !usage.protection.body.trim() &&
+    usage.protection.badges.length === 0;
 
   return (
     <div className="min-w-0 space-y-4">
@@ -136,37 +171,38 @@ export function PrivacyUsageEditor() {
         headingId="privacy-usage-card"
         title="Use"
         description={
-          usage.isActive === false
-            ? "Hidden on the privacy page."
-            : "Uses, then the protection note."
+          usage.isActive === false ? "Hidden on the privacy page." : "Uses, then the protection note."
         }
         active={usage.isActive !== false}
       >
-        <p className="text-sm font-semibold text-neutral-950">
-          {usage.heading.trim() || "Heading"}
-        </p>
-        <ul className="mt-3 space-y-2">
-          {usage.items.map((item) => (
-            <li
-              key={item.id}
-              className={cn(
-                "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
-                item.isActive === false && "opacity-50",
-              )}
-            >
-              {item.title || "Use"}
-              {item.isActive === false ? " · Hidden" : ""}
-            </li>
-          ))}
-        </ul>
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No use copy yet</p>
+            <p className="mt-1 text-sm text-neutral-600">Add a heading, uses, and a protection note.</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-neutral-950">
+              {usage.heading.trim() || "Heading"}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {usage.items.map((item) => (
+                <li
+                  key={item.id}
+                  className={cn(
+                    "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
+                    item.isActive === false && "opacity-50",
+                  )}
+                >
+                  {item.title || "Use"}
+                  {item.isActive === false ? " · Hidden" : ""}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </PrivacyPanel>
-      {editing ? (
-        <UsageForm
-          block={usage}
-          onClose={() => setEditing(false)}
-          onSave={save}
-        />
-      ) : null}
+      {editing ? <UsageForm block={usage} onClose={() => setEditing(false)} onSave={save} /> : null}
     </div>
   );
 }
@@ -178,7 +214,7 @@ function UsageForm({
 }: {
   block: PrivacyUsage;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const initial = draftFrom(block);
   const [draft, setDraft] = useState(initial);
@@ -187,10 +223,18 @@ function UsageForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.heading.trim()) {
       setError("Heading is required.");
+      return;
+    }
+    if (draft.items.length > 12) {
+      setError("You can add up to 12 uses.");
+      return;
+    }
+    if (draft.badges.length > 12) {
+      setError("You can add up to 12 badges.");
       return;
     }
     if (
@@ -201,7 +245,13 @@ function UsageForm({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the use section.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -225,10 +275,7 @@ function UsageForm({
           value={draft.navLabel}
           onChange={(navLabel) => setDraft({ ...draft, navLabel })}
         />
-        <PrivacyIconPicker
-          value={draft.icon}
-          onChange={(icon) => setDraft({ ...draft, icon })}
-        />
+        <PrivacyIconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
         <Labeled
           id={`${formId}-heading`}
           label="Heading"
@@ -302,9 +349,7 @@ function UsageForm({
               <VisibilitySwitch
                 checked={item.isActive !== false}
                 label={
-                  item.isActive !== false
-                    ? `Hide use ${index + 1}`
-                    : `Show use ${index + 1}`
+                  item.isActive !== false ? `Hide use ${index + 1}` : `Show use ${index + 1}`
                 }
                 onChange={(isActive) =>
                   setDraft((current) => ({
@@ -322,7 +367,7 @@ function UsageForm({
             onClick={() =>
               setDraft((current) => ({
                 ...current,
-                items: [...current.items, blankUseItem()],
+                items: [...current.items, { ...blankUseItem(), isActive: true }],
               }))
             }
           />
@@ -331,35 +376,25 @@ function UsageForm({
           <h3 className="text-sm font-semibold text-neutral-950">Protection</h3>
           <PrivacyIconPicker
             value={draft.protectionIcon}
-            onChange={(protectionIcon) =>
-              setDraft({ ...draft, protectionIcon })
-            }
+            onChange={(protectionIcon) => setDraft({ ...draft, protectionIcon })}
           />
           <Labeled
             id={`${formId}-protect-title`}
             label="Title"
             value={draft.protectionTitle}
-            onChange={(protectionTitle) =>
-              setDraft({ ...draft, protectionTitle })
-            }
+            onChange={(protectionTitle) => setDraft({ ...draft, protectionTitle })}
           />
           <Labeled
             id={`${formId}-protect-body`}
             label="Body"
             value={draft.protectionBody}
             multiline
-            onChange={(protectionBody) =>
-              setDraft({ ...draft, protectionBody })
-            }
+            onChange={(protectionBody) => setDraft({ ...draft, protectionBody })}
           />
           <VisibilitySwitch
             checked={draft.protectionActive}
-            label={
-              draft.protectionActive ? "Hide protection" : "Show protection"
-            }
-            onChange={(protectionActive) =>
-              setDraft({ ...draft, protectionActive })
-            }
+            label={draft.protectionActive ? "Hide protection" : "Show protection"}
+            onChange={(protectionActive) => setDraft({ ...draft, protectionActive })}
           />
           {draft.badges.map((badge, index) => (
             <div key={badge.id} className="rounded-2xl bg-admin-canvas p-3">
@@ -431,7 +466,7 @@ function UsageForm({
             onClick={() =>
               setDraft((current) => ({
                 ...current,
-                badges: [...current.badges, blankBadge()],
+                badges: [...current.badges, { ...blankBadge(), isActive: true }],
               }))
             }
           />

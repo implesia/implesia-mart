@@ -1,15 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import {
-  readFaqSections,
-  saveFaqSections,
-  type FaqCalloutContent,
-} from "@/lib/mart-mock/faq-sections";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
+import { getFaqCallout, saveFaqCallout, type FaqCallout } from "@/lib/mart-api/faq-callout";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -26,7 +21,7 @@ import {
 
 type Draft = { isActive: boolean; eyebrow: string; body: string };
 
-function draftFrom(callout: FaqCalloutContent): Draft {
+function draftFrom(callout: FaqCallout): Draft {
   return {
     isActive: callout.isActive !== false,
     eyebrow: callout.eyebrow,
@@ -35,33 +30,64 @@ function draftFrom(callout: FaqCalloutContent): Draft {
 }
 
 export function FaqCalloutEditor() {
-  const { callout } = useFaqSections();
+  const [callout, setCallout] = useState<FaqCallout | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useFaqNav();
   const editing = params.get("edit") === "callout";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const empty = !callout.eyebrow.trim() && !callout.body.trim();
+
+  useEffect(() => {
+    let active = true;
+    getFaqCallout()
+      .then((next) => {
+        if (active) setCallout(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the callout.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setFaqQuery(router, pathname, "edit", open ? "callout" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readFaqSections();
-    saveFaqSections({
-      ...doc,
-      callout: {
-        isActive: draft.isActive,
-        eyebrow: draft.eyebrow.trim(),
-        body: draft.body.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveFaqCallout({
+      isActive: draft.isActive,
+      eyebrow: draft.eyebrow.trim(),
+      body: draft.body.trim(),
     });
+    setCallout(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!callout) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <FaqHeader
+          sectionId="callout"
+          title="Callout"
+          description="Important note above the questions."
+          editLabel="Edit callout"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the callout…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !callout.eyebrow.trim() && !callout.body.trim();
 
   return (
     <div className="min-w-0 space-y-4">
@@ -115,9 +141,9 @@ function CalloutForm({
   onClose,
   onSave,
 }: {
-  callout: FaqCalloutContent;
+  callout: FaqCallout;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(callout);
   const [draft, setDraft] = useState(initial);
@@ -126,14 +152,20 @@ function CalloutForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.body.trim()) {
       setError("Note is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the callout.");
+    }
   }
 
   return (

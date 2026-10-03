@@ -1,17 +1,18 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
+import {
+  getShippingPayment,
+  saveShippingPayment,
+  type ShippingPayment,
+} from "@/lib/mart-api/shipping-payment";
 import {
   blankPaymentCard,
   moveList,
-  readShippingSections,
-  saveShippingSections,
-  type PaymentBlock,
   type PaymentCardItem,
 } from "@/lib/mart-mock/shipping-sections";
-import { useShippingSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
@@ -40,10 +41,10 @@ type Draft = {
   cards: PaymentCardItem[];
 };
 
-function draftFrom(block: PaymentBlock): Draft {
+function draftFrom(block: ShippingPayment): Draft {
   return {
     isActive: block.isActive !== false,
-    icon: block.icon,
+    icon: block.icon || "payments",
     navLabel: block.navLabel,
     heading: block.heading,
     intro: block.intro,
@@ -52,65 +53,144 @@ function draftFrom(block: PaymentBlock): Draft {
 }
 
 export function ShippingPaymentEditor() {
-  const { payment } = useShippingSections();
+  const [payment, setPayment] = useState<ShippingPayment | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useShippingNav();
   const editing = params.get("edit") === "payment";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getShippingPayment()
+      .then((next) => {
+        if (active) setPayment(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the payment section.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setShippingQuery(router, pathname, open, "payment");
   }
 
-  function save(draft: Draft) {
-    const doc = readShippingSections();
-    saveShippingSections({
-      ...doc,
-      payment: {
-        isActive: draft.isActive,
-        icon: draft.icon,
-        navLabel: draft.navLabel.trim(),
-        heading: draft.heading.trim(),
-        intro: draft.intro.trim(),
-        cards: draft.cards.map((item) => ({
-          id: item.id,
-          icon: item.icon,
-          badge: item.badge.trim(),
-          title: item.title.trim(),
-          body: item.body.trim(),
-          footnote: item.footnote.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveShippingPayment({
+      isActive: draft.isActive,
+      icon: draft.icon,
+      navLabel: draft.navLabel.trim(),
+      heading: draft.heading.trim(),
+      intro: draft.intro.trim(),
+      cards: draft.cards.map((item) => ({
+        id: item.id,
+        icon: item.icon,
+        badge: item.badge.trim(),
+        title: item.title.trim(),
+        body: item.body.trim(),
+        footnote: item.footnote.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setPayment(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
 
+  if (!payment) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ShippingHeader
+          sectionId="payment"
+          title="Payment"
+          description="Cash on delivery and mobile banking."
+          editLabel="Edit payment"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the payment section…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !payment.heading.trim() && !payment.intro.trim() && payment.cards.length === 0;
+
   return (
     <div className="min-w-0 space-y-4">
-      <ShippingHeader sectionId="payment" title="Payment" description="Cash on delivery and mobile banking." editLabel="Edit payment" onEdit={() => setEditing(true)} editRef={focusEdit} />
-      {notice ? <p role="status" className="text-sm font-medium text-emerald-800">{notice} This section is up to date.</p> : null}
-      <ShippingPanel headingId="shipping-payment-card" title="Payment" description={payment.isActive === false ? "Hidden on the shipping page." : "Payment cards under shipping."} active={payment.isActive !== false}>
-        <p className="text-sm font-semibold text-neutral-950">{payment.heading.trim() || "Heading"}</p>
-        <ul className="mt-3 space-y-2">
-          {payment.cards.map((card) => (
-            <li key={card.id} className={cn("rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200", card.isActive === false && "opacity-50")}>
-              {card.title || "Card"}
-              {card.isActive === false ? " · Hidden" : ""}
-            </li>
-          ))}
-        </ul>
+      <ShippingHeader
+        sectionId="payment"
+        title="Payment"
+        description="Cash on delivery and mobile banking."
+        editLabel="Edit payment"
+        onEdit={() => setEditing(true)}
+        editRef={focusEdit}
+      />
+      {notice ? (
+        <p role="status" className="text-sm font-medium text-emerald-800">
+          {notice} This section is up to date.
+        </p>
+      ) : null}
+      <ShippingPanel
+        headingId="shipping-payment-card"
+        title="Payment"
+        description={
+          payment.isActive === false
+            ? "Hidden on the shipping page."
+            : "Payment cards under shipping."
+        }
+        active={payment.isActive !== false}
+      >
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No payment copy yet</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">Add payment methods.</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-neutral-950">
+              {payment.heading.trim() || "Heading"}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {payment.cards.map((card) => (
+                <li
+                  key={card.id}
+                  className={cn(
+                    "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
+                    card.isActive === false && "opacity-50",
+                  )}
+                >
+                  {card.title || "Card"}
+                  {card.isActive === false ? " · Hidden" : ""}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </ShippingPanel>
       {editing ? <PaymentForm block={payment} onClose={() => setEditing(false)} onSave={save} /> : null}
     </div>
   );
 }
 
-function PaymentForm({ block, onClose, onSave }: { block: PaymentBlock; onClose: () => void; onSave: (draft: Draft) => void }) {
+function PaymentForm({
+  block,
+  onClose,
+  onSave,
+}: {
+  block: ShippingPayment;
+  onClose: () => void;
+  onSave: (draft: Draft) => void | Promise<void>;
+}) {
   const initial = draftFrom(block);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
@@ -118,7 +198,7 @@ function PaymentForm({ block, onClose, onSave }: { block: PaymentBlock; onClose:
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.heading.trim()) {
       setError("Heading is required.");
@@ -129,7 +209,13 @@ function PaymentForm({ block, onClose, onSave }: { block: PaymentBlock; onClose:
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the payment section.");
+    }
   }
 
   return (

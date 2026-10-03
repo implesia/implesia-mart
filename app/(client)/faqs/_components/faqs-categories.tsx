@@ -1,32 +1,32 @@
 "use client";
 
-import { useFaqSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { FaqCategories } from "@/lib/mart-api/faq-categories";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 
 type FaqsCategoriesProps = {
+  categories: FaqCategories | null;
   activeCategory: string;
   onChange: (id: string) => void;
   className?: string;
 };
 
 export function FaqsCategories({
+  categories,
   activeCategory,
   onChange,
   className,
 }: FaqsCategoriesProps) {
-  const { categories } = useFaqSections();
-  if (!isContentActive(categories)) return null;
+  if (!categories?.isActive) return null;
 
   const options = [
     {
       id: "all",
-      label: categories.allLabel.trim() || "সব প্রশ্ন",
+      label: categories.allLabel.trim() || "All",
       icon: categories.allIcon || "grid_view",
     },
-    ...categories.items.filter(isContentActive),
+    ...categories.items.filter((item) => item.label.trim() && item.isActive !== false),
   ];
 
   return (
@@ -74,7 +74,7 @@ export function FaqsCategories({
         </div>
         <nav
           className="flex flex-col gap-1 p-2.5"
-          aria-label={categories.navLabel.trim() || "FAQ ক্যাটাগরি"}
+          aria-label={categories.navLabel.trim() || "Categories"}
         >
           {options.map((option) => {
             const active = activeCategory === option.id;

@@ -3,8 +3,12 @@
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { FaqCallout } from "@/lib/mart-api/faq-callout";
+import type { FaqCategories } from "@/lib/mart-api/faq-categories";
+import type { FaqHelp } from "@/lib/mart-api/faq-help";
+import type { FaqHero } from "@/lib/mart-api/faq-hero";
+import type { FaqItem } from "@/lib/mart-api/faq-items";
+import type { FaqListing } from "@/lib/mart-api/faq-listing";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -14,22 +18,35 @@ import { FaqsCategories } from "./faqs-categories";
 import { FaqsHelpCta } from "./faqs-help-cta";
 import { FaqsList } from "./faqs-list";
 
-export function FaqsView() {
-  const sections = useFaqSections();
-  const { hero, listing, callout } = sections;
+export function FaqsView({
+  hero,
+  categories,
+  listing,
+  callout,
+  items,
+  help,
+}: {
+  hero: FaqHero | null;
+  categories: FaqCategories | null;
+  listing: FaqListing | null;
+  callout: FaqCallout | null;
+  items: FaqItem[];
+  help: FaqHelp | null;
+}) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const normalizedQuery = query.trim().toLowerCase();
-  const showCategories = isContentActive(sections.categories);
-  const categories = showCategories
-    ? sections.categories.items.filter(isContentActive)
+  const showCategories = Boolean(categories?.isActive);
+  const categoryItems = categories?.isActive
+    ? categories.items.filter((item) => item.label.trim() && item.isActive !== false)
     : [];
-  const allLabel = sections.categories.allLabel.trim() || "সব প্রশ্ন";
+  const allLabel = categories?.isActive ? categories.allLabel.trim() : "";
   const selected =
-    showCategories && (activeCategory === "all" || categories.some((item) => item.id === activeCategory))
+    showCategories &&
+    (activeCategory === "all" || categoryItems.some((item) => item.id === activeCategory))
       ? activeCategory
       : "all";
-  const questions = sections.items.filter(isContentActive);
+  const questions = items.filter((item) => item.isActive !== false && item.question.trim());
 
   const filtered = useMemo(() => {
     return questions.filter((item) => {
@@ -46,8 +63,10 @@ export function FaqsView() {
   const categoryTitle =
     selected === "all"
       ? allLabel
-      : (categories.find((item) => item.id === selected)?.label ?? allLabel);
-  const trending = hero.trending.filter((item) => item.label.trim() && isContentActive(item));
+      : (categoryItems.find((item) => item.id === selected)?.label ?? allLabel);
+  const trending = hero?.isActive
+    ? hero.trending.filter((item) => item.label.trim() && item.isActive !== false)
+    : [];
 
   const faqJsonLd = {
     "@context": "https://schema.org",
@@ -62,7 +81,7 @@ export function FaqsView() {
   return (
     <>
       <JsonLd data={faqJsonLd} />
-      {isContentActive(hero) ? (
+      {hero?.isActive ? (
         <section className="w-full bg-[#f5f6f8] pb-5 sm:pb-6">
           <Container className="w-full px-4 sm:px-6 lg:px-8">
             <div
@@ -101,14 +120,14 @@ export function FaqsView() {
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder={hero.placeholder}
                     className="h-11 rounded-full border-0 bg-white pl-11 text-sm text-neutral-950 shadow-none placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-primary/40"
-                    aria-label={hero.searchLabel.trim() || "প্রশ্ন খুঁজুন"}
+                    aria-label={hero.searchLabel.trim() || "Search"}
                   />
                   {query.trim() ? (
                     <button
                       type="button"
                       onClick={() => setQuery("")}
                       className="absolute top-1/2 right-3 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-neutral-400 hover:bg-[#f5f6f8]"
-                      aria-label={hero.clearLabel.trim() || "সার্চ মুছুন"}
+                      aria-label={hero.clearLabel.trim() || "Clear search"}
                     >
                       <MaterialIcon name="close" className="text-[18px]" />
                     </button>
@@ -144,6 +163,7 @@ export function FaqsView() {
         <Container className="w-full px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
             <FaqsCategories
+              categories={categories}
               activeCategory={selected}
               onChange={(id) => {
                 setActiveCategory(id);
@@ -152,11 +172,13 @@ export function FaqsView() {
               className="lg:col-span-3"
             />
             <div className={cn("min-w-0", showCategories ? "lg:col-span-9" : "lg:col-span-12")}>
-              {isContentActive(listing) ? (
+              {listing?.isActive ? (
                 <div className="mb-4 sm:mb-5">
-                  <h2 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
-                    {categoryTitle}
-                  </h2>
+                  {categoryTitle ? (
+                    <h2 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
+                      {categoryTitle}
+                    </h2>
+                  ) : null}
                   <p className="mt-1 text-sm text-neutral-600">
                     {`${filtered.length}${listing.countSuffix}`}
                     {normalizedQuery ? ` · “${query.trim()}”` : null}
@@ -164,7 +186,7 @@ export function FaqsView() {
                 </div>
               ) : null}
 
-              {isContentActive(callout) && (callout.eyebrow.trim() || callout.body.trim()) ? (
+              {callout?.isActive ? (
                 <div className="mb-5 flex gap-3 rounded-2xl border-l-4 border-primary bg-white p-4 sm:mb-6">
                   <MaterialIcon
                     name="info"
@@ -182,8 +204,8 @@ export function FaqsView() {
                 </div>
               ) : null}
 
-              <FaqsList items={filtered} />
-              <FaqsHelpCta />
+              <FaqsList items={filtered} listing={listing} />
+              <FaqsHelpCta help={help} />
             </div>
           </div>
         </Container>

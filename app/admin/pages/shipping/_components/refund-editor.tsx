@@ -1,17 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import {
-  blankStep,
-  moveList,
-  readShippingSections,
-  saveShippingSections,
-  type RefundBlock,
-  type RefundStep,
-} from "@/lib/mart-mock/shipping-sections";
-import { useShippingSections } from "@/lib/mart-mock/hooks";
+import { getShippingRefund, saveShippingRefund, type ShippingRefund } from "@/lib/mart-api/shipping-refund";
+import { blankStep, moveList, type RefundStep } from "@/lib/mart-mock/shipping-sections";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
@@ -40,10 +33,10 @@ type Draft = {
   note: string;
 };
 
-function draftFrom(block: RefundBlock): Draft {
+function draftFrom(block: ShippingRefund): Draft {
   return {
     isActive: block.isActive !== false,
-    icon: block.icon,
+    icon: block.icon || "receipt_long",
     navLabel: block.navLabel,
     heading: block.heading,
     steps: block.steps.map((item) => ({ ...item, isActive: item.isActive !== false })),
@@ -52,62 +45,137 @@ function draftFrom(block: RefundBlock): Draft {
 }
 
 export function ShippingRefundEditor() {
-  const { refund } = useShippingSections();
+  const [refund, setRefund] = useState<ShippingRefund | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useShippingNav();
   const editing = params.get("edit") === "refund";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getShippingRefund()
+      .then((next) => {
+        if (active) setRefund(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the refund section.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setShippingQuery(router, pathname, open, "refund");
   }
 
-  function save(draft: Draft) {
-    const doc = readShippingSections();
-    saveShippingSections({
-      ...doc,
-      refund: {
-        isActive: draft.isActive,
-        icon: draft.icon,
-        navLabel: draft.navLabel.trim(),
-        heading: draft.heading.trim(),
-        steps: draft.steps.map((item) => ({
-          id: item.id,
-          title: item.title.trim(),
-          body: item.body.trim(),
-          isActive: item.isActive !== false,
-        })),
-        note: draft.note.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveShippingRefund({
+      isActive: draft.isActive,
+      icon: draft.icon,
+      navLabel: draft.navLabel.trim(),
+      heading: draft.heading.trim(),
+      note: draft.note.trim(),
+      steps: draft.steps.map((item) => ({
+        id: item.id,
+        title: item.title.trim(),
+        body: item.body.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setRefund(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
 
+  if (!refund) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ShippingHeader
+          sectionId="refund"
+          title="Refund"
+          description="Refund steps and the note."
+          editLabel="Edit refund"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the refund section…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !refund.heading.trim() && !refund.note.trim() && refund.steps.length === 0;
+
   return (
     <div className="min-w-0 space-y-4">
-      <ShippingHeader sectionId="refund" title="Refund" description="Refund steps and the note." editLabel="Edit refund" onEdit={() => setEditing(true)} editRef={focusEdit} />
-      {notice ? <p role="status" className="text-sm font-medium text-emerald-800">{notice} This section is up to date.</p> : null}
-      <ShippingPanel headingId="shipping-refund-card" title="Refund" description={refund.isActive === false ? "Hidden on the shipping page." : "Numbered steps follow this order."} active={refund.isActive !== false}>
-        <p className="text-sm font-semibold text-neutral-950">{refund.heading.trim() || "Heading"}</p>
-        <ol className="mt-3 space-y-2">
-          {refund.steps.map((step, index) => (
-            <li key={step.id} className={cn("rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200", step.isActive === false && "opacity-50")}>
-              {index + 1}. {step.title || "Step"}
-              {step.isActive === false ? " · Hidden" : ""}
-            </li>
-          ))}
-        </ol>
+      <ShippingHeader
+        sectionId="refund"
+        title="Refund"
+        description="Refund steps and the note."
+        editLabel="Edit refund"
+        onEdit={() => setEditing(true)}
+        editRef={focusEdit}
+      />
+      {notice ? (
+        <p role="status" className="text-sm font-medium text-emerald-800">
+          {notice} This section is up to date.
+        </p>
+      ) : null}
+      <ShippingPanel
+        headingId="shipping-refund-card"
+        title="Refund"
+        description={
+          refund.isActive === false ? "Hidden on the shipping page." : "Numbered steps follow this order."
+        }
+        active={refund.isActive !== false}
+      >
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No refund copy yet</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">Add steps and a note.</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-neutral-950">
+              {refund.heading.trim() || "Heading"}
+            </p>
+            <ol className="mt-3 space-y-2">
+              {refund.steps.map((step, index) => (
+                <li
+                  key={step.id}
+                  className={cn(
+                    "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
+                    step.isActive === false && "opacity-50",
+                  )}
+                >
+                  {index + 1}. {step.title || "Step"}
+                  {step.isActive === false ? " · Hidden" : ""}
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
       </ShippingPanel>
       {editing ? <RefundForm block={refund} onClose={() => setEditing(false)} onSave={save} /> : null}
     </div>
   );
 }
 
-function RefundForm({ block, onClose, onSave }: { block: RefundBlock; onClose: () => void; onSave: (draft: Draft) => void }) {
+function RefundForm({
+  block,
+  onClose,
+  onSave,
+}: {
+  block: ShippingRefund;
+  onClose: () => void;
+  onSave: (draft: Draft) => void | Promise<void>;
+}) {
   const initial = draftFrom(block);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
@@ -115,7 +183,7 @@ function RefundForm({ block, onClose, onSave }: { block: RefundBlock; onClose: (
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.heading.trim()) {
       setError("Heading is required.");
@@ -126,7 +194,13 @@ function RefundForm({ block, onClose, onSave }: { block: RefundBlock; onClose: (
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the refund section.");
+    }
   }
 
   return (

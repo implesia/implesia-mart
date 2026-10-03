@@ -9,18 +9,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { useShippingSections } from "@/lib/mart-mock/hooks";
-import type {
-  PaymentBlock,
-  RefundBlock,
-  ReturnsBlock,
-  ShippingBlock,
-  ShippingFaqContent,
-  ShippingHeroContent,
-  ShippingSupportContent,
-} from "@/lib/mart-mock/shipping-sections";
 import type { StoreDeliveryRates } from "@/lib/mart-api/catalog";
+import type { ShippingBlock } from "@/lib/mart-api/shipping-block";
+import type { ShippingPayment } from "@/lib/mart-api/shipping-payment";
+import type { ShippingRefund } from "@/lib/mart-api/shipping-refund";
+import type { ShippingReturns } from "@/lib/mart-api/shipping-returns";
+import type { ShippingSupport } from "@/lib/mart-api/shipping-support";
+import type { ShippingContents } from "@/lib/mart-api/shipping-contents";
+import type { ShippingFaq } from "@/lib/mart-api/shipping-faq";
+import type { ShippingHero } from "@/lib/mart-api/shipping-hero";
+import { isExternalHref } from "@/lib/mart-mock/about-sections";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -29,38 +27,57 @@ import { Container } from "../../_components/common/container";
 import { JsonLd } from "../../_components/common/json-ld";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
-  const sections = useShippingSections();
+export function ShippingReturnsView({
+  rates,
+  hero,
+  contents,
+  shipping,
+  payment,
+  returns,
+  refund,
+  support,
+  faq,
+}: {
+  rates: StoreDeliveryRates;
+  hero: ShippingHero | null;
+  contents: ShippingContents | null;
+  shipping: ShippingBlock | null;
+  payment: ShippingPayment | null;
+  returns: ShippingReturns | null;
+  refund: ShippingRefund | null;
+  support: ShippingSupport | null;
+  faq: ShippingFaq | null;
+}) {
   const links = [
     {
       id: "shipping",
-      label: sections.shipping.navLabel,
-      icon: sections.shipping.icon,
-      active: isContentActive(sections.shipping),
+      label: shipping?.navLabel.trim() || shipping?.heading.trim() || "",
+      icon: shipping?.icon || "local_shipping",
+      active: Boolean(shipping?.isActive && shipping.heading.trim()),
     },
     {
       id: "payment",
-      label: sections.payment.navLabel,
-      icon: sections.payment.icon,
-      active: isContentActive(sections.payment),
+      label: payment?.navLabel.trim() || payment?.heading.trim() || "",
+      icon: payment?.icon || "payments",
+      active: Boolean(payment?.isActive && payment.heading.trim()),
     },
     {
       id: "returns",
-      label: sections.returns.navLabel,
-      icon: sections.returns.icon,
-      active: isContentActive(sections.returns),
+      label: returns?.navLabel.trim() || returns?.heading.trim() || "",
+      icon: returns?.icon || "assignment_return",
+      active: Boolean(returns?.isActive && returns.heading.trim()),
     },
     {
       id: "refund",
-      label: sections.refund.navLabel,
-      icon: sections.refund.icon,
-      active: isContentActive(sections.refund),
+      label: refund?.navLabel.trim() || refund?.heading.trim() || "",
+      icon: refund?.icon || "receipt_long",
+      active: Boolean(refund?.isActive && refund.heading.trim()),
     },
     {
       id: "support",
-      label: sections.support.navLabel,
-      icon: sections.support.icon,
-      active: isContentActive(sections.support),
+      label: support?.navLabel.trim() || support?.title.trim() || "",
+      icon: support?.icon || "support_agent",
+      active: Boolean(support?.isActive && support.title.trim()),
     },
   ].filter((item) => item.active);
   const visibleKey = links.map((item) => item.id).join(",");
@@ -68,8 +85,11 @@ export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
   const activeId = links.some((item) => item.id === tracked)
     ? tracked
     : (links[0]?.id ?? "");
-  const questions = sections.faq.items.filter(isContentActive);
-  const showContents = isContentActive(sections.contents) && links.length > 0;
+  const questions = (faq?.items ?? []).filter(isContentActive);
+  const showContents = Boolean(contents?.isActive) && links.length > 0;
+  const contentsTitle = contents?.isActive ? contents.title.trim() : "";
+  const contentsSubtitle = contents?.isActive ? contents.subtitle.trim() : "";
+  const contentsNav = contents?.isActive && contents.navLabel.trim() ? contents.navLabel.trim() : "Sections";
 
   useEffect(() => {
     const elements = visibleKey
@@ -107,7 +127,7 @@ export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
   return (
     <>
       {faqJsonLd ? <JsonLd data={faqJsonLd} /> : null}
-      {isContentActive(sections.hero) ? <Hero hero={sections.hero} /> : null}
+      {hero?.isActive && hero.title.trim() ? <Hero hero={hero} /> : null}
 
       <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
         <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -115,10 +135,8 @@ export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
             {showContents ? (
               <aside className="min-w-0 lg:col-span-3">
                 <div className="lg:hidden">
-                  {sections.contents.title.trim() ? (
-                    <p className="mb-2.5 text-sm font-semibold text-neutral-950">
-                      {sections.contents.title}
-                    </p>
+                  {contentsTitle ? (
+                    <p className="mb-2.5 text-sm font-semibold text-neutral-950">{contentsTitle}</p>
                   ) : null}
                   <div
                     className={cn(
@@ -149,21 +167,14 @@ export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
 
                 <div className="sticky top-28 hidden overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:block">
                   <div className="border-b border-neutral-200 px-4 py-3.5">
-                    {sections.contents.title.trim() ? (
-                      <h2 className="text-base font-semibold text-neutral-950">
-                        {sections.contents.title}
-                      </h2>
+                    {contentsTitle ? (
+                      <h2 className="text-base font-semibold text-neutral-950">{contentsTitle}</h2>
                     ) : null}
-                    {sections.contents.subtitle.trim() ? (
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {sections.contents.subtitle}
-                      </p>
+                    {contentsSubtitle ? (
+                      <p className="mt-1 text-xs text-neutral-500">{contentsSubtitle}</p>
                     ) : null}
                   </div>
-                  <nav
-                    className="flex flex-col gap-1 p-2.5"
-                    aria-label={sections.contents.navLabel || "শিপিং সেকশন"}
-                  >
+                  <nav className="flex flex-col gap-1 p-2.5" aria-label={contentsNav}>
                     {links.map((item) => {
                       const active = activeId === item.id;
                       return (
@@ -208,24 +219,22 @@ export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
               )}
             >
               <DeliveryRatesCard rates={rates} />
-              {isContentActive(sections.shipping) ? (
-                <ShippingSection block={sections.shipping} />
+              {shipping?.isActive && shipping.heading.trim() ? (
+                <ShippingSection block={shipping} />
               ) : null}
-              {isContentActive(sections.payment) ? (
-                <PaymentSection block={sections.payment} />
+              {payment?.isActive && payment.heading.trim() ? (
+                <PaymentSection block={payment} />
               ) : null}
-              {isContentActive(sections.returns) ? (
-                <ReturnsSection block={sections.returns} />
+              {returns?.isActive && returns.heading.trim() ? (
+                <ReturnsSection block={returns} />
               ) : null}
-              {isContentActive(sections.refund) ? (
-                <RefundSection block={sections.refund} />
+              {refund?.isActive && refund.heading.trim() ? (
+                <RefundSection block={refund} />
               ) : null}
-              {isContentActive(sections.support) ? (
-                <SupportSection support={sections.support} />
+              {support?.isActive && support.title.trim() ? (
+                <SupportSection support={support} />
               ) : null}
-              {isContentActive(sections.faq) ? (
-                <FaqSection faq={sections.faq} />
-              ) : null}
+              {faq?.isActive ? <FaqSection faq={faq} /> : null}
             </div>
           </div>
         </Container>
@@ -234,7 +243,7 @@ export function ShippingReturnsView({ rates }: { rates: StoreDeliveryRates }) {
   );
 }
 
-function Hero({ hero }: { hero: ShippingHeroContent }) {
+function Hero({ hero }: { hero: ShippingHero }) {
   return (
     <section className="w-full bg-[#f5f6f8] pb-5 sm:pb-6">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -445,7 +454,7 @@ function ShippingSection({ block }: { block: ShippingBlock }) {
   );
 }
 
-function PaymentSection({ block }: { block: PaymentBlock }) {
+function PaymentSection({ block }: { block: ShippingPayment }) {
   const cards = block.cards.filter(isContentActive);
   return (
     <section id="payment" className="scroll-mt-28">
@@ -498,9 +507,9 @@ function PaymentSection({ block }: { block: PaymentBlock }) {
   );
 }
 
-function ReturnsSection({ block }: { block: ReturnsBlock }) {
+function ReturnsSection({ block }: { block: ShippingReturns }) {
   const rules = block.rules.filter(isContentActive);
-  const special = block.special.filter(isContentActive);
+  const special = block.notes.filter(isContentActive);
   const showEligibility = Boolean(
     block.eligibilityTitle.trim() ||
     block.eligibilityBody.trim() ||
@@ -574,7 +583,7 @@ function ReturnsSection({ block }: { block: ReturnsBlock }) {
   );
 }
 
-function RefundSection({ block }: { block: RefundBlock }) {
+function RefundSection({ block }: { block: ShippingRefund }) {
   const steps = block.steps.filter(isContentActive);
   return (
     <section id="refund" className="scroll-mt-28">
@@ -615,7 +624,7 @@ function RefundSection({ block }: { block: RefundBlock }) {
   );
 }
 
-function SupportSection({ support }: { support: ShippingSupportContent }) {
+function SupportSection({ support }: { support: ShippingSupport }) {
   const showPrimary = Boolean(support.primaryLabel.trim());
   const showSecondary = Boolean(support.secondaryLabel.trim());
   const whatsapp = /wa\.me|whatsapp/i.test(support.secondaryHref);
@@ -732,7 +741,7 @@ function SupportButton({
   );
 }
 
-function FaqSection({ faq }: { faq: ShippingFaqContent }) {
+function FaqSection({ faq }: { faq: ShippingFaq }) {
   const items = faq.items.filter(isContentActive);
   const before = faq.moreBefore.trim();
   const link = faq.moreLinkLabel.trim();

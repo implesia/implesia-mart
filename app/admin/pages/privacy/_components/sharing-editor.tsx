@@ -1,17 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import {
-  blankChip,
-  moveList,
-  readPrivacySections,
-  savePrivacySections,
+  getPrivacySharing,
+  savePrivacySharing,
   type PrivacyChip,
   type PrivacySharing,
-} from "@/lib/mart-mock/privacy-sections";
-import { usePrivacySections } from "@/lib/mart-mock/hooks";
+} from "@/lib/mart-api/privacy-sharing";
+import { blankChip, moveList } from "@/lib/mart-mock/privacy-sections";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
@@ -43,7 +41,7 @@ type Draft = {
 function draftFrom(block: PrivacySharing): Draft {
   return {
     isActive: block.isActive !== false,
-    icon: block.icon,
+    icon: block.icon || "share",
     navLabel: block.navLabel,
     heading: block.heading,
     body: block.body,
@@ -55,39 +53,73 @@ function draftFrom(block: PrivacySharing): Draft {
 }
 
 export function PrivacySharingEditor() {
-  const { sharing } = usePrivacySections();
+  const [sharing, setSharing] = useState<PrivacySharing | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = usePrivacyNav();
   const editing = params.get("edit") === "sharing";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getPrivacySharing()
+      .then((next) => {
+        if (active) setSharing(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the sharing section.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setPrivacyQuery(router, pathname, open, "sharing");
   }
 
-  function save(draft: Draft) {
-    const doc = readPrivacySections();
-    savePrivacySections({
-      ...doc,
-      sharing: {
-        isActive: draft.isActive,
-        icon: draft.icon,
-        navLabel: draft.navLabel.trim(),
-        heading: draft.heading.trim(),
-        body: draft.body.trim(),
-        chips: draft.chips.map((item) => ({
-          id: item.id,
-          label: item.label.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await savePrivacySharing({
+      isActive: draft.isActive,
+      icon: draft.icon,
+      navLabel: draft.navLabel.trim(),
+      heading: draft.heading.trim(),
+      body: draft.body.trim(),
+      chips: draft.chips.map((item) => ({
+        id: item.id,
+        label: item.label.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setSharing(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!sharing) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <PrivacyHeader
+          sectionId="sharing"
+          title="Sharing"
+          description="Limited sharing with courier and payment."
+          editLabel="Edit sharing"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the sharing section…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !sharing.heading.trim() && !sharing.body.trim() && sharing.chips.length === 0;
 
   return (
     <div className="min-w-0 space-y-4">
@@ -114,30 +146,35 @@ export function PrivacySharingEditor() {
         }
         active={sharing.isActive !== false}
       >
-        <p className="text-sm font-semibold text-neutral-950">
-          {sharing.heading.trim() || "Heading"}
-        </p>
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {sharing.chips.map((chip) => (
-            <li
-              key={chip.id}
-              className={cn(
-                "rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-neutral-200",
-                chip.isActive === false && "opacity-50",
-              )}
-            >
-              {chip.label || "Chip"}
-              {chip.isActive === false ? " · Hidden" : ""}
-            </li>
-          ))}
-        </ul>
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No sharing copy yet</p>
+            <p className="mt-1 text-sm text-neutral-600">Add a heading, a paragraph, and chips.</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-neutral-950">
+              {sharing.heading.trim() || "Heading"}
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {sharing.chips.map((chip) => (
+                <li
+                  key={chip.id}
+                  className={cn(
+                    "rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-neutral-200",
+                    chip.isActive === false && "opacity-50",
+                  )}
+                >
+                  {chip.label || "Chip"}
+                  {chip.isActive === false ? " · Hidden" : ""}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </PrivacyPanel>
       {editing ? (
-        <SharingForm
-          block={sharing}
-          onClose={() => setEditing(false)}
-          onSave={save}
-        />
+        <SharingForm block={sharing} onClose={() => setEditing(false)} onSave={save} />
       ) : null}
     </div>
   );
@@ -150,7 +187,7 @@ function SharingForm({
 }: {
   block: PrivacySharing;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const initial = draftFrom(block);
   const [draft, setDraft] = useState(initial);
@@ -159,10 +196,14 @@ function SharingForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.heading.trim()) {
       setError("Heading is required.");
+      return;
+    }
+    if (draft.chips.length > 12) {
+      setError("You can add up to 12 chips.");
       return;
     }
     if (draft.chips.some((item) => !item.label.trim())) {
@@ -170,7 +211,13 @@ function SharingForm({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the sharing section.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -194,10 +241,7 @@ function SharingForm({
           value={draft.navLabel}
           onChange={(navLabel) => setDraft({ ...draft, navLabel })}
         />
-        <PrivacyIconPicker
-          value={draft.icon}
-          onChange={(icon) => setDraft({ ...draft, icon })}
-        />
+        <PrivacyIconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
         <Labeled
           id={`${formId}-heading`}
           label="Heading"
@@ -253,9 +297,7 @@ function SharingForm({
             <VisibilitySwitch
               checked={chip.isActive !== false}
               label={
-                chip.isActive !== false
-                  ? `Hide chip ${index + 1}`
-                  : `Show chip ${index + 1}`
+                chip.isActive !== false ? `Hide chip ${index + 1}` : `Show chip ${index + 1}`
               }
               onChange={(isActive) =>
                 setDraft((current) => ({
@@ -273,7 +315,7 @@ function SharingForm({
           onClick={() =>
             setDraft((current) => ({
               ...current,
-              chips: [...current.chips, blankChip()],
+              chips: [...current.chips, { ...blankChip(), isActive: true }],
             }))
           }
         />

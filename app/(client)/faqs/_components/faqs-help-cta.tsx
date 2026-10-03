@@ -2,16 +2,20 @@
 
 import Link from "next/link";
 
+import type { FaqHelp } from "@/lib/mart-api/faq-help";
 import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { WhatsAppIcon } from "../../_components/common/brand-icons";
 
-export function FaqsHelpCta({ className }: { className?: string }) {
-  const { help } = useFaqSections();
-  if (!isContentActive(help)) return null;
+export function FaqsHelpCta({
+  help,
+  className,
+}: {
+  help: FaqHelp | null;
+  className?: string;
+}) {
+  if (!help?.isActive || !help.title.trim()) return null;
   const primary = help.primaryLabel.trim();
   const secondary = help.secondaryLabel.trim();
   const phoneHref = help.phone.replace(/[\s-]/g, "");

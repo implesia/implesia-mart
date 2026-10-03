@@ -1,18 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import {
-  blankFaqTrending,
-  moveList,
-  readFaqSections,
-  saveFaqSections,
-  type FaqHeroContent,
-  type FaqTrendingItem,
-} from "@/lib/mart-mock/faq-sections";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
+import { getFaqHero, saveFaqHero, type FaqHero, type FaqHeroSearch } from "@/lib/mart-api/faq-hero";
+import { blankFaqTrending, moveList } from "@/lib/mart-mock/faq-sections";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField, adminButtonClass } from "../../../_components/admin-ui";
@@ -39,10 +32,10 @@ type Draft = {
   searchLabel: string;
   clearLabel: string;
   trendingLabel: string;
-  trending: FaqTrendingItem[];
+  trending: FaqHeroSearch[];
 };
 
-function draftFrom(hero: FaqHeroContent): Draft {
+function draftFrom(hero: FaqHero): Draft {
   return {
     isActive: hero.isActive !== false,
     eyebrow: hero.eyebrow,
@@ -57,43 +50,74 @@ function draftFrom(hero: FaqHeroContent): Draft {
 }
 
 export function FaqHeroEditor() {
-  const { hero } = useFaqSections();
+  const [hero, setHero] = useState<FaqHero | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useFaqNav();
   const editing = params.get("edit") === "hero";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const empty = !hero.title.trim() && !hero.subtitle.trim();
+
+  useEffect(() => {
+    let active = true;
+    getFaqHero()
+      .then((next) => {
+        if (active) setHero(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the hero.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setFaqQuery(router, pathname, "edit", open ? "hero" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readFaqSections();
-    saveFaqSections({
-      ...doc,
-      hero: {
-        isActive: draft.isActive,
-        eyebrow: draft.eyebrow.trim(),
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        placeholder: draft.placeholder.trim(),
-        searchLabel: draft.searchLabel.trim(),
-        clearLabel: draft.clearLabel.trim(),
-        trendingLabel: draft.trendingLabel.trim(),
-        trending: draft.trending.map((item) => ({
-          id: item.id,
-          label: item.label.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveFaqHero({
+      isActive: draft.isActive,
+      eyebrow: draft.eyebrow.trim(),
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      placeholder: draft.placeholder.trim(),
+      searchLabel: draft.searchLabel.trim(),
+      clearLabel: draft.clearLabel.trim(),
+      trendingLabel: draft.trendingLabel.trim(),
+      trending: draft.trending.map((item) => ({
+        id: item.id,
+        label: item.label.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setHero(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!hero) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <FaqHeader
+          sectionId="hero"
+          title="Hero"
+          description="Opening copy, search, and quick searches."
+          editLabel="Edit hero"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the hero…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !hero.title.trim() && !hero.subtitle.trim();
 
   return (
     <div className="min-w-0 space-y-4">
@@ -160,9 +184,9 @@ function HeroForm({
   onClose,
   onSave,
 }: {
-  hero: FaqHeroContent;
+  hero: FaqHero;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(hero);
   const [draft, setDraft] = useState(initial);
@@ -171,10 +195,14 @@ function HeroForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setError("Title is required.");
+      return;
+    }
+    if (draft.trending.length > 12) {
+      setError("You can add up to 12 quick searches.");
       return;
     }
     if (draft.trending.some((item) => !item.label.trim())) {
@@ -182,7 +210,13 @@ function HeroForm({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the hero.");
+    }
   }
 
   return (
@@ -317,11 +351,13 @@ function HeroForm({
           )}
           <button
             type="button"
+            disabled={draft.trending.length >= 12}
             onClick={() =>
-              setDraft((current) => ({
-                ...current,
-                trending: [...current.trending, blankFaqTrending()],
-              }))
+              setDraft((current) =>
+                current.trending.length >= 12
+                  ? current
+                  : { ...current, trending: [...current.trending, blankFaqTrending()] },
+              )
             }
             className={adminButtonClass.secondary}
           >

@@ -1,21 +1,18 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
+import { getShippingBlock, saveShippingBlock, type ShippingBlock } from "@/lib/mart-api/shipping-block";
 import {
   blankNote,
   blankShippingCard,
   blankTimeline,
   moveList,
-  readShippingSections,
-  saveShippingSections,
-  type ShippingBlock,
   type ShippingCard,
   type ShippingNote,
   type ShippingTimelineItem,
 } from "@/lib/mart-mock/shipping-sections";
-import { useShippingSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField, FieldLabel } from "../../../_components/admin-ui";
@@ -50,7 +47,7 @@ type Draft = {
 function draftFrom(block: ShippingBlock): Draft {
   return {
     isActive: block.isActive !== false,
-    icon: block.icon,
+    icon: block.icon || "local_shipping",
     navLabel: block.navLabel,
     heading: block.heading,
     intro: block.intro,
@@ -62,85 +59,165 @@ function draftFrom(block: ShippingBlock): Draft {
 }
 
 export function ShippingBlockEditor() {
-  const { shipping } = useShippingSections();
+  const [shipping, setShipping] = useState<ShippingBlock | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useShippingNav();
   const editing = params.get("edit") === "shipping";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getShippingBlock()
+      .then((next) => {
+        if (active) setShipping(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the shipping section.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setShippingQuery(router, pathname, open, "shipping");
   }
 
-  function save(draft: Draft) {
-    const doc = readShippingSections();
-    saveShippingSections({
-      ...doc,
-      shipping: {
-        isActive: draft.isActive,
-        icon: draft.icon,
-        navLabel: draft.navLabel.trim(),
-        heading: draft.heading.trim(),
-        intro: draft.intro.trim(),
-        cards: draft.cards.map((item) => ({
-          ...item,
-          icon: item.icon,
-          eyebrow: item.eyebrow.trim(),
-          title: item.title.trim(),
-          body: item.body.trim(),
-          isActive: item.isActive !== false,
-        })),
-        timelinesTitle: draft.timelinesTitle.trim(),
-        timelines: draft.timelines.map((item) => ({
-          id: item.id,
-          label: item.label.trim(),
-          value: item.value.trim(),
-          isActive: item.isActive !== false,
-        })),
-        notes: draft.notes.map((item) => ({
-          id: item.id,
-          icon: item.icon,
-          title: item.title.trim(),
-          body: item.body.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveShippingBlock({
+      isActive: draft.isActive,
+      icon: draft.icon,
+      navLabel: draft.navLabel.trim(),
+      heading: draft.heading.trim(),
+      intro: draft.intro.trim(),
+      cards: draft.cards.map((item) => ({
+        ...item,
+        eyebrow: item.eyebrow.trim(),
+        title: item.title.trim(),
+        body: item.body.trim(),
+        isActive: item.isActive !== false,
+      })),
+      timelinesTitle: draft.timelinesTitle.trim(),
+      timelines: draft.timelines.map((item) => ({
+        id: item.id,
+        label: item.label.trim(),
+        value: item.value.trim(),
+        isActive: item.isActive !== false,
+      })),
+      notes: draft.notes.map((item) => ({
+        id: item.id,
+        icon: item.icon,
+        title: item.title.trim(),
+        body: item.body.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setShipping(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
 
+  if (!shipping) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ShippingHeader
+          sectionId="shipping"
+          title="Shipping"
+          description="Coverage, timelines, and notes."
+          editLabel="Edit shipping"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the shipping section…"}</p>
+      </div>
+    );
+  }
+
+  const empty =
+    !shipping.heading.trim() &&
+    !shipping.intro.trim() &&
+    shipping.cards.length === 0 &&
+    shipping.timelines.length === 0 &&
+    shipping.notes.length === 0;
+
   return (
     <div className="min-w-0 space-y-4">
-      <ShippingHeader sectionId="shipping" title="Shipping" description="Coverage, timelines, and notes." editLabel="Edit shipping" onEdit={() => setEditing(true)} editRef={focusEdit} />
-      {notice ? <p role="status" className="text-sm font-medium text-emerald-800">{notice} This section is up to date.</p> : null}
+      <ShippingHeader
+        sectionId="shipping"
+        title="Shipping"
+        description="Coverage, timelines, and notes."
+        editLabel="Edit shipping"
+        onEdit={() => setEditing(true)}
+        editRef={focusEdit}
+      />
+      {notice ? (
+        <p role="status" className="text-sm font-medium text-emerald-800">
+          {notice} This section is up to date.
+        </p>
+      ) : null}
       <ShippingPanel
         headingId="shipping-block-card"
         title="Shipping"
-        description={shipping.isActive === false ? "Hidden on the shipping page." : "Coverage cards, delivery times, and notes."}
+        description={
+          shipping.isActive === false
+            ? "Hidden on the shipping page."
+            : "Coverage cards, delivery times, and notes."
+        }
         active={shipping.isActive !== false}
       >
-        <p className="text-sm font-semibold text-neutral-950">{shipping.heading.trim() || "Heading"}</p>
-        <p className="mt-1 text-sm text-neutral-600">{shipping.intro}</p>
-        <ul className="mt-3 space-y-2">
-          {shipping.cards.map((card) => (
-            <li key={card.id} className={cn("rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200", card.isActive === false && "opacity-50")}>
-              {card.title || "Card"}
-              {card.variant === "primary" ? " · Highlighted" : ""}
-              {card.isActive === false ? " · Hidden" : ""}
-            </li>
-          ))}
-        </ul>
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No shipping copy yet</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+              Add coverage, delivery times, and notes.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-neutral-950">
+              {shipping.heading.trim() || "Heading"}
+            </p>
+            <p className="mt-1 text-sm text-neutral-600">{shipping.intro}</p>
+            <ul className="mt-3 space-y-2">
+              {shipping.cards.map((card) => (
+                <li
+                  key={card.id}
+                  className={cn(
+                    "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
+                    card.isActive === false && "opacity-50",
+                  )}
+                >
+                  {card.title || "Card"}
+                  {card.variant === "primary" ? " · Highlighted" : ""}
+                  {card.isActive === false ? " · Hidden" : ""}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </ShippingPanel>
       {editing ? <BlockForm block={shipping} onClose={() => setEditing(false)} onSave={save} /> : null}
     </div>
   );
 }
 
-function BlockForm({ block, onClose, onSave }: { block: ShippingBlock; onClose: () => void; onSave: (draft: Draft) => void }) {
+function BlockForm({
+  block,
+  onClose,
+  onSave,
+}: {
+  block: ShippingBlock;
+  onClose: () => void;
+  onSave: (draft: Draft) => void | Promise<void>;
+}) {
   const initial = draftFrom(block);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
@@ -148,18 +225,28 @@ function BlockForm({ block, onClose, onSave }: { block: ShippingBlock; onClose: 
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.heading.trim()) {
       setError("Heading is required.");
       return;
     }
-    if (draft.cards.some((item) => !item.title.trim()) || draft.timelines.some((item) => !item.label.trim() || !item.value.trim()) || draft.notes.some((item) => !item.title.trim())) {
+    const incomplete =
+      draft.cards.some((item) => !item.title.trim()) ||
+      draft.timelines.some((item) => !item.label.trim() || !item.value.trim()) ||
+      draft.notes.some((item) => !item.title.trim());
+    if (incomplete) {
       setError("Fill in every card, time, and note, or remove the empty ones.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the shipping section.");
+    }
   }
 
   return (

@@ -1,17 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import {
-  blankPrivacyCard,
-  moveList,
-  readPrivacySections,
-  savePrivacySections,
-  type PrivacyCard,
+  getPrivacyCollection,
+  savePrivacyCollection,
   type PrivacyCollection,
-} from "@/lib/mart-mock/privacy-sections";
-import { usePrivacySections } from "@/lib/mart-mock/hooks";
+  type PrivacyCollectionCard,
+} from "@/lib/mart-api/privacy-collection";
+import { blankPrivacyCard, moveList } from "@/lib/mart-mock/privacy-sections";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
@@ -37,13 +35,13 @@ type Draft = {
   navLabel: string;
   heading: string;
   intro: string;
-  cards: PrivacyCard[];
+  cards: PrivacyCollectionCard[];
 };
 
 function draftFrom(block: PrivacyCollection): Draft {
   return {
     isActive: block.isActive !== false,
-    icon: block.icon,
+    icon: block.icon || "database",
     navLabel: block.navLabel,
     heading: block.heading,
     intro: block.intro,
@@ -55,41 +53,74 @@ function draftFrom(block: PrivacyCollection): Draft {
 }
 
 export function PrivacyCollectionEditor() {
-  const { collection } = usePrivacySections();
+  const [collection, setCollection] = useState<PrivacyCollection | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = usePrivacyNav();
   const editing = params.get("edit") === "collection";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getPrivacyCollection()
+      .then((next) => {
+        if (active) setCollection(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the collection.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setPrivacyQuery(router, pathname, open, "collection");
   }
 
-  function save(draft: Draft) {
-    const doc = readPrivacySections();
-    savePrivacySections({
-      ...doc,
-      collection: {
-        isActive: draft.isActive,
-        icon: draft.icon,
-        navLabel: draft.navLabel.trim(),
-        heading: draft.heading.trim(),
-        intro: draft.intro.trim(),
-        cards: draft.cards.map((item) => ({
-          id: item.id,
-          icon: item.icon,
-          title: item.title.trim(),
-          description: item.description.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await savePrivacyCollection({
+      isActive: draft.isActive,
+      icon: draft.icon,
+      navLabel: draft.navLabel.trim(),
+      heading: draft.heading.trim(),
+      intro: draft.intro.trim(),
+      cards: draft.cards.map((item) => ({
+        id: item.id,
+        icon: item.icon,
+        title: item.title.trim(),
+        description: item.description.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setCollection(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!collection) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <PrivacyHeader
+          sectionId="collection"
+          title="Collection"
+          description="What information is stored."
+          editLabel="Edit collection"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the collection…"}</p>
+      </div>
+    );
+  }
+
+  const empty =
+    !collection.heading.trim() && !collection.intro.trim() && collection.cards.length === 0;
 
   return (
     <div className="min-w-0 space-y-4">
@@ -116,30 +147,35 @@ export function PrivacyCollectionEditor() {
         }
         active={collection.isActive !== false}
       >
-        <p className="text-sm font-semibold text-neutral-950">
-          {collection.heading.trim() || "Heading"}
-        </p>
-        <ul className="mt-3 space-y-2">
-          {collection.cards.map((card) => (
-            <li
-              key={card.id}
-              className={cn(
-                "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
-                card.isActive === false && "opacity-50",
-              )}
-            >
-              {card.title || "Card"}
-              {card.isActive === false ? " · Hidden" : ""}
-            </li>
-          ))}
-        </ul>
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No collection copy yet</p>
+            <p className="mt-1 text-sm text-neutral-600">Add a heading, intro, and cards.</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-neutral-950">
+              {collection.heading.trim() || "Heading"}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {collection.cards.map((card) => (
+                <li
+                  key={card.id}
+                  className={cn(
+                    "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
+                    card.isActive === false && "opacity-50",
+                  )}
+                >
+                  {card.title || "Card"}
+                  {card.isActive === false ? " · Hidden" : ""}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </PrivacyPanel>
       {editing ? (
-        <CollectionForm
-          block={collection}
-          onClose={() => setEditing(false)}
-          onSave={save}
-        />
+        <CollectionForm block={collection} onClose={() => setEditing(false)} onSave={save} />
       ) : null}
     </div>
   );
@@ -152,7 +188,7 @@ function CollectionForm({
 }: {
   block: PrivacyCollection;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const initial = draftFrom(block);
   const [draft, setDraft] = useState(initial);
@@ -161,10 +197,14 @@ function CollectionForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.heading.trim()) {
       setError("Heading is required.");
+      return;
+    }
+    if (draft.cards.length > 12) {
+      setError("You can add up to 12 cards.");
       return;
     }
     if (draft.cards.some((item) => !item.title.trim())) {
@@ -172,7 +212,13 @@ function CollectionForm({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the collection.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -302,7 +348,7 @@ function CollectionForm({
           onClick={() =>
             setDraft((current) => ({
               ...current,
-              cards: [...current.cards, blankPrivacyCard("person_search")],
+              cards: [...current.cards, { ...blankPrivacyCard("person_search"), isActive: true }],
             }))
           }
         />

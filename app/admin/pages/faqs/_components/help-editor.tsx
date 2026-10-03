@@ -1,14 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import {
-  readFaqSections,
-  saveFaqSections,
-  type FaqHelpContent,
-} from "@/lib/mart-mock/faq-sections";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
+import { getFaqHelp, saveFaqHelp, type FaqHelp } from "@/lib/mart-api/faq-help";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -35,7 +30,7 @@ type Draft = {
   secondaryHref: string;
 };
 
-function draftFrom(help: FaqHelpContent): Draft {
+function draftFrom(help: FaqHelp): Draft {
   return {
     isActive: help.isActive !== false,
     title: help.title,
@@ -50,39 +45,70 @@ function draftFrom(help: FaqHelpContent): Draft {
 }
 
 export function FaqHelpEditor() {
-  const { help } = useFaqSections();
+  const [help, setHelp] = useState<FaqHelp | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useFaqNav();
   const editing = params.get("edit") === "help";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const empty = !help.title.trim() && !help.subtitle.trim();
+
+  useEffect(() => {
+    let active = true;
+    getFaqHelp()
+      .then((next) => {
+        if (active) setHelp(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the help banner.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setFaqQuery(router, pathname, "edit", open ? "help" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readFaqSections();
-    saveFaqSections({
-      ...doc,
-      help: {
-        isActive: draft.isActive,
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        email: draft.email.trim(),
-        phone: draft.phone.trim(),
-        primaryLabel: draft.primaryLabel.trim(),
-        primaryHref: draft.primaryHref.trim(),
-        secondaryLabel: draft.secondaryLabel.trim(),
-        secondaryHref: draft.secondaryHref.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveFaqHelp({
+      isActive: draft.isActive,
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      email: draft.email.trim(),
+      phone: draft.phone.trim(),
+      primaryLabel: draft.primaryLabel.trim(),
+      primaryHref: draft.primaryHref.trim(),
+      secondaryLabel: draft.secondaryLabel.trim(),
+      secondaryHref: draft.secondaryHref.trim(),
     });
+    setHelp(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!help) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <FaqHeader
+          sectionId="help"
+          title="Help"
+          description="Closing contact banner."
+          editLabel="Edit help"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the help banner…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !help.title.trim() && !help.subtitle.trim();
 
   return (
     <div className="min-w-0 space-y-4">
@@ -115,7 +141,9 @@ export function FaqHelpEditor() {
         <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] px-4 py-8 sm:px-8">
           <p className="text-lg font-semibold text-white">{help.title.trim() || "Title"}</p>
           <p className="mt-2 max-w-lg text-sm text-white/70">{help.subtitle}</p>
-          <p className="mt-3 text-sm text-white/60">{[help.email, help.phone].filter(Boolean).join(" · ")}</p>
+          <p className="mt-3 text-sm text-white/60">
+            {[help.email, help.phone].filter(Boolean).join(" · ")}
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {help.primaryLabel.trim() ? (
               <span className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-on-primary">
@@ -140,9 +168,9 @@ function HelpForm({
   onClose,
   onSave,
 }: {
-  help: FaqHelpContent;
+  help: FaqHelp;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(help);
   const [draft, setDraft] = useState(initial);
@@ -151,14 +179,20 @@ function HelpForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setError("Title is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the help banner.");
+    }
   }
 
   return (

@@ -1,18 +1,19 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { getFaqCategories, type FaqCategories, type FaqCategory } from "@/lib/mart-api/faq-categories";
 import {
-  blankFaqQuestion,
-  faqCategoryLabel,
-  moveList,
-  readFaqSections,
-  saveFaqSections,
-  type FaqQuestion,
-} from "@/lib/mart-mock/faq-sections";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
+  createFaqItem,
+  deleteFaqItem,
+  getFaqItems,
+  reorderFaqItems,
+  updateFaqItem,
+  type FaqItem,
+} from "@/lib/mart-api/faq-items";
+import { moveList } from "@/lib/mart-mock/faq-sections";
 import { cn } from "@/lib/utils";
 
 import {
@@ -41,7 +42,7 @@ type Draft = {
   answer: string;
 };
 
-function draftFrom(item: FaqQuestion): Draft {
+function draftFrom(item: FaqItem): Draft {
   return {
     id: item.id,
     isActive: item.isActive !== false,
@@ -51,57 +52,116 @@ function draftFrom(item: FaqQuestion): Draft {
   };
 }
 
+function categoryLabel(categories: FaqCategories | null, id: string) {
+  return categories?.items.find((item) => item.id === id)?.label ?? "";
+}
+
 export function FaqItemsEditor() {
-  const sections = useFaqSections();
-  const { items } = sections;
+  const [items, setItems] = useState<FaqItem[] | null>(null);
+  const [categories, setCategories] = useState<FaqCategories | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useFaqNav();
   const questionParam = params.get("question");
   const editing = questionParam !== null;
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const existing = items.find((item) => item.id === questionParam) ?? null;
+  const existing = items?.find((item) => item.id === questionParam) ?? null;
+
+  useEffect(() => {
+    let active = true;
+    getFaqItems()
+      .then((next) => {
+        if (active) setItems(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the questions.");
+        }
+      });
+    getFaqCategories()
+      .then((next) => {
+        if (active) setCategories(next);
+      })
+      .catch(() => {
+        if (active) setCategories(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function close() {
     markReturn();
     setFaqQuery(router, pathname, "question", null);
   }
 
-  function save(draft: Draft) {
-    const doc = readFaqSections();
-    const next: FaqQuestion = {
-      id: draft.id,
+  async function save(draft: Draft) {
+    const payload = {
       isActive: draft.isActive,
       categoryId: draft.categoryId,
       question: draft.question.trim(),
       answer: draft.answer.trim(),
     };
-    const itemsNext = doc.items.some((item) => item.id === next.id)
-      ? doc.items.map((item) => (item.id === next.id ? next : item))
-      : [...doc.items, next];
-    saveFaqSections({ ...doc, items: itemsNext });
+    if (questionParam === "new") {
+      const created = await createFaqItem(payload);
+      setItems((current) => [...(current ?? []), created]);
+    } else {
+      const saved = await updateFaqItem({ id: draft.id, ...payload });
+      setItems((current) => (current ?? []).map((item) => (item.id === saved.id ? saved : item)));
+    }
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     close();
   }
 
-  function remove(id: string) {
-    const doc = readFaqSections();
-    saveFaqSections({ ...doc, items: doc.items.filter((item) => item.id !== id) });
+  async function remove(id: string) {
+    await deleteFaqItem(id);
+    setItems((current) => (current ?? []).filter((item) => item.id !== id));
     setNotice("Removed.");
     window.setTimeout(() => setNotice(""), 1600);
     close();
   }
 
-  function move(index: number, direction: -1 | 1) {
-    const doc = readFaqSections();
-    saveFaqSections({ ...doc, items: moveList(doc.items, index, direction) });
+  async function move(index: number, direction: -1 | 1) {
+    if (!items) return;
+    const next = moveList(items, index, direction);
+    if (next === items) return;
+    setItems(next);
+    try {
+      setItems(await reorderFaqItems(next.map((item) => item.id)));
+    } catch (error: unknown) {
+      setItems(items);
+      setNotice(error instanceof Error ? error.message : "Could not reorder the questions.");
+    }
   }
 
   const formItem =
     questionParam === "new"
-      ? blankFaqQuestion(sections.categories.items[0]?.id ?? "")
+      ? {
+          id: "new",
+          isActive: true,
+          categoryId: categories?.items[0]?.id ?? "",
+          question: "",
+          answer: "",
+        }
       : existing;
+
+  if (!items) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <FaqHeader
+          sectionId="items"
+          title="Questions"
+          description="Each question and answer."
+          editLabel="Add question"
+          onEdit={() => setFaqQuery(router, pathname, "question", "new")}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the questions…"}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-4">
@@ -143,7 +203,7 @@ export function FaqItemsEditor() {
                   <VisibilityBadge active={item.isActive !== false} />
                 </div>
                 <p className="mt-1 text-xs text-neutral-500">
-                  {faqCategoryLabel(sections, item.categoryId) || "No category"}
+                  {categoryLabel(categories, item.categoryId) || "No category"}
                   {item.isActive === false ? " · Hidden" : ""}
                 </p>
               </div>
@@ -152,13 +212,13 @@ export function FaqItemsEditor() {
                   label="Move question earlier"
                   icon="arrow_upward"
                   disabled={index === 0}
-                  onClick={() => move(index, -1)}
+                  onClick={() => void move(index, -1)}
                 />
                 <MoveButton
                   label="Move question later"
                   icon="arrow_downward"
                   disabled={index === items.length - 1}
-                  onClick={() => move(index, 1)}
+                  onClick={() => void move(index, 1)}
                 />
                 <button
                   type="button"
@@ -177,6 +237,7 @@ export function FaqItemsEditor() {
           key={questionParam ?? formItem.id}
           item={formItem}
           isNew={questionParam === "new"}
+          categories={categories?.items ?? []}
           onClose={close}
           onSave={save}
           onRemove={questionParam === "new" ? undefined : () => remove(formItem.id)}
@@ -189,29 +250,37 @@ export function FaqItemsEditor() {
 function QuestionForm({
   item,
   isNew,
+  categories,
   onClose,
   onSave,
   onRemove,
 }: {
-  item: FaqQuestion;
+  item: FaqItem;
   isNew: boolean;
+  categories: FaqCategory[];
   onClose: () => void;
-  onSave: (draft: Draft) => void;
-  onRemove?: () => void;
+  onSave: (draft: Draft) => void | Promise<void>;
+  onRemove?: () => void | Promise<void>;
 }) {
-  const { categories } = useFaqSections();
   const initial = draftFrom(item);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const formId = useId();
-  const options = categories.items.slice();
+  const options = categories.slice();
   if (draft.categoryId && !options.some((category) => category.id === draft.categoryId)) {
-    options.unshift({ id: draft.categoryId, label: "Unknown category", icon: "help" });
+    options.unshift({ id: draft.categoryId, label: "Unknown category", icon: "help", isActive: true });
   }
 
-  function save() {
+  useEffect(() => {
+    if (!isNew || draft.categoryId || categories.length === 0) return;
+    setDraft((current) =>
+      current.categoryId ? current : { ...current, categoryId: categories[0].id },
+    );
+  }, [categories, draft.categoryId, isNew]);
+
+  async function save() {
     if (saving) return;
     if (!draft.question.trim()) {
       setError("Question is required.");
@@ -226,7 +295,13 @@ function QuestionForm({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the question.");
+    }
   }
 
   return (
@@ -288,7 +363,11 @@ function QuestionForm({
         />
         <FormError message={error} />
         {onRemove ? (
-          <button type="button" onClick={onRemove} className="text-sm font-medium text-red-600 hover:underline">
+          <button
+            type="button"
+            onClick={() => void onRemove()}
+            className="text-sm font-medium text-red-600 hover:underline"
+          >
             Remove question
           </button>
         ) : null}

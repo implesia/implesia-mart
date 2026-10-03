@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
 
+import { listPublicPrivacyCollection } from "@/lib/mart-api/privacy-collection";
+import { listPublicPrivacyContents } from "@/lib/mart-api/privacy-contents";
+import { listPublicPrivacyHero } from "@/lib/mart-api/privacy-hero";
+import { listPublicPrivacyIntroduction } from "@/lib/mart-api/privacy-introduction";
+import { listPublicPrivacyRights } from "@/lib/mart-api/privacy-rights";
+import { listPublicPrivacySharing } from "@/lib/mart-api/privacy-sharing";
+import { listPublicPrivacySupport } from "@/lib/mart-api/privacy-support";
+import { listPublicPrivacyUsage } from "@/lib/mart-api/privacy-usage";
+
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { PrivacyPolicyView } from "./_components/privacy-policy-view";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "গোপনীয়তা নীতি",
@@ -11,7 +22,18 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy-policy" },
 };
 
-export default function PrivacyPolicyPage() {
+export default async function PrivacyPolicyPage() {
+  const [hero, contents, introduction, collection, usage, sharing, rights, support] =
+    await Promise.all([
+      listPublicPrivacyHero(),
+      listPublicPrivacyContents(),
+      listPublicPrivacyIntroduction(),
+      listPublicPrivacyCollection(),
+      listPublicPrivacyUsage(),
+      listPublicPrivacySharing(),
+      listPublicPrivacyRights(),
+      listPublicPrivacySupport(),
+    ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -24,7 +46,16 @@ export default function PrivacyPolicyPage() {
           />
         </div>
       </Container>
-      <PrivacyPolicyView />
+      <PrivacyPolicyView
+        hero={hero}
+        contents={contents}
+        introduction={introduction}
+        collection={collection}
+        usage={usage}
+        sharing={sharing}
+        rights={rights}
+        support={support}
+      />
     </main>
   );
 }

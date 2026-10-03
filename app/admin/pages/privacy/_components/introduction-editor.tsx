@@ -1,17 +1,14 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import {
-  blankParagraph,
-  moveList,
-  readPrivacySections,
-  savePrivacySections,
+  getPrivacyIntroduction,
+  savePrivacyIntroduction,
   type PrivacyIntroduction,
-  type PrivacyParagraph,
-} from "@/lib/mart-mock/privacy-sections";
-import { usePrivacySections } from "@/lib/mart-mock/hooks";
+} from "@/lib/mart-api/privacy-introduction";
+import { blankParagraph, moveList, type PrivacyParagraph } from "@/lib/mart-mock/privacy-sections";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
@@ -42,7 +39,7 @@ type Draft = {
 function draftFrom(block: PrivacyIntroduction): Draft {
   return {
     isActive: block.isActive !== false,
-    icon: block.icon,
+    icon: block.icon || "info",
     navLabel: block.navLabel,
     heading: block.heading,
     paragraphs: block.paragraphs.map((item) => ({
@@ -53,38 +50,72 @@ function draftFrom(block: PrivacyIntroduction): Draft {
 }
 
 export function PrivacyIntroductionEditor() {
-  const { introduction } = usePrivacySections();
+  const [introduction, setIntroduction] = useState<PrivacyIntroduction | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = usePrivacyNav();
   const editing = params.get("edit") === "introduction";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getPrivacyIntroduction()
+      .then((next) => {
+        if (active) setIntroduction(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the introduction.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setPrivacyQuery(router, pathname, open, "introduction");
   }
 
-  function save(draft: Draft) {
-    const doc = readPrivacySections();
-    savePrivacySections({
-      ...doc,
-      introduction: {
-        isActive: draft.isActive,
-        icon: draft.icon,
-        navLabel: draft.navLabel.trim(),
-        heading: draft.heading.trim(),
-        paragraphs: draft.paragraphs.map((item) => ({
-          id: item.id,
-          text: item.text.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await savePrivacyIntroduction({
+      isActive: draft.isActive,
+      icon: draft.icon,
+      navLabel: draft.navLabel.trim(),
+      heading: draft.heading.trim(),
+      paragraphs: draft.paragraphs.map((item) => ({
+        id: item.id,
+        text: item.text.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setIntroduction(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!introduction) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <PrivacyHeader
+          sectionId="introduction"
+          title="Introduction"
+          description="What the policy covers."
+          editLabel="Edit introduction"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the introduction…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !introduction.heading.trim() && introduction.paragraphs.length === 0;
 
   return (
     <div className="min-w-0 space-y-4">
@@ -111,30 +142,35 @@ export function PrivacyIntroductionEditor() {
         }
         active={introduction.isActive !== false}
       >
-        <p className="text-sm font-semibold text-neutral-950">
-          {introduction.heading.trim() || "Heading"}
-        </p>
-        <ul className="mt-3 space-y-2">
-          {introduction.paragraphs.map((item) => (
-            <li
-              key={item.id}
-              className={cn(
-                "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
-                item.isActive === false && "opacity-50",
-              )}
-            >
-              {item.text || "Paragraph"}
-              {item.isActive === false ? " · Hidden" : ""}
-            </li>
-          ))}
-        </ul>
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No introduction copy yet</p>
+            <p className="mt-1 text-sm text-neutral-600">Add a heading and paragraphs.</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-neutral-950">
+              {introduction.heading.trim() || "Heading"}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {introduction.paragraphs.map((item) => (
+                <li
+                  key={item.id}
+                  className={cn(
+                    "rounded-xl bg-white px-3 py-2.5 text-sm ring-1 ring-neutral-200",
+                    item.isActive === false && "opacity-50",
+                  )}
+                >
+                  {item.text || "Paragraph"}
+                  {item.isActive === false ? " · Hidden" : ""}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </PrivacyPanel>
       {editing ? (
-        <IntroForm
-          block={introduction}
-          onClose={() => setEditing(false)}
-          onSave={save}
-        />
+        <IntroForm block={introduction} onClose={() => setEditing(false)} onSave={save} />
       ) : null}
     </div>
   );
@@ -147,7 +183,7 @@ function IntroForm({
 }: {
   block: PrivacyIntroduction;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const initial = draftFrom(block);
   const [draft, setDraft] = useState(initial);
@@ -156,7 +192,7 @@ function IntroForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.heading.trim()) {
       setError("Heading is required.");
@@ -167,7 +203,13 @@ function IntroForm({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the introduction.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -191,10 +233,7 @@ function IntroForm({
           value={draft.navLabel}
           onChange={(navLabel) => setDraft({ ...draft, navLabel })}
         />
-        <PrivacyIconPicker
-          value={draft.icon}
-          onChange={(icon) => setDraft({ ...draft, icon })}
-        />
+        <PrivacyIconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
         <Labeled
           id={`${formId}-heading`}
           label="Heading"
@@ -221,9 +260,7 @@ function IntroForm({
               onRemove={() =>
                 setDraft((current) => ({
                   ...current,
-                  paragraphs: current.paragraphs.filter(
-                    (row) => row.id !== item.id,
-                  ),
+                  paragraphs: current.paragraphs.filter((row) => row.id !== item.id),
                 }))
               }
             />

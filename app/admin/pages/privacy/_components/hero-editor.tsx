@@ -1,14 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import {
-  readPrivacySections,
-  savePrivacySections,
-  type PrivacyHeroContent,
-} from "@/lib/mart-mock/privacy-sections";
-import { usePrivacySections } from "@/lib/mart-mock/hooks";
+import { getPrivacyHero, savePrivacyHero, type PrivacyHero } from "@/lib/mart-api/privacy-hero";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -32,7 +27,7 @@ type Draft = {
   lastUpdated: string;
 };
 
-function draftFrom(hero: PrivacyHeroContent): Draft {
+function draftFrom(hero: PrivacyHero): Draft {
   return {
     isActive: hero.isActive !== false,
     eyebrow: hero.eyebrow,
@@ -44,38 +39,75 @@ function draftFrom(hero: PrivacyHeroContent): Draft {
 }
 
 export function PrivacyHeroEditor() {
-  const { hero } = usePrivacySections();
+  const [hero, setHero] = useState<PrivacyHero | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = usePrivacyNav();
   const editing = params.get("edit") === "hero";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const updated = [hero.updatedLabel.trim(), hero.lastUpdated.trim()]
+  const updated = [hero?.updatedLabel.trim() ?? "", hero?.lastUpdated.trim() ?? ""]
     .filter(Boolean)
     .join(" ");
+
+  useEffect(() => {
+    let active = true;
+    getPrivacyHero()
+      .then((next) => {
+        if (active) setHero(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the hero.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setPrivacyQuery(router, pathname, open, "hero");
   }
 
-  function save(draft: Draft) {
-    const doc = readPrivacySections();
-    savePrivacySections({
-      ...doc,
-      hero: {
-        isActive: draft.isActive,
-        eyebrow: draft.eyebrow.trim(),
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        updatedLabel: draft.updatedLabel.trim(),
-        lastUpdated: draft.lastUpdated.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await savePrivacyHero({
+      isActive: draft.isActive,
+      eyebrow: draft.eyebrow.trim(),
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      updatedLabel: draft.updatedLabel.trim(),
+      lastUpdated: draft.lastUpdated.trim(),
     });
+    setHero(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!hero) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <PrivacyHeader
+          sectionId="hero"
+          title="Hero"
+          description="Opening copy and last-updated date."
+          editLabel="Edit hero"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the hero…"}</p>
+      </div>
+    );
+  }
+
+  const empty =
+    !hero.eyebrow.trim() &&
+    !hero.title.trim() &&
+    !hero.subtitle.trim() &&
+    !hero.updatedLabel.trim() &&
+    !hero.lastUpdated.trim();
 
   return (
     <div className="min-w-0 space-y-4">
@@ -102,24 +134,25 @@ export function PrivacyHeroEditor() {
         }
         active={hero.isActive !== false}
       >
-        <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] px-4 py-8 text-center sm:px-8">
-          <p className="text-xs font-medium tracking-wide text-primary uppercase">
-            {hero.eyebrow.trim() || "Eyebrow"}
-          </p>
-          <p className="mt-2 text-xl font-semibold text-white">
-            {hero.title.trim() || "Title"}
-          </p>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
-            {hero.subtitle.trim() || "Subtitle"}
-          </p>
-          {updated ? (
-            <p className="mt-3 text-xs text-white/50">{updated}</p>
-          ) : null}
-        </div>
+        {empty ? (
+          <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
+            <p className="text-sm font-semibold text-neutral-950">No hero copy yet</p>
+            <p className="mt-1 text-sm text-neutral-600">Add a title and the update line.</p>
+          </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] px-4 py-8 text-center sm:px-8">
+            <p className="text-xs font-medium tracking-wide text-primary uppercase">
+              {hero.eyebrow.trim() || "Eyebrow"}
+            </p>
+            <p className="mt-2 text-xl font-semibold text-white">{hero.title.trim() || "Title"}</p>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
+              {hero.subtitle.trim() || "Subtitle"}
+            </p>
+            {updated ? <p className="mt-3 text-xs text-white/50">{updated}</p> : null}
+          </div>
+        )}
       </PrivacyPanel>
-      {editing ? (
-        <HeroForm hero={hero} onClose={() => setEditing(false)} onSave={save} />
-      ) : null}
+      {editing ? <HeroForm hero={hero} onClose={() => setEditing(false)} onSave={save} /> : null}
     </div>
   );
 }
@@ -129,9 +162,9 @@ function HeroForm({
   onClose,
   onSave,
 }: {
-  hero: PrivacyHeroContent;
+  hero: PrivacyHero;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const initial = draftFrom(hero);
   const [draft, setDraft] = useState(initial);
@@ -140,14 +173,20 @@ function HeroForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setError("Title is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the hero.");
+      setSaving(false);
+    }
   }
 
   return (

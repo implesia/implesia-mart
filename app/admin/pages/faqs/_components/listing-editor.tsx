@@ -1,14 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import {
-  readFaqSections,
-  saveFaqSections,
-  type FaqListingContent,
-} from "@/lib/mart-mock/faq-sections";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
+import { getFaqListing, saveFaqListing, type FaqListing } from "@/lib/mart-api/faq-listing";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -16,6 +11,7 @@ import {
   FaqCard,
   FaqHeader,
   FaqModal,
+  FormError,
   Labeled,
   setFaqQuery,
   useFaqNav,
@@ -29,7 +25,7 @@ type Draft = {
   emptyBody: string;
 };
 
-function draftFrom(listing: FaqListingContent): Draft {
+function draftFrom(listing: FaqListing): Draft {
   return {
     isActive: listing.isActive !== false,
     countSuffix: listing.countSuffix,
@@ -39,33 +35,66 @@ function draftFrom(listing: FaqListingContent): Draft {
 }
 
 export function FaqListingEditor() {
-  const { listing } = useFaqSections();
+  const [listing, setListing] = useState<FaqListing | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useFaqNav();
   const editing = params.get("edit") === "listing";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getFaqListing()
+      .then((next) => {
+        if (active) setListing(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the results.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setFaqQuery(router, pathname, "edit", open ? "listing" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readFaqSections();
-    saveFaqSections({
-      ...doc,
-      listing: {
-        isActive: draft.isActive,
-        countSuffix: draft.countSuffix.trim(),
-        emptyTitle: draft.emptyTitle.trim(),
-        emptyBody: draft.emptyBody.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveFaqListing({
+      isActive: draft.isActive,
+      countSuffix: draft.countSuffix.replace(/\s+$/u, ""),
+      emptyTitle: draft.emptyTitle.trim(),
+      emptyBody: draft.emptyBody.trim(),
     });
+    setListing(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!listing) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <FaqHeader
+          sectionId="listing"
+          title="Results"
+          description="Question count and the empty search message."
+          editLabel="Edit results"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the results…"}</p>
+      </div>
+    );
+  }
+
+  const empty =
+    !listing.countSuffix.trim() && !listing.emptyTitle.trim() && !listing.emptyBody.trim();
 
   return (
     <div className="min-w-0 space-y-4">
@@ -91,10 +120,12 @@ export function FaqListingEditor() {
             : "The line under the selected category."
         }
         active={listing.isActive !== false}
+        empty={empty}
+        emptyTitle="No results copy yet"
+        emptyBody="Add the count line and the message shown when a search has no matches."
       >
         <div className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200">
-          <p className="text-base font-semibold text-neutral-950">সব প্রশ্ন</p>
-          <p className="mt-1 text-sm text-neutral-500">18{listing.countSuffix}</p>
+          <p className="text-sm text-neutral-500">0{listing.countSuffix || " —"}</p>
           <p className="mt-4 text-sm font-semibold text-neutral-950">
             {listing.emptyTitle.trim() || "Empty title"}
           </p>
@@ -113,20 +144,27 @@ function ListingForm({
   onClose,
   onSave,
 }: {
-  listing: FaqListingContent;
+  listing: FaqListing;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(listing);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     setSaving(true);
-    onSave(draft);
+    setError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof Error ? caught.message : "Could not save the results.");
+    }
   }
 
   return (
@@ -134,7 +172,7 @@ function ListingForm({
       <FaqModal
         titleId="faq-listing-modal-title"
         title="Edit results"
-        description="The count sits directly after the number, so 18 and টি প্রশ্ন read as 18টি প্রশ্ন."
+        description="The count sits directly after the number. A leading space is kept."
         saving={saving}
         onClose={onClose}
         onSave={save}
@@ -147,7 +185,7 @@ function ListingForm({
           id={`${formId}-suffix`}
           label="Count suffix"
           value={draft.countSuffix}
-          placeholder="টি প্রশ্ন"
+          placeholder=" questions"
           onChange={(countSuffix) => setDraft({ ...draft, countSuffix })}
         />
         <Labeled
@@ -163,6 +201,7 @@ function ListingForm({
           multiline
           onChange={(emptyBody) => setDraft({ ...draft, emptyBody })}
         />
+        <FormError message={error} />
       </FaqModal>
     </FormCloseGuard>
   );

@@ -6,21 +6,21 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import type { FaqQuestion } from "@/lib/mart-mock/faq-sections";
-import { useFaqSections } from "@/lib/mart-mock/hooks";
+import type { FaqItem } from "@/lib/mart-api/faq-items";
+import type { FaqListing } from "@/lib/mart-api/faq-listing";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 
 export function FaqsList({
   items,
+  listing,
   className,
 }: {
-  items: FaqQuestion[];
+  items: FaqItem[];
+  listing: FaqListing | null;
   className?: string;
 }) {
-  const { listing } = useFaqSections();
-
   if (!items.length) {
     return (
       <div
@@ -30,10 +30,10 @@ export function FaqsList({
         )}
       >
         <MaterialIcon name="search_off" className="mx-auto mb-3 text-[32px] text-neutral-400" />
-        {listing.emptyTitle.trim() ? (
+        {listing?.isActive && listing.emptyTitle.trim() ? (
           <h3 className="mb-2 text-base font-semibold text-neutral-950">{listing.emptyTitle}</h3>
         ) : null}
-        {listing.emptyBody.trim() ? (
+        {listing?.isActive && listing.emptyBody.trim() ? (
           <p className="mx-auto max-w-md text-sm leading-relaxed text-neutral-600">
             {listing.emptyBody}
           </p>

@@ -3,17 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import type { PrivacyCollection } from "@/lib/mart-api/privacy-collection";
+import type { PrivacyContents } from "@/lib/mart-api/privacy-contents";
+import type { PrivacyHero } from "@/lib/mart-api/privacy-hero";
+import type { PrivacyIntroduction } from "@/lib/mart-api/privacy-introduction";
+import type { PrivacyRights } from "@/lib/mart-api/privacy-rights";
+import type { PrivacySharing } from "@/lib/mart-api/privacy-sharing";
+import type { PrivacySupport } from "@/lib/mart-api/privacy-support";
+import type { PrivacyUsage } from "@/lib/mart-api/privacy-usage";
 import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { usePrivacySections } from "@/lib/mart-mock/hooks";
-import type {
-  PrivacyCollection,
-  PrivacyHeroContent,
-  PrivacyIntroduction,
-  PrivacyRights,
-  PrivacySharing,
-  PrivacySupportContent,
-  PrivacyUsage,
-} from "@/lib/mart-mock/privacy-sections";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -21,44 +19,61 @@ import { WhatsAppIcon } from "../../_components/common/brand-icons";
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function PrivacyPolicyView() {
-  const sections = usePrivacySections();
+export function PrivacyPolicyView({
+  hero,
+  contents,
+  introduction,
+  collection,
+  usage,
+  sharing,
+  rights,
+  support,
+}: {
+  hero: PrivacyHero | null;
+  contents: PrivacyContents | null;
+  introduction: PrivacyIntroduction | null;
+  collection: PrivacyCollection | null;
+  usage: PrivacyUsage | null;
+  sharing: PrivacySharing | null;
+  rights: PrivacyRights | null;
+  support: PrivacySupport | null;
+}) {
   const links = [
     {
       id: "introduction",
-      label: sections.introduction.navLabel,
-      icon: sections.introduction.icon,
-      active: isContentActive(sections.introduction),
+      label: introduction?.navLabel.trim() || introduction?.heading.trim() || "",
+      icon: introduction?.icon || "info",
+      active: Boolean(introduction?.isActive && introduction.heading.trim()),
     },
     {
       id: "collection",
-      label: sections.collection.navLabel,
-      icon: sections.collection.icon,
-      active: isContentActive(sections.collection),
+      label: collection?.navLabel.trim() || collection?.heading.trim() || "",
+      icon: collection?.icon || "database",
+      active: Boolean(collection?.isActive && collection.heading.trim()),
     },
     {
       id: "usage",
-      label: sections.usage.navLabel,
-      icon: sections.usage.icon,
-      active: isContentActive(sections.usage),
+      label: usage?.navLabel.trim() || usage?.heading.trim() || "",
+      icon: usage?.icon || "query_stats",
+      active: Boolean(usage?.isActive && usage.heading.trim()),
     },
     {
       id: "sharing",
-      label: sections.sharing.navLabel,
-      icon: sections.sharing.icon,
-      active: isContentActive(sections.sharing),
+      label: sharing?.navLabel.trim() || sharing?.heading.trim() || "",
+      icon: sharing?.icon || "share",
+      active: Boolean(sharing?.isActive && sharing.heading.trim()),
     },
     {
       id: "rights",
-      label: sections.rights.navLabel,
-      icon: sections.rights.icon,
-      active: isContentActive(sections.rights),
+      label: rights?.navLabel.trim() || rights?.heading.trim() || "",
+      icon: rights?.icon || "gavel",
+      active: Boolean(rights?.isActive && rights.heading.trim()),
     },
     {
       id: "support",
-      label: sections.support.navLabel,
-      icon: sections.support.icon,
-      active: isContentActive(sections.support),
+      label: support?.navLabel.trim() || support?.title.trim() || "",
+      icon: support?.icon || "support_agent",
+      active: Boolean(support?.isActive && support.title.trim()),
     },
   ].filter((item) => item.active);
   const visibleKey = links.map((item) => item.id).join(",");
@@ -66,7 +81,8 @@ export function PrivacyPolicyView() {
   const activeId = links.some((item) => item.id === tracked)
     ? tracked
     : (links[0]?.id ?? "");
-  const showContents = isContentActive(sections.contents) && links.length > 0;
+  const sidebar = contents?.isActive ? contents : null;
+  const showContents = Boolean(sidebar) && links.length > 0;
 
   useEffect(() => {
     const elements = visibleKey
@@ -91,16 +107,16 @@ export function PrivacyPolicyView() {
 
   return (
     <>
-      {isContentActive(sections.hero) ? <Hero hero={sections.hero} /> : null}
+      {hero?.isActive && hero.title.trim() ? <Hero hero={hero} /> : null}
       <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
         <Container className="w-full px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
             {showContents ? (
               <aside className="min-w-0 lg:col-span-3">
                 <div className="lg:hidden">
-                  {sections.contents.title.trim() ? (
+                  {sidebar?.title.trim() ? (
                     <p className="mb-2.5 text-sm font-semibold text-neutral-950">
-                      {sections.contents.title}
+                      {sidebar.title}
                     </p>
                   ) : null}
                   <div
@@ -131,20 +147,20 @@ export function PrivacyPolicyView() {
                 </div>
                 <div className="sticky top-28 hidden overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:block">
                   <div className="border-b border-neutral-200 px-4 py-3.5">
-                    {sections.contents.title.trim() ? (
+                    {sidebar?.title.trim() ? (
                       <h2 className="text-base font-semibold text-neutral-950">
-                        {sections.contents.title}
+                        {sidebar.title}
                       </h2>
                     ) : null}
-                    {sections.contents.subtitle.trim() ? (
+                    {sidebar?.subtitle.trim() ? (
                       <p className="mt-1 text-xs text-neutral-500">
-                        {sections.contents.subtitle}
+                        {sidebar.subtitle}
                       </p>
                     ) : null}
                   </div>
                   <nav
                     className="flex flex-col gap-1 p-2.5"
-                    aria-label={sections.contents.navLabel || "গোপনীয়তা সেকশন"}
+                    aria-label={sidebar?.navLabel.trim() || "Sections"}
                   >
                     {links.map((item) => {
                       const active = activeId === item.id;
@@ -188,24 +204,16 @@ export function PrivacyPolicyView() {
                 showContents ? "lg:col-span-9" : "lg:col-span-12",
               )}
             >
-              {isContentActive(sections.introduction) ? (
-                <Introduction block={sections.introduction} />
+              {introduction?.isActive && introduction.heading.trim() ? (
+                <Introduction block={introduction} />
               ) : null}
-              {isContentActive(sections.collection) ? (
-                <Collection block={sections.collection} />
+              {collection?.isActive && collection.heading.trim() ? (
+                <Collection block={collection} />
               ) : null}
-              {isContentActive(sections.usage) ? (
-                <Usage block={sections.usage} />
-              ) : null}
-              {isContentActive(sections.sharing) ? (
-                <Sharing block={sections.sharing} />
-              ) : null}
-              {isContentActive(sections.rights) ? (
-                <Rights block={sections.rights} />
-              ) : null}
-              {isContentActive(sections.support) ? (
-                <Support support={sections.support} />
-              ) : null}
+              {usage?.isActive && usage.heading.trim() ? <Usage block={usage} /> : null}
+              {sharing?.isActive && sharing.heading.trim() ? <Sharing block={sharing} /> : null}
+              {rights?.isActive && rights.heading.trim() ? <Rights block={rights} /> : null}
+              {support?.isActive && support.title.trim() ? <Support support={support} /> : null}
             </div>
           </div>
         </Container>
@@ -214,7 +222,7 @@ export function PrivacyPolicyView() {
   );
 }
 
-function Hero({ hero }: { hero: PrivacyHeroContent }) {
+function Hero({ hero }: { hero: PrivacyHero }) {
   const updated = [hero.updatedLabel.trim(), hero.lastUpdated.trim()]
     .filter(Boolean)
     .join(" ");
@@ -504,7 +512,7 @@ function Rights({ block }: { block: PrivacyRights }) {
   );
 }
 
-function Support({ support }: { support: PrivacySupportContent }) {
+function Support({ support }: { support: PrivacySupport }) {
   const showPrimary = Boolean(support.primaryLabel.trim());
   const showSecondary = Boolean(support.secondaryLabel.trim());
   const whatsapp = /wa\.me|whatsapp/i.test(support.secondaryHref);
