@@ -6,12 +6,11 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  readSustainabilitySections,
-  saveSustainabilitySections,
-  type SustainHero,
-  type SustainMedia,
-} from "@/lib/mart-mock/sustainability-sections";
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+  getSustainabilityHero,
+  saveSustainabilityHero,
+  type SustainabilityHero,
+} from "@/lib/mart-api/sustainability-hero";
+import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -25,6 +24,16 @@ import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { ImageField } from "../../../_components/image-field";
 import { replaceSearch, SustainHeader, useSustainNav } from "./sustain-shared";
 
+type SustainHero = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  primaryCta: { label: string; href: string };
+  secondaryCta: { label: string; href: string };
+  primaryImage: { src: string; alt: string };
+  secondaryImage: { src: string; alt: string };
+};
+
 type HeroDraft = {
   eyebrow: string;
   title: string;
@@ -33,9 +42,27 @@ type HeroDraft = {
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
-  primaryImage: SustainMedia;
-  secondaryImage: SustainMedia;
+  primaryImage: { src: string; alt: string };
+  secondaryImage: { src: string; alt: string };
 };
+
+function viewFromApi(hero: SustainabilityHero): SustainHero {
+  return {
+    eyebrow: hero.eyebrow,
+    title: hero.title,
+    subtitle: hero.subtitle,
+    primaryCta: { label: hero.primaryLabel, href: hero.primaryHref },
+    secondaryCta: { label: hero.secondaryLabel, href: hero.secondaryHref },
+    primaryImage: {
+      src: hero.images[0]?.src ?? "",
+      alt: hero.images[0]?.alt ?? "",
+    },
+    secondaryImage: {
+      src: hero.images[1]?.src ?? "",
+      alt: hero.images[1]?.alt ?? "",
+    },
+  };
+}
 
 function draftFromHero(hero: SustainHero): HeroDraft {
   return {
@@ -52,13 +79,33 @@ function draftFromHero(hero: SustainHero): HeroDraft {
 }
 
 export function SustainabilityHeroEditor() {
-  const { hero } = useSustainabilitySections();
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
   const editing = params.has("edit") || params.has("photo");
+  const [hero, setHero] = useState<SustainHero | null>(null);
+  const [loadError, setLoadError] = useState("");
   const [notice, setNotice] = useState("");
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSustainabilityHero()
+      .then((next) => {
+        if (!cancelled) setHero(viewFromApi(next));
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof MartApiError
+            ? error.message
+            : "Could not load the sustainability hero.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing || !returnFocus.current) return;
@@ -77,32 +124,22 @@ export function SustainabilityHeroEditor() {
     });
   }
 
-  function save(draft: HeroDraft) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      hero: {
-        eyebrow: draft.eyebrow.trim(),
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        primaryCta: {
-          label: draft.primaryLabel.trim(),
-          href: draft.primaryHref.trim(),
-        },
-        secondaryCta: {
-          label: draft.secondaryLabel.trim(),
-          href: draft.secondaryHref.trim(),
-        },
-        primaryImage: {
-          src: draft.primaryImage.src,
-          alt: draft.primaryImage.alt.trim(),
-        },
-        secondaryImage: {
-          src: draft.secondaryImage.src,
-          alt: draft.secondaryImage.alt.trim(),
-        },
-      },
+  async function save(draft: HeroDraft) {
+    const next = await saveSustainabilityHero({
+      eyebrow: draft.eyebrow.trim(),
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      primaryLabel: draft.primaryLabel.trim(),
+      primaryHref: draft.primaryHref.trim(),
+      secondaryLabel: draft.secondaryLabel.trim(),
+      secondaryHref: draft.secondaryHref.trim(),
+      images: [draft.primaryImage, draft.secondaryImage].map((image, index) => ({
+        id: `photo-${index + 1}`,
+        src: image.src,
+        alt: image.alt.trim(),
+      })),
     });
+    setHero(viewFromApi(next));
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
@@ -132,7 +169,20 @@ export function SustainabilityHeroEditor() {
           {notice} The sustainability banner is up to date.
         </p>
       ) : null}
-
+      {loadError ? (
+        <p
+          role="alert"
+          className="rounded-2xl bg-white px-4 py-3 text-sm text-red-700 ring-1 ring-red-200"
+        >
+          {loadError}
+        </p>
+      ) : null}
+      {!hero ? (
+        loadError ? null : (
+          <p className="text-sm text-neutral-500">Loading the hero…</p>
+        )
+      ) : (
+      <>
       <section
         className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
         aria-labelledby="sustain-hero-card-heading"
@@ -190,6 +240,8 @@ export function SustainabilityHeroEditor() {
           onSave={save}
         />
       ) : null}
+      </>
+      )}
     </div>
   );
 }
@@ -259,7 +311,7 @@ function HeroFormModal({
 }: {
   hero: SustainHero;
   onClose: () => void;
-  onSave: (draft: HeroDraft) => void;
+  onSave: (draft: HeroDraft) => Promise<void>;
 }) {
   const initial = draftFromHero(hero);
   const [draft, setDraft] = useState(initial);
@@ -270,7 +322,7 @@ function HeroFormModal({
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving || uploading > 0) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
@@ -281,7 +333,18 @@ function HeroFormModal({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setTitleError("");
+    setPhotoError("");
+    try {
+      await onSave(draft);
+    } catch (error) {
+      setSaving(false);
+      setPhotoError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not save the sustainability hero.",
+      );
+    }
   }
 
   return (

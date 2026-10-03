@@ -1,5 +1,18 @@
 import type { Metadata } from "next";
 
+import {
+  FALLBACK_SUSTAINABILITY_HERO,
+  listPublicSustainabilityHero,
+} from "@/lib/mart-api/sustainability-hero";
+import {
+  FALLBACK_SUSTAINABILITY_IMPACT,
+  listPublicSustainabilityImpact,
+} from "@/lib/mart-api/sustainability-impact";
+import {
+  FALLBACK_SUSTAINABILITY_ORIGIN,
+  listPublicSustainabilityOrigin,
+} from "@/lib/mart-api/sustainability-origin";
+
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { SustainabilityCommitment } from "./_components/sustainability-commitment";
@@ -17,22 +30,24 @@ export const metadata: Metadata = {
   alternates: { canonical: "/sustainability" },
 };
 
-export default function SustainabilityPage() {
+export default async function SustainabilityPage() {
+  const [hero, impact, origin] = await Promise.all([
+    listPublicSustainabilityHero(),
+    listPublicSustainabilityImpact(),
+    listPublicSustainabilityOrigin(),
+  ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div className="w-full pt-3 sm:pt-4 lg:pt-5">
           <ProductBreadcrumbs
-            items={[
-              { label: "হোম", href: "/" },
-              { label: "সাসটেইনেবিলিটি" },
-            ]}
+            items={[{ label: "হোম", href: "/" }, { label: "সাসটেইনেবিলিটি" }]}
           />
         </div>
       </Container>
-      <SustainabilityHero />
-      <SustainabilityImpact />
-      <SustainabilityOrigin />
+      <SustainabilityHero hero={hero ?? FALLBACK_SUSTAINABILITY_HERO} />
+      <SustainabilityImpact impact={impact ?? FALLBACK_SUSTAINABILITY_IMPACT} />
+      <SustainabilityOrigin origin={origin ?? FALLBACK_SUSTAINABILITY_ORIGIN} />
       <SustainabilityCommitment />
       <SustainabilityQuality />
       <SustainabilityDurability />

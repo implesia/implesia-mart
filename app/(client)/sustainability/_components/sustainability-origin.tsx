@@ -1,16 +1,17 @@
-"use client";
-
 import Image from "next/image";
 
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { SustainabilityOrigin } from "@/lib/mart-api/sustainability-origin";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 
-export function SustainabilityOrigin({ className }: { className?: string }) {
-  const { origin } = useSustainabilitySections();
-
+export function SustainabilityOrigin({
+  origin,
+  className,
+}: {
+  origin: SustainabilityOrigin;
+  className?: string;
+}) {
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -28,13 +29,15 @@ export function SustainabilityOrigin({ className }: { className?: string }) {
               {origin.body}
             </p>
 
-            <blockquote className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-3.5 text-sm leading-relaxed text-neutral-700 italic sm:px-5">
-              {origin.quote}
-            </blockquote>
+            {origin.quote.trim() ? (
+              <blockquote className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-3.5 text-sm leading-relaxed text-neutral-700 italic sm:px-5">
+                {origin.quote}
+              </blockquote>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            {origin.images.filter(isContentActive).map((image) => (
+            {origin.images.map((image) => (
               <div
                 key={image.id}
                 className="relative aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-4/5"

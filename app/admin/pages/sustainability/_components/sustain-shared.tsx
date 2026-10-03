@@ -367,60 +367,66 @@ export function TextPanel({
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={{ text, isActive }} onClose={onClose}>
-    <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
-      <DrawerHead
-        title={
-          creating ? `Add ${noun.toLowerCase()}` : `Edit ${noun.toLowerCase()}`
-        }
-        description={
-          creating
-            ? `Write the new ${noun.toLowerCase()}.`
-            : `Update this ${noun.toLowerCase()}.`
-        }
-        titleId={titleId}
-        onClose={onClose}
-      />
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        <ActiveStatusField checked={isActive} onChange={setActive} />
-        <div>
-          <FieldLabel htmlFor={fieldId}>
-            {noun} <span className="text-red-700">*</span>
-          </FieldLabel>
-          <textarea
-            id={fieldId}
-            autoFocus
-            value={text}
-            rows={5}
-            placeholder={`Write the ${noun.toLowerCase()}`}
-            onChange={(event) => {
-              setText(event.target.value);
-              setError("");
-            }}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? `${fieldId}-error` : undefined}
-            className={cn(
-              adminFieldClass,
-              "h-auto py-3",
-              error && "border-red-400",
-            )}
-          />
-          {error ? (
-            <div id={`${fieldId}-error`}>
-              <FieldError message={error} />
-            </div>
-          ) : null}
+    <FormCloseGuard
+      baseline={baseline.current}
+      value={{ text, isActive }}
+      onClose={onClose}
+    >
+      <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
+        <DrawerHead
+          title={
+            creating
+              ? `Add ${noun.toLowerCase()}`
+              : `Edit ${noun.toLowerCase()}`
+          }
+          description={
+            creating
+              ? `Write the new ${noun.toLowerCase()}.`
+              : `Update this ${noun.toLowerCase()}.`
+          }
+          titleId={titleId}
+          onClose={onClose}
+        />
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <ActiveStatusField checked={isActive} onChange={setActive} />
+          <div>
+            <FieldLabel htmlFor={fieldId}>
+              {noun} <span className="text-red-700">*</span>
+            </FieldLabel>
+            <textarea
+              id={fieldId}
+              autoFocus
+              value={text}
+              rows={5}
+              placeholder={`Write the ${noun.toLowerCase()}`}
+              onChange={(event) => {
+                setText(event.target.value);
+                setError("");
+              }}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `${fieldId}-error` : undefined}
+              className={cn(
+                adminFieldClass,
+                "h-auto py-3",
+                error && "border-red-400",
+              )}
+            />
+            {error ? (
+              <div id={`${fieldId}-error`}>
+                <FieldError message={error} />
+              </div>
+            ) : null}
+          </div>
         </div>
+        <DrawerFoot
+          notice={notice}
+          onClose={onClose}
+          onSave={save}
+          saving={saving}
+          creating={creating}
+          createLabel={`Save ${noun.toLowerCase()}`}
+        />
       </div>
-      <DrawerFoot
-        notice={notice}
-        onClose={onClose}
-        onSave={save}
-        saving={saving}
-        creating={creating}
-        createLabel={`Save ${noun.toLowerCase()}`}
-      />
-    </div>
     </FormCloseGuard>
   );
 }
@@ -438,17 +444,26 @@ export function StatPanel({
   initial: { icon: string; value: string; label: string; isActive?: boolean };
   notice: string;
   onClose: () => void;
-  onSave: (draft: { icon: string; value: string; label: string; isActive: boolean }) => void;
+  onSave: (draft: {
+    icon: string;
+    value: string;
+    label: string;
+    isActive: boolean;
+  }) => void | Promise<void>;
 }) {
-  const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
-  const baseline = useRef(draft);
+  const [draft, setDraft] = useState(() => ({
+    ...initial,
+    isActive: initial.isActive !== false,
+  }));
+  const [baseline] = useState(draft);
   const [valueError, setValueError] = useState("");
   const [labelError, setLabelError] = useState("");
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const valueId = useId();
   const labelId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const value = draft.value.trim();
     const label = draft.label.trim();
@@ -456,84 +471,98 @@ export function StatPanel({
     setLabelError(label ? "" : "Label is required.");
     if (!value || !label) return;
     setSaving(true);
-    onSave({ icon: draft.icon || "verified", value, label, isActive: draft.isActive });
+    setError("");
+    try {
+      await onSave({
+        icon: draft.icon || "verified",
+        value,
+        label,
+        isActive: draft.isActive,
+      });
+    } catch (caught) {
+      setSaving(false);
+      setError(
+        caught instanceof Error ? caught.message : "Could not save the stat.",
+      );
+    }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
-    <div className="flex min-h-0 flex-1 flex-col">
-      <DrawerHead
-        title={creating ? "Add stat" : "Edit stat"}
-        description={
-          creating ? "Add a number and a short label." : "Update this stat."
-        }
-        titleId={titleId}
-        onClose={onClose}
-      />
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        <ActiveStatusField
-          checked={draft.isActive}
-          onChange={(isActive) => setDraft({ ...draft, isActive })}
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <DrawerHead
+          title={creating ? "Add stat" : "Edit stat"}
+          description={
+            creating ? "Add a number and a short label." : "Update this stat."
+          }
+          titleId={titleId}
+          onClose={onClose}
         />
-        <IconPicker
-          value={draft.icon}
-          onChange={(icon) => setDraft({ ...draft, icon })}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          {error ? <FieldError message={error} /> : null}
+          <ActiveStatusField
+            checked={draft.isActive}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
+          />
+          <IconPicker
+            value={draft.icon}
+            onChange={(icon) => setDraft({ ...draft, icon })}
+          />
+          <div>
+            <FieldLabel htmlFor={valueId}>
+              Value <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={valueId}
+              autoFocus
+              value={draft.value}
+              placeholder="64"
+              onChange={(event) => {
+                setDraft({ ...draft, value: event.target.value });
+                setValueError("");
+              }}
+              aria-invalid={valueError ? true : undefined}
+              aria-describedby={valueError ? `${valueId}-error` : undefined}
+              className={cn(adminFieldClass, valueError && "border-red-400")}
+            />
+            {valueError ? (
+              <div id={`${valueId}-error`}>
+                <FieldError message={valueError} />
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <FieldLabel htmlFor={labelId}>
+              Label <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={labelId}
+              value={draft.label}
+              placeholder="Districts we deliver to"
+              onChange={(event) => {
+                setDraft({ ...draft, label: event.target.value });
+                setLabelError("");
+              }}
+              aria-invalid={labelError ? true : undefined}
+              aria-describedby={labelError ? `${labelId}-error` : undefined}
+              className={cn(adminFieldClass, labelError && "border-red-400")}
+            />
+            {labelError ? (
+              <div id={`${labelId}-error`}>
+                <FieldError message={labelError} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <DrawerFoot
+          notice={notice}
+          onClose={onClose}
+          onSave={save}
+          saving={saving}
+          creating={creating}
+          createLabel="Save stat"
         />
-        <div>
-          <FieldLabel htmlFor={valueId}>
-            Value <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={valueId}
-            autoFocus
-            value={draft.value}
-            placeholder="64"
-            onChange={(event) => {
-              setDraft({ ...draft, value: event.target.value });
-              setValueError("");
-            }}
-            aria-invalid={valueError ? true : undefined}
-            aria-describedby={valueError ? `${valueId}-error` : undefined}
-            className={cn(adminFieldClass, valueError && "border-red-400")}
-          />
-          {valueError ? (
-            <div id={`${valueId}-error`}>
-              <FieldError message={valueError} />
-            </div>
-          ) : null}
-        </div>
-        <div>
-          <FieldLabel htmlFor={labelId}>
-            Label <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={labelId}
-            value={draft.label}
-            placeholder="Districts we deliver to"
-            onChange={(event) => {
-              setDraft({ ...draft, label: event.target.value });
-              setLabelError("");
-            }}
-            aria-invalid={labelError ? true : undefined}
-            aria-describedby={labelError ? `${labelId}-error` : undefined}
-            className={cn(adminFieldClass, labelError && "border-red-400")}
-          />
-          {labelError ? (
-            <div id={`${labelId}-error`}>
-              <FieldError message={labelError} />
-            </div>
-          ) : null}
-        </div>
       </div>
-      <DrawerFoot
-        notice={notice}
-        onClose={onClose}
-        onSave={save}
-        saving={saving}
-        creating={creating}
-        createLabel="Save stat"
-      />
-    </div>
     </FormCloseGuard>
   );
 }
@@ -550,12 +579,25 @@ export function CardPanel({
   creating: boolean;
   noun: string;
   titleId?: string;
-  initial: { icon: string; title: string; description: string; isActive?: boolean };
+  initial: {
+    icon: string;
+    title: string;
+    description: string;
+    isActive?: boolean;
+  };
   notice: string;
   onClose: () => void;
-  onSave: (draft: { icon: string; title: string; description: string; isActive: boolean }) => void;
+  onSave: (draft: {
+    icon: string;
+    title: string;
+    description: string;
+    isActive: boolean;
+  }) => void;
 }) {
-  const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
+  const [draft, setDraft] = useState(() => ({
+    ...initial,
+    isActive: initial.isActive !== false,
+  }));
   const baseline = useRef(draft);
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
@@ -581,90 +623,92 @@ export function CardPanel({
 
   return (
     <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
-    <div className="flex min-h-0 flex-1 flex-col">
-      <DrawerHead
-        title={
-          creating ? `Add ${noun.toLowerCase()}` : `Edit ${noun.toLowerCase()}`
-        }
-        description={
-          creating
-            ? `Add a new ${noun.toLowerCase()}.`
-            : `Update this ${noun.toLowerCase()}.`
-        }
-        titleId={titleId}
-        onClose={onClose}
-      />
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        <ActiveStatusField
-          checked={draft.isActive}
-          onChange={(isActive) => setDraft({ ...draft, isActive })}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <DrawerHead
+          title={
+            creating
+              ? `Add ${noun.toLowerCase()}`
+              : `Edit ${noun.toLowerCase()}`
+          }
+          description={
+            creating
+              ? `Add a new ${noun.toLowerCase()}.`
+              : `Update this ${noun.toLowerCase()}.`
+          }
+          titleId={titleId}
+          onClose={onClose}
         />
-        <IconPicker
-          value={draft.icon}
-          onChange={(icon) => setDraft({ ...draft, icon })}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <ActiveStatusField
+            checked={draft.isActive}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
+          />
+          <IconPicker
+            value={draft.icon}
+            onChange={(icon) => setDraft({ ...draft, icon })}
+          />
+          <div>
+            <FieldLabel htmlFor={titleField}>
+              Title <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={titleField}
+              autoFocus
+              value={draft.title}
+              placeholder="What this point is called"
+              onChange={(event) => {
+                setDraft({ ...draft, title: event.target.value });
+                setTitleError("");
+              }}
+              aria-invalid={titleError ? true : undefined}
+              aria-describedby={titleError ? `${titleField}-error` : undefined}
+              className={cn(adminFieldClass, titleError && "border-red-400")}
+            />
+            {titleError ? (
+              <div id={`${titleField}-error`}>
+                <FieldError message={titleError} />
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <FieldLabel htmlFor={descriptionId}>
+              Description <span className="text-red-700">*</span>
+            </FieldLabel>
+            <textarea
+              id={descriptionId}
+              value={draft.description}
+              rows={4}
+              placeholder="A short explanation"
+              onChange={(event) => {
+                setDraft({ ...draft, description: event.target.value });
+                setDescriptionError("");
+              }}
+              aria-invalid={descriptionError ? true : undefined}
+              aria-describedby={
+                descriptionError ? `${descriptionId}-error` : undefined
+              }
+              className={cn(
+                adminFieldClass,
+                "h-auto py-3",
+                descriptionError && "border-red-400",
+              )}
+            />
+            {descriptionError ? (
+              <div id={`${descriptionId}-error`}>
+                <FieldError message={descriptionError} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <DrawerFoot
+          notice={notice}
+          onClose={onClose}
+          onSave={save}
+          saving={saving}
+          creating={creating}
+          createLabel={`Save ${noun.toLowerCase()}`}
         />
-        <div>
-          <FieldLabel htmlFor={titleField}>
-            Title <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={titleField}
-            autoFocus
-            value={draft.title}
-            placeholder="What this point is called"
-            onChange={(event) => {
-              setDraft({ ...draft, title: event.target.value });
-              setTitleError("");
-            }}
-            aria-invalid={titleError ? true : undefined}
-            aria-describedby={titleError ? `${titleField}-error` : undefined}
-            className={cn(adminFieldClass, titleError && "border-red-400")}
-          />
-          {titleError ? (
-            <div id={`${titleField}-error`}>
-              <FieldError message={titleError} />
-            </div>
-          ) : null}
-        </div>
-        <div>
-          <FieldLabel htmlFor={descriptionId}>
-            Description <span className="text-red-700">*</span>
-          </FieldLabel>
-          <textarea
-            id={descriptionId}
-            value={draft.description}
-            rows={4}
-            placeholder="A short explanation"
-            onChange={(event) => {
-              setDraft({ ...draft, description: event.target.value });
-              setDescriptionError("");
-            }}
-            aria-invalid={descriptionError ? true : undefined}
-            aria-describedby={
-              descriptionError ? `${descriptionId}-error` : undefined
-            }
-            className={cn(
-              adminFieldClass,
-              "h-auto py-3",
-              descriptionError && "border-red-400",
-            )}
-          />
-          {descriptionError ? (
-            <div id={`${descriptionId}-error`}>
-              <FieldError message={descriptionError} />
-            </div>
-          ) : null}
-        </div>
       </div>
-      <DrawerFoot
-        notice={notice}
-        onClose={onClose}
-        onSave={save}
-        saving={saving}
-        creating={creating}
-        createLabel={`Save ${noun.toLowerCase()}`}
-      />
-    </div>
     </FormCloseGuard>
   );
 }
@@ -684,7 +728,10 @@ export function BadgePanel({
   onClose: () => void;
   onSave: (draft: { icon: string; label: string; isActive: boolean }) => void;
 }) {
-  const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
+  const [draft, setDraft] = useState(() => ({
+    ...initial,
+    isActive: initial.isActive !== false,
+  }));
   const baseline = useRef(draft);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -698,65 +745,69 @@ export function BadgePanel({
       return;
     }
     setSaving(true);
-    onSave({ icon: draft.icon || "check_circle", label, isActive: draft.isActive });
+    onSave({
+      icon: draft.icon || "check_circle",
+      label,
+      isActive: draft.isActive,
+    });
   }
 
   return (
     <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
-    <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
-      <DrawerHead
-        title={creating ? "Add badge" : "Edit badge"}
-        description={
-          creating
-            ? "Add a short badge for this section."
-            : "Update this badge."
-        }
-        titleId={titleId}
-        onClose={onClose}
-        closeLabel="Close badge"
-      />
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        <ActiveStatusField
-          checked={draft.isActive}
-          onChange={(isActive) => setDraft({ ...draft, isActive })}
+      <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
+        <DrawerHead
+          title={creating ? "Add badge" : "Edit badge"}
+          description={
+            creating
+              ? "Add a short badge for this section."
+              : "Update this badge."
+          }
+          titleId={titleId}
+          onClose={onClose}
+          closeLabel="Close badge"
         />
-        <IconPicker
-          value={draft.icon}
-          onChange={(icon) => setDraft({ ...draft, icon })}
-        />
-        <div>
-          <FieldLabel htmlFor={fieldId}>
-            Label <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={fieldId}
-            autoFocus
-            value={draft.label}
-            placeholder="Checked before delivery"
-            onChange={(event) => {
-              setDraft({ ...draft, label: event.target.value });
-              setError("");
-            }}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? `${fieldId}-error` : undefined}
-            className={cn(adminFieldClass, error && "border-red-400")}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <ActiveStatusField
+            checked={draft.isActive}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
           />
-          {error ? (
-            <div id={`${fieldId}-error`}>
-              <FieldError message={error} />
-            </div>
-          ) : null}
+          <IconPicker
+            value={draft.icon}
+            onChange={(icon) => setDraft({ ...draft, icon })}
+          />
+          <div>
+            <FieldLabel htmlFor={fieldId}>
+              Label <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={fieldId}
+              autoFocus
+              value={draft.label}
+              placeholder="Checked before delivery"
+              onChange={(event) => {
+                setDraft({ ...draft, label: event.target.value });
+                setError("");
+              }}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `${fieldId}-error` : undefined}
+              className={cn(adminFieldClass, error && "border-red-400")}
+            />
+            {error ? (
+              <div id={`${fieldId}-error`}>
+                <FieldError message={error} />
+              </div>
+            ) : null}
+          </div>
         </div>
+        <DrawerFoot
+          notice={notice}
+          onClose={onClose}
+          onSave={save}
+          saving={saving}
+          creating={creating}
+          createLabel="Save badge"
+        />
       </div>
-      <DrawerFoot
-        notice={notice}
-        onClose={onClose}
-        onSave={save}
-        saving={saving}
-        creating={creating}
-        createLabel="Save badge"
-      />
-    </div>
     </FormCloseGuard>
   );
 }
@@ -805,78 +856,78 @@ export function ImagePanel({
 
   return (
     <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
-    <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
-      <DrawerHead
-        title={creating ? "Add photo" : "Edit photo"}
-        description={
-          creating ? "Add a photo for this section." : "Update this photo."
-        }
-        titleId={titleId}
-        onClose={onClose}
-        closeLabel="Close photo"
-      />
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        {publishable ? (
-          <ActiveStatusField
-            checked={draft.isActive}
-            onChange={(isActive) => setDraft({ ...draft, isActive })}
-          />
-        ) : null}
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-neutral-200">
-          {draft.src ? (
-            <Image
-              src={draft.src}
-              alt=""
-              fill
-              sizes="400px"
-              className="object-cover"
-            />
-          ) : (
-            <span className="grid size-full place-items-center text-sm text-neutral-500">
-              Photo
-            </span>
-          )}
-        </div>
-        <ImageField
-          value={draft.src}
-          onChange={(src) => {
-            setDraft({ ...draft, src });
-            setImageError("");
-          }}
-          onBusy={setUploading}
-          confirmRemove
+      <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
+        <DrawerHead
+          title={creating ? "Add photo" : "Edit photo"}
+          description={
+            creating ? "Add a photo for this section." : "Update this photo."
+          }
+          titleId={titleId}
+          onClose={onClose}
+          closeLabel="Close photo"
         />
-        {imageError ? (
-          <div id={`${altId}-image-error`}>
-            <FieldError message={imageError} />
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          {publishable ? (
+            <ActiveStatusField
+              checked={draft.isActive}
+              onChange={(isActive) => setDraft({ ...draft, isActive })}
+            />
+          ) : null}
+          <div className="relative aspect-square overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-neutral-200">
+            {draft.src ? (
+              <Image
+                src={draft.src}
+                alt=""
+                fill
+                sizes="400px"
+                className="object-cover"
+              />
+            ) : (
+              <span className="grid size-full place-items-center text-sm text-neutral-500">
+                Photo
+              </span>
+            )}
           </div>
-        ) : null}
-        <div>
-          <FieldLabel htmlFor={altId}>Image description</FieldLabel>
-          <input
-            id={altId}
-            value={draft.alt}
-            placeholder="What the photo shows"
-            onChange={(event) =>
-              setDraft({ ...draft, alt: event.target.value })
-            }
-            className={adminFieldClass}
+          <ImageField
+            value={draft.src}
+            onChange={(src) => {
+              setDraft({ ...draft, src });
+              setImageError("");
+            }}
+            onBusy={setUploading}
+            confirmRemove
           />
-          <p className="mt-1.5 text-xs text-neutral-500">
-            Read by screen readers when the photo is shown.
-          </p>
+          {imageError ? (
+            <div id={`${altId}-image-error`}>
+              <FieldError message={imageError} />
+            </div>
+          ) : null}
+          <div>
+            <FieldLabel htmlFor={altId}>Image description</FieldLabel>
+            <input
+              id={altId}
+              value={draft.alt}
+              placeholder="What the photo shows"
+              onChange={(event) =>
+                setDraft({ ...draft, alt: event.target.value })
+              }
+              className={adminFieldClass}
+            />
+            <p className="mt-1.5 text-xs text-neutral-500">
+              Read by screen readers when the photo is shown.
+            </p>
+          </div>
         </div>
+        <DrawerFoot
+          notice={notice}
+          onClose={onClose}
+          onSave={save}
+          saving={saving}
+          uploading={uploading}
+          creating={creating}
+          createLabel="Save photo"
+        />
       </div>
-      <DrawerFoot
-        notice={notice}
-        onClose={onClose}
-        onSave={save}
-        saving={saving}
-        uploading={uploading}
-        creating={creating}
-        createLabel="Save photo"
-      />
-    </div>
     </FormCloseGuard>
   );
 }

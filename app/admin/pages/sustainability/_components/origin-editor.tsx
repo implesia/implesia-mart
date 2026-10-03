@@ -6,12 +6,11 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  readSustainabilitySections,
-  saveSustainabilitySections,
-  type SustainImage,
-  type SustainOrigin,
-} from "@/lib/mart-mock/sustainability-sections";
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+  getSustainabilityOrigin,
+  saveSustainabilityOrigin,
+  type SustainabilityOrigin,
+  type SustainabilityOriginImage,
+} from "@/lib/mart-api/sustainability-origin";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -35,10 +34,10 @@ type OriginDraft = {
   title: string;
   body: string;
   quote: string;
-  images: SustainImage[];
+  images: SustainabilityOriginImage[];
 };
 
-function draftFrom(origin: SustainOrigin): OriginDraft {
+function draftFrom(origin: SustainabilityOrigin): OriginDraft {
   return {
     eyebrow: origin.eyebrow,
     title: origin.title,
@@ -56,7 +55,8 @@ function newImageId(index: number) {
 }
 
 export function SustainabilityOriginEditor() {
-  const { origin } = useSustainabilitySections();
+  const [origin, setOrigin] = useState<SustainabilityOrigin | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
   const editing = params.has("edit") || params.has("image");
@@ -64,10 +64,31 @@ export function SustainabilityOriginEditor() {
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
   const empty =
-    !origin.title.trim() &&
-    !origin.body.trim() &&
-    !origin.quote.trim() &&
-    origin.images.length === 0;
+    !origin ||
+    (!origin.title.trim() &&
+      !origin.body.trim() &&
+      !origin.quote.trim() &&
+      origin.images.length === 0);
+
+  useEffect(() => {
+    let active = true;
+    getSustainabilityOrigin()
+      .then((next) => {
+        if (active) setOrigin(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not load the point of view.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing || !returnFocus.current) return;
@@ -86,26 +107,38 @@ export function SustainabilityOriginEditor() {
     });
   }
 
-  function save(draft: OriginDraft) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      origin: {
-        eyebrow: draft.eyebrow.trim(),
-        title: draft.title.trim(),
-        body: draft.body.trim(),
-        quote: draft.quote.trim(),
-        images: draft.images.map((image) => ({
-          id: image.id,
-          src: image.src,
-          alt: image.alt.trim(),
-          isActive: image.isActive !== false,
-        })),
-      },
+  async function save(draft: OriginDraft) {
+    const saved = await saveSustainabilityOrigin({
+      eyebrow: draft.eyebrow.trim(),
+      title: draft.title.trim(),
+      body: draft.body.trim(),
+      quote: draft.quote.trim(),
+      images: draft.images.map((image) => ({
+        id: image.id,
+        src: image.src,
+        alt: image.alt.trim(),
+        isActive: image.isActive !== false,
+      })),
     });
+    setOrigin(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!origin) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <SustainHeader
+          sectionId="origin"
+          title="Point of view"
+          description="Why quality is a responsibility."
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the point of view…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -176,7 +209,7 @@ export function SustainabilityOriginEditor() {
   );
 }
 
-function OriginPreview({ origin }: { origin: SustainOrigin }) {
+function OriginPreview({ origin }: { origin: SustainabilityOrigin }) {
   return (
     <div className="grid items-start gap-6 rounded-2xl bg-admin-canvas lg:grid-cols-2">
       <div>
@@ -239,9 +272,9 @@ function OriginFormModal({
   onClose,
   onSave,
 }: {
-  origin: SustainOrigin;
+  origin: SustainabilityOrigin;
   onClose: () => void;
-  onSave: (draft: OriginDraft) => void;
+  onSave: (draft: OriginDraft) => void | Promise<void>;
 }) {
   const initial = draftFrom(origin);
   const [draft, setDraft] = useState(initial);
@@ -252,10 +285,14 @@ function OriginFormModal({
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving || uploading > 0) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
+      return;
+    }
+    if (draft.images.length > 12) {
+      setPhotoError("You can add up to 12 photos");
       return;
     }
     if (draft.images.some((image) => !image.src)) {
@@ -263,10 +300,20 @@ function OriginFormModal({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setPhotoError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setPhotoError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not save the point of view.",
+      );
+    }
   }
 
-  function updateImages(images: SustainImage[]) {
+  function updateImages(images: SustainabilityOriginImage[]) {
     setDraft((current) => ({ ...current, images }));
     setPhotoError("");
   }

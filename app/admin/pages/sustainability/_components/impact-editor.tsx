@@ -1,16 +1,19 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankSustainStat,
-  readSustainabilitySections,
-  saveSustainabilitySections,
-  type SustainStat,
-} from "@/lib/mart-mock/sustainability-sections";
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+  createSustainabilityImpactStat,
+  deleteSustainabilityImpactStat,
+  listSustainabilityImpact,
+  reorderSustainabilityImpact,
+  updateSustainabilityImpactCopy,
+  updateSustainabilityImpactStat,
+  type SustainabilityImpact,
+  type SustainabilityImpactDraft,
+} from "@/lib/mart-api/sustainability-impact";
 
 import { SectionCopyForm } from "../../../home/_components/section-copy-form";
 import {
@@ -28,14 +31,16 @@ import {
 } from "./sustain-shared";
 
 export function SustainabilityImpactEditor() {
-  const { impact } = useSustainabilitySections();
+  const [impact, setImpact] = useState<SustainabilityImpact | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
   const selected = params.get("edit");
   const creating = selected === "new";
   const opened =
     selected && selected !== "new"
-      ? (impact.stats.find((item) => item.id === selected) ?? null)
+      ? (impact?.items.find((item) => item.id === selected) ?? null)
       : null;
   const drawerOpen = creating || Boolean(opened);
   const [notice, setNotice] = useState("");
@@ -44,6 +49,26 @@ export function SustainabilityImpactEditor() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const focusRef = useFocusWhenClosed(drawerOpen);
+
+  useEffect(() => {
+    let active = true;
+    listSustainabilityImpact()
+      .then((next) => {
+        if (active) setImpact(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not load the habits.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEdit(id: string | null) {
     replaceSearch(router, pathname, (next) => {
@@ -60,39 +85,36 @@ export function SustainabilityImpactEditor() {
     }, 1600);
   }
 
-  function saveCopy(next: Record<string, string>) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      impact: {
-        ...doc.impact,
-        kicker: next.kicker ?? "",
-        title: next.title ?? "",
-        subtitle: next.subtitle ?? "",
-      },
+  async function saveCopy(next: Record<string, string>) {
+    const saved = await updateSustainabilityImpactCopy({
+      kicker: next.kicker ?? "",
+      title: next.title ?? "",
+      subtitle: next.subtitle ?? "",
     });
+    setImpact(saved);
   }
 
-  function saveItem(draft: Pick<SustainStat, "icon" | "value" | "label" | "isActive">) {
-    const doc = readSustainabilitySections();
+  async function saveItem(draft: SustainabilityImpactDraft) {
+    setActionError("");
     if (creating) {
-      const item = { ...blankSustainStat(), ...draft };
-      saveSustainabilitySections({
-        ...doc,
-        impact: { ...doc.impact, stats: [...doc.impact.stats, item] },
-      });
+      const item = await createSustainabilityImpactStat(draft);
+      setImpact((current) =>
+        current ? { ...current, items: [...current.items, item] } : current,
+      );
       setSavedId(item.id);
       focusRef.current = `sustain-impact-${item.id}`;
     } else if (selected) {
-      saveSustainabilitySections({
-        ...doc,
-        impact: {
-          ...doc.impact,
-          stats: doc.impact.stats.map((item) =>
-            item.id === selected ? { ...item, ...draft } : item,
-          ),
-        },
-      });
+      const item = await updateSustainabilityImpactStat(selected, draft);
+      setImpact((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((entry) =>
+                entry.id === item.id ? item : entry,
+              ),
+            }
+          : current,
+      );
       setSavedId(selected);
       focusRef.current = `sustain-impact-${selected}`;
     }
@@ -100,56 +122,94 @@ export function SustainabilityImpactEditor() {
     setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      impact: {
-        ...doc.impact,
-        stats: doc.impact.stats.filter((item) => item.id !== id),
-      },
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    setActionError("");
+    try {
+      await deleteSustainabilityImpactStat(id);
+      setImpact((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.filter((item) => item.id !== id),
+            }
+          : current,
+      );
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setConfirmId(null);
+      setActionError(
+        error instanceof Error ? error.message : "Could not remove the stat.",
+      );
+    }
   }
 
-  function move(id: string, direction: -1 | 1) {
-    const doc = readSustainabilitySections();
-    const index = doc.impact.stats.findIndex((item) => item.id === id);
+  async function persistOrder(ids: string[]) {
+    const saved = await reorderSustainabilityImpact(ids);
+    setImpact(saved);
+  }
+
+  async function move(id: string, direction: -1 | 1) {
+    if (!impact) return;
+    const index = impact.items.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.impact.stats.length) return;
-    const next = [...doc.impact.stats];
+    if (index < 0 || target < 0 || target >= impact.items.length) return;
+    const next = [...impact.items];
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveSustainabilitySections({
-      ...doc,
-      impact: { ...doc.impact, stats: next },
-    });
+    setActionError("");
+    try {
+      await persistOrder(next.map((entry) => entry.id));
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Could not reorder the stats.",
+      );
+    }
   }
 
-  function dropOn(targetId: string) {
-    if (!dragId || dragId === targetId) {
+  async function dropOn(targetId: string) {
+    if (!dragId || dragId === targetId || !impact) {
       setDragId(null);
       setOverId(null);
       return;
     }
-    const doc = readSustainabilitySections();
-    const next = [...doc.impact.stats];
+    const next = [...impact.items];
     const from = next.findIndex((item) => item.id === dragId);
     const to = next.findIndex((item) => item.id === targetId);
+    setDragId(null);
+    setOverId(null);
     if (from < 0 || to < 0) return;
     const [item] = next.splice(from, 1);
     if (!item) return;
     next.splice(to, 0, item);
-    saveSustainabilitySections({
-      ...doc,
-      impact: { ...doc.impact, stats: next },
-    });
-    setDragId(null);
-    setOverId(null);
+    setActionError("");
+    try {
+      await persistOrder(next.map((entry) => entry.id));
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Could not reorder the stats.",
+      );
+    }
   }
+
+  if (!impact) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <SustainHeader
+          sectionId="impact"
+          title="Habits"
+          description="COD, returns, checks, and packing stats."
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the habits…"}
+        </p>
+      </div>
+    );
+  }
+
+  const visible = impact.items.filter((stat) => stat.isActive !== false);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -160,6 +220,9 @@ export function SustainabilityImpactEditor() {
         extra={<AddButton onClick={() => setEdit("new")}>Add stat</AddButton>}
       />
       <SavedLine notice={notice} open={drawerOpen} />
+      {actionError ? (
+        <p className="text-sm text-red-700">{actionError}</p>
+      ) : null}
       <MissingLine
         show={Boolean(selected && selected !== "new" && !opened)}
         onClose={() => setEdit(null)}
@@ -170,7 +233,7 @@ export function SustainabilityImpactEditor() {
             Storefront preview
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Shown under the hero. Stats stay in this order.
+            Shown under the hero. Hidden stats stay off this preview.
           </p>
         </div>
         <div className="p-4 sm:p-5">
@@ -185,7 +248,7 @@ export function SustainabilityImpactEditor() {
               <p className="mt-2 text-sm text-neutral-600">{impact.subtitle}</p>
             </div>
             <ul className="grid grid-cols-2 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white xl:grid-cols-4">
-              {impact.stats.map((stat) => (
+              {visible.map((stat) => (
                 <li key={stat.id}>
                   <button
                     type="button"
@@ -234,13 +297,13 @@ export function SustainabilityImpactEditor() {
       <RecordList
         headingId="sustain-impact-list"
         title={
-          impact.stats.length === 1 ? "1 stat" : `${impact.stats.length} stats`
+          impact.items.length === 1 ? "1 stat" : `${impact.items.length} stats`
         }
         emptyTitle="No stats yet"
         emptyBody="Add the habits shown under the hero."
         emptyAction="Add stat"
         onEmpty={() => setEdit("new")}
-        items={impact.stats.map((item) => ({
+        items={impact.items.map((item) => ({
           id: item.id,
           buttonId: `sustain-impact-${item.id}`,
           title: item.label || "Empty stat",
