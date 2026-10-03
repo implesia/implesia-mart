@@ -2,16 +2,20 @@
 
 import Image from "next/image";
 
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { type SustainabilityDurability } from "@/lib/mart-api/sustainability-durability";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function SustainabilityDurability({ className }: { className?: string }) {
-  const { durability } = useSustainabilitySections();
-
+export function SustainabilityDurability({
+  durability,
+  className,
+}: {
+  durability: SustainabilityDurability;
+  className?: string;
+}) {
+  const bullets = durability.bullets.filter((bullet) => bullet.isActive);
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -35,7 +39,7 @@ export function SustainabilityDurability({ className }: { className?: string }) 
             </p>
 
             <ul className="mt-5 space-y-2.5">
-              {durability.bullets.filter(isContentActive).map((bullet) => (
+              {bullets.map((bullet) => (
                 <li key={bullet.id} className="flex items-start gap-2.5 text-sm text-white/85">
                   <MaterialIcon
                     name="check_circle"
@@ -48,13 +52,15 @@ export function SustainabilityDurability({ className }: { className?: string }) 
           </div>
 
           <div className="relative aspect-[4/3] min-h-[220px] lg:aspect-auto lg:min-h-0">
-            <Image
-              src={durability.image.src}
-              alt={durability.image.alt}
-              fill
-              sizes="(max-width: 1024px) 92vw, 46vw"
-              className="object-cover"
-            />
+            {durability.image.src ? (
+              <Image
+                src={durability.image.src}
+                alt={durability.image.alt}
+                fill
+                sizes="(max-width: 1024px) 92vw, 46vw"
+                className="object-cover"
+              />
+            ) : null}
           </div>
         </div>
       </Container>

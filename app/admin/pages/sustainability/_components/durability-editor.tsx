@@ -5,15 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { blankSustainText } from "@/lib/mart-mock/sustainability-sections";
 import {
-  blankSustainText,
-  readSustainabilitySections,
-  saveSustainabilitySections,
-  type SustainDurability,
-  type SustainMedia,
-  type SustainTextItem,
-} from "@/lib/mart-mock/sustainability-sections";
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+  getSustainabilityDurability,
+  saveSustainabilityDurability,
+  type SustainabilityDurability,
+  type SustainabilityDurabilityBullet,
+} from "@/lib/mart-api/sustainability-durability";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -35,11 +33,11 @@ import {
 type DurabilityDraft = {
   title: string;
   body: string;
-  image: SustainMedia;
-  bullets: SustainTextItem[];
+  image: { src: string; alt: string };
+  bullets: SustainabilityDurabilityBullet[];
 };
 
-function draftFrom(durability: SustainDurability): DurabilityDraft {
+function draftFrom(durability: SustainabilityDurability): DurabilityDraft {
   return {
     title: durability.title,
     body: durability.body,
@@ -56,7 +54,10 @@ function uniqueId(id: string) {
 }
 
 export function SustainabilityDurabilityEditor() {
-  const { durability } = useSustainabilitySections();
+  const [durability, setDurability] = useState<SustainabilityDurability | null>(
+    null,
+  );
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
   const editing = params.has("edit") || params.has("photo");
@@ -64,10 +65,31 @@ export function SustainabilityDurabilityEditor() {
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
   const empty =
-    !durability.title.trim() &&
-    !durability.body.trim() &&
-    !durability.image.src &&
-    durability.bullets.length === 0;
+    !durability ||
+    (!durability.title.trim() &&
+      !durability.body.trim() &&
+      !durability.image.src &&
+      durability.bullets.length === 0);
+
+  useEffect(() => {
+    let active = true;
+    getSustainabilityDurability()
+      .then((next) => {
+        if (active) setDurability(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not load the durability section.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing || !returnFocus.current) return;
@@ -86,24 +108,36 @@ export function SustainabilityDurabilityEditor() {
     });
   }
 
-  function save(draft: DurabilityDraft) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      durability: {
-        title: draft.title.trim(),
-        body: draft.body.trim(),
-        image: { src: draft.image.src, alt: draft.image.alt.trim() },
-        bullets: draft.bullets.map((bullet) => ({
-          id: bullet.id,
-          text: bullet.text.trim(),
-          isActive: bullet.isActive !== false,
-        })),
-      },
+  async function save(draft: DurabilityDraft) {
+    const saved = await saveSustainabilityDurability({
+      title: draft.title.trim(),
+      body: draft.body.trim(),
+      image: { src: draft.image.src, alt: draft.image.alt.trim() },
+      bullets: draft.bullets.map((bullet) => ({
+        id: bullet.id,
+        text: bullet.text.trim(),
+        isActive: bullet.isActive !== false,
+      })),
     });
+    setDurability(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!durability) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <SustainHeader
+          sectionId="durability"
+          title="Built to last"
+          description="Less waste, products that last."
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the durability section…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -174,7 +208,11 @@ export function SustainabilityDurabilityEditor() {
   );
 }
 
-function DurabilityPreview({ durability }: { durability: SustainDurability }) {
+function DurabilityPreview({
+  durability,
+}: {
+  durability: SustainabilityDurability;
+}) {
   return (
     <div className="flex items-start gap-4">
       <div className="relative aspect-4/3 w-28 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-neutral-200">
@@ -240,9 +278,9 @@ function DurabilityFormModal({
   onClose,
   onSave,
 }: {
-  durability: SustainDurability;
+  durability: SustainabilityDurability;
   onClose: () => void;
-  onSave: (draft: DurabilityDraft) => void;
+  onSave: (draft: DurabilityDraft) => void | Promise<void>;
 }) {
   const initial = draftFrom(durability);
   const [draft, setDraft] = useState(initial);
@@ -254,7 +292,7 @@ function DurabilityFormModal({
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving || uploading > 0) return;
     const nextTitleError = draft.title.trim() ? "" : "Title is required.";
     const nextPhotoError = draft.image.src ? "" : "Cover photo is required.";
@@ -264,9 +302,23 @@ function DurabilityFormModal({
     setTitleError(nextTitleError);
     setPhotoError(nextPhotoError);
     setBulletError(nextBulletError);
+    if (draft.bullets.length > 12) {
+      setBulletError("You can add up to 12 points");
+      return;
+    }
     if (nextTitleError || nextPhotoError || nextBulletError) return;
     setSaving(true);
-    onSave(draft);
+    setPhotoError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setPhotoError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not save the durability section.",
+      );
+    }
   }
 
   function moveBullet(index: number, direction: -1 | 1) {

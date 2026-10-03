@@ -5,11 +5,10 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  readSustainabilitySections,
-  saveSustainabilitySections,
-  type SustainCta,
-} from "@/lib/mart-mock/sustainability-sections";
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+  getSustainabilityCta,
+  saveSustainabilityCta,
+  type SustainabilityCta,
+} from "@/lib/mart-api/sustainability-cta";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -31,7 +30,7 @@ type Draft = {
   secondaryHref: string;
 };
 
-function draftFrom(cta: SustainCta): Draft {
+function draftFrom(cta: SustainabilityCta): Draft {
   return {
     title: cta.title,
     subtitle: cta.subtitle,
@@ -43,7 +42,8 @@ function draftFrom(cta: SustainCta): Draft {
 }
 
 export function SustainabilityCtaEditor() {
-  const { cta } = useSustainabilitySections();
+  const [cta, setCta] = useState<SustainabilityCta | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
   const editing = params.has("edit");
@@ -51,10 +51,31 @@ export function SustainabilityCtaEditor() {
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
   const empty =
-    !cta.title.trim() &&
-    !cta.subtitle.trim() &&
-    !cta.primaryCta.label.trim() &&
-    !cta.secondaryCta.label.trim();
+    !cta ||
+    (!cta.title.trim() &&
+      !cta.subtitle.trim() &&
+      !cta.primaryCta.label.trim() &&
+      !cta.secondaryCta.label.trim());
+
+  useEffect(() => {
+    let active = true;
+    getSustainabilityCta()
+      .then((next) => {
+        if (active) setCta(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not load the call to action.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing || !returnFocus.current) return;
@@ -70,26 +91,38 @@ export function SustainabilityCtaEditor() {
     });
   }
 
-  function save(draft: Draft) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      cta: {
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        primaryCta: {
-          label: draft.primaryLabel.trim(),
-          href: draft.primaryHref.trim(),
-        },
-        secondaryCta: {
-          label: draft.secondaryLabel.trim(),
-          href: draft.secondaryHref.trim(),
-        },
+  async function save(draft: Draft) {
+    const saved = await saveSustainabilityCta({
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      primaryCta: {
+        label: draft.primaryLabel.trim(),
+        href: draft.primaryHref.trim(),
+      },
+      secondaryCta: {
+        label: draft.secondaryLabel.trim(),
+        href: draft.secondaryHref.trim(),
       },
     });
+    setCta(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!cta) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <SustainHeader
+          sectionId="cta"
+          title="CTA"
+          description="Closing call to action."
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the call to action…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -159,7 +192,7 @@ export function SustainabilityCtaEditor() {
   );
 }
 
-function CtaPreview({ cta }: { cta: SustainCta }) {
+function CtaPreview({ cta }: { cta: SustainabilityCta }) {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] px-4 py-8 text-center sm:px-8">
       <div
@@ -196,9 +229,9 @@ function CtaFormModal({
   onClose,
   onSave,
 }: {
-  cta: SustainCta;
+  cta: SustainabilityCta;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(cta);
   const [draft, setDraft] = useState(initial);
@@ -207,14 +240,24 @@ function CtaFormModal({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setTitleError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setTitleError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not save the call to action.",
+      );
+    }
   }
 
   return (

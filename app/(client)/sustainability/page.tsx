@@ -20,6 +20,14 @@ import {
   FALLBACK_SUSTAINABILITY_QUALITY,
   listPublicSustainabilityQuality,
 } from "@/lib/mart-api/sustainability-quality";
+import {
+  FALLBACK_SUSTAINABILITY_DURABILITY,
+  listPublicSustainabilityDurability,
+} from "@/lib/mart-api/sustainability-durability";
+import {
+  FALLBACK_SUSTAINABILITY_CTA,
+  listPublicSustainabilityCta,
+} from "@/lib/mart-api/sustainability-cta";
 
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
@@ -39,13 +47,16 @@ export const metadata: Metadata = {
 };
 
 export default async function SustainabilityPage() {
-  const [hero, impact, origin, commitment, quality] = await Promise.all([
-    listPublicSustainabilityHero(),
-    listPublicSustainabilityImpact(),
-    listPublicSustainabilityOrigin(),
-    listPublicSustainabilityCommitment(),
-    listPublicSustainabilityQuality(),
-  ]);
+  const [hero, impact, origin, commitment, quality, durability, cta] =
+    await Promise.all([
+      listPublicSustainabilityHero(),
+      listPublicSustainabilityImpact(),
+      listPublicSustainabilityOrigin(),
+      listPublicSustainabilityCommitment(),
+      listPublicSustainabilityQuality(),
+      listPublicSustainabilityDurability(),
+      listPublicSustainabilityCta(),
+    ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -62,8 +73,10 @@ export default async function SustainabilityPage() {
         commitment={commitment ?? FALLBACK_SUSTAINABILITY_COMMITMENT}
       />
       <SustainabilityQuality quality={quality ?? FALLBACK_SUSTAINABILITY_QUALITY} />
-      <SustainabilityDurability />
-      <SustainabilityCta />
+      <SustainabilityDurability
+        durability={durability ?? FALLBACK_SUSTAINABILITY_DURABILITY}
+      />
+      <SustainabilityCta cta={cta ?? FALLBACK_SUSTAINABILITY_CTA} />
     </main>
   );
 }
