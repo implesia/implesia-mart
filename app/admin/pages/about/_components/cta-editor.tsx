@@ -6,11 +6,11 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  readAboutSections,
-  saveAboutSections,
-  type AboutCtaContent,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+  readAboutCta,
+  updateAboutCta,
+  type AboutCta,
+} from "@/lib/mart-api/about-cta";
+import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -36,7 +36,15 @@ type Draft = {
   secondaryHref: string;
 };
 
-function draftFrom(cta: AboutCtaContent): Draft {
+const EMPTY_CTA: AboutCta = {
+  isActive: true,
+  title: "",
+  subtitle: "",
+  primaryCta: { label: "", href: "" },
+  secondaryCta: { label: "", href: "" },
+};
+
+function draftFrom(cta: AboutCta): Draft {
   return {
     isActive: cta.isActive !== false,
     title: cta.title,
@@ -49,15 +57,38 @@ function draftFrom(cta: AboutCtaContent): Draft {
 }
 
 export function AboutCtaEditor() {
-  const { cta } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const editing = params.has("edit");
+  const [cta, setCta] = useState<AboutCta>(EMPTY_CTA);
+  const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState("");
+  const [loadError, setLoadError] = useState("");
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
   const page = findCmsPage("about");
+
+  useEffect(() => {
+    let cancelled = false;
+    readAboutCta()
+      .then((next) => {
+        if (!cancelled) setCta(next);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof MartApiError ? error.message : "Could not load the call to action.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing || !returnFocus.current) return;
@@ -76,25 +107,21 @@ export function AboutCtaEditor() {
     });
   }
 
-  function save(draft: Draft) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      cta: {
-        ...doc.cta,
-        isActive: draft.isActive,
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        primaryCta: {
-          label: draft.primaryLabel.trim(),
-          href: draft.primaryHref.trim(),
-        },
-        secondaryCta: {
-          label: draft.secondaryLabel.trim(),
-          href: draft.secondaryHref.trim(),
-        },
+  async function save(draft: Draft) {
+    const saved = await updateAboutCta({
+      isActive: draft.isActive,
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      primaryCta: {
+        label: draft.primaryLabel.trim(),
+        href: draft.primaryHref.trim(),
+      },
+      secondaryCta: {
+        label: draft.secondaryLabel.trim(),
+        href: draft.secondaryHref.trim(),
       },
     });
+    setCta(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
@@ -146,7 +173,7 @@ export function AboutCtaEditor() {
         ) : null}
         <AdminPageHeader
           title="CTA"
-          description="The closing block at the bottom of the about page."
+          description="The closing block at the bottom of the about page. A hidden block stays off the about page."
           action={
             <div className="flex flex-wrap items-center gap-2">
               <a
@@ -172,6 +199,11 @@ export function AboutCtaEditor() {
         />
       </div>
 
+      {loadError ? (
+        <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800">
+          {loadError}
+        </p>
+      ) : null}
       {notice ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice} The about page call to action is up to date.
@@ -198,7 +230,9 @@ export function AboutCtaEditor() {
             </p>
           </div>
         </div>
-        {cta.title.trim() || cta.subtitle.trim() ? (
+        {!ready ? (
+          <p className="px-4 py-8 text-sm text-neutral-500">Loading the call to action…</p>
+        ) : cta.title.trim() || cta.subtitle.trim() ? (
           <div className={cn("bg-admin-canvas p-4 sm:p-5", cta.isActive === false && "opacity-45")}>
             <CtaPreview cta={cta} />
           </div>
@@ -215,13 +249,13 @@ export function AboutCtaEditor() {
       </section>
 
       {editing ? (
-        <CtaFormModal cta={cta} onClose={() => setEditing(false)} onSave={save} />
+        <CtaFormModal key="cta" cta={cta} onClose={() => setEditing(false)} onSave={save} />
       ) : null}
     </div>
   );
 }
 
-function CtaPreview({ cta }: { cta: AboutCtaContent }) {
+function CtaPreview({ cta }: { cta: AboutCta }) {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] px-4 py-8 text-center sm:px-8 sm:py-10">
       <div
@@ -258,9 +292,9 @@ function CtaFormModal({
   onClose,
   onSave,
 }: {
-  cta: AboutCtaContent;
+  cta: AboutCta;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const initial = draftFrom(cta);
   const [draft, setDraft] = useState(initial);
@@ -269,14 +303,21 @@ function CtaFormModal({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (error) {
+      setSaving(false);
+      setTitleError(
+        error instanceof MartApiError ? error.message : "Could not save the call to action.",
+      );
+    }
   }
 
   return (

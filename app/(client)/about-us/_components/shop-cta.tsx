@@ -1,17 +1,17 @@
-"use client";
-
 import Link from "next/link";
 
-import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+import type { AboutCta } from "@/lib/mart-api/about-cta";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function ShopCta({ className }: { className?: string }) {
-  const { cta } = useAboutSections();
-  if (!cta.isActive) return null;
+function isExternalHref(href: string) {
+  return /^https?:\/\//.test(href);
+}
+
+export function ShopCta({ cta, className }: { cta: AboutCta; className?: string }) {
+  if (!cta.isActive || !cta.title.trim()) return null;
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -31,13 +31,12 @@ export function ShopCta({ className }: { className?: string }) {
             <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-white sm:text-2xl">
               {cta.title}
             </h2>
-            <p className="mb-6 text-sm leading-relaxed text-white/70">
-              {cta.subtitle}
-            </p>
+            {cta.subtitle.trim() ? (
+              <p className="mb-6 text-sm leading-relaxed text-white/70">{cta.subtitle}</p>
+            ) : null}
 
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
-              {cta.primaryCta.label.trim() &&
-              isExternalHref(cta.primaryCta.href) ? (
+              {cta.primaryCta.label.trim() && isExternalHref(cta.primaryCta.href) ? (
                 <a
                   href={cta.primaryCta.href}
                   target="_blank"
@@ -56,8 +55,7 @@ export function ShopCta({ className }: { className?: string }) {
                   <MaterialIcon name="arrow_forward" className="text-[18px]" />
                 </Link>
               ) : null}
-              {cta.secondaryCta.label.trim() &&
-              isExternalHref(cta.secondaryCta.href) ? (
+              {cta.secondaryCta.label.trim() && isExternalHref(cta.secondaryCta.href) ? (
                 <a
                   href={cta.secondaryCta.href}
                   target="_blank"

@@ -55,7 +55,12 @@ const ICONS: { name: string; label: string }[] = [
 type Draft = AboutStatDraft;
 
 function draftFromStat(stat: AboutStat): Draft {
-  return { icon: stat.icon, value: stat.value, label: stat.label, isActive: stat.isActive };
+  return {
+    icon: stat.icon,
+    value: stat.value,
+    label: stat.label,
+    isActive: stat.isActive,
+  };
 }
 
 function iconChoices(current: string) {
@@ -97,7 +102,11 @@ export function AboutStatsEditor() {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setLoadError(error instanceof MartApiError ? error.message : "Could not load the stats.");
+        setLoadError(
+          error instanceof MartApiError
+            ? error.message
+            : "Could not load the stats.",
+        );
       });
     return () => {
       cancelled = true;
@@ -156,7 +165,11 @@ export function AboutStatsEditor() {
       setConfirmId(null);
       flash("Removed");
     } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the stat.");
+      setLoadError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not remove the stat.",
+      );
     }
   }
 
@@ -165,7 +178,11 @@ export function AboutStatsEditor() {
     try {
       setStats(await reorderAboutStats(ids));
     } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not reorder the stats.");
+      setLoadError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not reorder the stats.",
+      );
     }
   }
 
@@ -526,7 +543,7 @@ function StatDrawer({
   onSave: (draft: Draft) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(initial);
-  const baseline = useRef(draft);
+  const [baseline] = useState(initial);
   const [valueError, setValueError] = useState("");
   const [labelError, setLabelError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -543,153 +560,164 @@ function StatDrawer({
     if (!value || !label) return;
     setSaving(true);
     try {
-      await onSave({ icon: draft.icon, value, label, isActive: draft.isActive });
+      await onSave({
+        icon: draft.icon,
+        value,
+        label,
+        isActive: draft.isActive,
+      });
     } catch (error) {
-      setLabelError(error instanceof MartApiError ? error.message : "Could not save the stat.");
+      setLabelError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not save the stat.",
+      );
       setSaving(false);
     }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
-    <AdminFormModal titleId="about-stats-drawer-title" size="sm">
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-        <div className="min-w-0">
-          <h2
-            id="about-stats-drawer-title"
-            className="text-lg font-semibold text-neutral-950"
-          >
-            {creating ? "Add stat" : "Edit stat"}
-          </h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            {creating ? "Add a number and a short label." : "Update this stat."}
-          </p>
-        </div>
-        <button
-          type="button"
-          data-form-dismiss=""
-          aria-label="Close"
-          title="Close"
-          onClick={onClose}
-          className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          <MaterialIcon name="close" className="text-[20px]" />
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        <ActiveStatusField
-          checked={draft.isActive !== false}
-          onChange={(isActive) => setDraft({ ...draft, isActive })}
-        />
-        <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
-          <MaterialIcon
-            name={draft.icon || "notes"}
-            className="text-[22px] text-primary"
-          />
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
+      <AdminFormModal titleId="about-stats-drawer-title" size="sm">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-neutral-950">
-              {draft.value.trim() || "Value"}
-            </p>
-            <p className="truncate text-xs text-neutral-500">
-              {draft.label.trim() || "Label"}
+            <h2
+              id="about-stats-drawer-title"
+              className="text-lg font-semibold text-neutral-950"
+            >
+              {creating ? "Add stat" : "Edit stat"}
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              {creating
+                ? "Add a number and a short label."
+                : "Update this stat."}
             </p>
           </div>
-        </div>
-        <div>
-          <FieldLabel>Icon</FieldLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {iconChoices(draft.icon).map((icon) => (
-              <button
-                key={icon.name}
-                type="button"
-                aria-pressed={draft.icon === icon.name}
-                aria-label={icon.label}
-                onClick={() => setDraft({ ...draft, icon: icon.name })}
-                className={cn(
-                  "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  draft.icon === icon.name
-                    ? "bg-primary/10 text-primary ring-primary/30"
-                    : "bg-white text-neutral-600 ring-neutral-200",
-                )}
-              >
-                <MaterialIcon name={icon.name} className="text-[20px]" />
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <FieldLabel htmlFor={valueId}>
-            Value <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={valueId}
-            autoFocus
-            value={draft.value}
-            placeholder="64"
-            onChange={(event) => {
-              setDraft({ ...draft, value: event.target.value });
-              setValueError("");
-            }}
-            aria-invalid={valueError ? true : undefined}
-            aria-describedby={valueError ? `${valueId}-error` : undefined}
-            className={cn(adminFieldClass, valueError && "border-red-400")}
-          />
-          {valueError ? (
-            <div id={`${valueId}-error`}>
-              <FieldError message={valueError} />
-            </div>
-          ) : null}
-        </div>
-        <div>
-          <FieldLabel htmlFor={labelId}>
-            Label <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={labelId}
-            value={draft.label}
-            placeholder="Districts we deliver to"
-            onChange={(event) => {
-              setDraft({ ...draft, label: event.target.value });
-              setLabelError("");
-            }}
-            aria-invalid={labelError ? true : undefined}
-            aria-describedby={labelError ? `${labelId}-error` : undefined}
-            className={cn(adminFieldClass, labelError && "border-red-400")}
-          />
-          {labelError ? (
-            <div id={`${labelId}-error`}>
-              <FieldError message={labelError} />
-            </div>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-        {notice ? (
-          <p
-            role="status"
-            className="mr-auto text-sm font-medium text-emerald-800"
+          <button
+            type="button"
+            data-form-dismiss=""
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            {notice}
-          </p>
-        ) : null}
-        <button
-          type="button"
-          data-form-dismiss=""
-          onClick={onClose}
-          className={adminButtonClass.secondary}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className={adminButtonClass.primary}
-        >
-          {saving ? "Saving…" : creating ? "Save stat" : "Save changes"}
-        </button>
-      </div>
-    </AdminFormModal>
+            <MaterialIcon name="close" className="text-[20px]" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <ActiveStatusField
+            checked={draft.isActive !== false}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
+          />
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
+            <MaterialIcon
+              name={draft.icon || "notes"}
+              className="text-[22px] text-primary"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-neutral-950">
+                {draft.value.trim() || "Value"}
+              </p>
+              <p className="truncate text-xs text-neutral-500">
+                {draft.label.trim() || "Label"}
+              </p>
+            </div>
+          </div>
+          <div>
+            <FieldLabel>Icon</FieldLabel>
+            <div className="flex flex-wrap gap-1.5">
+              {iconChoices(draft.icon).map((icon) => (
+                <button
+                  key={icon.name}
+                  type="button"
+                  aria-pressed={draft.icon === icon.name}
+                  aria-label={icon.label}
+                  onClick={() => setDraft({ ...draft, icon: icon.name })}
+                  className={cn(
+                    "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    draft.icon === icon.name
+                      ? "bg-primary/10 text-primary ring-primary/30"
+                      : "bg-white text-neutral-600 ring-neutral-200",
+                  )}
+                >
+                  <MaterialIcon name={icon.name} className="text-[20px]" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <FieldLabel htmlFor={valueId}>
+              Value <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={valueId}
+              autoFocus
+              value={draft.value}
+              placeholder="64"
+              onChange={(event) => {
+                setDraft({ ...draft, value: event.target.value });
+                setValueError("");
+              }}
+              aria-invalid={valueError ? true : undefined}
+              aria-describedby={valueError ? `${valueId}-error` : undefined}
+              className={cn(adminFieldClass, valueError && "border-red-400")}
+            />
+            {valueError ? (
+              <div id={`${valueId}-error`}>
+                <FieldError message={valueError} />
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <FieldLabel htmlFor={labelId}>
+              Label <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={labelId}
+              value={draft.label}
+              placeholder="Districts we deliver to"
+              onChange={(event) => {
+                setDraft({ ...draft, label: event.target.value });
+                setLabelError("");
+              }}
+              aria-invalid={labelError ? true : undefined}
+              aria-describedby={labelError ? `${labelId}-error` : undefined}
+              className={cn(adminFieldClass, labelError && "border-red-400")}
+            />
+            {labelError ? (
+              <div id={`${labelId}-error`}>
+                <FieldError message={labelError} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+          {notice ? (
+            <p
+              role="status"
+              className="mr-auto text-sm font-medium text-emerald-800"
+            >
+              {notice}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            data-form-dismiss=""
+            onClick={onClose}
+            className={adminButtonClass.secondary}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className={adminButtonClass.primary}
+          >
+            {saving ? "Saving…" : creating ? "Save stat" : "Save changes"}
+          </button>
+        </div>
+      </AdminFormModal>
     </FormCloseGuard>
   );
 }

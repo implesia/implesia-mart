@@ -6,13 +6,18 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankStep,
-  readAboutSections,
-  saveAboutSections,
-  type AboutStepItem,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+  blankAboutStep,
+  createAboutStep,
+  deleteAboutStep,
+  listAboutSteps,
+  reorderAboutSteps,
+  updateAboutStep,
+  updateAboutStepsCopy,
+  type AboutStep,
+  type AboutStepDraft,
+  type AboutSteps,
+} from "@/lib/mart-api/about-steps";
+import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -28,8 +33,6 @@ import {
 import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
 import { SectionCopyForm } from "../../../home/_components/section-copy-form";
-
-const BN_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
 
 const ICONS: { name: string; label: string }[] = [
   { name: "payments", label: "Payments" },
@@ -51,25 +54,13 @@ const ICONS: { name: string; label: string }[] = [
   { name: "shield", label: "Shield" },
 ];
 
-type Draft = Pick<AboutStepItem, "step" | "icon" | "title" | "description" | "isActive">;
-
-function nextNumber(count: number) {
-  return String(count + 1)
-    .padStart(2, "0")
-    .replace(/\d/g, (digit) => BN_DIGITS[Number(digit)] ?? digit);
-}
+type Draft = AboutStepDraft;
 
 function emptyDraft(count: number): Draft {
-  return {
-    step: nextNumber(count),
-    icon: "task_alt",
-    title: "",
-    description: "",
-    isActive: true,
-  };
+  return blankAboutStep(count);
 }
 
-function draftFromItem(item: AboutStepItem): Draft {
+function draftFromItem(item: AboutStep): Draft {
   return {
     step: item.step,
     icon: item.icon,
@@ -88,26 +79,59 @@ function iconLabel(name: string) {
   return ICONS.find((icon) => icon.name === name)?.label ?? name;
 }
 
+const EMPTY_STEPS: AboutSteps = {
+  kicker: "",
+  title: "",
+  subtitle: "",
+  items: [],
+};
+
 export function AboutStepsEditor() {
-  const { howItWorks } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
+  const [section, setSection] = useState<AboutSteps>(EMPTY_STEPS);
+  const [ready, setReady] = useState(false);
   const opened =
     selected && selected !== "new"
-      ? (howItWorks.steps.find((item) => item.id === selected) ?? null)
+      ? (section.items.find((item) => item.id === selected) ?? null)
       : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState("");
   const focusId = useRef<string | null>(null);
   const page = findCmsPage("about");
   const drawerOpen = creating || Boolean(opened);
-  const steps = howItWorks.steps;
+  const steps = section.items;
+  const visible = steps.filter((item) => item.isActive);
+
+  useEffect(() => {
+    let cancelled = false;
+    listAboutSteps()
+      .then((next) => {
+        if (!cancelled) setSection(next);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof MartApiError
+              ? error.message
+              : "Could not load the steps.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (drawerOpen || !focusId.current) return;
@@ -134,58 +158,32 @@ export function AboutStepsEditor() {
     }, 1600);
   }
 
-  function saveCopy(next: Record<string, string>) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      howItWorks: {
-        ...doc.howItWorks,
-        kicker: next.kicker ?? "",
-        title: next.title ?? "",
-        subtitle: next.subtitle ?? "",
-      },
+  async function saveCopy(next: Record<string, string>) {
+    const saved = await updateAboutStepsCopy({
+      kicker: next.kicker ?? "",
+      title: next.title ?? "",
+      subtitle: next.subtitle ?? "",
     });
+    setSection(saved);
   }
 
-  function saveItem(draft: Draft) {
-    const doc = readAboutSections();
+  async function saveItem(draft: Draft) {
     if (creating) {
-      const item = {
-        ...blankStep(doc.howItWorks.steps.length),
-        step: draft.step,
-        icon: draft.icon,
-        title: draft.title,
-        description: draft.description,
-        isActive: draft.isActive,
-      };
-      saveAboutSections({
-        ...doc,
-        howItWorks: {
-          ...doc.howItWorks,
-          steps: [...doc.howItWorks.steps, item],
-        },
-      });
+      const item = await createAboutStep(draft);
+      setSection((current) => ({
+        ...current,
+        items: [...current.items, item],
+      }));
       setSavedId(item.id);
       focusId.current = `about-step-${item.id}`;
     } else if (selected) {
-      saveAboutSections({
-        ...doc,
-        howItWorks: {
-          ...doc.howItWorks,
-          steps: doc.howItWorks.steps.map((item) =>
-            item.id === selected
-              ? {
-                  ...item,
-                  step: draft.step,
-                  icon: draft.icon,
-                  title: draft.title,
-                  description: draft.description,
-                  isActive: draft.isActive,
-                }
-              : item,
-          ),
-        },
-      });
+      const item = await updateAboutStep(selected, draft);
+      setSection((current) => ({
+        ...current,
+        items: current.items.map((entry) =>
+          entry.id === item.id ? item : entry,
+        ),
+      }));
       setSavedId(selected);
       focusId.current = `about-step-${selected}`;
     }
@@ -193,34 +191,46 @@ export function AboutStepsEditor() {
     setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      howItWorks: {
-        ...doc.howItWorks,
-        steps: doc.howItWorks.steps.filter((item) => item.id !== id),
-      },
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    try {
+      await deleteAboutStep(id);
+      setSection((current) => ({
+        ...current,
+        items: current.items.filter((item) => item.id !== id),
+      }));
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not remove the step.",
+      );
+    }
+  }
+
+  async function place(ids: string[]) {
+    try {
+      setSection(await reorderAboutSteps(ids));
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not reorder the steps.",
+      );
+    }
   }
 
   function move(id: string, direction: -1 | 1) {
-    const doc = readAboutSections();
-    const index = doc.howItWorks.steps.findIndex((item) => item.id === id);
+    const index = steps.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.howItWorks.steps.length)
-      return;
-    const next = [...doc.howItWorks.steps];
+    if (index < 0 || target < 0 || target >= steps.length) return;
+    const next = [...steps];
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveAboutSections({
-      ...doc,
-      howItWorks: { ...doc.howItWorks, steps: next },
-    });
+    void place(next.map((entry) => entry.id));
   }
 
   function dropOn(targetId: string) {
@@ -229,20 +239,16 @@ export function AboutStepsEditor() {
       setOverId(null);
       return;
     }
-    const doc = readAboutSections();
-    const next = [...doc.howItWorks.steps];
+    const next = [...steps];
     const from = next.findIndex((item) => item.id === dragId);
     const to = next.findIndex((item) => item.id === targetId);
     if (from < 0 || to < 0) return;
     const [item] = next.splice(from, 1);
     if (!item) return;
     next.splice(to, 0, item);
-    saveAboutSections({
-      ...doc,
-      howItWorks: { ...doc.howItWorks, steps: next },
-    });
     setDragId(null);
     setOverId(null);
+    void place(next.map((entry) => entry.id));
   }
 
   const missing = Boolean(selected && selected !== "new" && !opened);
@@ -293,7 +299,7 @@ export function AboutStepsEditor() {
         ) : null}
         <AdminPageHeader
           title="How to order"
-          description="Four-step order process."
+          description="Four-step order process. Hidden steps stay off the about page."
           action={
             <div className="flex flex-wrap items-center gap-2">
               <a
@@ -318,6 +324,14 @@ export function AboutStepsEditor() {
         />
       </div>
 
+      {loadError ? (
+        <p
+          role="alert"
+          className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {loadError}
+        </p>
+      ) : null}
       {notice && !drawerOpen ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The steps are up to date.
@@ -355,17 +369,17 @@ export function AboutStepsEditor() {
           <div className="rounded-2xl bg-[#f5f6f8] p-4 sm:p-5">
             <div className="mx-auto mb-5 max-w-2xl text-center">
               <p className="text-xs font-medium tracking-wide text-primary uppercase">
-                {howItWorks.kicker}
+                {section.kicker}
               </p>
               <p className="mt-2 text-xl font-semibold tracking-tight text-neutral-950">
-                {howItWorks.title}
+                {section.title}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                {howItWorks.subtitle}
+                {section.subtitle}
               </p>
             </div>
             <ul className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
-              {steps.map((item) => (
+              {visible.map((item) => (
                 <li key={item.id}>
                   <button
                     type="button"
@@ -398,9 +412,9 @@ export function AboutStepsEditor() {
       <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
         <SectionCopyForm
           values={{
-            kicker: howItWorks.kicker,
-            title: howItWorks.title,
-            subtitle: howItWorks.subtitle,
+            kicker: section.kicker,
+            title: section.title,
+            subtitle: section.subtitle,
           }}
           fields={[
             { name: "kicker", label: "Eyebrow" },
@@ -427,10 +441,16 @@ export function AboutStepsEditor() {
             id="about-steps-list-heading"
             className="text-sm font-semibold text-neutral-950"
           >
-            {steps.length === 1 ? "1 step" : `${steps.length} steps`}
+            {ready
+              ? steps.length === 1
+                ? "1 step"
+                : `${steps.length} steps`
+              : "Steps"}
           </h2>
         </div>
-        {steps.length === 0 ? (
+        {!ready ? (
+          <p className="px-4 py-8 text-sm text-neutral-500">Loading steps…</p>
+        ) : steps.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <p className="text-sm font-semibold text-neutral-950">
               No steps yet
@@ -513,7 +533,7 @@ export function AboutStepsEditor() {
                           <span className="line-clamp-2 text-sm font-semibold text-neutral-950">
                             {item.title || "Empty step"}
                           </span>
-                          <VisibilityBadge active={isContentActive(item)} />
+                          <VisibilityBadge active={item.isActive} />
                         </span>
                         <span className="mt-0.5 line-clamp-2 block text-xs text-neutral-500">
                           {item.description || iconLabel(item.icon)}
@@ -600,10 +620,10 @@ function StepDrawer({
   initial: Draft;
   notice: string;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(initial);
-  const baseline = useRef(draft);
+  const [baseline] = useState(initial);
   const [stepError, setStepError] = useState("");
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
@@ -613,7 +633,7 @@ function StepDrawer({
   const descriptionId = useId();
   const title = draft.title.trim() || "Step";
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextStep = draft.step.trim();
     const nextTitle = draft.title.trim();
@@ -623,189 +643,198 @@ function StepDrawer({
     setDescriptionError(nextDescription ? "" : "Description is required.");
     if (!nextStep || !nextTitle || !nextDescription) return;
     setSaving(true);
-    onSave({
-      step: nextStep,
-      icon: draft.icon || "task_alt",
-      title: nextTitle,
-      description: nextDescription,
-      isActive: draft.isActive,
-    });
+    try {
+      await onSave({
+        step: nextStep,
+        icon: draft.icon || "task_alt",
+        title: nextTitle,
+        description: nextDescription,
+        isActive: draft.isActive,
+      });
+    } catch (error) {
+      setSaving(false);
+      setTitleError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not save the step.",
+      );
+    }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
-    <AdminFormModal titleId="about-steps-drawer-title" size="sm">
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-        <div className="min-w-0">
-          <h2
-            id="about-steps-drawer-title"
-            className="text-lg font-semibold text-neutral-950"
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
+      <AdminFormModal titleId="about-steps-drawer-title" size="sm">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+          <div className="min-w-0">
+            <h2
+              id="about-steps-drawer-title"
+              className="text-lg font-semibold text-neutral-950"
+            >
+              {creating ? "Add step" : "Edit step"}
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              {creating
+                ? "Add a step to the order process."
+                : "Update this step."}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-form-dismiss=""
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            {creating ? "Add step" : "Edit step"}
-          </h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            {creating
-              ? "Add a step to the order process."
-              : "Update this step."}
-          </p>
+            <MaterialIcon name="close" className="text-[20px]" />
+          </button>
         </div>
-        <button
-          type="button"
-          data-form-dismiss=""
-          aria-label="Close"
-          title="Close"
-          onClick={onClose}
-          className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          <MaterialIcon name="close" className="text-[20px]" />
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        <ActiveStatusField
-          checked={draft.isActive !== false}
-          onChange={(isActive) => setDraft({ ...draft, isActive })}
-        />
-        <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
-          <p className="text-lg font-bold text-neutral-200">
-            {draft.step.trim() || "০১"}
-          </p>
-          <span className="mt-2 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <MaterialIcon
-              name={draft.icon || "notes"}
-              className="text-[18px]"
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <ActiveStatusField
+            checked={draft.isActive !== false}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
+          />
+          <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
+            <p className="text-lg font-bold text-neutral-200">
+              {draft.step.trim() || "০১"}
+            </p>
+            <span className="mt-2 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <MaterialIcon
+                name={draft.icon || "notes"}
+                className="text-[18px]"
+              />
+            </span>
+            <p className="mt-2 text-sm font-semibold text-neutral-950">
+              {draft.title.trim() || "Title"}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+              {draft.description.trim() || "Description"}
+            </p>
+          </div>
+          <div>
+            <FieldLabel>Icon</FieldLabel>
+            <div className="flex flex-wrap gap-1.5">
+              {iconChoices(draft.icon).map((icon) => (
+                <button
+                  key={icon.name}
+                  type="button"
+                  aria-pressed={draft.icon === icon.name}
+                  aria-label={icon.label}
+                  onClick={() => setDraft({ ...draft, icon: icon.name })}
+                  className={cn(
+                    "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    draft.icon === icon.name
+                      ? "bg-primary/10 text-primary ring-primary/30"
+                      : "bg-white text-neutral-600 ring-neutral-200",
+                  )}
+                >
+                  <MaterialIcon name={icon.name} className="text-[20px]" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <FieldLabel htmlFor={stepId}>
+              Number <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={stepId}
+              value={draft.step}
+              placeholder="01"
+              onChange={(event) => {
+                setDraft({ ...draft, step: event.target.value });
+                setStepError("");
+              }}
+              aria-invalid={stepError ? true : undefined}
+              aria-describedby={stepError ? `${stepId}-error` : undefined}
+              className={cn(adminFieldClass, stepError && "border-red-400")}
             />
-          </span>
-          <p className="mt-2 text-sm font-semibold text-neutral-950">
-            {draft.title.trim() || "Title"}
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-neutral-500">
-            {draft.description.trim() || "Description"}
-          </p>
-        </div>
-        <div>
-          <FieldLabel>Icon</FieldLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {iconChoices(draft.icon).map((icon) => (
-              <button
-                key={icon.name}
-                type="button"
-                aria-pressed={draft.icon === icon.name}
-                aria-label={icon.label}
-                onClick={() => setDraft({ ...draft, icon: icon.name })}
-                className={cn(
-                  "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  draft.icon === icon.name
-                    ? "bg-primary/10 text-primary ring-primary/30"
-                    : "bg-white text-neutral-600 ring-neutral-200",
-                )}
-              >
-                <MaterialIcon name={icon.name} className="text-[20px]" />
-              </button>
-            ))}
+            {stepError ? (
+              <div id={`${stepId}-error`}>
+                <FieldError message={stepError} />
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <FieldLabel htmlFor={titleId}>
+              Title <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={titleId}
+              autoFocus
+              value={draft.title}
+              placeholder="Choose a product"
+              onChange={(event) => {
+                setDraft({ ...draft, title: event.target.value });
+                setTitleError("");
+              }}
+              aria-invalid={titleError ? true : undefined}
+              aria-describedby={titleError ? `${titleId}-error` : undefined}
+              className={cn(adminFieldClass, titleError && "border-red-400")}
+            />
+            {titleError ? (
+              <div id={`${titleId}-error`}>
+                <FieldError message={titleError} />
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <FieldLabel htmlFor={descriptionId}>
+              Description <span className="text-red-700">*</span>
+            </FieldLabel>
+            <textarea
+              id={descriptionId}
+              value={draft.description}
+              rows={4}
+              placeholder="What the customer does in this step"
+              onChange={(event) => {
+                setDraft({ ...draft, description: event.target.value });
+                setDescriptionError("");
+              }}
+              aria-invalid={descriptionError ? true : undefined}
+              aria-describedby={
+                descriptionError ? `${descriptionId}-error` : undefined
+              }
+              className={cn(
+                adminFieldClass,
+                "h-auto py-3",
+                descriptionError && "border-red-400",
+              )}
+            />
+            {descriptionError ? (
+              <div id={`${descriptionId}-error`}>
+                <FieldError message={descriptionError} />
+              </div>
+            ) : null}
           </div>
         </div>
-        <div>
-          <FieldLabel htmlFor={stepId}>
-            Number <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={stepId}
-            value={draft.step}
-            placeholder="01"
-            onChange={(event) => {
-              setDraft({ ...draft, step: event.target.value });
-              setStepError("");
-            }}
-            aria-invalid={stepError ? true : undefined}
-            aria-describedby={stepError ? `${stepId}-error` : undefined}
-            className={cn(adminFieldClass, stepError && "border-red-400")}
-          />
-          {stepError ? (
-            <div id={`${stepId}-error`}>
-              <FieldError message={stepError} />
-            </div>
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+          {notice ? (
+            <p
+              role="status"
+              className="mr-auto text-sm font-medium text-emerald-800"
+            >
+              {notice}
+            </p>
           ) : null}
-        </div>
-        <div>
-          <FieldLabel htmlFor={titleId}>
-            Title <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={titleId}
-            autoFocus
-            value={draft.title}
-            placeholder="Choose a product"
-            onChange={(event) => {
-              setDraft({ ...draft, title: event.target.value });
-              setTitleError("");
-            }}
-            aria-invalid={titleError ? true : undefined}
-            aria-describedby={titleError ? `${titleId}-error` : undefined}
-            className={cn(adminFieldClass, titleError && "border-red-400")}
-          />
-          {titleError ? (
-            <div id={`${titleId}-error`}>
-              <FieldError message={titleError} />
-            </div>
-          ) : null}
-        </div>
-        <div>
-          <FieldLabel htmlFor={descriptionId}>
-            Description <span className="text-red-700">*</span>
-          </FieldLabel>
-          <textarea
-            id={descriptionId}
-            value={draft.description}
-            rows={4}
-            placeholder="What the customer does in this step"
-            onChange={(event) => {
-              setDraft({ ...draft, description: event.target.value });
-              setDescriptionError("");
-            }}
-            aria-invalid={descriptionError ? true : undefined}
-            aria-describedby={
-              descriptionError ? `${descriptionId}-error` : undefined
-            }
-            className={cn(
-              adminFieldClass,
-              "h-auto py-3",
-              descriptionError && "border-red-400",
-            )}
-          />
-          {descriptionError ? (
-            <div id={`${descriptionId}-error`}>
-              <FieldError message={descriptionError} />
-            </div>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-        {notice ? (
-          <p
-            role="status"
-            className="mr-auto text-sm font-medium text-emerald-800"
+          <button
+            type="button"
+            data-form-dismiss=""
+            onClick={onClose}
+            className={adminButtonClass.secondary}
           >
-            {notice}
-          </p>
-        ) : null}
-        <button
-          type="button"
-          data-form-dismiss=""
-          onClick={onClose}
-          className={adminButtonClass.secondary}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className={adminButtonClass.primary}
-        >
-          {saving ? "Saving…" : creating ? "Save step" : "Save changes"}
-        </button>
-      </div>
-    </AdminFormModal>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className={adminButtonClass.primary}
+          >
+            {saving ? "Saving…" : creating ? "Save step" : "Save changes"}
+          </button>
+        </div>
+      </AdminFormModal>
     </FormCloseGuard>
   );
 }

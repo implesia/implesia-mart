@@ -80,7 +80,10 @@ export function AboutMissionEditor() {
   const cardKey = isCardKey(selected) ? selected : null;
   const [cards, setCards] = useState<AboutMissionCard[] | null>(null);
   const [loadError, setLoadError] = useState("");
-  const opened = cardKey && cards ? (cards.find((card) => card.key === cardKey) ?? null) : null;
+  const opened =
+    cardKey && cards
+      ? (cards.find((card) => card.key === cardKey) ?? null)
+      : null;
   const [notice, setNotice] = useState("");
   const [savedKey, setSavedKey] = useState<CardKey | null>(null);
   const focusId = useRef<string | null>(null);
@@ -95,7 +98,11 @@ export function AboutMissionEditor() {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setLoadError(error instanceof MartApiError ? error.message : "Could not load the cards.");
+        setLoadError(
+          error instanceof MartApiError
+            ? error.message
+            : "Could not load the cards.",
+        );
       });
     return () => {
       cancelled = true;
@@ -247,57 +254,57 @@ export function AboutMissionEditor() {
           {cards === null ? (
             <p className="text-sm text-neutral-500">Loading mission cards…</p>
           ) : (
-          <div className="grid grid-cols-1 gap-3 rounded-2xl bg-[#f5f6f8] p-4 xl:grid-cols-2 xl:gap-4 sm:p-5">
-            {CARDS.map((entry, index) => {
-              const card = cardFor(entry.key);
-              if (!card) return null;
-              const dark = index === 1;
-              return (
-                <button
-                  key={entry.key}
-                  type="button"
-                  onClick={() => setCard(entry.key)}
-                  className={cn(
-                    "rounded-2xl border p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-6",
-                    dark
-                      ? "border-transparent bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] text-white"
-                      : "border-neutral-200/90 bg-white",
-                  )}
-                >
-                  <span
+            <div className="grid grid-cols-1 gap-3 rounded-2xl bg-[#f5f6f8] p-4 xl:grid-cols-2 xl:gap-4 sm:p-5">
+              {CARDS.map((entry, index) => {
+                const card = cardFor(entry.key);
+                if (!card) return null;
+                const dark = index === 1;
+                return (
+                  <button
+                    key={entry.key}
+                    type="button"
+                    onClick={() => setCard(entry.key)}
                     className={cn(
-                      "mb-3 flex size-10 items-center justify-center rounded-xl",
+                      "rounded-2xl border p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-6",
                       dark
-                        ? "bg-white/10 text-primary"
-                        : "bg-primary/10 text-primary",
+                        ? "border-transparent bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] text-white"
+                        : "border-neutral-200/90 bg-white",
                     )}
                   >
-                    <MaterialIcon
-                      name={card.icon || "notes"}
-                      filled
-                      className="text-[22px]"
-                    />
-                  </span>
-                  <span
-                    className={cn(
-                      "mb-2 block text-base font-semibold tracking-tight sm:text-lg",
-                      dark ? "text-white" : "text-neutral-950",
-                    )}
-                  >
-                    {card.title}
-                  </span>
-                  <span
-                    className={cn(
-                      "block text-sm leading-relaxed",
-                      dark ? "text-white/70" : "text-neutral-600",
-                    )}
-                  >
-                    {card.description}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <span
+                      className={cn(
+                        "mb-3 flex size-10 items-center justify-center rounded-xl",
+                        dark
+                          ? "bg-white/10 text-primary"
+                          : "bg-primary/10 text-primary",
+                      )}
+                    >
+                      <MaterialIcon
+                        name={card.icon || "notes"}
+                        filled
+                        className="text-[22px]"
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        "mb-2 block text-base font-semibold tracking-tight sm:text-lg",
+                        dark ? "text-white" : "text-neutral-950",
+                      )}
+                    >
+                      {card.title}
+                    </span>
+                    <span
+                      className={cn(
+                        "block text-sm leading-relaxed",
+                        dark ? "text-white/70" : "text-neutral-600",
+                      )}
+                    >
+                      {card.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       </section>
@@ -318,56 +325,56 @@ export function AboutMissionEditor() {
           {cards === null
             ? null
             : CARDS.map((entry, index) => {
-            const card = cardFor(entry.key);
-            if (!card) return null;
-            return (
-              <li
-                key={entry.key}
-                className={cn(
-                  "border-t border-neutral-100 first:border-t-0",
-                  cardKey === entry.key && "bg-primary/5",
-                  savedKey === entry.key && "bg-emerald-50",
-                )}
-              >
-                <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:px-4">
-                  <button
-                    id={`about-mission-${entry.key}`}
-                    type="button"
-                    onClick={() => setCard(entry.key)}
-                    className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                const card = cardFor(entry.key);
+                if (!card) return null;
+                return (
+                  <li
+                    key={entry.key}
+                    className={cn(
+                      "border-t border-neutral-100 first:border-t-0",
+                      cardKey === entry.key && "bg-primary/5",
+                      savedKey === entry.key && "bg-emerald-50",
+                    )}
                   >
-                    <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
-                      {index + 1}
-                    </span>
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-admin-canvas text-primary">
-                      <MaterialIcon
-                        name={card.icon || "notes"}
-                        className="text-[22px]"
-                      />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-neutral-950">
-                          {card.title || entry.label}
+                    <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:px-4">
+                      <button
+                        id={`about-mission-${entry.key}`}
+                        type="button"
+                        onClick={() => setCard(entry.key)}
+                        className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
+                        <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                          {index + 1}
                         </span>
-                        <VisibilityBadge active={isContentActive(card)} />
-                      </span>
-                      <span className="mt-0.5 line-clamp-2 block text-xs text-neutral-500">
-                        {entry.label} · {iconLabel(card.icon)}
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCard(entry.key)}
-                    className={adminButtonClass.quiet}
-                  >
-                    Edit
-                  </button>
-                </div>
-              </li>
-            );
-          })}
+                        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-admin-canvas text-primary">
+                          <MaterialIcon
+                            name={card.icon || "notes"}
+                            className="text-[22px]"
+                          />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm font-semibold text-neutral-950">
+                              {card.title || entry.label}
+                            </span>
+                            <VisibilityBadge active={isContentActive(card)} />
+                          </span>
+                          <span className="mt-0.5 line-clamp-2 block text-xs text-neutral-500">
+                            {entry.label} · {iconLabel(card.icon)}
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCard(entry.key)}
+                        className={adminButtonClass.quiet}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
         </ol>
       </section>
 
@@ -398,8 +405,11 @@ function CardDrawer({
   onClose: () => void;
   onSave: (draft: AboutMissionDraft) => Promise<void>;
 }) {
-  const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
-  const baseline = useRef(draft);
+  const [draft, setDraft] = useState(() => ({
+    ...initial,
+    isActive: initial.isActive !== false,
+  }));
+  const [baseline] = useState(draft);
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
   const [error, setError] = useState("");
@@ -427,164 +437,171 @@ function CardDrawer({
       });
     } catch (caught) {
       setSaving(false);
-      setError(caught instanceof MartApiError ? caught.message : "Could not save the card.");
+      setError(
+        caught instanceof MartApiError
+          ? caught.message
+          : "Could not save the card.",
+      );
     }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
-    <AdminFormModal titleId="about-mission-drawer-title" size="sm">
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-        <div className="min-w-0">
-          <h2
-            id="about-mission-drawer-title"
-            className="text-lg font-semibold text-neutral-950"
-          >
-            Edit {label.toLowerCase()}
-          </h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            Update the {label.toLowerCase()} shown on the about page.
-          </p>
-        </div>
-        <button
-          type="button"
-          data-form-dismiss=""
-          aria-label="Close"
-          title="Close"
-          onClick={onClose}
-          className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          <MaterialIcon name="close" className="text-[20px]" />
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        <ActiveStatusField
-          checked={draft.isActive !== false}
-          onChange={(isActive) => setDraft({ ...draft, isActive })}
-        />
-        <div className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <MaterialIcon
-              name={draft.icon || "notes"}
-              filled
-              className="text-[22px]"
-            />
-          </span>
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
+      <AdminFormModal titleId="about-mission-drawer-title" size="sm">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-neutral-950">
-              {draft.title.trim() || "Title"}
-            </p>
-            <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">
-              {draft.description.trim() || "Description"}
+            <h2
+              id="about-mission-drawer-title"
+              className="text-lg font-semibold text-neutral-950"
+            >
+              Edit {label.toLowerCase()}
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Update the {label.toLowerCase()} shown on the about page.
             </p>
           </div>
-        </div>
-        <div>
-          <FieldLabel>Icon</FieldLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {iconChoices(draft.icon).map((icon) => (
-              <button
-                key={icon.name}
-                type="button"
-                aria-pressed={draft.icon === icon.name}
-                aria-label={icon.label}
-                onClick={() => setDraft({ ...draft, icon: icon.name })}
-                className={cn(
-                  "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  draft.icon === icon.name
-                    ? "bg-primary/10 text-primary ring-primary/30"
-                    : "bg-white text-neutral-600 ring-neutral-200",
-                )}
-              >
-                <MaterialIcon name={icon.name} className="text-[20px]" />
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <FieldLabel htmlFor={titleId}>
-            Title <span className="text-red-700">*</span>
-          </FieldLabel>
-          <input
-            id={titleId}
-            autoFocus
-            value={draft.title}
-            placeholder="What this card is called"
-            onChange={(event) => {
-              setDraft({ ...draft, title: event.target.value });
-              setTitleError("");
-            }}
-            aria-invalid={titleError ? true : undefined}
-            aria-describedby={titleError ? `${titleId}-error` : undefined}
-            className={cn(adminFieldClass, titleError && "border-red-400")}
-          />
-          {titleError ? (
-            <div id={`${titleId}-error`}>
-              <FieldError message={titleError} />
-            </div>
-          ) : null}
-        </div>
-        <div>
-          <FieldLabel htmlFor={descriptionId}>
-            Description <span className="text-red-700">*</span>
-          </FieldLabel>
-          <textarea
-            id={descriptionId}
-            value={draft.description}
-            rows={5}
-            placeholder="The promise customers should remember"
-            onChange={(event) => {
-              setDraft({ ...draft, description: event.target.value });
-              setDescriptionError("");
-            }}
-            aria-invalid={descriptionError ? true : undefined}
-            aria-describedby={
-              descriptionError ? `${descriptionId}-error` : undefined
-            }
-            className={cn(
-              adminFieldClass,
-              "h-auto py-3",
-              descriptionError && "border-red-400",
-            )}
-          />
-          {descriptionError ? (
-            <div id={`${descriptionId}-error`}>
-              <FieldError message={descriptionError} />
-            </div>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-        {error ? (
-          <p role="alert" className="mr-auto text-sm font-medium text-red-700">
-            {error}
-          </p>
-        ) : notice ? (
-          <p
-            role="status"
-            className="mr-auto text-sm font-medium text-emerald-800"
+          <button
+            type="button"
+            data-form-dismiss=""
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            {notice}
-          </p>
-        ) : null}
-        <button
-          type="button"
-          data-form-dismiss=""
-          onClick={onClose}
-          className={adminButtonClass.secondary}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className={adminButtonClass.primary}
-        >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-      </div>
-    </AdminFormModal>
+            <MaterialIcon name="close" className="text-[20px]" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <ActiveStatusField
+            checked={draft.isActive !== false}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
+          />
+          <div className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <MaterialIcon
+                name={draft.icon || "notes"}
+                filled
+                className="text-[22px]"
+              />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-neutral-950">
+                {draft.title.trim() || "Title"}
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">
+                {draft.description.trim() || "Description"}
+              </p>
+            </div>
+          </div>
+          <div>
+            <FieldLabel>Icon</FieldLabel>
+            <div className="flex flex-wrap gap-1.5">
+              {iconChoices(draft.icon).map((icon) => (
+                <button
+                  key={icon.name}
+                  type="button"
+                  aria-pressed={draft.icon === icon.name}
+                  aria-label={icon.label}
+                  onClick={() => setDraft({ ...draft, icon: icon.name })}
+                  className={cn(
+                    "grid size-10 place-items-center rounded-xl ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    draft.icon === icon.name
+                      ? "bg-primary/10 text-primary ring-primary/30"
+                      : "bg-white text-neutral-600 ring-neutral-200",
+                  )}
+                >
+                  <MaterialIcon name={icon.name} className="text-[20px]" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <FieldLabel htmlFor={titleId}>
+              Title <span className="text-red-700">*</span>
+            </FieldLabel>
+            <input
+              id={titleId}
+              autoFocus
+              value={draft.title}
+              placeholder="What this card is called"
+              onChange={(event) => {
+                setDraft({ ...draft, title: event.target.value });
+                setTitleError("");
+              }}
+              aria-invalid={titleError ? true : undefined}
+              aria-describedby={titleError ? `${titleId}-error` : undefined}
+              className={cn(adminFieldClass, titleError && "border-red-400")}
+            />
+            {titleError ? (
+              <div id={`${titleId}-error`}>
+                <FieldError message={titleError} />
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <FieldLabel htmlFor={descriptionId}>
+              Description <span className="text-red-700">*</span>
+            </FieldLabel>
+            <textarea
+              id={descriptionId}
+              value={draft.description}
+              rows={5}
+              placeholder="The promise customers should remember"
+              onChange={(event) => {
+                setDraft({ ...draft, description: event.target.value });
+                setDescriptionError("");
+              }}
+              aria-invalid={descriptionError ? true : undefined}
+              aria-describedby={
+                descriptionError ? `${descriptionId}-error` : undefined
+              }
+              className={cn(
+                adminFieldClass,
+                "h-auto py-3",
+                descriptionError && "border-red-400",
+              )}
+            />
+            {descriptionError ? (
+              <div id={`${descriptionId}-error`}>
+                <FieldError message={descriptionError} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+          {error ? (
+            <p
+              role="alert"
+              className="mr-auto text-sm font-medium text-red-700"
+            >
+              {error}
+            </p>
+          ) : notice ? (
+            <p
+              role="status"
+              className="mr-auto text-sm font-medium text-emerald-800"
+            >
+              {notice}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            data-form-dismiss=""
+            onClick={onClose}
+            className={adminButtonClass.secondary}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className={adminButtonClass.primary}
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </AdminFormModal>
     </FormCloseGuard>
   );
 }

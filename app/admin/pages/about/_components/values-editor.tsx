@@ -6,12 +6,18 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankFeature,
-  readAboutSections,
-  saveAboutSections,
-  type AboutFeatureItem,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+  blankAboutValue,
+  createAboutValue,
+  deleteAboutValue,
+  listAboutValues,
+  reorderAboutValues,
+  updateAboutValue,
+  updateAboutValuesCopy,
+  type AboutValue,
+  type AboutValueDraft,
+  type AboutValues,
+} from "@/lib/mart-api/about-values";
+import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -49,13 +55,13 @@ const ICONS: { name: string; label: string }[] = [
   { name: "shield", label: "Shield" },
 ];
 
-type Draft = Pick<AboutFeatureItem, "icon" | "title" | "description" | "isActive">;
+type Draft = AboutValueDraft;
 
 function emptyDraft(): Draft {
-  return { icon: "verified", title: "", description: "", isActive: true };
+  return blankAboutValue();
 }
 
-function draftFromItem(item: AboutFeatureItem): Draft {
+function draftFromItem(item: AboutValue): Draft {
   return {
     icon: item.icon,
     title: item.title,
@@ -74,16 +80,17 @@ function iconLabel(name: string) {
 }
 
 export function AboutValuesEditor() {
-  const { values } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
+  const [section, setSection] = useState<AboutValues | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const items = section?.items ?? [];
+  const visible = items.filter(isContentActive);
   const opened =
-    selected && selected !== "new"
-      ? (values.items.find((item) => item.id === selected) ?? null)
-      : null;
+    selected && selected !== "new" ? (items.find((item) => item.id === selected) ?? null) : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -92,6 +99,23 @@ export function AboutValuesEditor() {
   const focusId = useRef<string | null>(null);
   const page = findCmsPage("about");
   const drawerOpen = creating || Boolean(opened);
+
+  useEffect(() => {
+    let cancelled = false;
+    listAboutValues()
+      .then((next) => {
+        if (!cancelled) setSection(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof MartApiError ? error.message : "Could not load the values.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (drawerOpen || !focusId.current) return;
@@ -118,52 +142,28 @@ export function AboutValuesEditor() {
     }, 1600);
   }
 
-  function saveCopy(next: Record<string, string>) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      values: {
-        ...doc.values,
-        kicker: next.kicker ?? "",
-        title: next.title ?? "",
-        subtitle: next.subtitle ?? "",
-      },
+  async function saveCopy(next: Record<string, string>) {
+    if (!section) return;
+    const saved = await updateAboutValuesCopy({
+      kicker: next.kicker ?? "",
+      title: next.title ?? "",
+      subtitle: next.subtitle ?? "",
     });
+    setSection(saved);
   }
 
-  function saveItem(draft: Draft) {
-    const doc = readAboutSections();
+  async function saveItem(draft: Draft) {
+    if (!section) return;
     if (creating) {
-      const item = {
-        ...blankFeature(),
-        icon: draft.icon,
-        title: draft.title,
-        description: draft.description,
-        isActive: draft.isActive,
-      };
-      saveAboutSections({
-        ...doc,
-        values: { ...doc.values, items: [...doc.values.items, item] },
-      });
+      const item = await createAboutValue(draft);
+      setSection({ ...section, items: [...section.items, item] });
       setSavedId(item.id);
       focusId.current = `about-value-${item.id}`;
     } else if (selected) {
-      saveAboutSections({
-        ...doc,
-        values: {
-          ...doc.values,
-          items: doc.values.items.map((item) =>
-            item.id === selected
-              ? {
-                  ...item,
-                  icon: draft.icon,
-                  title: draft.title,
-                  description: draft.description,
-                  isActive: draft.isActive,
-                }
-              : item,
-          ),
-        },
+      const item = await updateAboutValue(selected, draft);
+      setSection({
+        ...section,
+        items: section.items.map((entry) => (entry.id === selected ? item : entry)),
       });
       setSavedId(selected);
       focusId.current = `about-value-${selected}`;
@@ -172,30 +172,39 @@ export function AboutValuesEditor() {
     setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      values: {
-        ...doc.values,
-        items: doc.values.items.filter((item) => item.id !== id),
-      },
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    if (!section) return;
+    try {
+      await deleteAboutValue(id);
+      setSection({ ...section, items: section.items.filter((item) => item.id !== id) });
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the value.");
+    }
+  }
+
+  async function place(nextIds: string[]) {
+    try {
+      const saved = await reorderAboutValues(nextIds);
+      setSection(saved);
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError ? error.message : "Could not reorder the values.",
+      );
+    }
   }
 
   function move(id: string, direction: -1 | 1) {
-    const doc = readAboutSections();
-    const index = doc.values.items.findIndex((item) => item.id === id);
+    const index = items.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.values.items.length) return;
-    const next = [...doc.values.items];
-    const [item] = next.splice(index, 1);
-    if (!item) return;
-    next.splice(target, 0, item);
-    saveAboutSections({ ...doc, values: { ...doc.values, items: next } });
+    if (index < 0 || target < 0 || target >= items.length) return;
+    const next = items.map((item) => item.id);
+    const [moved] = next.splice(index, 1);
+    if (!moved) return;
+    next.splice(target, 0, moved);
+    void place(next);
   }
 
   function dropOn(targetId: string) {
@@ -204,21 +213,19 @@ export function AboutValuesEditor() {
       setOverId(null);
       return;
     }
-    const doc = readAboutSections();
-    const next = [...doc.values.items];
-    const from = next.findIndex((item) => item.id === dragId);
-    const to = next.findIndex((item) => item.id === targetId);
+    const next = items.map((item) => item.id);
+    const from = next.indexOf(dragId);
+    const to = next.indexOf(targetId);
     if (from < 0 || to < 0) return;
-    const [item] = next.splice(from, 1);
-    if (!item) return;
-    next.splice(to, 0, item);
-    saveAboutSections({ ...doc, values: { ...doc.values, items: next } });
+    const [moved] = next.splice(from, 1);
+    if (!moved) return;
+    next.splice(to, 0, moved);
     setDragId(null);
     setOverId(null);
+    void place(next);
   }
 
-  const missing = Boolean(selected && selected !== "new" && !opened);
-  const items = values.items;
+  const missing = Boolean(section && selected && selected !== "new" && !opened);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -266,7 +273,7 @@ export function AboutValuesEditor() {
         ) : null}
         <AdminPageHeader
           title="Values"
-          description="Quality, COD, delivery, and returns."
+          description="Quality, COD, delivery, and returns. Hidden values stay off the about page."
           action={
             <div className="flex flex-wrap items-center gap-2">
               <a
@@ -291,6 +298,11 @@ export function AboutValuesEditor() {
         />
       </div>
 
+      {loadError ? (
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+          {loadError}
+        </p>
+      ) : null}
       {notice && !drawerOpen ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The values are up to date.
@@ -325,20 +337,23 @@ export function AboutValuesEditor() {
           </p>
         </div>
         <div className="p-4 sm:p-5">
+          {section === null ? (
+            <p className="text-sm text-neutral-500">Loading values…</p>
+          ) : (
           <div className="rounded-2xl bg-[#f5f6f8] p-4 sm:p-5">
             <div className="mx-auto mb-5 max-w-2xl text-center">
               <p className="text-xs font-medium tracking-wide text-primary uppercase">
-                {values.kicker}
+                {section.kicker}
               </p>
               <p className="mt-2 text-xl font-semibold tracking-tight text-neutral-950">
-                {values.title}
+                {section.title}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                {values.subtitle}
+                {section.subtitle}
               </p>
             </div>
             <ul className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              {items.map((item) => (
+              {visible.map((item) => (
                 <li key={item.id}>
                   <button
                     type="button"
@@ -363,15 +378,19 @@ export function AboutValuesEditor() {
               ))}
             </ul>
           </div>
+          )}
         </div>
       </section>
 
       <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
+        {section === null ? (
+          <p className="text-sm text-neutral-500">Loading values…</p>
+        ) : (
         <SectionCopyForm
           values={{
-            kicker: values.kicker,
-            title: values.title,
-            subtitle: values.subtitle,
+            kicker: section.kicker,
+            title: section.title,
+            subtitle: section.subtitle,
           }}
           fields={[
             { name: "kicker", label: "Eyebrow" },
@@ -387,6 +406,7 @@ export function AboutValuesEditor() {
           saveLabel="Save heading"
           onSave={saveCopy}
         />
+        )}
       </section>
 
       <section
@@ -398,10 +418,14 @@ export function AboutValuesEditor() {
             id="about-values-list-heading"
             className="text-sm font-semibold text-neutral-950"
           >
-            {items.length === 1 ? "1 value" : `${items.length} values`}
+            {section === null
+              ? "Loading values…"
+              : items.length === 1
+                ? "1 value"
+                : `${items.length} values`}
           </h2>
         </div>
-        {items.length === 0 ? (
+        {section === null ? null : items.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <p className="text-sm font-semibold text-neutral-950">
               No values yet
@@ -571,17 +595,18 @@ function ValueDrawer({
   initial: Draft;
   notice: string;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(initial);
-  const baseline = useRef(draft);
+  const [baseline] = useState(initial);
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const titleId = useId();
   const descriptionId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextTitle = draft.title.trim();
     const nextDescription = draft.description.trim();
@@ -589,16 +614,22 @@ function ValueDrawer({
     setDescriptionError(nextDescription ? "" : "Description is required.");
     if (!nextTitle || !nextDescription) return;
     setSaving(true);
-    onSave({
-      icon: draft.icon || "verified",
-      title: nextTitle,
-      description: nextDescription,
-      isActive: draft.isActive,
-    });
+    setError("");
+    try {
+      await onSave({
+        icon: draft.icon || "verified",
+        title: nextTitle,
+        description: nextDescription,
+        isActive: draft.isActive,
+      });
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof MartApiError ? caught.message : "Could not save the value.");
+    }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
     <AdminFormModal titleId="about-values-drawer-title" size="sm">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
         <div className="min-w-0">
@@ -721,7 +752,11 @@ function ValueDrawer({
         </div>
       </div>
       <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-        {notice ? (
+        {error ? (
+          <p role="alert" className="mr-auto text-sm font-medium text-red-700">
+            {error}
+          </p>
+        ) : notice ? (
           <p
             role="status"
             className="mr-auto text-sm font-medium text-emerald-800"
