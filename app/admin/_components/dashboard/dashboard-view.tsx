@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  buildDashboard,
   DASHBOARD_RANGE_OPTIONS,
+  getDashboardOverview,
   type DashboardRangeId,
+  type DashboardSnapshot,
   type DashboardTrend,
-} from "@/lib/mart-mock/dashboard";
-import { useAdminProducts, useOrders } from "@/lib/mart-mock/hooks";
-import { MOCK_EVENT } from "@/lib/mart-mock/store";
+} from "@/lib/mart-api/dashboard";
+import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { RevenueChart } from "./revenue-chart";
@@ -24,28 +24,64 @@ import {
 } from "./dashboard-sections";
 
 export function DashboardView() {
-  const orders = useOrders();
-  const products = useAdminProducts();
   const [rangeId, setRangeId] = useState<DashboardRangeId>("7d");
   const [customFrom, setCustomFrom] = useState(inputDate(-6));
   const [customTo, setCustomTo] = useState(inputDate(0));
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
+  const [error, setError] = useState("");
 
-  if (!orders || !products) return <DashboardSkeleton />;
+  useEffect(() => {
+    let cancelled = false;
+    getDashboardOverview({
+      range: rangeId,
+      from: customFrom,
+      to: customTo,
+    })
+      .then((next) => {
+        if (cancelled) return;
+        setSnapshot(next);
+        setError("");
+      })
+      .catch((loadError: unknown) => {
+        if (cancelled) return;
+        setError(
+          loadError instanceof MartApiError
+            ? loadError.message
+            : "Could not load the dashboard.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rangeId, customFrom, customTo, refreshKey]);
 
-  const snapshot = buildDashboard({ orders, products, rangeId, customFrom, customTo });
-  const ordersHref = rangeId === "today" ? "/admin/orders?day=today" : "/admin/orders";
+  if (!snapshot && !error) return <DashboardSkeleton />;
+  if (!snapshot) {
+    return (
+      <p className="rounded-2xl bg-white px-4 py-10 text-center text-sm text-red-700 ring-1 ring-red-100">
+        {error}
+      </p>
+    );
+  }
+
+  const ordersHref =
+    rangeId === "today" ? "/admin/orders?day=today" : "/admin/orders";
 
   function refresh() {
-    window.dispatchEvent(new Event(MOCK_EVENT));
+    setError("");
     setUpdatedAt(new Date());
+    setRefreshKey((key) => key + 1);
   }
 
   return (
     <div className="min-w-0 space-y-4">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">Dashboard</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
+            Dashboard
+          </h1>
           <p className="mt-1 text-sm text-neutral-600">
             {snapshot.periodLabel}
             <span className="text-neutral-400"> · </span>
@@ -57,7 +93,10 @@ export function DashboardView() {
             <span className="sr-only">Reporting period</span>
             <select
               value={rangeId}
-              onChange={(event) => setRangeId(event.target.value as DashboardRangeId)}
+              onChange={(event) => {
+                setError("");
+                setRangeId(event.target.value as DashboardRangeId);
+              }}
               className="h-10 w-full rounded-full border border-neutral-200 bg-white px-3 text-sm text-neutral-950 outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/25"
             >
               {DASHBOARD_RANGE_OPTIONS.map((option) => (
@@ -69,8 +108,22 @@ export function DashboardView() {
           </label>
           {rangeId === "custom" ? (
             <div className="flex items-center gap-2">
-              <DateField label="From" value={customFrom} onChange={setCustomFrom} />
-              <DateField label="To" value={customTo} onChange={setCustomTo} />
+              <DateField
+                label="From"
+                value={customFrom}
+                onChange={(value) => {
+                  setError("");
+                  setCustomFrom(value);
+                }}
+              />
+              <DateField
+                label="To"
+                value={customTo}
+                onChange={(value) => {
+                  setError("");
+                  setCustomTo(value);
+                }}
+              />
             </div>
           ) : null}
           <button
@@ -84,11 +137,20 @@ export function DashboardView() {
           {updatedAt ? (
             <p className="text-xs text-neutral-500">
               Updated{" "}
-              {new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(updatedAt)}
+              {new Intl.DateTimeFormat("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              }).format(updatedAt)}
             </p>
           ) : null}
         </div>
       </header>
+
+      {error ? (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      ) : null}
 
       <section aria-label="Key figures" className="grid gap-3 lg:grid-cols-12">
         <KpiCard
@@ -150,16 +212,24 @@ export function DashboardView() {
 
       <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
         <div className="mb-4">
-          <h2 className="text-sm font-semibold text-neutral-950">Revenue and orders</h2>
+          <h2 className="text-sm font-semibold text-neutral-950">
+            Revenue and orders
+          </h2>
           <p className="mt-0.5 text-xs text-neutral-500">
             Revenue bars with order volume, against the previous period.
           </p>
         </div>
-        <RevenueChart points={snapshot.series} grainLabel={snapshot.grainLabel} />
+        <RevenueChart
+          points={snapshot.series}
+          grainLabel={snapshot.grainLabel}
+        />
       </section>
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
-        <OrderActivity statuses={snapshot.statuses} total={snapshot.orderCount} />
+        <OrderActivity
+          statuses={snapshot.statuses}
+          total={snapshot.orderCount}
+        />
         <BestSellingProducts products={snapshot.bestSellers} />
       </div>
 
@@ -207,16 +277,30 @@ function KpiCard({
         <span
           className={cn(
             "grid size-8 shrink-0 place-items-center rounded-lg",
-            alert ? "bg-amber-50 text-amber-700" : featured ? "bg-primary/10 text-primary" : "bg-[#f5f6f8] text-neutral-700",
+            alert
+              ? "bg-amber-50 text-amber-700"
+              : featured
+                ? "bg-primary/10 text-primary"
+                : "bg-[#f5f6f8] text-neutral-700",
           )}
         >
           <MaterialIcon name={icon} className="text-[18px]" />
         </span>
         {href ? (
-          <MaterialIcon name="arrow_outward" className="text-[16px] text-neutral-300 group-hover:text-primary" />
+          <MaterialIcon
+            name="arrow_outward"
+            className="text-[16px] text-neutral-300 group-hover:text-primary"
+          />
         ) : null}
       </span>
-      <span className={cn("mt-3 block text-sm text-neutral-600", compact && "mt-2.5")}>{label}</span>
+      <span
+        className={cn(
+          "mt-3 block text-sm text-neutral-600",
+          compact && "mt-2.5",
+        )}
+      >
+        {label}
+      </span>
       <span
         className={cn(
           "mt-1 block font-semibold tracking-tight tabular-nums text-neutral-950",
@@ -232,7 +316,11 @@ function KpiCard({
       {!featured && sparkline && sparkline.some((point) => point > 0) ? (
         <Sparkline values={sparkline} className="mt-3 text-neutral-800" />
       ) : null}
-      {note ? <span className="mt-2 block text-xs leading-4 text-neutral-500">{note}</span> : null}
+      {note ? (
+        <span className="mt-2 block text-xs leading-4 text-neutral-500">
+          {note}
+        </span>
+      ) : null}
     </>
   );
   const classNames = cn(
@@ -249,15 +337,35 @@ function KpiCard({
   );
 }
 
-function TrendLine({ trend, higherIsWorse }: { trend: DashboardTrend; higherIsWorse?: boolean }) {
+function TrendLine({
+  trend,
+  higherIsWorse,
+}: {
+  trend: DashboardTrend;
+  higherIsWorse?: boolean;
+}) {
   const rising = trend.direction === "up" || trend.direction === "new";
   const falling = trend.direction === "down";
   const positive = higherIsWorse ? falling : rising;
   const negative = higherIsWorse ? rising : falling;
-  const tone = positive ? "text-emerald-700" : negative ? "text-red-600" : "text-neutral-500";
-  const icon = trend.direction === "down" ? "arrow_downward" : trend.direction === "flat" ? "remove" : "arrow_upward";
+  const tone = positive
+    ? "text-emerald-700"
+    : negative
+      ? "text-red-600"
+      : "text-neutral-500";
+  const icon =
+    trend.direction === "down"
+      ? "arrow_downward"
+      : trend.direction === "flat"
+        ? "remove"
+        : "arrow_upward";
   return (
-    <span className={cn("mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs font-medium leading-4", tone)}>
+    <span
+      className={cn(
+        "mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs font-medium leading-4",
+        tone,
+      )}
+    >
       <MaterialIcon name={icon} className="text-[14px]" />
       <span>{trend.text}</span>
       <span className="font-normal text-neutral-500">vs previous period</span>
@@ -265,7 +373,13 @@ function TrendLine({ trend, higherIsWorse }: { trend: DashboardTrend; higherIsWo
   );
 }
 
-function Sparkline({ values, className }: { values: number[]; className?: string }) {
+function Sparkline({
+  values,
+  className,
+}: {
+  values: number[];
+  className?: string;
+}) {
   const peak = Math.max(1, ...values);
   const width = 160;
   const height = 36;
@@ -278,7 +392,11 @@ function Sparkline({ values, className }: { values: number[]; className?: string
     })
     .join(" ");
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} aria-hidden className={cn("h-9 w-full", className)}>
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      aria-hidden
+      className={cn("h-9 w-full", className)}
+    >
       <path d={line} fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
@@ -323,7 +441,10 @@ function DashboardSkeleton() {
         <div className="h-44 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90 lg:col-span-3" />
         <div className="grid grid-cols-2 gap-3 lg:col-span-4">
           {Array.from({ length: 4 }, (_, index) => (
-            <div key={index} className="h-28 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
+            <div
+              key={index}
+              className="h-28 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90"
+            />
           ))}
         </div>
       </div>

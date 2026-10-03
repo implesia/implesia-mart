@@ -3,7 +3,8 @@
 import { useState } from "react";
 
 import { formatTaka } from "@/lib/mart-mock/store";
-import { formatCompactTaka, type DashboardPoint } from "@/lib/mart-mock/dashboard";
+import { type DashboardPoint } from "@/lib/mart-api/dashboard";
+import { formatCompactTaka } from "@/lib/mart-mock/dashboard";
 import { cn } from "@/lib/utils";
 
 export function RevenueChart({
@@ -14,7 +15,10 @@ export function RevenueChart({
   grainLabel: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
-  const hasActivity = points.some((point) => point.orders > 0 || point.revenue > 0 || point.previousRevenue > 0);
+  const hasActivity = points.some(
+    (point) =>
+      point.orders > 0 || point.revenue > 0 || point.previousRevenue > 0,
+  );
   if (!hasActivity) {
     return (
       <p className="px-1 py-16 text-center text-sm text-neutral-500">
@@ -28,7 +32,10 @@ export function RevenueChart({
   const pad = { left: 56, right: 12, top: 16, bottom: 28 };
   const innerWidth = width - pad.left - pad.right;
   const innerHeight = height - pad.top - pad.bottom;
-  const peak = Math.max(1, ...points.map((point) => Math.max(point.revenue, point.previousRevenue)));
+  const peak = Math.max(
+    1,
+    ...points.map((point) => Math.max(point.revenue, point.previousRevenue)),
+  );
   const orderPeak = Math.max(1, ...points.map((point) => point.orders));
   const slot = innerWidth / points.length;
   const barWidth = Math.min(22, slot * 0.46);
@@ -46,12 +53,23 @@ export function RevenueChart({
   }
 
   const orderLine = points
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${x(index)} ${yOrders(point.orders)}`)
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"} ${x(index)} ${yOrders(point.orders)}`,
+    )
     .join(" ");
   const previousLine = points
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${x(index)} ${yRevenue(point.previousRevenue)}`)
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"} ${x(index)} ${yRevenue(point.previousRevenue)}`,
+    )
     .join(" ");
-  const labelStep = points.length > 16 ? Math.ceil(points.length / 8) : points.length > 8 ? 2 : 1;
+  const labelStep =
+    points.length > 16
+      ? Math.ceil(points.length / 8)
+      : points.length > 8
+        ? 2
+        : 1;
 
   return (
     <div>
@@ -80,12 +98,24 @@ export function RevenueChart({
                 y2={yRevenue(tick)}
                 stroke="#e5e7eb"
               />
-              <text x={pad.left - 8} y={yRevenue(tick) + 4} textAnchor="end" fill="#737373" fontSize="11">
+              <text
+                x={pad.left - 8}
+                y={yRevenue(tick) + 4}
+                textAnchor="end"
+                fill="#737373"
+                fontSize="11"
+              >
                 {formatCompactTaka(tick)}
               </text>
             </g>
           ))}
-          <path d={previousLine} fill="none" stroke="#a3a3a3" strokeDasharray="4 4" strokeWidth="1.5" />
+          <path
+            d={previousLine}
+            fill="none"
+            stroke="#a3a3a3"
+            strokeDasharray="4 4"
+            strokeWidth="1.5"
+          />
           {points.map((point, index) => {
             const barHeight = (point.revenue / peak) * innerHeight;
             return (
@@ -102,7 +132,13 @@ export function RevenueChart({
           })}
           <path d={orderLine} fill="none" stroke="#171717" strokeWidth="1.75" />
           {points.map((point, index) => (
-            <circle key={`dot-${point.label}-${index}`} cx={x(index)} cy={yOrders(point.orders)} r="2.5" fill="#171717" />
+            <circle
+              key={`dot-${point.label}-${index}`}
+              cx={x(index)}
+              cy={yOrders(point.orders)}
+              r="2.5"
+              fill="#171717"
+            />
           ))}
           {points.map((point, index) => (
             <text
@@ -141,20 +177,25 @@ export function RevenueChart({
             style={{
               left: `${((active + 0.5) / points.length) * 100}%`,
               top: 8,
-              transform: active > points.length * 0.7 ? "translateX(-100%)" : "translateX(-20%)",
+              transform:
+                active > points.length * 0.7
+                  ? "translateX(-100%)"
+                  : "translateX(-20%)",
             }}
           >
             <p className="font-semibold">{selected.label}</p>
-            <p className="mt-1 text-white/80">Revenue {formatTaka(selected.revenue)}</p>
+            <p className="mt-1 text-white/80">
+              Revenue {formatTaka(selected.revenue)}
+            </p>
             <p className="text-white/80">Orders {selected.orders}</p>
-            <p className="text-white/60">Previous {formatTaka(selected.previousRevenue)}</p>
+            <p className="text-white/60">
+              Previous {formatTaka(selected.previousRevenue)}
+            </p>
           </div>
         ) : null}
       </div>
       <table className="sr-only">
-        <caption>
-          {grainLabel} revenue, orders, and previous revenue
-        </caption>
+        <caption>{grainLabel} revenue, orders, and previous revenue</caption>
         <thead>
           <tr>
             <th>Period</th>
