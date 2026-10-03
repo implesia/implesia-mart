@@ -2,22 +2,31 @@
 
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { products } from "@/app/(client)/_data/products/products";
 import {
+  blogCategoryLabel,
+  getBlogCategories,
+  type BlogCategories,
+} from "@/lib/mart-api/blog-categories";
+import {
+  createBlogPost,
+  deleteBlogPost,
+  listAdminBlogPosts,
+  reorderBlogPosts,
+  updateBlogPost,
+} from "@/lib/mart-api/blog-posts";
+import { MartApiError } from "@/lib/mart-api/products";
+import {
   blankBlogBlock,
   blankBlogPost,
-  categoryLabel,
   isBlogSlug,
   moveList,
-  readBlogSections,
-  saveBlogSections,
   type BlogBlock,
   type BlogPostRecord,
 } from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { ImageField } from "../../../_components/image-field";
@@ -86,15 +95,39 @@ function blockFilled(block: BlogBlock) {
 }
 
 export function BlogPostsEditor() {
-  const sections = useBlogSections();
-  const { posts, categories } = sections;
+  const [posts, setPosts] = useState<BlogPostRecord[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [categories, setCategories] = useState<BlogCategories | null>(null);
   const params = useSearchParams();
   const { pathname, router } = useBlogNav();
   const postParam = params.get("post");
   const editing = postParam !== null;
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const existing = posts.find((post) => post.id === postParam) ?? null;
+  const existing = posts?.find((post) => post.id === postParam) ?? null;
+
+  useEffect(() => {
+    let active = true;
+    listAdminBlogPosts()
+      .then((next) => {
+        if (active) setPosts(next);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setPosts([]);
+        setLoadError(error instanceof Error ? error.message : "Could not load the articles.");
+      });
+    getBlogCategories()
+      .then((next) => {
+        if (active) setCategories(next);
+      })
+      .catch(() => {
+        if (active) setCategories({ isActive: true, items: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function close() {
     markReturn();
@@ -109,34 +142,45 @@ export function BlogPostsEditor() {
     setBlogQuery(router, pathname, "post", id);
   }
 
-  function save(draft: Draft) {
-    const doc = readBlogSections();
+  async function save(draft: Draft) {
     const next = cleanPost(draft);
-    const postsNext = doc.posts.some((post) => post.id === next.id)
-      ? doc.posts.map((post) => (post.id === next.id ? next : post))
-      : [...doc.posts, next];
-    saveBlogSections({ ...doc, posts: postsNext });
+    const saved =
+      postParam === "new" ? await createBlogPost(next) : await updateBlogPost(next.id, next);
+    setPosts((current) => {
+      const list = current ?? [];
+      return list.some((post) => post.id === saved.id)
+        ? list.map((post) => (post.id === saved.id ? saved : post))
+        : [...list, saved];
+    });
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     close();
   }
 
-  function remove(id: string) {
-    const doc = readBlogSections();
-    saveBlogSections({ ...doc, posts: doc.posts.filter((post) => post.id !== id) });
+  async function remove(id: string) {
+    await deleteBlogPost(id);
+    setPosts((current) => (current ?? []).filter((post) => post.id !== id));
     setNotice("Removed.");
     window.setTimeout(() => setNotice(""), 1600);
     close();
   }
 
-  function move(index: number, direction: -1 | 1) {
-    const doc = readBlogSections();
-    saveBlogSections({ ...doc, posts: moveList(doc.posts, index, direction) });
+  async function move(index: number, direction: -1 | 1) {
+    const current = posts ?? [];
+    const next = moveList(current, index, direction);
+    if (next === current) return;
+    setPosts(next);
+    try {
+      setPosts(await reorderBlogPosts(next.map((post) => post.id)));
+    } catch (error) {
+      setPosts(current);
+      setLoadError(error instanceof Error ? error.message : "Could not reorder the articles.");
+    }
   }
 
   const formPost =
     postParam === "new"
-      ? blankBlogPost(categories.items[0]?.id ?? "")
+      ? { ...blankBlogPost(categories?.items[0]?.id ?? ""), author: "" }
       : existing;
 
   return (
@@ -154,7 +198,10 @@ export function BlogPostsEditor() {
           {notice} The article list is up to date.
         </p>
       ) : null}
-      {posts.length === 0 ? (
+      {loadError ? <p className="text-sm text-red-700">{loadError}</p> : null}
+      {posts === null ? (
+        <p className="text-sm text-neutral-500">Loading the articles…</p>
+      ) : posts.length === 0 ? (
         <div className="rounded-2xl bg-white px-4 py-12 text-center ring-1 ring-neutral-200/90">
           <p className="text-sm font-semibold text-neutral-950">No articles yet</p>
           <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
@@ -164,7 +211,7 @@ export function BlogPostsEditor() {
       ) : (
         <ul className="space-y-3">
           {posts.map((post, index) => {
-            const label = categoryLabel(sections, post.categoryId);
+            const label = blogCategoryLabel(categories, post.categoryId);
             return (
               <li
                 key={post.id}
@@ -236,8 +283,10 @@ export function BlogPostsEditor() {
         <PostForm
           key={postParam ?? formPost.id}
           post={formPost}
+          categories={categories}
           isNew={postParam === "new"}
           onClose={close}
+          posts={posts ?? []}
           onSave={save}
           onRemove={postParam === "new" ? undefined : () => remove(formPost.id)}
         />
@@ -292,18 +341,21 @@ function cleanPost(draft: Draft): BlogPostRecord {
 
 function PostForm({
   post,
+  posts,
+  categories,
   isNew,
   onClose,
   onSave,
   onRemove,
 }: {
   post: BlogPostRecord;
+  posts: BlogPostRecord[];
+  categories: BlogCategories | null;
   isNew: boolean;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
-  onRemove?: () => void;
+  onSave: (draft: Draft) => Promise<void>;
+  onRemove?: () => Promise<void>;
 }) {
-  const { categories, posts } = useBlogSections();
   const initial = draftFrom(post);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
@@ -311,7 +363,14 @@ function PostForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  useEffect(() => {
+    if (!isNew) return;
+    const first = categories?.items[0]?.id;
+    if (!first) return;
+    setDraft((current) => (current.categoryId ? current : { ...current, categoryId: first }));
+  }, [categories, isNew]);
+
+  async function save() {
     if (saving) return;
     const slug = draft.slug.trim().toLowerCase();
     if (!draft.title.trim()) {
@@ -339,7 +398,12 @@ function PostForm({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (error) {
+      setSaving(false);
+      setError(error instanceof MartApiError ? error.message : "Could not save the article.");
+    }
   }
 
   function patchBlock(id: string, next: BlogBlock) {
@@ -350,9 +414,13 @@ function PostForm({
     setError("");
   }
 
-  const categoryOptions = categories.items.slice();
+  const categoryOptions = categories?.items.slice() ?? [];
   if (draft.categoryId && !categoryOptions.some((item) => item.id === draft.categoryId)) {
-    categoryOptions.unshift({ id: draft.categoryId, label: "Unknown category" });
+    categoryOptions.unshift({
+      id: draft.categoryId,
+      label: "Unknown category",
+      isActive: true,
+    });
   }
 
   return (
@@ -387,7 +455,7 @@ function PostForm({
             label="Slug"
             required
             value={draft.slug}
-            placeholder="sothik-power-bank-bachai-korar-upay"
+            placeholder="power-bank-guide"
             onChange={(slug) => {
               setDraft({ ...draft, slug });
               setError("");
@@ -452,14 +520,14 @@ function PostForm({
             id={`${formId}-date`}
             label="Date"
             value={draft.publishedAt}
-            placeholder="১৮ জুলাই, ২০২৬"
+            placeholder="3 Oct 2026"
             onChange={(publishedAt) => setDraft({ ...draft, publishedAt })}
           />
           <Labeled
             id={`${formId}-read`}
             label="Read time"
             value={draft.readTime}
-            placeholder="৬ মিনিট"
+            placeholder="4 min"
             onChange={(readTime) => setDraft({ ...draft, readTime })}
           />
         </div>
@@ -467,7 +535,7 @@ function PostForm({
           id={`${formId}-tags`}
           label="Tags"
           value={draft.tagsText}
-          placeholder="পাওয়ার ব্যাংক, গ্যাজেট"
+          placeholder="guide, gadget"
           onChange={(tagsText) => setDraft({ ...draft, tagsText })}
         />
         <p className="-mt-4 text-sm text-neutral-500">Separate tags with commas.</p>
@@ -581,7 +649,11 @@ function PostForm({
         {onRemove ? (
           <button
             type="button"
-            onClick={onRemove}
+            onClick={() => {
+              void onRemove?.().catch((error: unknown) => {
+                setError(error instanceof Error ? error.message : "Could not remove the article.");
+              });
+            }}
             className="text-sm font-medium text-red-600 hover:underline"
           >
             Remove post

@@ -1,9 +1,6 @@
-"use client";
-
 import Link from "next/link";
 
-import { useContactSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { type ContactDetails } from "@/lib/mart-api/contact-details";
 import { cn } from "@/lib/utils";
 
 import { FacebookIcon, LinkedinIcon } from "../../_components/common/brand-icons";
@@ -14,21 +11,28 @@ const socialIcons = {
   linkedin: LinkedinIcon,
 } as const;
 
-export function ContactDetails({ className }: { className?: string }) {
-  const { direct } = useContactSections();
-  if (!isContentActive(direct)) return null;
-  const channels = direct.channels.filter(isContentActive);
-  const social = direct.social.filter(
-    (item) => item.href.trim() && isContentActive(item),
+export function ContactDetails({
+  details,
+  className,
+}: {
+  details: ContactDetails | null;
+  className?: string;
+}) {
+  if (!details?.isActive) return null;
+  const channels = details.channels.filter((item) => item.isActive);
+  const social = details.social.filter(
+    (item) => item.href.trim() && item.isActive && item.platform in socialIcons,
   );
 
   return (
     <div className={cn("flex flex-col justify-center gap-5", className)}>
       <div>
         <h2 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
-          {direct.title}
+          {details.title}
         </h2>
-        <p className="mt-1 text-sm text-neutral-600">{direct.subtitle}</p>
+        {details.subtitle.trim() ? (
+          <p className="mt-1 text-sm text-neutral-600">{details.subtitle}</p>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
@@ -72,10 +76,10 @@ export function ContactDetails({ className }: { className?: string }) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-4">
-        {direct.badge.trim() ? (
+        {details.badge.trim() ? (
           <div className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700">
             <MaterialIcon name="payments" className="text-[16px] text-primary" filled />
-            {direct.badge}
+            {details.badge}
           </div>
         ) : (
           <span />
@@ -90,7 +94,7 @@ export function ContactDetails({ className }: { className?: string }) {
                 href={s.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={s.label}
+                aria-label={s.label || s.platform}
                 className={cn(
                   "flex size-9 items-center justify-center rounded-full",
                   "border border-neutral-200/90 bg-white text-neutral-600",

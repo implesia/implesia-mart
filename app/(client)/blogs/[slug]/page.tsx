@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 
+import { listPublicBlogCategories } from "@/lib/mart-api/blog-categories";
+import { listPublicBlogCta } from "@/lib/mart-api/blog-cta";
+import { listPublicBlogListing } from "@/lib/mart-api/blog-listing";
+import {
+  getPublicBlogPost,
+  listPublicBlogPosts,
+} from "@/lib/mart-api/blog-posts";
+import { listPublicBlogRelated } from "@/lib/mart-api/blog-related";
 import { bengaliDateToIso } from "@/lib/seo";
 
-import { blogPosts, getBlogPostBySlug } from "../../_data/blogs/blogs";
 import { BlogArticle } from "../_components/blog-article";
 
-export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -15,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getPublicBlogPost(slug);
   if (!post) return { title: "ব্লগ" };
 
   const url = `/blogs/${post.slug}`;
@@ -30,7 +35,9 @@ export async function generateMetadata({
       url,
       title: post.title,
       description: post.excerpt,
-      images: [{ url: post.coverImage, alt: post.coverAlt, width: 1200, height: 675 }],
+      images: [
+        { url: post.coverImage, alt: post.coverAlt, width: 1200, height: 675 },
+      ],
       authors: [post.author],
       publishedTime: bengaliDateToIso(post.publishedAt),
       tags: post.tags,
@@ -50,5 +57,22 @@ export default async function BlogDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  return <BlogArticle slug={slug} />;
+  const [post, posts, categories, listing, related, cta] = await Promise.all([
+    getPublicBlogPost(slug),
+    listPublicBlogPosts(),
+    listPublicBlogCategories(),
+    listPublicBlogListing(),
+    listPublicBlogRelated(),
+    listPublicBlogCta(),
+  ]);
+  return (
+    <BlogArticle
+      post={post}
+      posts={posts}
+      categories={categories}
+      listing={listing}
+      related={related}
+      cta={cta}
+    />
+  );
 }

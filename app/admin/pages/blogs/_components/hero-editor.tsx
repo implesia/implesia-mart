@@ -1,15 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import {
-  readBlogSections,
-  saveBlogSections,
-  type BlogHeroContent,
-} from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { getBlogHero, saveBlogHero, type BlogHero } from "@/lib/mart-api/blog-hero";
+import { listAdminBlogPosts } from "@/lib/mart-api/blog-posts";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -32,7 +27,7 @@ type Draft = {
   countLabel: string;
 };
 
-function draftFrom(hero: BlogHeroContent): Draft {
+function draftFrom(hero: BlogHero): Draft {
   return {
     isActive: hero.isActive !== false,
     eyebrow: hero.eyebrow,
@@ -43,35 +38,78 @@ function draftFrom(hero: BlogHeroContent): Draft {
 }
 
 export function BlogHeroEditor() {
-  const { hero, posts } = useBlogSections();
+  const [count, setCount] = useState(0);
+  const [hero, setHero] = useState<BlogHero | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useBlogNav();
   const editing = params.get("edit") === "hero";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const count = posts.filter(isContentActive).length;
-  const empty = !hero.eyebrow.trim() && !hero.title.trim() && !hero.subtitle.trim();
+  const empty =
+    !hero ||
+    (!hero.eyebrow.trim() && !hero.title.trim() && !hero.subtitle.trim());
+
+  useEffect(() => {
+    let active = true;
+    listAdminBlogPosts()
+      .then((posts) => {
+        if (active) setCount(posts.filter((post) => post.isActive !== false).length);
+      })
+      .catch(() => {
+        if (active) setCount(0);
+      });
+    getBlogHero()
+      .then((next) => {
+        if (active) setHero(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the hero.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setBlogQuery(router, pathname, "edit", open ? "hero" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readBlogSections();
-    saveBlogSections({
-      ...doc,
-      hero: {
-        isActive: draft.isActive,
-        eyebrow: draft.eyebrow.trim(),
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        countLabel: draft.countLabel.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveBlogHero({
+      isActive: draft.isActive,
+      eyebrow: draft.eyebrow.trim(),
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      countLabel: draft.countLabel.trim(),
     });
+    setHero(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!hero) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <BlogHeader
+          sectionId="hero"
+          title="Hero"
+          description="Opening copy and article count."
+          editLabel="Edit hero"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the hero…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -130,9 +168,9 @@ function HeroForm({
   onClose,
   onSave,
 }: {
-  hero: BlogHeroContent;
+  hero: BlogHero;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(hero);
   const [draft, setDraft] = useState(initial);
@@ -141,14 +179,21 @@ function HeroForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setTitleError(
+        caught instanceof Error ? caught.message : "Could not save the hero.",
+      );
+    }
   }
 
   return (

@@ -3,9 +3,7 @@
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
-import { WHATSAPP_HREF } from "@/app/(client)/_data/contact/contact";
-import { useContactSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { contactChannel, type ContactDetails } from "@/lib/mart-api/contact-details";
 import { cn } from "@/lib/utils";
 import { productsHref } from "../../_data/products/products";
 import { FacebookIcon, LinkedinIcon, WhatsAppIcon } from "./brand-icons";
@@ -75,26 +73,18 @@ function FooterColumn({
   );
 }
 
-export default function Footer() {
+export default function Footer({ details }: { details: ContactDetails | null }) {
   const year = new Date().getFullYear();
-  const { direct } = useContactSections();
-  const visible = isContentActive(direct);
-  const phoneChannel = visible
-    ? direct.channels.find((channel) => channel.icon === "call" && isContentActive(channel))
+  const phoneChannel = contactChannel(details, "call");
+  const emailChannel = contactChannel(details, "mail");
+  const chatChannel = contactChannel(details, "chat");
+  const facebookLink = details?.isActive
+    ? details.social.find((item) => item.platform === "facebook" && item.isActive && item.href)
     : undefined;
-  const emailChannel = visible
-    ? direct.channels.find((channel) => channel.icon === "mail" && isContentActive(channel))
+  const linkedinLink = details?.isActive
+    ? details.social.find((item) => item.platform === "linkedin" && item.isActive && item.href)
     : undefined;
-  const chatChannel = visible
-    ? direct.channels.find((channel) => channel.icon === "chat" && isContentActive(channel))
-    : undefined;
-  const facebookLink = visible
-    ? direct.social.find((item) => item.platform === "facebook" && isContentActive(item))
-    : undefined;
-  const linkedinLink = visible
-    ? direct.social.find((item) => item.platform === "linkedin" && isContentActive(item))
-    : undefined;
-  const whatsAppHref = chatChannel?.href || WHATSAPP_HREF;
+  const whatsAppHref = chatChannel?.href ?? "";
 
   return (
     <footer className="relative mt-10 w-full overflow-hidden bg-neutral-950 text-white sm:mt-12 lg:mt-14">
@@ -137,15 +127,17 @@ export default function Footer() {
             </div>
 
             <div className="mt-6 flex items-center gap-2.5">
-              <a
-                href={whatsAppHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={socialClass}
-                aria-label="WhatsApp"
-              >
-                <WhatsAppIcon className="size-[18px]" />
-              </a>
+              {whatsAppHref ? (
+                <a
+                  href={whatsAppHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={socialClass}
+                  aria-label="WhatsApp"
+                >
+                  <WhatsAppIcon className="size-[18px]" />
+                </a>
+              ) : null}
               {facebookLink?.href ? (
                 <a
                   href={facebookLink.href}
@@ -194,18 +186,20 @@ export default function Footer() {
             ))}
           </ul>
 
-          <a
-            href={whatsAppHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "h-11 w-full rounded-full bg-white text-sm font-semibold text-neutral-950 hover:bg-neutral-100 sm:w-auto sm:min-w-[220px]",
-            )}
-          >
-            <WhatsAppIcon className="mr-2 size-4" />
-            WhatsApp-এ চ্যাট
-          </a>
+          {whatsAppHref ? (
+            <a
+              href={whatsAppHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                "h-11 w-full rounded-full bg-white text-sm font-semibold text-neutral-950 hover:bg-neutral-100 sm:w-auto sm:min-w-[220px]",
+              )}
+            >
+              <WhatsAppIcon className="mr-2 size-4" />
+              WhatsApp-এ চ্যাট
+            </a>
+          ) : null}
         </div>
 
         {/* Bottom bar */}

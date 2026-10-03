@@ -1,18 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankBlogCategory,
-  moveList,
-  readBlogSections,
-  saveBlogSections,
-  type BlogCategoriesContent,
-  type BlogCategoryItem,
-} from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
+  getBlogCategories,
+  saveBlogCategories,
+  type BlogCategories,
+  type BlogCategory,
+} from "@/lib/mart-api/blog-categories";
+import { moveList } from "@/lib/mart-mock/blog-sections";
 import { cn } from "@/lib/utils";
 
 import {
@@ -33,12 +31,13 @@ import {
   VisibilitySwitch,
 } from "./blog-shared";
 
-type Draft = {
-  isActive: boolean;
-  items: BlogCategoryItem[];
-};
+type Draft = BlogCategories;
 
-function draftFrom(categories: BlogCategoriesContent): Draft {
+function blankCategory(): BlogCategory {
+  return { id: `cat-${crypto.randomUUID()}`, label: "", isActive: true };
+}
+
+function draftFrom(categories: BlogCategories): Draft {
   return {
     isActive: categories.isActive !== false,
     items: categories.items.map((item) => ({
@@ -49,35 +48,69 @@ function draftFrom(categories: BlogCategoriesContent): Draft {
 }
 
 export function BlogCategoriesEditor() {
-  const { categories } = useBlogSections();
+  const [categories, setCategories] = useState<BlogCategories | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useBlogNav();
   const editing = params.get("edit") === "categories";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const empty = categories.items.length === 0;
+  const empty = !categories || categories.items.length === 0;
+
+  useEffect(() => {
+    let active = true;
+    getBlogCategories()
+      .then((next) => {
+        if (active) setCategories(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the categories.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setBlogQuery(router, pathname, "edit", open ? "categories" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readBlogSections();
-    saveBlogSections({
-      ...doc,
-      categories: {
-        isActive: draft.isActive,
-        items: draft.items.map((item) => ({
-          id: item.id,
-          label: item.label.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveBlogCategories({
+      isActive: draft.isActive,
+      items: draft.items.map((item) => ({
+        id: item.id,
+        label: item.label.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setCategories(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!categories) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <BlogHeader
+          sectionId="categories"
+          title="Categories"
+          description="Filter tags on the blog list."
+          editLabel="Edit categories"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the categories…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -139,9 +172,9 @@ function CategoriesForm({
   onClose,
   onSave,
 }: {
-  categories: BlogCategoriesContent;
+  categories: BlogCategories;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(categories);
   const [draft, setDraft] = useState(initial);
@@ -150,14 +183,21 @@ function CategoriesForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (draft.items.some((item) => !item.label.trim())) {
       setItemError("Every category needs a name.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setItemError(
+        caught instanceof Error ? caught.message : "Could not save the categories.",
+      );
+    }
   }
 
   return (
@@ -251,7 +291,7 @@ function CategoriesForm({
           onClick={() =>
             setDraft((current) => ({
               ...current,
-              items: [...current.items, blankBlogCategory()],
+              items: [...current.items, blankCategory()],
             }))
           }
           className={adminButtonClass.secondary}

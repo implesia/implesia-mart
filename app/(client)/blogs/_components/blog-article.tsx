@@ -3,9 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { blogCategoryLabel, type BlogCategories } from "@/lib/mart-api/blog-categories";
+import type { BlogCta } from "@/lib/mart-api/blog-cta";
+import type { BlogListing } from "@/lib/mart-api/blog-listing";
+import type { BlogRelated } from "@/lib/mart-api/blog-related";
 import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { categoryLabel, type BlogPostRecord } from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
+import type { BlogPostRecord } from "@/lib/mart-mock/blog-sections";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { absoluteUrl, bengaliDateToIso, SITE_NAME } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -18,9 +21,21 @@ import { ProductBreadcrumbs } from "../../products/_components/product-breadcrum
 import { BlogContent } from "./blog-content";
 import { BlogRelatedPosts, BlogRelatedProducts } from "./blog-related";
 
-export function BlogArticle({ slug }: { slug: string }) {
-  const sections = useBlogSections();
-  const post = sections.posts.find((item) => item.slug === slug);
+export function BlogArticle({
+  post,
+  posts,
+  categories,
+  listing,
+  related,
+  cta,
+}: {
+  post: BlogPostRecord | null;
+  posts: BlogPostRecord[];
+  categories: BlogCategories | null;
+  listing: BlogListing | null;
+  related: BlogRelated | null;
+  cta: BlogCta | null;
+}) {
   if (!post || !isContentActive(post)) {
     return (
       <main className="force-light w-full bg-[#f5f6f8] text-neutral-950">
@@ -34,16 +49,16 @@ export function BlogArticle({ slug }: { slug: string }) {
     );
   }
 
-  const category = categoryLabel(sections, post.categoryId);
+  const category = blogCategoryLabel(categories, post.categoryId);
   const blocks = post.content.filter(isContentActive);
   const headings = blocks.flatMap((block) =>
     block.type === "heading" ? [{ id: `section-${block.id}`, text: block.text }] : [],
   );
-  const showRelated = isContentActive(sections.related);
-  const relatedPosts = relatedArticles(sections.posts, post);
+  const showRelated = Boolean(related?.isActive);
+  const relatedPosts = relatedArticles(posts, post);
   const publishedIso = bengaliDateToIso(post.publishedAt);
   const postUrl = absoluteUrl(`/blogs/${post.slug}`);
-  const readSuffix = sections.listing.readSuffix.trim();
+  const readSuffix = listing?.isActive ? listing.readSuffix.trim() : "";
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -140,7 +155,7 @@ export function BlogArticle({ slug }: { slug: string }) {
               <div className="sticky top-28 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
                 <div className="border-b border-neutral-200 px-4 py-3.5">
                   <p className="text-sm font-semibold text-neutral-950">
-                    {sections.related.tocTitle}
+                    {related?.tocTitle}
                   </p>
                 </div>
                 <nav className="flex flex-col gap-0.5 p-2.5" aria-label="আর্টিকেল বিষয়বস্তু">
@@ -183,7 +198,7 @@ export function BlogArticle({ slug }: { slug: string }) {
             {showRelated && headings.length > 1 ? (
               <div className="mb-6 lg:hidden">
                 <p className="mb-2.5 text-sm font-semibold text-neutral-950">
-                  {sections.related.tocTitle}
+                  {related?.tocTitle}
                 </p>
                 <div
                   className={cn(
@@ -219,20 +234,24 @@ export function BlogArticle({ slug }: { slug: string }) {
               </div>
             ) : null}
 
-            <BlogRelatedProducts slugs={post.relatedProductSlugs} />
-            <ArticleCta />
+            <BlogRelatedProducts slugs={post.relatedProductSlugs} related={related} />
+            <ArticleCta cta={cta} />
           </article>
         </div>
 
-        <BlogRelatedPosts posts={relatedPosts} />
+        <BlogRelatedPosts
+          posts={relatedPosts}
+          related={related}
+          categories={categories?.isActive ? categories.items : []}
+          listing={listing}
+        />
       </Container>
     </main>
   );
 }
 
-function ArticleCta() {
-  const { cta } = useBlogSections();
-  if (!isContentActive(cta)) return null;
+function ArticleCta({ cta }: { cta: BlogCta | null }) {
+  if (!cta?.isActive) return null;
   const primary = cta.primaryLabel.trim();
   const secondary = cta.secondaryLabel.trim();
 

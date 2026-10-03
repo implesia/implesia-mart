@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 
-import { categoryLabel } from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
+import { blogCategoryLabel, type BlogCategories } from "@/lib/mart-api/blog-categories";
+import type { BlogListing } from "@/lib/mart-api/blog-listing";
 import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { BlogPostRecord } from "@/lib/mart-mock/blog-sections";
 import { cn } from "@/lib/utils";
 
 import { products } from "../../_data/products/products";
@@ -16,23 +17,34 @@ function hasAvailableRelated(slugs: string[]) {
   );
 }
 
-export function BlogsGrid() {
-  const sections = useBlogSections();
-  const { listing, categories } = sections;
-  const posts = sections.posts.filter(isContentActive);
-  const categoryItems = isContentActive(categories)
-    ? categories.items.filter(isContentActive)
+export function BlogsGrid({
+  categories,
+  listing,
+  posts,
+}: {
+  categories: BlogCategories | null;
+  listing: BlogListing | null;
+  posts: BlogPostRecord[];
+}) {
+  const visiblePosts = posts.filter(isContentActive);
+  const categoryItems = categories?.isActive
+    ? categories.items.filter((item) => item.isActive)
     : [];
-  const allLabel = listing.allLabel.trim() || "সব";
-  const [active, setActive] = useState(allLabel);
-  const showHeading = isContentActive(listing);
+  const allLabel = listing?.allLabel.trim() ?? "";
+  const [active, setActive] = useState("all");
+  const showHeading = Boolean(listing?.isActive);
   const showTabs = categoryItems.length > 0;
-  const tabs = [allLabel, ...categoryItems.map((item) => item.label)];
-  const selected = tabs.includes(active) ? active : allLabel;
+  const selected = active === "all" || categoryItems.some((item) => item.id === active)
+    ? active
+    : "all";
+  const selectedLabel =
+    selected === "all"
+      ? allLabel
+      : blogCategoryLabel(categories, selected) || allLabel;
   const visible = useMemo(() => {
-    if (!showTabs || selected === allLabel) return posts;
-    return posts.filter((post) => categoryLabel(sections, post.categoryId) === selected);
-  }, [posts, selected, allLabel, showTabs, sections]);
+    if (!showTabs || selected === "all") return visiblePosts;
+    return visiblePosts.filter((post) => post.categoryId === selected);
+  }, [visiblePosts, selected, showTabs]);
   const featured = useMemo(
     () => visible.find((post) => hasAvailableRelated(post.relatedProductSlugs)) ?? visible[0],
     [visible],
@@ -41,15 +53,15 @@ export function BlogsGrid() {
 
   const categoryCounts = useMemo(() => {
     const map = new Map<string, number>();
-    map.set(allLabel, posts.length);
+    map.set("all", visiblePosts.length);
     for (const category of categoryItems) {
       map.set(
-        category.label,
-        posts.filter((post) => post.categoryId === category.id).length,
+        category.id,
+        visiblePosts.filter((post) => post.categoryId === category.id).length,
       );
     }
     return map;
-  }, [posts, categoryItems, allLabel]);
+  }, [visiblePosts, categoryItems]);
 
   return (
     <div className="w-full">
@@ -57,13 +69,13 @@ export function BlogsGrid() {
         <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
           {showHeading ? (
             <div className="min-w-0">
-              {listing.heading.trim() ? (
+              {listing?.heading.trim() ? (
                 <h2 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
-                  {selected === allLabel ? listing.heading : selected}
+                  {selected === "all" ? listing.heading : selectedLabel}
                 </h2>
               ) : null}
               <p className="mt-1 text-sm text-neutral-600">
-                {`${visible.length}${listing.countSuffix}`}
+                {`${visible.length}${listing?.countSuffix ?? ""}`}
               </p>
             </div>
           ) : null}
@@ -75,18 +87,21 @@ export function BlogsGrid() {
                 "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
               )}
               role="tablist"
-              aria-label={listing.tabsLabel.trim() || "ব্লগ ক্যাটাগরি"}
+              aria-label={listing?.tabsLabel.trim() || "Categories"}
             >
-              {[allLabel, ...categoryItems.map((item) => item.label)].map((label) => {
-                const isActive = selected === label;
-                const count = categoryCounts.get(label) ?? 0;
+              {[
+                { id: "all", label: allLabel },
+                ...categoryItems.map((item) => ({ id: item.id, label: item.label })),
+              ].map((tab) => {
+                const isActive = selected === tab.id;
+                const count = categoryCounts.get(tab.id) ?? 0;
                 return (
                   <button
-                    key={label}
+                    key={tab.id}
                     type="button"
                     role="tab"
                     aria-selected={isActive}
-                    onClick={() => setActive(label)}
+                    onClick={() => setActive(tab.id)}
                     className={cn(
                       "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors sm:text-[13px]",
                       isActive
@@ -94,7 +109,7 @@ export function BlogsGrid() {
                         : "border border-neutral-200/90 bg-white text-neutral-600 hover:border-primary/40 hover:text-neutral-950",
                     )}
                   >
-                    {label}
+                    {tab.label}
                     <span
                       className={cn(
                         "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
@@ -113,17 +128,19 @@ export function BlogsGrid() {
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-neutral-200/90 bg-white py-16 text-center">
-          <p className="text-sm text-neutral-600">
-            {listing.emptyMessage.trim() || "এই ক্যাটাগরিতে এখনো কোনো আর্টিকেল নেই।"}
-          </p>
+          {listing?.emptyMessage.trim() ? (
+            <p className="text-sm text-neutral-600">{listing.emptyMessage}</p>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-5">
-          {featured ? <BlogCard post={featured} featured /> : null}
+          {featured ? (
+            <BlogCard post={featured} categories={categoryItems} listing={listing} featured />
+          ) : null}
           {rest.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
               {rest.map((post) => (
-                <BlogCard key={post.id} post={post} />
+                <BlogCard key={post.id} post={post} categories={categoryItems} listing={listing} />
               ))}
             </div>
           ) : null}

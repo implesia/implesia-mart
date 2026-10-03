@@ -1,14 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import {
-  readBlogSections,
-  saveBlogSections,
-  type BlogListingContent,
-} from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
+import { getBlogListing, saveBlogListing, type BlogListing } from "@/lib/mart-api/blog-listing";
+import { listAdminBlogPosts } from "@/lib/mart-api/blog-posts";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -16,25 +12,16 @@ import {
   BlogCard,
   BlogHeader,
   BlogModal,
+  FormError,
   Labeled,
   setBlogQuery,
   useBlogNav,
   useReturnFocus,
 } from "./blog-shared";
 
-type Draft = {
-  isActive: boolean;
-  heading: string;
-  allLabel: string;
-  countSuffix: string;
-  emptyMessage: string;
-  featuredLabel: string;
-  readLabel: string;
-  readSuffix: string;
-  tabsLabel: string;
-};
+type Draft = BlogListing;
 
-function draftFrom(listing: BlogListingContent): Draft {
+function draftFrom(listing: BlogListing): Draft {
   return {
     isActive: listing.isActive !== false,
     heading: listing.heading,
@@ -49,37 +36,85 @@ function draftFrom(listing: BlogListingContent): Draft {
 }
 
 export function BlogListingEditor() {
-  const { listing } = useBlogSections();
+  const [count, setCount] = useState(0);
+  const [listing, setListing] = useState<BlogListing | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useBlogNav();
   const editing = params.get("edit") === "listing";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
+  useEffect(() => {
+    let active = true;
+    listAdminBlogPosts()
+      .then((posts) => {
+        if (active) setCount(posts.filter((post) => post.isActive !== false).length);
+      })
+      .catch(() => {
+        if (active) setCount(0);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getBlogListing()
+      .then((next) => {
+        if (active) setListing(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the listing.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setBlogQuery(router, pathname, "edit", open ? "listing" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readBlogSections();
-    saveBlogSections({
-      ...doc,
-      listing: {
-        isActive: draft.isActive,
-        heading: draft.heading.trim(),
-        allLabel: draft.allLabel.trim(),
-        countSuffix: draft.countSuffix.trim(),
-        emptyMessage: draft.emptyMessage.trim(),
-        featuredLabel: draft.featuredLabel.trim(),
-        readLabel: draft.readLabel.trim(),
-        readSuffix: draft.readSuffix.trim(),
-        tabsLabel: draft.tabsLabel.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveBlogListing({
+      isActive: draft.isActive,
+      heading: draft.heading.trim(),
+      allLabel: draft.allLabel.trim(),
+      countSuffix: draft.countSuffix.replace(/\s+$/u, ""),
+      emptyMessage: draft.emptyMessage.trim(),
+      featuredLabel: draft.featuredLabel.trim(),
+      readLabel: draft.readLabel.trim(),
+      readSuffix: draft.readSuffix.trim(),
+      tabsLabel: draft.tabsLabel.trim(),
     });
+    setListing(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!listing) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <BlogHeader
+          sectionId="listing"
+          title="Listing"
+          description="Headings, empty state, and card labels."
+          editLabel="Edit listing"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the listing…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -112,7 +147,8 @@ export function BlogListingEditor() {
             {listing.heading.trim() || "Heading"}
           </p>
           <p className="mt-1 text-sm text-neutral-500">
-            9{listing.countSuffix.trim() || " articles"}
+            {count}
+            {listing.countSuffix}
           </p>
           <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
             <Row label="All filter" value={listing.allLabel} />
@@ -145,20 +181,29 @@ function ListingForm({
   onClose,
   onSave,
 }: {
-  listing: BlogListingContent;
+  listing: BlogListing;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(listing);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     setSaving(true);
-    onSave(draft);
+    setSaveError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setSaveError(
+        caught instanceof Error ? caught.message : "Could not save the listing.",
+      );
+    }
   }
 
   return (
@@ -178,6 +223,7 @@ function ListingForm({
         <p className="text-sm text-neutral-500">
           Turning this off hides the heading and the count. The cards stay.
         </p>
+        <FormError message={saveError} />
         <Labeled
           id={`${formId}-heading`}
           label="Heading"

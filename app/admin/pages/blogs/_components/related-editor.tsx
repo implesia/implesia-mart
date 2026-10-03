@@ -1,14 +1,14 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import {
-  readBlogSections,
-  saveBlogSections,
-  type BlogRelatedContent,
-} from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
+  blogRelatedHasCopy,
+  getBlogRelated,
+  saveBlogRelated,
+  type BlogRelated,
+} from "@/lib/mart-api/blog-related";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -35,7 +35,7 @@ type Draft = {
   detailsLabel: string;
 };
 
-function draftFrom(related: BlogRelatedContent): Draft {
+function draftFrom(related: BlogRelated): Draft {
   return {
     isActive: related.isActive !== false,
     tocTitle: related.tocTitle,
@@ -51,39 +51,71 @@ function draftFrom(related: BlogRelatedContent): Draft {
 }
 
 export function BlogRelatedEditor() {
-  const { related } = useBlogSections();
+  const [related, setRelated] = useState<BlogRelated | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useBlogNav();
   const editing = params.get("edit") === "related";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
 
+  useEffect(() => {
+    let active = true;
+    getBlogRelated()
+      .then((next) => {
+        if (active) setRelated(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the related labels.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setBlogQuery(router, pathname, "edit", open ? "related" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readBlogSections();
-    saveBlogSections({
-      ...doc,
-      related: {
-        isActive: draft.isActive,
-        tocTitle: draft.tocTitle.trim(),
-        productsTitle: draft.productsTitle.trim(),
-        productsSubtitle: draft.productsSubtitle.trim(),
-        postsTitle: draft.postsTitle.trim(),
-        postsSubtitle: draft.postsSubtitle.trim(),
-        postsLinkLabel: draft.postsLinkLabel.trim(),
-        comingSoonLabel: draft.comingSoonLabel.trim(),
-        viewLabel: draft.viewLabel.trim(),
-        detailsLabel: draft.detailsLabel.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveBlogRelated({
+      isActive: draft.isActive,
+      tocTitle: draft.tocTitle.trim(),
+      productsTitle: draft.productsTitle.trim(),
+      productsSubtitle: draft.productsSubtitle.trim(),
+      postsTitle: draft.postsTitle.trim(),
+      postsSubtitle: draft.postsSubtitle.trim(),
+      postsLinkLabel: draft.postsLinkLabel.trim(),
+      comingSoonLabel: draft.comingSoonLabel.trim(),
+      viewLabel: draft.viewLabel.trim(),
+      detailsLabel: draft.detailsLabel.trim(),
     });
+    setRelated(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!related) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <BlogHeader
+          sectionId="related"
+          title="Related"
+          description="Contents, mentioned products, and more to read."
+          editLabel="Edit related"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the related labels…"}</p>
+      </div>
+    );
+  }
+
+  const blank = !blogRelatedHasCopy(related);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -94,7 +126,6 @@ export function BlogRelatedEditor() {
         editLabel="Edit related"
         onEdit={() => setEditing(true)}
         editRef={focusEdit}
-        viewHref="/blogs/sothik-power-bank-bachai-korar-upay"
       />
       {notice ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
@@ -107,7 +138,9 @@ export function BlogRelatedEditor() {
         description={
           related.isActive === false
             ? "Hidden on the article page."
-            : "The contents list, mentioned products, and more articles."
+            : blank
+              ? "No related labels yet."
+              : "The contents list, mentioned products, and more articles."
         }
         active={related.isActive !== false}
       >
@@ -176,20 +209,27 @@ function RelatedForm({
   onClose,
   onSave,
 }: {
-  related: BlogRelatedContent;
+  related: BlogRelated;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(related);
   const [draft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     setSaving(true);
-    onSave(draft);
+    setSaveError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setSaveError(caught instanceof Error ? caught.message : "Could not save the related labels.");
+    }
   }
 
   return (
@@ -203,6 +243,7 @@ function RelatedForm({
         onClose={onClose}
         onSave={save}
       >
+        {saveError ? <p className="text-sm text-red-700">{saveError}</p> : null}
         <ActiveStatusField
           checked={draft.isActive}
           onChange={(isActive) => setDraft({ ...draft, isActive })}

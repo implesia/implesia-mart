@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { useContactSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { contactChannel, type ContactDetails } from "@/lib/mart-api/contact-details";
 
 import { headerNav } from "../../_data/common/site-nav";
 import { productFilters } from "../../_data/products/products";
@@ -32,14 +31,9 @@ function useScrollLock(locked: boolean) {
   }, [locked]);
 }
 
-export default function Header() {
+export default function Header({ details }: { details: ContactDetails | null }) {
   const pathname = usePathname();
-  const direct = useContactSections().direct;
-  const phoneChannel = isContentActive(direct)
-    ? direct.channels.find(
-        (channel) => channel.icon === "call" && isContentActive(channel),
-      )
-    : undefined;
+  const phoneChannel = contactChannel(details, "call");
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
   const menuId = useId();

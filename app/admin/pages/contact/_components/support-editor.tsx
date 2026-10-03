@@ -1,17 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankContactHour,
-  blankContactLink,
-  readContactSections,
-  saveContactSections,
-  type ContactSupportContent,
-} from "@/lib/mart-mock/contact-sections";
-import { useContactSections } from "@/lib/mart-mock/hooks";
+  getContactSupport,
+  saveContactSupport,
+  type ContactSupport,
+  type ContactSupportHour,
+  type ContactSupportLink,
+} from "@/lib/mart-api/contact-support";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField, adminButtonClass, adminFieldClass, FieldError, FieldLabel } from "../../../_components/admin-ui";
@@ -28,9 +27,28 @@ import {
   useReturnFocus,
 } from "./contact-shared";
 
-type Draft = ContactSupportContent;
+type Draft = ContactSupport;
 
-function draftFrom(support: ContactSupportContent): Draft {
+function blankHour(): ContactSupportHour {
+  return {
+    id: `hour-${crypto.randomUUID()}`,
+    label: "",
+    value: "",
+    isActive: true,
+  };
+}
+
+function blankLink(): ContactSupportLink {
+  return {
+    id: `link-${crypto.randomUUID()}`,
+    icon: "help",
+    label: "",
+    href: "",
+    isActive: true,
+  };
+}
+
+function draftFrom(support: ContactSupport): Draft {
   return {
     isActive: support.isActive !== false,
     title: support.title,
@@ -47,47 +65,82 @@ function draftFrom(support: ContactSupportContent): Draft {
 }
 
 export function ContactSupportEditor() {
-  const { support } = useContactSections();
+  const [support, setSupport] = useState<ContactSupport | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useContactNav();
   const editing = params.has("edit");
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
   const empty =
-    !support.title.trim() &&
-    support.hours.length === 0 &&
-    support.quickLinks.length === 0;
+    !support ||
+    (!support.title.trim() &&
+      support.hours.length === 0 &&
+      support.quickLinks.length === 0);
+
+  useEffect(() => {
+    let active = true;
+    getContactSupport()
+      .then((next) => {
+        if (active) setSupport(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load support.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setContactQuery(router, pathname, open, "support");
   }
 
-  function save(draft: Draft) {
-    const doc = readContactSections();
-    saveContactSections({
-      ...doc,
-      support: {
-        isActive: draft.isActive !== false,
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        hours: draft.hours.map((item) => ({
-          ...item,
-          label: item.label.trim(),
-          value: item.value.trim(),
-          isActive: item.isActive !== false,
-        })),
-        quickLinks: draft.quickLinks.map((item) => ({
-          ...item,
-          label: item.label.trim(),
-          href: item.href.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveContactSupport({
+      isActive: draft.isActive !== false,
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      hours: draft.hours.map((item) => ({
+        ...item,
+        label: item.label.trim(),
+        value: item.value.trim(),
+        isActive: item.isActive !== false,
+      })),
+      quickLinks: draft.quickLinks.map((item) => ({
+        ...item,
+        label: item.label.trim(),
+        href: item.href.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setSupport(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!support) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ContactHeader
+          sectionId="support"
+          title="Support"
+          description="Support hours and quick links."
+          editLabel="Edit support"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading support…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -131,7 +184,7 @@ export function ContactSupportEditor() {
   );
 }
 
-function SupportPreview({ support }: { support: ContactSupportContent }) {
+function SupportPreview({ support }: { support: ContactSupport }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div>
@@ -204,9 +257,9 @@ function SupportForm({
   onClose,
   onSave,
 }: {
-  support: ContactSupportContent;
+  support: ContactSupport;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(support);
   const [draft, setDraft] = useState(initial);
@@ -217,7 +270,7 @@ function SupportForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextTitle = draft.title.trim() ? "" : "Title is required.";
     const nextHours = draft.hours.some(
@@ -235,7 +288,17 @@ function SupportForm({
     setLinkError(nextLinks);
     if (nextTitle || nextHours || nextLinks) return;
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      const message =
+        caught instanceof Error ? caught.message : "Could not save support.";
+      if (message === "Each row needs a day and the hours.") setHourError(message);
+      else if (message === "Each link needs a label and a destination.") {
+        setLinkError(message);
+      } else setTitleError(message);
+    }
   }
 
   function moveHours(index: number, direction: -1 | 1) {
@@ -305,7 +368,7 @@ function SupportForm({
           onAdd={() => {
             setDraft((current) => ({
               ...current,
-              hours: [...current.hours, blankContactHour()],
+              hours: [...current.hours, blankHour()],
             }));
             setHourError("");
           }}
@@ -384,7 +447,7 @@ function SupportForm({
           onAdd={() => {
             setDraft((current) => ({
               ...current,
-              quickLinks: [...current.quickLinks, blankContactLink()],
+              quickLinks: [...current.quickLinks, blankLink()],
             }));
             setLinkError("");
           }}

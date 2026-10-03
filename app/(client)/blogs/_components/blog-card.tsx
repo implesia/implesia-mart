@@ -3,32 +3,37 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { categoryLabel, type BlogPostRecord } from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
+import type { BlogCategory } from "@/lib/mart-api/blog-categories";
+import type { BlogListing } from "@/lib/mart-api/blog-listing";
+import type { BlogPostRecord } from "@/lib/mart-mock/blog-sections";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 
 export function BlogCard({
   post,
+  categories = [],
+  listing = null,
   featured = false,
   className,
 }: {
   post: BlogPostRecord;
+  categories?: Pick<BlogCategory, "id" | "label">[];
+  listing?: BlogListing | null;
   featured?: boolean;
   className?: string;
 }) {
-  const sections = useBlogSections();
-  const { listing } = sections;
-  const category = categoryLabel(sections, post.categoryId);
+  const category = categories.find((item) => item.id === post.categoryId)?.label ?? "";
+  const featuredLabel = listing?.isActive ? listing.featuredLabel.trim() : "";
+  const readLabel = listing?.isActive ? listing.readLabel.trim() : "";
 
   if (featured) {
     return (
       <FeaturedBlogCard
         post={post}
         category={category}
-        featuredLabel={listing.featuredLabel.trim()}
-        readLabel={listing.readLabel.trim()}
+        featuredLabel={featuredLabel}
+        readLabel={readLabel}
         className={className}
       />
     );
@@ -73,9 +78,9 @@ export function BlogCard({
             <span className="size-0.5 shrink-0 rounded-full bg-neutral-300" aria-hidden />
             <span className="shrink-0">{post.readTime}</span>
           </div>
-          {listing.readLabel.trim() ? (
+          {readLabel ? (
             <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary">
-              {listing.readLabel}
+              {readLabel}
               <MaterialIcon name="arrow_forward" className="text-[16px]" />
             </span>
           ) : null}

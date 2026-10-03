@@ -1,15 +1,14 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  readContactSections,
-  saveContactSections,
-  type ContactHeroContent,
-} from "@/lib/mart-mock/contact-sections";
-import { useContactSections } from "@/lib/mart-mock/hooks";
+  getContactHero,
+  saveContactHero,
+  type ContactHero,
+} from "@/lib/mart-api/contact-hero";
 import { cn } from "@/lib/utils";
 
 import {
@@ -39,7 +38,7 @@ type Draft = {
   secondaryHref: string;
 };
 
-function draftFrom(hero: ContactHeroContent): Draft {
+function draftFrom(hero: ContactHero): Draft {
   return {
     isActive: hero.isActive !== false,
     eyebrow: hero.eyebrow,
@@ -53,46 +52,81 @@ function draftFrom(hero: ContactHeroContent): Draft {
 }
 
 export function ContactHeroEditor() {
-  const { hero } = useContactSections();
+  const [hero, setHero] = useState<ContactHero | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useContactNav();
   const editing = params.has("edit");
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
   const empty =
-    !hero.eyebrow.trim() &&
-    !hero.title.trim() &&
-    !hero.subtitle.trim() &&
-    !hero.primaryCta.label.trim() &&
-    !hero.secondaryCta.label.trim();
+    !hero ||
+    (!hero.eyebrow.trim() &&
+      !hero.title.trim() &&
+      !hero.subtitle.trim() &&
+      !hero.primaryCta.label.trim() &&
+      !hero.secondaryCta.label.trim());
+
+  useEffect(() => {
+    let active = true;
+    getContactHero()
+      .then((next) => {
+        if (active) setHero(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the hero.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setContactQuery(router, pathname, open, "hero");
   }
 
-  function save(draft: Draft) {
-    const doc = readContactSections();
-    saveContactSections({
-      ...doc,
-      hero: {
-        isActive: draft.isActive,
-        eyebrow: draft.eyebrow.trim(),
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        primaryCta: {
-          label: draft.primaryLabel.trim(),
-          href: draft.primaryHref.trim(),
-        },
-        secondaryCta: {
-          label: draft.secondaryLabel.trim(),
-          href: draft.secondaryHref.trim(),
-        },
+  async function save(draft: Draft) {
+    const saved = await saveContactHero({
+      isActive: draft.isActive,
+      eyebrow: draft.eyebrow.trim(),
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      primaryCta: {
+        label: draft.primaryLabel.trim(),
+        href: draft.primaryHref.trim(),
+      },
+      secondaryCta: {
+        label: draft.secondaryLabel.trim(),
+        href: draft.secondaryHref.trim(),
       },
     });
+    setHero(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!hero) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ContactHeader
+          sectionId="hero"
+          title="Hero"
+          description="Opening copy and buttons."
+          editLabel="Edit hero"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the hero…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -132,7 +166,7 @@ export function ContactHeroEditor() {
   );
 }
 
-function HeroPreview({ hero }: { hero: ContactHeroContent }) {
+function HeroPreview({ hero }: { hero: ContactHero }) {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] px-4 py-8 text-center sm:px-8">
       <p className="text-xs font-medium tracking-wide text-primary uppercase">
@@ -166,9 +200,9 @@ function HeroForm({
   onClose,
   onSave,
 }: {
-  hero: ContactHeroContent;
+  hero: ContactHero;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(hero);
   const [draft, setDraft] = useState(initial);
@@ -177,14 +211,22 @@ function HeroForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setTitleError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setTitleError(
+        caught instanceof Error ? caught.message : "Could not save the hero.",
+      );
+    }
   }
 
   return (

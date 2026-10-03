@@ -1,15 +1,21 @@
 "use client";
 
-import { useBlogSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { type BlogHero } from "@/lib/mart-api/blog-hero";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 
-export function BlogsHero({ className }: { className?: string }) {
-  const { hero, posts } = useBlogSections();
-  if (!isContentActive(hero)) return null;
-  const postCount = posts.filter(isContentActive).length;
+export function BlogsHero({
+  hero,
+  count = 0,
+  className,
+}: {
+  hero: BlogHero | null;
+  count?: number;
+  className?: string;
+}) {
+  if (!hero?.isActive) return null;
+  const postCount = count;
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>

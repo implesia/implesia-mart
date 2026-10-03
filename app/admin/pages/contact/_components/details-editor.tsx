@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -9,13 +9,11 @@ import {
   LinkedinIcon,
 } from "@/app/(client)/_components/common/brand-icons";
 import {
-  blankContactChannel,
-  readContactSections,
-  saveContactSections,
-  type ContactChannelItem,
-  type ContactDirectContent,
-} from "@/lib/mart-mock/contact-sections";
-import { useContactSections } from "@/lib/mart-mock/hooks";
+  getContactDetails,
+  saveContactDetails,
+  type ContactChannel,
+  type ContactDetails,
+} from "@/lib/mart-api/contact-details";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField, adminButtonClass, adminFieldClass, FieldError, FieldLabel } from "../../../_components/admin-ui";
@@ -32,9 +30,20 @@ import {
   useReturnFocus,
 } from "./contact-shared";
 
-type Draft = ContactDirectContent;
+type Draft = ContactDetails;
 
-function draftFrom(direct: ContactDirectContent): Draft {
+function blankChannel(): ContactChannel {
+  return {
+    id: `channel-${crypto.randomUUID()}`,
+    icon: "call",
+    title: "",
+    value: "",
+    href: "",
+    isActive: true,
+  };
+}
+
+function draftFrom(direct: ContactDetails): Draft {
   return {
     isActive: direct.isActive !== false,
     title: direct.title,
@@ -57,49 +66,84 @@ const socialIcons = {
 } as const;
 
 export function ContactDetailsEditor() {
-  const { direct } = useContactSections();
+  const [direct, setDirect] = useState<ContactDetails | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useContactNav();
   const editing = params.has("edit");
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
   const empty =
-    !direct.title.trim() &&
-    !direct.subtitle.trim() &&
-    direct.channels.length === 0;
+    !direct ||
+    (!direct.title.trim() &&
+      !direct.subtitle.trim() &&
+      direct.channels.length === 0);
+
+  useEffect(() => {
+    let active = true;
+    getContactDetails()
+      .then((next) => {
+        if (active) setDirect(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the contacts.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setContactQuery(router, pathname, open, "details");
   }
 
-  function save(draft: Draft) {
-    const doc = readContactSections();
-    saveContactSections({
-      ...doc,
-      direct: {
-        isActive: draft.isActive !== false,
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        badge: draft.badge.trim(),
-        channels: draft.channels.map((item) => ({
-          ...item,
-          title: item.title.trim(),
-          value: item.value.trim(),
-          href: item.href.trim(),
-          isActive: item.isActive !== false,
-        })),
-        social: draft.social.map((item) => ({
-          ...item,
-          label: item.label.trim(),
-          href: item.href.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveContactDetails({
+      isActive: draft.isActive !== false,
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      badge: draft.badge.trim(),
+      channels: draft.channels.map((item) => ({
+        ...item,
+        title: item.title.trim(),
+        value: item.value.trim(),
+        href: item.href.trim(),
+        isActive: item.isActive !== false,
+      })),
+      social: draft.social.map((item) => ({
+        ...item,
+        label: item.label.trim(),
+        href: item.href.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setDirect(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!direct) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ContactHeader
+          sectionId="details"
+          title="Contacts"
+          description="Call, WhatsApp, email, and service area."
+          editLabel="Edit contacts"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the contacts…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -143,7 +187,7 @@ export function ContactDetailsEditor() {
   );
 }
 
-function DetailsPreview({ direct }: { direct: ContactDirectContent }) {
+function DetailsPreview({ direct }: { direct: ContactDetails }) {
   return (
     <div>
       <p className="text-lg font-semibold text-neutral-950">
@@ -217,9 +261,9 @@ function DetailsForm({
   onClose,
   onSave,
 }: {
-  direct: ContactDirectContent;
+  direct: ContactDetails;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(direct);
   const [draft, setDraft] = useState(initial);
@@ -229,7 +273,7 @@ function DetailsForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextTitle = draft.title.trim() ? "" : "Title is required.";
     const nextChannels = draft.channels.some(
@@ -241,7 +285,16 @@ function DetailsForm({
     setChannelError(nextChannels);
     if (nextTitle || nextChannels) return;
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      const message =
+        caught instanceof Error ? caught.message : "Could not save the contacts.";
+      if (message === "Each channel needs a title, a value, and a link.") {
+        setChannelError(message);
+      } else setTitleError(message);
+    }
   }
 
   function move(index: number, direction: -1 | 1) {
@@ -256,7 +309,7 @@ function DetailsForm({
     });
   }
 
-  function update(id: string, patch: Partial<ContactChannelItem>) {
+  function update(id: string, patch: Partial<ContactChannel>) {
     setDraft((current) => ({
       ...current,
       channels: current.channels.map((item) =>
@@ -343,7 +396,7 @@ function DetailsForm({
               onClick={() =>
                 setDraft((current) => ({
                   ...current,
-                  channels: [...current.channels, blankContactChannel()],
+                  channels: [...current.channels, blankChannel()],
                 }))
               }
               className={adminButtonClass.secondary}

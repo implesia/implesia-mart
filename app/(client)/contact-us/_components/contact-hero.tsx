@@ -2,17 +2,21 @@
 
 import Link from "next/link";
 
+import { type ContactHero } from "@/lib/mart-api/contact-hero";
 import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { useContactSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function ContactHero({ className }: { className?: string }) {
-  const { hero } = useContactSections();
-  if (!isContentActive(hero)) return null;
+export function ContactHero({
+  hero,
+  className,
+}: {
+  hero: ContactHero;
+  className?: string;
+}) {
+  if (!hero.isActive) return null;
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>

@@ -1,19 +1,21 @@
-"use client";
-
 import Link from "next/link";
 
-import { useContactSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { type ContactSupport } from "@/lib/mart-api/contact-support";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function ContactSupport({ className }: { className?: string }) {
-  const { support } = useContactSections();
-  if (!isContentActive(support)) return null;
-  const hours = support.hours.filter(isContentActive);
-  const quickLinks = support.quickLinks.filter(isContentActive);
+export function ContactSupport({
+  support,
+  className,
+}: {
+  support: ContactSupport | null;
+  className?: string;
+}) {
+  if (!support?.isActive) return null;
+  const hours = support.hours.filter((item) => item.isActive);
+  const quickLinks = support.quickLinks.filter((item) => item.isActive);
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
@@ -28,7 +30,9 @@ export function ContactSupport({ className }: { className?: string }) {
                 <h2 className="text-base font-semibold tracking-tight text-neutral-950 sm:text-lg">
                   {support.title}
                 </h2>
-                <p className="text-xs text-neutral-600 sm:text-sm">{support.subtitle}</p>
+                {support.subtitle.trim() ? (
+                  <p className="text-xs text-neutral-600 sm:text-sm">{support.subtitle}</p>
+                ) : null}
               </div>
             </div>
 
@@ -46,27 +50,45 @@ export function ContactSupport({ className }: { className?: string }) {
           </div>
 
           <div className="flex flex-col justify-center gap-2.5">
-            {quickLinks.map((link) => (
-              <Link
-                key={link.id}
-                href={link.href}
-                className={cn(
-                  "group flex items-center justify-between gap-3 rounded-xl border border-neutral-200/90 px-4 py-3.5",
-                  "transition-colors hover:border-primary/40",
-                )}
-              >
-                <span className="flex items-center gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <MaterialIcon name={link.icon} className="text-[18px]" />
+            {quickLinks.map((link) => {
+              const content = (
+                <>
+                  <span className="flex items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <MaterialIcon name={link.icon} className="text-[18px]" />
+                    </span>
+                    <span className="text-sm font-medium text-neutral-950">{link.label}</span>
                   </span>
-                  <span className="text-sm font-medium text-neutral-950">{link.label}</span>
-                </span>
-                <MaterialIcon
-                  name="arrow_forward"
-                  className="text-[18px] text-neutral-400 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
-                />
-              </Link>
-            ))}
+                  <MaterialIcon
+                    name="arrow_forward"
+                    className="text-[18px] text-neutral-400 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+                  />
+                </>
+              );
+              const linkClass = cn(
+                "group flex items-center justify-between gap-3 rounded-xl border border-neutral-200/90 px-4 py-3.5",
+                "transition-colors hover:border-primary/40",
+              );
+              if (link.href.startsWith("/") && !link.href.startsWith("//")) {
+                return (
+                  <Link key={link.id} href={link.href} className={linkClass}>
+                    {content}
+                  </Link>
+                );
+              }
+              return (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  {...(link.href.startsWith("http")
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className={linkClass}
+                >
+                  {content}
+                </a>
+              );
+            })}
           </div>
         </div>
       </Container>

@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 
+import { listPublicBlogCategories } from "@/lib/mart-api/blog-categories";
+import { listPublicBlogHero } from "@/lib/mart-api/blog-hero";
+import { listPublicBlogListing } from "@/lib/mart-api/blog-listing";
+import { listPublicBlogPosts } from "@/lib/mart-api/blog-posts";
 import { absoluteUrl } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
@@ -33,7 +37,14 @@ const breadcrumbJsonLd = {
   ],
 };
 
-export default function BlogsPage() {
+export default async function BlogsPage() {
+  const [hero, categories, listing, posts] = await Promise.all([
+    listPublicBlogHero(),
+    listPublicBlogCategories(),
+    listPublicBlogListing(),
+    listPublicBlogPosts(),
+  ]);
+
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <JsonLd data={breadcrumbJsonLd} />
@@ -47,11 +58,11 @@ export default function BlogsPage() {
           />
         </div>
       </Container>
-      <BlogsHero />
+      <BlogsHero hero={hero} count={posts.length} />
 
       <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
         <Container className="w-full px-4 sm:px-6 lg:px-8">
-          <BlogsGrid />
+          <BlogsGrid categories={categories} listing={listing} posts={posts} />
         </Container>
       </section>
     </main>

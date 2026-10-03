@@ -1,17 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankContactFaq,
-  readContactSections,
-  saveContactSections,
-  type ContactFaqContent,
-  type ContactFaqRecord,
-} from "@/lib/mart-mock/contact-sections";
-import { useContactSections } from "@/lib/mart-mock/hooks";
+  getContactFaq,
+  saveContactFaq,
+  type ContactFaq,
+  type ContactFaqItem,
+} from "@/lib/mart-api/contact-faq";
 import { cn } from "@/lib/utils";
 
 import { ActiveStatusField, adminButtonClass, adminFieldClass, FieldError, FieldLabel } from "../../../_components/admin-ui";
@@ -27,9 +25,18 @@ import {
   VisibilitySwitch,
 } from "./contact-shared";
 
-type Draft = ContactFaqContent;
+type Draft = ContactFaq;
 
-function draftFrom(faq: ContactFaqContent): Draft {
+function blankItem(): ContactFaqItem {
+  return {
+    id: `faq-${crypto.randomUUID()}`,
+    question: "",
+    answer: "",
+    isActive: true,
+  };
+}
+
+function draftFrom(faq: ContactFaq): Draft {
   return {
     isActive: faq.isActive !== false,
     title: faq.title,
@@ -42,38 +49,73 @@ function draftFrom(faq: ContactFaqContent): Draft {
 }
 
 export function ContactFaqEditor() {
-  const { faq } = useContactSections();
+  const [faq, setFaq] = useState<ContactFaq | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useContactNav();
   const editing = params.has("edit");
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const empty = !faq.title.trim() && !faq.subtitle.trim() && faq.items.length === 0;
+  const empty =
+    !faq || (!faq.title.trim() && !faq.subtitle.trim() && faq.items.length === 0);
+
+  useEffect(() => {
+    let active = true;
+    getContactFaq()
+      .then((next) => {
+        if (active) setFaq(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the FAQ.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setContactQuery(router, pathname, open, "faq");
   }
 
-  function save(draft: Draft) {
-    const doc = readContactSections();
-    saveContactSections({
-      ...doc,
-      faq: {
-        isActive: draft.isActive !== false,
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        items: draft.items.map((item) => ({
-          id: item.id,
-          question: item.question.trim(),
-          answer: item.answer.trim(),
-          isActive: item.isActive !== false,
-        })),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveContactFaq({
+      isActive: draft.isActive !== false,
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      items: draft.items.map((item) => ({
+        ...item,
+        question: item.question.trim(),
+        answer: item.answer.trim(),
+        isActive: item.isActive !== false,
+      })),
     });
+    setFaq(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!faq) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ContactHeader
+          sectionId="faq"
+          title="FAQ"
+          description="Short questions on the contact page."
+          editLabel="Edit FAQ"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the FAQ…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -113,7 +155,7 @@ export function ContactFaqEditor() {
   );
 }
 
-function FaqPreview({ faq }: { faq: ContactFaqContent }) {
+function FaqPreview({ faq }: { faq: ContactFaq }) {
   return (
     <div>
       <p className="text-lg font-semibold text-neutral-950">
@@ -160,9 +202,9 @@ function FaqForm({
   onClose,
   onSave,
 }: {
-  faq: ContactFaqContent;
+  faq: ContactFaq;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(faq);
   const [draft, setDraft] = useState(initial);
@@ -172,7 +214,7 @@ function FaqForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextTitle = draft.title.trim() ? "" : "Title is required.";
     const nextItems = draft.items.some(
@@ -184,10 +226,19 @@ function FaqForm({
     setItemError(nextItems);
     if (nextTitle || nextItems) return;
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      const message =
+        caught instanceof Error ? caught.message : "Could not save the FAQ.";
+      if (message === "Each question needs a question and an answer.") {
+        setItemError(message);
+      } else setTitleError(message);
+    }
   }
 
-  function update(id: string, patch: Partial<ContactFaqRecord>) {
+  function update(id: string, patch: Partial<ContactFaqItem>) {
     setDraft((current) => ({
       ...current,
       items: current.items.map((item) =>
@@ -262,7 +313,7 @@ function FaqForm({
               onClick={() => {
                 setDraft((current) => ({
                   ...current,
-                  items: [...current.items, blankContactFaq()],
+                  items: [...current.items, blankItem()],
                 }));
                 setItemError("");
               }}

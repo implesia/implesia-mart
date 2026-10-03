@@ -1,15 +1,14 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  readContactSections,
-  saveContactSections,
-  type ContactFormContent,
-} from "@/lib/mart-mock/contact-sections";
-import { useContactSections } from "@/lib/mart-mock/hooks";
+  getContactForm,
+  saveContactForm,
+  type ContactForm,
+} from "@/lib/mart-api/contact-form";
 import { cn } from "@/lib/utils";
 
 import {
@@ -39,9 +38,9 @@ const FIELD_NAMES: Record<FieldKey, string> = {
   message: "Message",
 };
 
-type Draft = ContactFormContent;
+type Draft = ContactForm;
 
-function draftFrom(form: ContactFormContent): Draft {
+function draftFrom(form: ContactForm): Draft {
   return {
     isActive: form.isActive !== false,
     title: form.title,
@@ -58,40 +57,76 @@ function draftFrom(form: ContactFormContent): Draft {
 }
 
 export function ContactFormEditor() {
-  const { form } = useContactSections();
+  const [form, setForm] = useState<ContactForm | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useContactNav();
   const editing = params.has("edit");
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const empty = !form.title.trim() && !form.subtitle.trim() && !form.cta.trim();
+  const empty =
+    !form ||
+    (!form.title.trim() && !form.subtitle.trim() && !form.cta.trim());
+
+  useEffect(() => {
+    let active = true;
+    getContactForm()
+      .then((next) => {
+        if (active) setForm(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : "Could not load the form.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setContactQuery(router, pathname, open, "form");
   }
 
-  function save(draft: Draft) {
-    const doc = readContactSections();
-    saveContactSections({
-      ...doc,
-      form: {
-        isActive: draft.isActive !== false,
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        cta: draft.cta.trim(),
-        hint: draft.hint.trim(),
-        fields: {
-          name: trimField(draft.fields.name),
-          phone: trimField(draft.fields.phone),
-          subject: trimField(draft.fields.subject),
-          message: trimField(draft.fields.message),
-        },
+  async function save(draft: Draft) {
+    const saved = await saveContactForm({
+      isActive: draft.isActive !== false,
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      cta: draft.cta.trim(),
+      hint: draft.hint.trim(),
+      fields: {
+        name: trimField(draft.fields.name),
+        phone: trimField(draft.fields.phone),
+        subject: trimField(draft.fields.subject),
+        message: trimField(draft.fields.message),
       },
     });
+    setForm(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!form) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <ContactHeader
+          sectionId="form"
+          title="Form"
+          description="The message form beside the contact channels."
+          editLabel="Edit form"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the form…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -135,7 +170,7 @@ function trimField(field: { label: string; placeholder: string }) {
   return { label: field.label.trim(), placeholder: field.placeholder.trim() };
 }
 
-function FormPreview({ form }: { form: ContactFormContent }) {
+function FormPreview({ form }: { form: ContactForm }) {
   return (
     <div className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200 sm:p-5">
       <p className="text-lg font-semibold text-neutral-950">
@@ -172,9 +207,9 @@ function FormModal({
   onClose,
   onSave,
 }: {
-  form: ContactFormContent;
+  form: ContactForm;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(form);
   const [draft, setDraft] = useState(initial);
@@ -185,7 +220,7 @@ function FormModal({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextTitle = draft.title.trim() ? "" : "Title is required.";
     const nextFields = FIELD_KEYS.some((key) => !draft.fields[key].label.trim())
@@ -197,7 +232,16 @@ function FormModal({
     setButtonError(nextButton);
     if (nextTitle || nextFields || nextButton) return;
     setSaving(true);
-    onSave(draft);
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      const message =
+        caught instanceof Error ? caught.message : "Could not save the form.";
+      if (message === "Each field needs a label.") setFieldError(message);
+      else if (message === "Button label is required.") setButtonError(message);
+      else setTitleError(message);
+    }
   }
 
   function setField(key: FieldKey, patch: Partial<Draft["fields"]["name"]>) {

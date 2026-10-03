@@ -9,7 +9,7 @@ import { JsonLd } from "./(client)/_components/common/json-ld";
 import { StorefrontFrame } from "./(client)/_components/common/storefront-frame";
 import { CartProvider } from "./(client)/_providers/cart-provider";
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
-import { WHATSAPP_HREF } from "./(client)/_data/contact/contact";
+import { contactChannel, listPublicContactDetails } from "@/lib/mart-api/contact-details";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_KEYWORDS,
@@ -71,29 +71,6 @@ export const viewport: Viewport = {
   ],
 };
 
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "@id": `${SITE_URL}/#organization`,
-  name: SITE_NAME,
-  url: SITE_URL,
-  logo: `${SITE_URL}/images/common/logo.png`,
-  sameAs: [
-    "https://www.facebook.com/implesiamart",
-    "https://www.linkedin.com/company/implesia-mart",
-  ],
-  contactPoint: [
-    {
-      "@type": "ContactPoint",
-      contactType: "customer support",
-      telephone: "+880-1516-527932",
-      url: WHATSAPP_HREF,
-      areaServed: "BD",
-      availableLanguage: ["bn", "en"],
-    },
-  ],
-};
-
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -104,11 +81,40 @@ const websiteJsonLd = {
   publisher: { "@id": `${SITE_URL}/#organization` },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const details = await listPublicContactDetails();
+  const phone = contactChannel(details, "call");
+  const chat = contactChannel(details, "chat");
+  const sameAs = details?.isActive
+    ? details.social.map((item) => item.href).filter((href) => href.startsWith("http"))
+    : [];
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/images/common/logo.png`,
+    ...(sameAs.length ? { sameAs } : {}),
+    ...(phone || chat
+      ? {
+          contactPoint: [
+            {
+              "@type": "ContactPoint",
+              contactType: "customer support",
+              ...(phone ? { telephone: phone.value } : {}),
+              ...(chat ? { url: chat.href } : {}),
+              areaServed: "BD",
+              availableLanguage: ["bn", "en"],
+            },
+          ],
+        }
+      : {}),
+  };
   return (
     <html lang="bn" className="h-full antialiased" suppressHydrationWarning>
       <head>
@@ -138,7 +144,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
           <CartProvider>
-            <StorefrontFrame>{children}</StorefrontFrame>
+            <StorefrontFrame details={details}>{children}</StorefrontFrame>
           </CartProvider>
         </ThemeProvider>
       </body>

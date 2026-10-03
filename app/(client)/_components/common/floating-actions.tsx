@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { WHATSAPP_HREF } from "../../_data/contact/contact";
 import { WhatsAppIcon } from "./brand-icons";
 import { MaterialIcon } from "./material-icon";
 
@@ -32,7 +31,7 @@ function usePrefersReducedMotion() {
  *
  * Lifts above sticky mobile bars on product & checkout pages.
  */
-export function FloatingActions() {
+export function FloatingActions({ whatsappHref }: { whatsappHref: string }) {
   const pathname = usePathname();
   const reducedMotion = usePrefersReducedMotion();
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -81,9 +80,9 @@ export function FloatingActions() {
           : "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {/* WhatsApp — primary contact CTA */}
+      {whatsappHref ? (
       <a
-        href={WHATSAPP_HREF}
+        href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
@@ -120,6 +119,7 @@ export function FloatingActions() {
           হোয়াটসঅ্যাপে চ্যাট
         </span>
       </a>
+      ) : null}
 
       {/* Scroll to top — appears after user scrolls */}
       <button

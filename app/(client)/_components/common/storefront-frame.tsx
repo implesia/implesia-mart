@@ -2,12 +2,20 @@
 
 import { usePathname } from "next/navigation";
 
+import { contactChannel, type ContactDetails } from "@/lib/mart-api/contact-details";
+
 import { CartDrawer } from "../cart/cart-drawer";
 import { FloatingActions } from "./floating-actions";
 import Footer from "./footer";
 import Header from "./header";
 
-export function StorefrontFrame({ children }: { children: React.ReactNode }) {
+export function StorefrontFrame({
+  children,
+  details,
+}: {
+  children: React.ReactNode;
+  details: ContactDetails | null;
+}) {
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) {
     return children;
@@ -15,11 +23,11 @@ export function StorefrontFrame({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Header />
+      <Header details={details} />
       {children}
-      <Footer />
+      <Footer details={details} />
       <CartDrawer />
-      <FloatingActions />
+      <FloatingActions whatsappHref={contactChannel(details, "chat")?.href ?? ""} />
     </>
   );
 }

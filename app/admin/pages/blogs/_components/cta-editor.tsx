@@ -1,14 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import {
-  readBlogSections,
-  saveBlogSections,
-  type BlogCtaContent,
-} from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
+import { getBlogCta, saveBlogCta, type BlogCta } from "@/lib/mart-api/blog-cta";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -33,7 +28,7 @@ type Draft = {
   secondaryHref: string;
 };
 
-function draftFrom(cta: BlogCtaContent): Draft {
+function draftFrom(cta: BlogCta): Draft {
   return {
     isActive: cta.isActive !== false,
     title: cta.title,
@@ -46,37 +41,68 @@ function draftFrom(cta: BlogCtaContent): Draft {
 }
 
 export function BlogCtaEditor() {
-  const { cta } = useBlogSections();
+  const [cta, setCta] = useState<BlogCta | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useBlogNav();
   const editing = params.get("edit") === "cta";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const empty = !cta.title.trim() && !cta.subtitle.trim();
+
+  useEffect(() => {
+    let active = true;
+    getBlogCta()
+      .then((next) => {
+        if (active) setCta(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(error instanceof Error ? error.message : "Could not load the call to action.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEditing(open: boolean) {
     if (!open) markReturn();
     setBlogQuery(router, pathname, "edit", open ? "cta" : null);
   }
 
-  function save(draft: Draft) {
-    const doc = readBlogSections();
-    saveBlogSections({
-      ...doc,
-      cta: {
-        isActive: draft.isActive,
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        primaryLabel: draft.primaryLabel.trim(),
-        primaryHref: draft.primaryHref.trim(),
-        secondaryLabel: draft.secondaryLabel.trim(),
-        secondaryHref: draft.secondaryHref.trim(),
-      },
+  async function save(draft: Draft) {
+    const saved = await saveBlogCta({
+      isActive: draft.isActive,
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      primaryLabel: draft.primaryLabel.trim(),
+      primaryHref: draft.primaryHref.trim(),
+      secondaryLabel: draft.secondaryLabel.trim(),
+      secondaryHref: draft.secondaryHref.trim(),
     });
+    setCta(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
   }
+
+  if (!cta) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <BlogHeader
+          sectionId="cta"
+          title="CTA"
+          description="Closing banner on each article."
+          editLabel="Edit CTA"
+          onEdit={() => setEditing(true)}
+          editRef={focusEdit}
+        />
+        <p className="text-sm text-neutral-600">{loadError || "Loading the call to action…"}</p>
+      </div>
+    );
+  }
+
+  const empty = !cta.title.trim() && !cta.subtitle.trim();
 
   return (
     <div className="min-w-0 space-y-4">
@@ -87,7 +113,6 @@ export function BlogCtaEditor() {
         editLabel="Edit CTA"
         onEdit={() => setEditing(true)}
         editRef={focusEdit}
-        viewHref="/blogs/sothik-power-bank-bachai-korar-upay"
       />
       {notice ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
@@ -136,9 +161,9 @@ function CtaForm({
   onClose,
   onSave,
 }: {
-  cta: BlogCtaContent;
+  cta: BlogCta;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => void | Promise<void>;
 }) {
   const initial = draftFrom(cta);
   const [draft, setDraft] = useState(initial);
@@ -147,14 +172,20 @@ function CtaForm({
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setTitleError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setTitleError(caught instanceof Error ? caught.message : "Could not save the call to action.");
+    }
   }
 
   return (

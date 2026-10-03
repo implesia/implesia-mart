@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
 
+import {
+  FALLBACK_CONTACT_HERO,
+  listPublicContactHero,
+} from "@/lib/mart-api/contact-hero";
+import { listPublicContactForm } from "@/lib/mart-api/contact-form";
+import { listPublicContactDetails } from "@/lib/mart-api/contact-details";
+import { listPublicContactSupport } from "@/lib/mart-api/contact-support";
+import { listPublicContactFaq } from "@/lib/mart-api/contact-faq";
+
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { ContactDetails } from "./_components/contact-details";
@@ -15,7 +24,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact-us" },
 };
 
-export default function ContactUsPage() {
+export default async function ContactUsPage() {
+  const [hero, form, details, support, faq] = await Promise.all([
+    listPublicContactHero(),
+    listPublicContactForm(),
+    listPublicContactDetails(),
+    listPublicContactSupport(),
+    listPublicContactFaq(),
+  ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -28,19 +44,22 @@ export default function ContactUsPage() {
           />
         </div>
       </Container>
-      <ContactHero />
+      <ContactHero hero={hero ?? FALLBACK_CONTACT_HERO} />
 
       <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
         <Container className="w-full px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
-            <ContactForm />
-            <ContactDetails />
+            <ContactForm
+              form={form}
+              whatsappHref={hero?.isActive ? hero.primaryCta.href : ""}
+            />
+            <ContactDetails details={details} />
           </div>
         </Container>
       </section>
 
-      <ContactSupport />
-      <ContactFaq />
+      <ContactSupport support={support} />
+      <ContactFaq faq={faq} />
     </main>
   );
 }

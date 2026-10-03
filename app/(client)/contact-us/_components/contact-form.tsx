@@ -4,18 +4,22 @@ import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { type ContactForm } from "@/lib/mart-api/contact-form";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { useContactSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
 
-import { getWhatsAppHref } from "../../_data/contact/contact";
-
-export function ContactForm({ className }: { className?: string }) {
-  const { form, direct } = useContactSections();
+export function ContactForm({
+  form,
+  whatsappHref,
+  className,
+}: {
+  form: ContactForm | null;
+  whatsappHref: string;
+  className?: string;
+}) {
   const [values, setValues] = useState({ name: "", phone: "", subject: "", message: "" });
-  if (!isContentActive(form)) return null;
+  if (!form?.isActive) return null;
 
   function handleChange(field: keyof typeof values) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -31,13 +35,8 @@ export function ContactForm({ className }: { className?: string }) {
       "",
       values.message,
     ].join("\n");
-    const chat = direct.channels.find(
-      (channel) => channel.icon === "chat" && isContentActive(channel) && isContentActive(direct),
-    );
-    const number = chat?.href.match(/wa\.me\/(\d+)/)?.[1];
-    const href = number
-      ? `https://wa.me/${number}?text=${encodeURIComponent(composed)}`
-      : getWhatsAppHref(composed);
+    const href = whatsAppChatHref(whatsappHref, composed);
+    if (!href) return;
     window.open(href, "_blank", "noopener,noreferrer");
   }
 
@@ -53,7 +52,9 @@ export function ContactForm({ className }: { className?: string }) {
           <h2 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
             {form.title}
           </h2>
-          <p className="mt-1 text-sm text-neutral-600">{form.subtitle}</p>
+          {form.subtitle.trim() ? (
+            <p className="mt-1 text-sm text-neutral-600">{form.subtitle}</p>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -122,8 +123,16 @@ export function ContactForm({ className }: { className?: string }) {
           {form.cta}
           <MaterialIcon name="chat" className="text-[18px]" />
         </button>
-        <p className="text-center text-xs text-neutral-500">{form.hint}</p>
+        {form.hint.trim() ? (
+          <p className="text-center text-xs text-neutral-500">{form.hint}</p>
+        ) : null}
       </form>
     </section>
   );
+}
+
+function whatsAppChatHref(destination: string, text: string) {
+  const number = destination.match(/wa\.me\/(\d+)/)?.[1];
+  if (!number) return "";
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }

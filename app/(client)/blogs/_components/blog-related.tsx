@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import type { BlogCategory } from "@/lib/mart-api/blog-categories";
+import type { BlogListing } from "@/lib/mart-api/blog-listing";
+import type { BlogRelated } from "@/lib/mart-api/blog-related";
 import type { BlogPostRecord } from "@/lib/mart-mock/blog-sections";
-import { useBlogSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -16,10 +17,15 @@ function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
 }
 
-export function BlogRelatedProducts({ slugs }: { slugs: string[] }) {
-  const { related } = useBlogSections();
+export function BlogRelatedProducts({
+  slugs,
+  related,
+}: {
+  slugs: string[];
+  related: BlogRelated | null;
+}) {
   const items = products.filter((product) => slugs.includes(product.slug));
-  if (!isContentActive(related) || !items.length) return null;
+  if (!related?.isActive || !items.length) return null;
 
   return (
     <div className="mt-8 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
@@ -83,9 +89,18 @@ export function BlogRelatedProducts({ slugs }: { slugs: string[] }) {
   );
 }
 
-export function BlogRelatedPosts({ posts }: { posts: BlogPostRecord[] }) {
-  const { related } = useBlogSections();
-  if (!isContentActive(related) || !posts.length) return null;
+export function BlogRelatedPosts({
+  posts,
+  related,
+  categories = [],
+  listing = null,
+}: {
+  posts: BlogPostRecord[];
+  related: BlogRelated | null;
+  categories?: Pick<BlogCategory, "id" | "label">[];
+  listing?: BlogListing | null;
+}) {
+  if (!related?.isActive || !posts.length) return null;
 
   return (
     <section className="mt-10 sm:mt-12">
@@ -112,7 +127,7 @@ export function BlogRelatedPosts({ posts }: { posts: BlogPostRecord[] }) {
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         {posts.map((post) => (
-          <BlogCard key={post.id} post={post} />
+          <BlogCard key={post.id} post={post} categories={categories} listing={listing} />
         ))}
       </div>
     </section>

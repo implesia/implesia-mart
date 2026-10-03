@@ -1,17 +1,19 @@
-"use client";
-
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { type ContactFaq as Faq } from "@/lib/mart-api/contact-faq";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { useContactSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
 
-export function ContactFaq({ className }: { className?: string }) {
-  const { faq } = useContactSections();
-  if (!isContentActive(faq)) return null;
-  const items = faq.items.filter(isContentActive);
+export function ContactFaq({
+  faq,
+  className,
+}: {
+  faq: Faq | null;
+  className?: string;
+}) {
+  if (!faq?.isActive) return null;
+  const items = faq.items.filter((item) => item.isActive);
   const defaultOpen = items[0]?.id ? [items[0].id] : [];
 
   return (
@@ -21,7 +23,9 @@ export function ContactFaq({ className }: { className?: string }) {
           <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
             {faq.title}
           </h2>
-          <p className="text-sm leading-relaxed text-neutral-600">{faq.subtitle}</p>
+          {faq.subtitle.trim() ? (
+            <p className="text-sm leading-relaxed text-neutral-600">{faq.subtitle}</p>
+          ) : null}
         </div>
 
         <div className="mx-auto max-w-3xl">
