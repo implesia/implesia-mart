@@ -24,6 +24,23 @@ import {
   adminButtonClass,
 } from "../_components/admin-ui";
 
+function deliveryOffer(cart: SavedCart) {
+  const fees = [
+    cart.insideEnabled ? cart.insideDhaka : null,
+    cart.suburbanEnabled ? cart.dhakaSuburban : null,
+    cart.outsideEnabled ? cart.outsideDhaka : null,
+  ].filter((fee): fee is number => fee != null);
+  if (fees.length === 0) return "Off";
+  if (fees.every((fee) => fee === fees[0])) return formatTaka(cart.shipping);
+  return [
+    cart.insideEnabled ? `City ${formatTaka(cart.insideDhaka)}` : null,
+    cart.suburbanEnabled ? `suburban ${formatTaka(cart.dhakaSuburban)}` : null,
+    cart.outsideEnabled ? `other ${formatTaka(cart.outsideDhaka)}` : null,
+  ]
+    .filter((part) => part != null)
+    .join(" · ");
+}
+
 const FILTERS = [
   { id: "all", label: "All" },
   { id: "user", label: "Logged in" },
@@ -286,15 +303,7 @@ function CartDetail({ cart }: { cart: SavedCart | null }) {
           </ul>
           <dl className="space-y-2 border-t border-neutral-100 px-4 py-4 text-sm sm:px-5">
             <Row label="Subtotal" value={formatTaka(cart.subtotal)} />
-            <Row
-              label="Delivery"
-              value={
-                cart.insideDhaka === cart.dhakaSuburban &&
-                cart.dhakaSuburban === cart.outsideDhaka
-                  ? formatTaka(cart.shipping)
-                  : `City ${formatTaka(cart.insideDhaka)} · suburban ${formatTaka(cart.dhakaSuburban)} · other ${formatTaka(cart.outsideDhaka)}`
-              }
-            />
+            <Row label="Delivery" value={deliveryOffer(cart)} />
             <div className="flex items-center justify-between pt-1 text-base font-semibold text-neutral-950">
               <dt>Total</dt>
               <dd className="tabular-nums">{formatTaka(cart.total)}</dd>

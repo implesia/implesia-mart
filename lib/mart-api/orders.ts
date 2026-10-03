@@ -23,6 +23,7 @@ export type OrderQuote = {
   shipping: number;
   total: number;
   deliveryZone: DeliveryZone;
+  deliveryAvailable: boolean;
 };
 
 export type MartOrderItem = {
@@ -98,6 +99,7 @@ type ApiQuote = {
   shipping: number;
   total: number;
   delivery_zone: DeliveryZone;
+  delivery_available?: boolean;
 };
 
 type ApiOrderItem = {
@@ -154,6 +156,7 @@ function mapQuote(body: ApiQuote): OrderQuote {
     shipping: body.shipping,
     total: body.total,
     deliveryZone: body.delivery_zone,
+    deliveryAvailable: body.delivery_available !== false,
   };
 }
 

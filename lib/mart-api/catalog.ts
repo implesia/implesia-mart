@@ -38,16 +38,32 @@ export type StoreDeliveryRates = {
   insideDhaka: number;
   dhakaSuburban: number;
   outsideDhaka: number;
+  insideEnabled: boolean;
+  suburbanEnabled: boolean;
+  outsideEnabled: boolean;
 };
 
 const FALLBACK_RATES: StoreDeliveryRates = {
   insideDhaka: 70,
   dhakaSuburban: 100,
   outsideDhaka: 130,
+  insideEnabled: true,
+  suburbanEnabled: true,
+  outsideEnabled: true,
 };
 
 function taka(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
+}
+
+function deliveryChargeLine(rates: StoreDeliveryRates) {
+  const parts = [
+    rates.insideEnabled ? `ঢাকার ভেতরে ${taka(rates.insideDhaka)}` : null,
+    rates.suburbanEnabled ? `ঢাকার শহরতলি ${taka(rates.dhakaSuburban)}` : null,
+    rates.outsideEnabled ? `ঢাকার বাইরে ${taka(rates.outsideDhaka)}` : null,
+  ].filter((part) => part != null);
+  if (parts.length === 0) return "এখন ডেলিভারি বন্ধ।";
+  return `${parts.join(", ")}। ঢাকায় ২৪-৪৮ ঘণ্টা, বাইরে ২৪-৭২ ঘণ্টা।`;
 }
 
 function deliveryBlocks(rates: StoreDeliveryRates) {
@@ -61,7 +77,7 @@ function deliveryBlocks(rates: StoreDeliveryRates) {
     {
       icon: "local_shipping",
       title: "সারাদেশে ডেলিভারি",
-      description: `ঢাকার ভেতরে ${taka(rates.insideDhaka)}, ঢাকার শহরতলি ${taka(rates.dhakaSuburban)}, ঢাকার বাইরে ${taka(rates.outsideDhaka)}। ঢাকায় ২৪-৪৮ ঘণ্টা, বাইরে ২৪-৭২ ঘণ্টা।`,
+      description: deliveryChargeLine(rates),
     },
     {
       icon: "assignment_return",
@@ -283,6 +299,9 @@ export const getStoreDeliveryRates = cache(
       inside_dhaka?: number;
       dhaka_suburban?: number;
       outside_dhaka?: number;
+      inside_enabled?: boolean;
+      suburban_enabled?: boolean;
+      outside_enabled?: boolean;
     }>("/api/v1/delivery");
     if (
       typeof body?.inside_dhaka !== "number" ||
@@ -295,6 +314,9 @@ export const getStoreDeliveryRates = cache(
       insideDhaka: body.inside_dhaka,
       dhakaSuburban: body.dhaka_suburban,
       outsideDhaka: body.outside_dhaka,
+      insideEnabled: body.inside_enabled ?? true,
+      suburbanEnabled: body.suburban_enabled ?? true,
+      outsideEnabled: body.outside_enabled ?? true,
     };
   },
 );

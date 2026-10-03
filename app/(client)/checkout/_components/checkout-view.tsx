@@ -49,7 +49,11 @@ export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
   }
 
   return (
-    <CheckoutFormProvider source={seedSlug ? "direct" : "cart"} seedSlug={seedSlug} seedQty={seedQty}>
+    <CheckoutFormProvider
+      source={seedSlug ? "direct" : "cart"}
+      seedSlug={seedSlug}
+      seedQty={seedQty}
+    >
       <CheckoutReadyView productHref={productHref} />
     </CheckoutFormProvider>
   );
@@ -58,19 +62,9 @@ export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
 function CheckoutReadyView({ productHref }: { productHref: string }) {
   const { status, quote, quoteReady, pricingMessage } = useCheckoutForm();
   const hasItems = (quote?.items.length ?? 0) > 0;
+  const succeeded = status === "success";
 
-  if (status === "success") {
-    return (
-      <div className="w-full bg-[#f5f6f8]">
-        <Container className={cn(pagePad, "lg:pb-10")}>
-          <CheckoutPageHeader productHref="/products" />
-          <CheckoutSuccess />
-        </Container>
-      </div>
-    );
-  }
-
-  if (!quoteReady) {
+  if (!quoteReady && !succeeded) {
     return (
       <div className="w-full bg-[#f5f6f8]">
         <Container className={cn(pagePad)}>
@@ -84,16 +78,21 @@ function CheckoutReadyView({ productHref }: { productHref: string }) {
     );
   }
 
-  if (!hasItems) {
+  if (!hasItems && !succeeded) {
     return (
       <div className="w-full bg-[#f5f6f8]">
         <Container className={cn(pagePad, "lg:pb-10")}>
           <CheckoutPageHeader productHref="/products" />
           <section className="rounded-2xl border border-dashed border-neutral-300 bg-white px-4 py-10 text-center sm:px-10 sm:py-12">
             <span className="mb-4 inline-flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <MaterialIcon name="remove_shopping_cart" className="text-[28px]" />
+              <MaterialIcon
+                name="remove_shopping_cart"
+                className="text-[28px]"
+              />
             </span>
-            <h2 className="mb-2 text-xl font-semibold text-neutral-950">{checkoutCopy.emptyTitle}</h2>
+            <h2 className="mb-2 text-xl font-semibold text-neutral-950">
+              {checkoutCopy.emptyTitle}
+            </h2>
             <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-neutral-600">
               {pricingMessage ?? checkoutCopy.emptyBody}
             </p>
@@ -111,7 +110,13 @@ function CheckoutReadyView({ productHref }: { productHref: string }) {
 
   return (
     <>
-      <div className="w-full bg-[#f5f6f8]">
+      <div
+        className={cn(
+          "w-full bg-[#f5f6f8]",
+          succeeded && "pointer-events-none",
+        )}
+        aria-hidden={succeeded || undefined}
+      >
         <Container className={pagePad}>
           <CheckoutPageHeader productHref={productHref} />
 
@@ -125,7 +130,7 @@ function CheckoutReadyView({ productHref }: { productHref: string }) {
         </Container>
       </div>
 
-      <CheckoutMobileNav />
+      {succeeded ? <CheckoutSuccess /> : <CheckoutMobileNav />}
     </>
   );
 }

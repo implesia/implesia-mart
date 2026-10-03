@@ -18,6 +18,7 @@ import {
 } from "@/lib/mart-api/cart";
 import {
   getPublicDeliveryRates,
+  zoneEnabled,
   type DeliveryRates,
   type DeliveryZone,
 } from "@/lib/mart-api/delivery";
@@ -159,9 +160,13 @@ export function CheckoutFormProvider({
         });
         if (current !== ticket.current) return null;
         setQuote(next);
+        holdZone.current = false;
+        if (!next.deliveryAvailable) {
+          setPricingMessage("এই এলাকায় এখন ডেলিভারি বন্ধ।");
+          return next;
+        }
         setShownZone(next.deliveryZone);
         chosenZone.current = next.deliveryZone;
-        holdZone.current = false;
         setPricingMessage(next.items.some((line) => !line.available) ? "এক বা একাধিক পণ্য এখন কেনা যাচ্ছে না।" : null);
         return next;
       } catch (error) {
@@ -189,6 +194,7 @@ export function CheckoutFormProvider({
 
   const chooseDeliveryZone = useCallback(
     (zone: DeliveryZone) => {
+      if (rates && !zoneEnabled(rates, zone)) return;
       pickedZone.current = true;
       chosenZone.current = zone;
       holdZone.current = true;
@@ -200,7 +206,7 @@ export function CheckoutFormProvider({
       }
       void refreshQuote(district, shipping.area, itemsRef.current, zone);
     },
-    [refreshQuote, shipping.area, shipping.district],
+    [rates, refreshQuote, shipping.area, shipping.district],
   );
 
   useEffect(() => {
@@ -317,9 +323,18 @@ export function CheckoutFormProvider({
       setErrorMessage("অনুগ্রহ করে প্রয়োজনীয় তথ্যগুলো সঠিকভাবে পূরণ করুন।");
       return false;
     }
-    if (!quote || quote.items.length === 0 || quote.items.some((line) => !line.available)) {
+    if (
+      !quote ||
+      !quote.deliveryAvailable ||
+      quote.items.length === 0 ||
+      quote.items.some((line) => !line.available)
+    ) {
       setStatus("error");
-      setErrorMessage("এই অর্ডারটি এখন সম্পন্ন করা যাচ্ছে না।");
+      setErrorMessage(
+        quote && !quote.deliveryAvailable
+          ? "এই এলাকায় এখন ডেলিভারি বন্ধ।"
+          : "এই অর্ডারটি এখন সম্পন্ন করা যাচ্ছে না।",
+      );
       return false;
     }
 
@@ -352,6 +367,7 @@ export function CheckoutFormProvider({
 
   const canSubmit = Boolean(
     quote &&
+      quote.deliveryAvailable &&
       quote.items.length > 0 &&
       quote.items.every((line) => line.available) &&
       !pricingBusy &&

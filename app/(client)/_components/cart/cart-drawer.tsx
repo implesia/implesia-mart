@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-import { formatCartMoney, MAX_CART_QTY } from "../../_lib/cart";
+import { formatCartMoney, MAX_CART_QTY, offeredDeliveryLabel } from "../../_lib/cart";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
 
@@ -162,10 +162,7 @@ export function CartDrawer() {
             <div className="mb-3 flex items-center justify-between text-body-md">
               <span className="text-on-surface-variant">ডেলিভারি</span>
               <span className="font-medium text-on-surface">
-                {pricing.insideDhaka === pricing.dhakaSuburban &&
-                pricing.dhakaSuburban === pricing.outsideDhaka
-                  ? formatCartMoney(pricing.shipping)
-                  : "চেকআউটে"}
+                {offeredDeliveryLabel(pricing)}
               </span>
             </div>
             <div className="mb-4 flex items-center justify-between rounded-xl bg-surface-container-low px-4 py-3">

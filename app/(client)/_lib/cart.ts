@@ -31,6 +31,9 @@ export type CartPricing = {
   insideDhaka: number;
   dhakaSuburban: number;
   outsideDhaka: number;
+  insideEnabled: boolean;
+  suburbanEnabled: boolean;
+  outsideEnabled: boolean;
 };
 
 export function clampCartQty(value: number) {
@@ -89,11 +92,25 @@ export function computeCartPricing(lines: CartLineResolved[]): CartPricing {
     insideDhaka: shipping,
     dhakaSuburban: shipping,
     outsideDhaka: shipping,
+    insideEnabled: true,
+    suburbanEnabled: true,
+    outsideEnabled: true,
   };
 }
 
 export function formatCartMoney(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
+}
+
+export function offeredDeliveryLabel(pricing: CartPricing) {
+  const offered = [
+    pricing.insideEnabled ? pricing.insideDhaka : null,
+    pricing.suburbanEnabled ? pricing.dhakaSuburban : null,
+    pricing.outsideEnabled ? pricing.outsideDhaka : null,
+  ].filter((fee): fee is number => fee != null);
+  if (offered.length === 0) return "বন্ধ";
+  if (offered.every((fee) => fee === offered[0])) return formatCartMoney(pricing.shipping);
+  return "চেকআউটে";
 }
 
 export function readCartFromStorage(): CartLineStored[] {

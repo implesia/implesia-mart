@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
 
-import type { DeliveryZone } from "@/lib/mart-api/delivery";
+import { zoneEnabled, type DeliveryZone } from "@/lib/mart-api/delivery";
 
 import { useCheckoutForm } from "./checkout-form-context";
 
@@ -41,19 +41,96 @@ function FieldError({ message }: { message?: string }) {
 }
 
 const ZONES: { id: DeliveryZone; label: string; hint: string }[] = [
-  { id: "inside", label: "ঢাকার ভেতরে", hint: "শহরের মূল এলাকা" },
-  { id: "suburban", label: "ঢাকার শহরতলি", hint: "সাভার, কেরানীগঞ্জ, ধামরাই" },
+  { id: "inside", label: "ঢাকার ভেতরে", hint: "ঢাকা উত্তর ও দক্ষিণ সিটি" },
+  { id: "suburban", label: "ঢাকার শহরতলি", hint: "সিটির বাইরে, ঢাকা জেলার এলাকা" },
   { id: "outside", label: "ঢাকার বাইরে", hint: "অন্য সব জেলা" },
 ];
+
+const SUBURBAN_UPAZILAS = ["সাভার", "ধামরাই", "কেরানীগঞ্জ", "দোহার", "নবাবগঞ্জ"] as const;
+
+const SUBURBAN_LOCALITIES = [
+  "আশুলিয়া",
+  "হেমায়েতপুর",
+  "আমিনবাজার",
+  "নবীনগর",
+  "বাইপাইল",
+  "জিরাবো",
+  "ডিইপিজেড",
+  "জিনজিরা",
+  "হাসনাবাদ",
+  "বিরুলিয়া",
+  "কালিন্দী",
+  "তেঘরিয়া",
+  "রুহিতপুর",
+] as const;
+
+const KEPT_DISTRICTS = new Set<string>([
+  "ঢাকা",
+  "dhaka",
+  "ঢাকা জেলা",
+  "dhaka district",
+  "ঢাকা শহর",
+  "dhaka city",
+  "সাভার",
+  "savar",
+  "ধামরাই",
+  "dhamrai",
+  "কেরানীগঞ্জ",
+  "keraniganj",
+  "দোহার",
+  "dohar",
+  "নবাবগঞ্জ",
+  "nawabganj",
+]);
+
+function placeMatches(current: string, name: string) {
+  return current.trim().toLocaleLowerCase("en-US") === name.toLocaleLowerCase("en-US");
+}
+
+function AreaChip({
+  name,
+  selected,
+  onPick,
+}: {
+  name: string;
+  selected: boolean;
+  onPick: (name: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={() => onPick(name)}
+      className={cn(
+        "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+        selected
+          ? "bg-primary text-on-primary"
+          : "bg-white text-neutral-800 ring-1 ring-neutral-200 hover:ring-primary/40",
+      )}
+    >
+      {name}
+    </button>
+  );
+}
 
 export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
   const { shipping, setShippingField, errors, rates, deliveryZone, chooseDeliveryZone, pricingBusy } =
     useCheckoutForm();
+
+  function pickSuburbanArea(name: string) {
+    chooseDeliveryZone("suburban");
+    setShippingField("area", name);
+    const district = shipping.district.trim().toLocaleLowerCase("en-US");
+    if (district && !KEPT_DISTRICTS.has(district)) {
+      setShippingField("district", "ঢাকা");
+    }
+  }
   const prices: Record<DeliveryZone, number | null> = {
     inside: rates?.insideDhaka ?? null,
     suburban: rates?.dhakaSuburban ?? null,
     outside: rates?.outsideDhaka ?? null,
   };
+  const visibleZones = ZONES.filter((zone) => !rates || zoneEnabled(rates, zone.id));
 
   return (
     <section className={cn("rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5", className)}>
@@ -71,40 +148,80 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
 
       <fieldset className="mb-5">
         <legend className="mb-2 text-sm font-medium text-neutral-700">ডেলিভারি এলাকা</legend>
+        {visibleZones.length === 0 ? (
+          <p className="rounded-xl bg-amber-50 px-3.5 py-3 text-sm leading-relaxed text-amber-950">
+            এখন সব ডেলিভারি এলাকা বন্ধ। অর্ডার করা যাবে না।
+          </p>
+        ) : null}
         <div className="grid gap-2">
-          {ZONES.map((zone) => {
+          {visibleZones.map((zone) => {
             const selected = deliveryZone === zone.id;
             const price = prices[zone.id];
             return (
-              <label
+              <div
                 key={zone.id}
                 className={cn(
-                  "flex cursor-pointer items-center gap-3 rounded-xl px-3.5 py-3 ring-1",
+                  "rounded-xl ring-1",
                   selected ? "bg-primary/10 ring-primary" : "bg-[#f5f6f8] ring-transparent",
                 )}
               >
-                <input
-                  type="radio"
-                  name="delivery-zone"
-                  value={zone.id}
-                  checked={selected}
-                  disabled={pricingBusy}
-                  onChange={() => chooseDeliveryZone(zone.id)}
-                  className="size-4 accent-primary"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-neutral-950">{zone.label}</span>
-                  <span className="block text-xs text-neutral-500">{zone.hint}</span>
-                </span>
-                <span className="text-sm font-semibold tabular-nums text-neutral-950">
-                  {price == null ? "—" : `৳${price.toLocaleString("en-US")}`}
-                </span>
-              </label>
+                <label className="flex cursor-pointer items-center gap-3 px-3.5 py-3">
+                  <input
+                    type="radio"
+                    name="delivery-zone"
+                    value={zone.id}
+                    checked={selected}
+                    disabled={pricingBusy}
+                    onChange={() => chooseDeliveryZone(zone.id)}
+                    className="size-4 accent-primary"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-neutral-950">{zone.label}</span>
+                    <span className="block text-xs text-neutral-500">{zone.hint}</span>
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums text-neutral-950">
+                    {price == null ? "—" : `৳${price.toLocaleString("en-US")}`}
+                  </span>
+                </label>
+                {zone.id === "suburban" ? (
+                  <div className="border-t border-neutral-200/80 px-3.5 pt-3 pb-3.5">
+                    <p className="text-xs font-medium text-neutral-700">এই চার্জে যে এলাকা পড়ে</p>
+                    <p className="mt-2 text-[11px] font-medium tracking-wide text-neutral-500">উপজেলা</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {SUBURBAN_UPAZILAS.map((name) => (
+                        <AreaChip
+                          key={name}
+                          name={name}
+                          selected={placeMatches(shipping.area, name)}
+                          onPick={pickSuburbanArea}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-3 text-[11px] font-medium tracking-wide text-neutral-500">
+                      আশপাশের এলাকা
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {SUBURBAN_LOCALITIES.map((name) => (
+                        <AreaChip
+                          key={name}
+                          name={name}
+                          selected={placeMatches(shipping.area, name)}
+                          onPick={pickSuburbanArea}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-2.5 text-xs leading-relaxed text-neutral-500">
+                      এলাকায় ট্যাপ করলে ঠিকানায় বসে যাবে। নবাবগঞ্জ মানে ঢাকা জেলার উপজেলা।
+                      চাঁপাইনবাবগঞ্জ ঢাকার বাইরে।
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-          জেলা ও এলাকা দেখে চার্জ ঠিক হয়। ঢাকা শহরের চেয়ে দূরের এলাকায় একটু বেশি। সস্তা জোন বেছে নিলেও ঠিকানা দূর হলে সেই চার্জই বসবে।
+          জেলা ও এলাকা দেখে চার্জ ঠিক হয়। তালিকার বাইরের ঢাকার এলাকা সিটি চার্জে পড়ে।
         </p>
       </fieldset>
 

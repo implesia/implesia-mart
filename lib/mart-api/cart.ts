@@ -32,6 +32,9 @@ export type ShopCart = {
   insideDhaka: number;
   dhakaSuburban: number;
   outsideDhaka: number;
+  insideEnabled: boolean;
+  suburbanEnabled: boolean;
+  outsideEnabled: boolean;
 };
 
 export type CartOwner = {
@@ -53,6 +56,9 @@ export type SavedCart = {
   insideDhaka: number;
   dhakaSuburban: number;
   outsideDhaka: number;
+  insideEnabled: boolean;
+  suburbanEnabled: boolean;
+  outsideEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -95,6 +101,9 @@ type ApiShopCart = {
   inside_dhaka: number;
   dhaka_suburban: number;
   outside_dhaka: number;
+  inside_enabled?: boolean;
+  suburban_enabled?: boolean;
+  outside_enabled?: boolean;
 };
 
 type ApiSavedCart = {
@@ -114,6 +123,9 @@ type ApiSavedCart = {
   inside_dhaka: number;
   dhaka_suburban: number;
   outside_dhaka: number;
+  inside_enabled?: boolean;
+  suburban_enabled?: boolean;
+  outside_enabled?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -168,6 +180,9 @@ function mapShop(body: ApiShopCart): ShopCart {
     insideDhaka: body.inside_dhaka,
     dhakaSuburban: body.dhaka_suburban,
     outsideDhaka: body.outside_dhaka,
+    insideEnabled: body.inside_enabled ?? true,
+    suburbanEnabled: body.suburban_enabled ?? true,
+    outsideEnabled: body.outside_enabled ?? true,
   };
 }
 
@@ -189,6 +204,9 @@ function mapSaved(body: ApiSavedCart): SavedCart {
     insideDhaka: body.inside_dhaka,
     dhakaSuburban: body.dhaka_suburban,
     outsideDhaka: body.outside_dhaka,
+    insideEnabled: body.inside_enabled ?? true,
+    suburbanEnabled: body.suburban_enabled ?? true,
+    outsideEnabled: body.outside_enabled ?? true,
     createdAt: body.created_at,
     updatedAt: body.updated_at,
   };

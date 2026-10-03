@@ -59,6 +59,9 @@ const EMPTY_PRICING: CartPricing = {
   insideDhaka: 70,
   dhakaSuburban: 100,
   outsideDhaka: 130,
+  insideEnabled: true,
+  suburbanEnabled: true,
+  outsideEnabled: true,
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -84,6 +87,9 @@ function applyCart(cart: ShopCart) {
     insideDhaka: cart.insideDhaka,
     dhakaSuburban: cart.dhakaSuburban,
     outsideDhaka: cart.outsideDhaka,
+    insideEnabled: cart.insideEnabled,
+    suburbanEnabled: cart.suburbanEnabled,
+    outsideEnabled: cart.outsideEnabled,
   };
   return { items, ids, pricing, itemCount: cart.itemCount };
 }
@@ -117,10 +123,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const subtotal = nextItems.reduce((sum, item) => sum + item.lineTotal, 0);
     const count = nextItems.reduce((sum, item) => sum + item.quantity, 0);
     const current = pricingRef.current;
-    const matched =
-      current.insideDhaka === current.dhakaSuburban &&
-      current.dhakaSuburban === current.outsideDhaka;
-    const ship = count > 0 && matched ? current.insideDhaka : 0;
+    const offered = [
+      current.insideEnabled ? current.insideDhaka : null,
+      current.suburbanEnabled ? current.dhakaSuburban : null,
+      current.outsideEnabled ? current.outsideDhaka : null,
+    ].filter((fee): fee is number => fee != null);
+    const matched = offered.length > 0 && offered.every((fee) => fee === offered[0]);
+    const ship = count > 0 && matched ? offered[0] : 0;
     const pricing = {
       subtotal,
       shipping: ship,
@@ -129,6 +138,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       insideDhaka: current.insideDhaka,
       dhakaSuburban: current.dhakaSuburban,
       outsideDhaka: current.outsideDhaka,
+      insideEnabled: current.insideEnabled,
+      suburbanEnabled: current.suburbanEnabled,
+      outsideEnabled: current.outsideEnabled,
     };
     itemsRef.current = nextItems;
     pricingRef.current = pricing;

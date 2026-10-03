@@ -273,9 +273,21 @@ function Hero({ hero }: { hero: ShippingHeroContent }) {
 
 function DeliveryRatesCard({ rates }: { rates: StoreDeliveryRates }) {
   const rows = [
-    { label: "ঢাকার ভেতরে", value: rates.insideDhaka },
-    { label: "ঢাকার শহরতলি", value: rates.dhakaSuburban },
-    { label: "ঢাকার বাইরে", value: rates.outsideDhaka },
+    {
+      label: "ঢাকার ভেতরে",
+      value: rates.insideDhaka,
+      enabled: rates.insideEnabled,
+    },
+    {
+      label: "ঢাকার শহরতলি",
+      value: rates.dhakaSuburban,
+      enabled: rates.suburbanEnabled,
+    },
+    {
+      label: "ঢাকার বাইরে",
+      value: rates.outsideDhaka,
+      enabled: rates.outsideEnabled,
+    },
   ];
   return (
     <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
@@ -291,14 +303,22 @@ function DeliveryRatesCard({ rates }: { rates: StoreDeliveryRates }) {
             <span className="text-sm font-medium text-neutral-950">
               {item.label}
             </span>
-            <span className="w-fit rounded-full bg-primary/12 px-3 py-1 text-xs font-semibold text-primary">
-              ৳{item.value.toLocaleString("en-US")}
+            <span
+              className={cn(
+                "w-fit rounded-full px-3 py-1 text-xs font-semibold",
+                item.enabled
+                  ? "bg-primary/12 text-primary"
+                  : "bg-neutral-200 text-neutral-500",
+              )}
+            >
+              {item.enabled ? `৳${item.value.toLocaleString("en-US")}` : "বন্ধ"}
             </span>
           </li>
         ))}
       </ul>
       <p className="mt-3 text-xs leading-relaxed text-neutral-500">
-        চেকআউটে এলাকা বেছে নিলে এই চার্জ যোগ হয়। ঢাকা শহরের চেয়ে শহরতলিতে একটু বেশি। ক্যাশ অন ডেলিভারি।
+        চেকআউটে এলাকা বেছে নিলে এই চার্জ যোগ হয়। ঢাকা শহরের চেয়ে শহরতলিতে একটু
+        বেশি। ক্যাশ অন ডেলিভারি।
       </p>
     </section>
   );
