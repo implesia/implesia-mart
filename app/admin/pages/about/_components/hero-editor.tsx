@@ -7,13 +7,12 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankAboutImage,
-  readAboutSections,
-  saveAboutSections,
-  type AboutHeroContent,
-  type AboutImage,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+  getAboutHero,
+  saveAboutHero,
+  type AboutHero,
+  type AboutHeroImage,
+} from "@/lib/mart-api/about-hero";
+import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -38,18 +37,26 @@ type HeroDraft = {
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
-  images: AboutImage[];
+  images: AboutHeroImage[];
 };
 
-function draftFromHero(hero: AboutHeroContent): HeroDraft {
+function blankAboutImage(): AboutHeroImage {
+  return {
+    id: `photo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    src: "",
+    alt: "",
+  };
+}
+
+function draftFromHero(hero: AboutHero): HeroDraft {
   return {
     eyebrow: hero.eyebrow,
     title: hero.title,
     subtitle: hero.subtitle,
-    primaryLabel: hero.primaryCta.label,
-    primaryHref: hero.primaryCta.href,
-    secondaryLabel: hero.secondaryCta.label,
-    secondaryHref: hero.secondaryCta.href,
+    primaryLabel: hero.primaryLabel,
+    primaryHref: hero.primaryHref,
+    secondaryLabel: hero.secondaryLabel,
+    secondaryHref: hero.secondaryHref,
     images: hero.images.map((image) => ({ ...image })),
   };
 }
@@ -61,16 +68,32 @@ function slotLabel(index: number) {
 }
 
 export function AboutHeroEditor() {
-  const { hero } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const editing = params.has("edit");
+  const [hero, setHero] = useState<AboutHero | null>(null);
+  const [loadError, setLoadError] = useState("");
   const [notice, setNotice] = useState("");
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
   const page = findCmsPage("about");
-  const photos = hero.images.slice(0, PHOTO_LIMIT);
+  const photos = hero?.images.slice(0, PHOTO_LIMIT) ?? [];
+
+  useEffect(() => {
+    let cancelled = false;
+    getAboutHero()
+      .then((next) => {
+        if (!cancelled) setHero(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof MartApiError ? error.message : "Could not load the about hero.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing || !returnFocus.current) return;
@@ -89,27 +112,21 @@ export function AboutHeroEditor() {
     });
   }
 
-  function save(draft: HeroDraft) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      hero: {
-        eyebrow: draft.eyebrow.trim(),
-        title: draft.title.trim(),
-        subtitle: draft.subtitle.trim(),
-        primaryCta: {
-          label: draft.primaryLabel.trim(),
-          href: draft.primaryHref.trim(),
-        },
-        secondaryCta: {
-          label: draft.secondaryLabel.trim(),
-          href: draft.secondaryHref.trim(),
-        },
-        images: draft.images
-          .filter((image) => image.src)
-          .map((image) => ({ ...image, alt: image.alt.trim() })),
-      },
+  async function save(draft: HeroDraft) {
+    if (!hero) return;
+    const next = await saveAboutHero({
+      eyebrow: draft.eyebrow.trim(),
+      title: draft.title.trim(),
+      subtitle: draft.subtitle.trim(),
+      primaryLabel: draft.primaryLabel.trim(),
+      primaryHref: draft.primaryHref.trim(),
+      secondaryLabel: draft.secondaryLabel.trim(),
+      secondaryHref: draft.secondaryHref.trim(),
+      images: draft.images
+        .filter((image) => image.src)
+        .map((image) => ({ ...image, alt: image.alt.trim() })),
     });
+    setHero(next);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
@@ -192,7 +209,15 @@ export function AboutHeroEditor() {
           {notice} The about page banner is up to date.
         </p>
       ) : null}
-
+      {loadError ? (
+        <p role="alert" className="rounded-2xl bg-white px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+          {loadError}
+        </p>
+      ) : null}
+      {!hero ? (
+        loadError ? null : <p className="text-sm text-neutral-500">Loading the hero…</p>
+      ) : (
+      <>
       <section
         className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
         aria-labelledby="about-hero-card-heading"
@@ -249,11 +274,13 @@ export function AboutHeroEditor() {
           onSave={save}
         />
       ) : null}
+      </>
+      )}
     </div>
   );
 }
 
-function HeroPreview({ hero }: { hero: AboutHeroContent }) {
+function HeroPreview({ hero }: { hero: AboutHero }) {
   const photos = hero.images.slice(0, PHOTO_LIMIT);
 
   return (
@@ -269,15 +296,15 @@ function HeroPreview({ hero }: { hero: AboutHeroContent }) {
           {hero.subtitle.trim() || "Subtitle"}
         </p>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          {hero.primaryCta.label.trim() ? (
+          {hero.primaryLabel.trim() ? (
             <span className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-white">
-              {hero.primaryCta.label}
+              {hero.primaryLabel}
               <MaterialIcon name="arrow_forward" className="text-[18px]" />
             </span>
           ) : null}
-          {hero.secondaryCta.label.trim() ? (
+          {hero.secondaryLabel.trim() ? (
             <span className="inline-flex h-9 items-center justify-center rounded-full px-4 text-sm font-semibold text-white ring-1 ring-white/25">
-              {hero.secondaryCta.label}
+              {hero.secondaryLabel}
             </span>
           ) : null}
         </div>
@@ -316,9 +343,9 @@ function HeroFormModal({
   onClose,
   onSave,
 }: {
-  hero: AboutHeroContent;
+  hero: AboutHero;
   onClose: () => void;
-  onSave: (draft: HeroDraft) => void;
+  onSave: (draft: HeroDraft) => Promise<void>;
 }) {
   const initial = draftFromHero(hero);
   const [draft, setDraft] = useState(initial);
@@ -329,7 +356,7 @@ function HeroFormModal({
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function updateImage(id: string, patch: Partial<AboutImage>) {
+  function updateImage(id: string, patch: Partial<AboutHeroImage>) {
     setDraft((current) => ({
       ...current,
       images: current.images.map((image) =>
@@ -339,7 +366,7 @@ function HeroFormModal({
     setPhotoError("");
   }
 
-  function save() {
+  async function save() {
     if (saving || uploading > 0) return;
     if (!draft.title.trim()) {
       setTitleError("Title is required.");
@@ -350,7 +377,14 @@ function HeroFormModal({
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setTitleError("");
+    setPhotoError("");
+    try {
+      await onSave(draft);
+    } catch (error) {
+      setSaving(false);
+      setPhotoError(error instanceof MartApiError ? error.message : "Could not save the about hero.");
+    }
   }
 
   return (
@@ -579,7 +613,7 @@ function HeroFormModal({
                                 images: [
                                   draft.images[1],
                                   draft.images[0],
-                                ].filter((item): item is AboutImage =>
+                                ].filter((item): item is AboutHeroImage =>
                                   Boolean(item),
                                 ),
                               })

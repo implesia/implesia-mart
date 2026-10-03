@@ -4,15 +4,21 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { cn } from "@/lib/utils";
 import {
-  blankFaq,
-  readHomeSections,
-  saveHomeSections,
+  blankFaqDraft,
+  createFaqItem,
+  deleteFaqItem,
+  getFaqSection,
+  reorderFaqItems,
+  updateFaqCopy,
+  updateFaqItem,
+  type FaqDraft,
   type FaqItem,
-  type FaqSectionContent,
-} from "@/lib/mart-mock/home-sections";
+  type FaqSection,
+} from "@/lib/mart-api/faq";
+import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
+import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../_components/admin-form-modal";
 import {
@@ -27,8 +33,6 @@ import { FormCloseGuard } from "../../_components/form-close-guard";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
 
-type Draft = Pick<FaqItem, "category" | "question" | "answer" | "isActive">;
-
 const CATEGORY_ICONS: Record<string, string> = {
   "অর্ডার ট্র্যাকিং": "package_2",
   "পেমেন্ট ও ক্যাশ অন ডেলিভারি": "payments",
@@ -38,65 +42,72 @@ const CATEGORY_ICONS: Record<string, string> = {
   "ডেলিভারি সময়": "schedule",
 };
 
-export function HomeFaq({ section }: { section: FaqSectionContent }) {
+export function HomeFaq() {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
-  const items = section.items;
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [baseline, setBaseline] = useState<Draft | null>(null);
+  const [section, setSection] = useState<FaqSection | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [draft, setDraft] = useState<FaqDraft | null>(null);
+  const [baseline, setBaseline] = useState<FaqDraft | null>(null);
   const [errors, setErrors] = useState<{ question?: string; answer?: string }>(
     {},
   );
+  const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const [resolved, setResolved] = useState<string | null>(null);
-  const loaded = useRef<string | null>(null);
   const focusId = useRef<string | null>(null);
   const questionId = useId();
+  const items = section?.items ?? [];
+  const visible = items.filter(isContentActive);
 
   useEffect(() => {
-    if (loaded.current === selected) return;
-    loaded.current = selected;
-    setResolved(selected);
+    let cancelled = false;
+    getFaqSection()
+      .then((next) => {
+        if (!cancelled) setSection(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof MartApiError
+            ? error.message
+            : "Could not load the questions.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (
+    (selected === null || selected === "new" || section) &&
+    selected !== openKey
+  ) {
+    setOpenKey(selected);
     setErrors({});
+    setFormError("");
     if (!selected) {
       setDraft(null);
       setBaseline(null);
-      return;
-    }
-    if (selected === "new") {
-      const blank = blankFaq();
-      const next = {
-        category: blank.category,
-        question: blank.question,
-        answer: blank.answer,
-        isActive: true,
-      };
+    } else if (selected === "new") {
+      const next = blankFaqDraft();
       setDraft(next);
       setBaseline(next);
-      return;
+    } else {
+      const item = section?.items.find((entry) => entry.id === selected);
+      const next = item ? draftFrom(item) : null;
+      setDraft(next);
+      setBaseline(next);
     }
-    const item = readHomeSections().faq.items.find(
-      (entry) => entry.id === selected,
-    );
-    const next = item
-      ? {
-          category: item.category,
-          question: item.question,
-          answer: item.answer,
-          isActive: item.isActive !== false,
-        }
-      : null;
-    setDraft(next);
-    setBaseline(next);
-  }, [selected]);
+  }
 
   useEffect(() => {
     if (draft || !focusId.current) return;
@@ -123,13 +134,27 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
     }, 1600);
   }
 
-  function patchCopy(partial: Partial<Omit<FaqSectionContent, "items">>) {
-    const doc = readHomeSections();
-    saveHomeSections({ ...doc, faq: { ...doc.faq, ...partial } });
+  async function saveCopy(next: {
+    kicker?: string;
+    title?: string;
+    subtitle?: string;
+    moreLabel?: string;
+    moreHref?: string;
+  }) {
+    if (!section) return;
+    setSection(
+      await updateFaqCopy({
+        kicker: next.kicker ?? "",
+        title: next.title ?? "",
+        subtitle: next.subtitle ?? "",
+        moreLabel: next.moreLabel ?? "",
+        moreHref: next.moreHref ?? "",
+      }),
+    );
   }
 
-  function save() {
-    if (!draft || saving) return;
+  async function save() {
+    if (!draft || saving || !section) return;
     const question = draft.question.trim();
     const answer = draft.answer.trim();
     const nextErrors: { question?: string; answer?: string } = {};
@@ -140,60 +165,86 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
       return;
     }
     setSaving(true);
-    const doc = readHomeSections();
-    const category = draft.category.trim();
-    if (creating) {
-      const item = { ...blankFaq(), category, question, answer, isActive: draft.isActive };
-      saveHomeSections({
-        ...doc,
-        faq: { ...doc.faq, items: [...doc.faq.items, item] },
-      });
-      setSavedId(item.id);
-      focusId.current = item.id;
-    } else if (selected) {
-      saveHomeSections({
-        ...doc,
-        faq: {
-          ...doc.faq,
-          items: doc.faq.items.map((entry) =>
-            entry.id === selected
-              ? { ...entry, category, question, answer, isActive: draft.isActive }
-              : entry,
+    setFormError("");
+    const nextDraft = {
+      ...draft,
+      category: draft.category.trim(),
+      question,
+      answer,
+    };
+    try {
+      if (creating) {
+        const item = await createFaqItem(nextDraft);
+        setSection({ ...section, items: [...section.items, item] });
+        setSavedId(item.id);
+        focusId.current = item.id;
+      } else if (selected) {
+        const item = await updateFaqItem(selected, nextDraft);
+        setSection({
+          ...section,
+          items: section.items.map((entry) =>
+            entry.id === selected ? item : entry,
           ),
-        },
-      });
-      setSavedId(selected);
-      focusId.current = selected;
+        });
+        setSavedId(selected);
+        focusId.current = selected;
+      }
+      setSaving(false);
+      flash("Saved");
+      setEdit(null);
+    } catch (error) {
+      setSaving(false);
+      setFormError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not save the question.",
+      );
     }
-    setSaving(false);
-    flash("Saved");
-    setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readHomeSections();
-    saveHomeSections({
-      ...doc,
-      faq: {
-        ...doc.faq,
-        items: doc.faq.items.filter((item) => item.id !== id),
-      },
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    if (!section) return;
+    setLoadError("");
+    try {
+      await deleteFaqItem(id);
+      setSection({
+        ...section,
+        items: section.items.filter((item) => item.id !== id),
+      });
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not remove the question.",
+      );
+    }
+  }
+
+  async function applyOrder(ids: string[]) {
+    setLoadError("");
+    try {
+      setSection(await reorderFaqItems(ids));
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError
+          ? error.message
+          : "Could not reorder the questions.",
+      );
+    }
   }
 
   function move(id: string, direction: -1 | 1) {
-    const doc = readHomeSections();
-    const index = doc.faq.items.findIndex((item) => item.id === id);
+    const index = items.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.faq.items.length) return;
-    const next = [...doc.faq.items];
+    if (index < 0 || target < 0 || target >= items.length) return;
+    const next = [...items];
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveHomeSections({ ...doc, faq: { ...doc.faq, items: next } });
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   function dropOn(targetId: string) {
@@ -202,23 +253,27 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
       setOverId(null);
       return;
     }
-    const doc = readHomeSections();
-    const next = [...doc.faq.items];
+    const next = [...items];
     const from = next.findIndex((item) => item.id === dragId);
     const to = next.findIndex((item) => item.id === targetId);
+    setDragId(null);
+    setOverId(null);
     if (from < 0 || to < 0) return;
     const [item] = next.splice(from, 1);
     if (!item) return;
     next.splice(to, 0, item);
-    saveHomeSections({ ...doc, faq: { ...doc.faq, items: next } });
-    setDragId(null);
-    setOverId(null);
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   const missing = Boolean(
-    selected && selected !== "new" && resolved === selected && !draft,
+    section && selected && selected !== "new" && openKey === selected && !draft,
   );
-  const editingTitle = draft?.question.trim() || "Question";
+
+  if (!section && !loadError) {
+    return (
+      <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-4">
@@ -238,6 +293,11 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
         }
       />
 
+      {loadError ? (
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-100">
+          {loadError}
+        </p>
+      ) : null}
       {notice && !draft ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The question list is up to date.
@@ -256,118 +316,116 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
         </p>
       ) : null}
 
-      <section
-        className="overflow-hidden rounded-2xl bg-[#f7f8f8] ring-1 ring-neutral-200/90"
-        aria-labelledby="faq-preview-heading"
-      >
-        <div className="px-4 pt-4 sm:px-5">
-          <h2
-            id="faq-preview-heading"
-            className="text-sm font-semibold text-neutral-950"
-          >
-            Storefront preview
-          </h2>
-          <p className="mt-0.5 text-sm text-neutral-500">
-            Shown on the home page in this order, split into two columns. Every
-            question in the list appears there.
-          </p>
-        </div>
-        <div className="px-4 py-4 sm:px-5">
-          <div className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 sm:px-5 sm:py-5">
-            <SectionCopyForm
-              values={{
-                kicker: section.kicker,
-                title: section.title,
-                subtitle: section.subtitle,
-                moreLabel: section.moreLabel,
-                moreHref: section.moreHref,
-              }}
-              fields={[
-                { name: "kicker", label: "Eyebrow" },
-                { name: "title", label: "Title" },
-                {
-                  name: "subtitle",
-                  label: "Subtitle",
-                  multiline: true,
-                  wide: true,
-                },
-                { name: "moreLabel", label: "More link label" },
-                { name: "moreHref", label: "More link" },
-              ]}
-              saveLabel="Save heading"
-              onSave={(next) =>
-                patchCopy({
-                  kicker: next.kicker ?? "",
-                  title: next.title ?? "",
-                  subtitle: next.subtitle ?? "",
-                  moreLabel: next.moreLabel ?? "",
-                  moreHref: next.moreHref ?? "",
-                })
-              }
-            />
-            {items.length === 0 ? (
-              <div className="px-2 py-10 text-center">
-                <p className="text-sm font-semibold text-neutral-950">
-                  No questions yet
-                </p>
-                <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-                  Add a question so customers can find a short answer on the
-                  home page.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setEdit("new")}
-                  className={cn(adminButtonClass.primary, "mt-4")}
-                >
-                  <MaterialIcon name="add" className="text-[18px]" />
-                  Add question
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 grid items-start gap-3 md:grid-cols-2">
-                {[0, 1].map((column) => (
-                  <ul key={column} className="space-y-3">
-                    {items
-                      .filter((_, index) => index % 2 === column)
-                      .map((item) => (
-                        <li key={item.id}>
-                          <button
-                            type="button"
-                            onClick={() => setEdit(item.id)}
-                            className={cn(
-                              "flex w-full items-start gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 text-left",
-                              selected === item.id && "ring-2 ring-primary",
-                            )}
-                          >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
-                              <MaterialIcon
-                                name={
-                                  CATEGORY_ICONS[item.category] ??
-                                  "help_outline"
-                                }
-                                className="text-[18px]"
-                              />
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block text-sm font-semibold text-neutral-950">
-                                {item.question || "Untitled question"}
-                              </span>
-                              {item.category ? (
-                                <span className="mt-1 block text-xs text-neutral-500">
-                                  {item.category}
-                                </span>
-                              ) : null}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                  </ul>
-                ))}
-              </div>
-            )}
+      {section ? (
+        <section
+          className="overflow-hidden rounded-2xl bg-[#f7f8f8] ring-1 ring-neutral-200/90"
+          aria-labelledby="faq-preview-heading"
+        >
+          <div className="px-4 pt-4 sm:px-5">
+            <h2
+              id="faq-preview-heading"
+              className="text-sm font-semibold text-neutral-950"
+            >
+              Storefront preview
+            </h2>
+            <p className="mt-0.5 text-sm text-neutral-500">
+              Shown on the home page in this order, split into two columns.
+              Hidden questions stay off the home page.
+            </p>
           </div>
-        </div>
-      </section>
+          <div className="px-4 py-4 sm:px-5">
+            <div className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 sm:px-5 sm:py-5">
+              <SectionCopyForm
+                values={{
+                  kicker: section.kicker,
+                  title: section.title,
+                  subtitle: section.subtitle,
+                  moreLabel: section.moreLabel,
+                  moreHref: section.moreHref,
+                }}
+                fields={[
+                  { name: "kicker", label: "Eyebrow" },
+                  { name: "title", label: "Title" },
+                  {
+                    name: "subtitle",
+                    label: "Subtitle",
+                    multiline: true,
+                    wide: true,
+                  },
+                  { name: "moreLabel", label: "More link label" },
+                  { name: "moreHref", label: "More link" },
+                ]}
+                saveLabel="Save heading"
+                onSave={saveCopy}
+              />
+              {visible.length === 0 ? (
+                <div className="px-2 py-10 text-center">
+                  <p className="text-sm font-semibold text-neutral-950">
+                    {items.length === 0
+                      ? "No questions yet"
+                      : "All questions are hidden."}
+                  </p>
+                  <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
+                    Add a question so customers can find a short answer on the
+                    home page.
+                  </p>
+                  {items.length === 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setEdit("new")}
+                      className={cn(adminButtonClass.primary, "mt-4")}
+                    >
+                      <MaterialIcon name="add" className="text-[18px]" />
+                      Add question
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="mt-4 grid items-start gap-3 md:grid-cols-2">
+                  {[0, 1].map((column) => (
+                    <ul key={column} className="space-y-3">
+                      {visible
+                        .filter((_, index) => index % 2 === column)
+                        .map((item) => (
+                          <li key={item.id}>
+                            <button
+                              type="button"
+                              onClick={() => setEdit(item.id)}
+                              className={cn(
+                                "flex w-full items-start gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 text-left",
+                                selected === item.id && "ring-2 ring-primary",
+                              )}
+                            >
+                              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
+                                <MaterialIcon
+                                  name={
+                                    CATEGORY_ICONS[item.category] ??
+                                    "help_outline"
+                                  }
+                                  className="text-[18px]"
+                                />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-sm font-semibold text-neutral-950">
+                                  {item.question || "Untitled question"}
+                                </span>
+                                {item.category ? (
+                                  <span className="mt-1 block text-xs text-neutral-500">
+                                    {item.category}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                    </ul>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {items.length > 0 ? (
         <section
@@ -480,7 +538,7 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
                         Remove from the home page?
                         <button
                           type="button"
-                          onClick={() => remove(item.id)}
+                          onClick={() => void remove(item.id)}
                           className="font-semibold underline"
                         >
                           Yes
@@ -510,165 +568,182 @@ export function HomeFaq({ section }: { section: FaqSectionContent }) {
       ) : null}
 
       {draft && baseline ? (
-        <FormCloseGuard baseline={baseline} value={draft} onClose={() => setEdit(null)}>
-        <AdminFormModal
-          key={selected ?? "closed"}
-          titleId="faq-drawer-title"
-          size="md"
+        <FormCloseGuard
+          baseline={baseline}
+          value={draft}
+          onClose={() => setEdit(null)}
         >
-          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-            <div className="min-w-0">
-              <h2
-                id="faq-drawer-title"
-                className="text-lg font-semibold text-neutral-950"
-              >
-                {creating ? "Add question" : "Edit question"}
-              </h2>
-              <p className="mt-1 text-sm text-neutral-500">
-                {creating
-                  ? "Add a question and answer for the home page."
-                  : "Update this question."}
-              </p>
-            </div>
-            <button
-              type="button"
-              data-form-dismiss=""
-              aria-label="Close"
-              title="Close"
-              onClick={() => setEdit(null)}
-              className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-            >
-              <MaterialIcon name="close" className="text-[20px]" />
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-            <div className="rounded-2xl border border-neutral-200/90 px-4 py-4">
-              <div className="flex items-start gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
-                  <MaterialIcon
-                    name={
-                      CATEGORY_ICONS[draft.category.trim()] ?? "help_outline"
-                    }
-                    className="text-[18px]"
-                  />
-                </span>
-                <p className="min-w-0 text-sm font-semibold text-neutral-950">
-                  {draft.question.trim() || "Question"}
+          <AdminFormModal titleId="faq-drawer-title" size="md">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+              <div className="min-w-0">
+                <h2
+                  id="faq-drawer-title"
+                  className="text-lg font-semibold text-neutral-950"
+                >
+                  {creating ? "Add question" : "Edit question"}
+                </h2>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {creating
+                    ? "Add a question and answer for the home page."
+                    : "Update this question."}
                 </p>
               </div>
-              {draft.answer.trim() ? (
-                <p className="mt-3 border-t border-neutral-100 pt-3 text-sm leading-relaxed text-neutral-600">
-                  {draft.answer}
-                </p>
-              ) : null}
+              <button
+                type="button"
+                data-form-dismiss=""
+                aria-label="Close"
+                title="Close"
+                onClick={() => setEdit(null)}
+                className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <MaterialIcon name="close" className="text-[20px]" />
+              </button>
             </div>
-            <ActiveStatusField
-              checked={draft.isActive !== false}
-              onChange={(isActive) => setDraft({ ...draft, isActive })}
-            />
-            <div>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              <div className="rounded-2xl border border-neutral-200/90 px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
+                    <MaterialIcon
+                      name={
+                        CATEGORY_ICONS[draft.category.trim()] ?? "help_outline"
+                      }
+                      className="text-[18px]"
+                    />
+                  </span>
+                  <p className="min-w-0 text-sm font-semibold text-neutral-950">
+                    {draft.question.trim() || "Question"}
+                  </p>
+                </div>
+                {draft.answer.trim() ? (
+                  <p className="mt-3 border-t border-neutral-100 pt-3 text-sm leading-relaxed text-neutral-600">
+                    {draft.answer}
+                  </p>
+                ) : null}
+              </div>
+              <ActiveStatusField
+                checked={draft.isActive !== false}
+                onChange={(isActive) => setDraft({ ...draft, isActive })}
+              />
+              <div>
                 <FieldLabel htmlFor={`${questionId}-category`}>
                   Category
                 </FieldLabel>
-              <input
-                id={`${questionId}-category`}
-                value={draft.category}
-                placeholder="Orders"
-                onChange={(event) =>
-                  setDraft({ ...draft, category: event.target.value })
-                }
-                className={adminFieldClass}
-              />
+                <input
+                  id={`${questionId}-category`}
+                  value={draft.category}
+                  placeholder="Orders"
+                  onChange={(event) =>
+                    setDraft({ ...draft, category: event.target.value })
+                  }
+                  className={adminFieldClass}
+                />
+              </div>
+              <div>
+                <FieldLabel htmlFor={questionId}>
+                  Question <span className="text-red-700">*</span>
+                </FieldLabel>
+                <input
+                  id={questionId}
+                  autoFocus
+                  value={draft.question}
+                  placeholder="How do I place an order?"
+                  onChange={(event) => {
+                    setDraft({ ...draft, question: event.target.value });
+                    setErrors((current) => ({
+                      ...current,
+                      question: undefined,
+                    }));
+                  }}
+                  aria-invalid={errors.question ? true : undefined}
+                  aria-describedby={
+                    errors.question ? `${questionId}-error` : undefined
+                  }
+                  className={cn(
+                    adminFieldClass,
+                    errors.question && "border-red-400",
+                  )}
+                />
+                {errors.question ? (
+                  <div id={`${questionId}-error`}>
+                    <FieldError message={errors.question} />
+                  </div>
+                ) : null}
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${questionId}-answer`}>
+                  Answer <span className="text-red-700">*</span>
+                </FieldLabel>
+                <textarea
+                  id={`${questionId}-answer`}
+                  value={draft.answer}
+                  rows={5}
+                  placeholder="The answer customers should see"
+                  onChange={(event) => {
+                    setDraft({ ...draft, answer: event.target.value });
+                    setErrors((current) => ({ ...current, answer: undefined }));
+                  }}
+                  aria-invalid={errors.answer ? true : undefined}
+                  aria-describedby={
+                    errors.answer ? `${questionId}-answer-error` : undefined
+                  }
+                  className={cn(
+                    adminFieldClass,
+                    "h-auto py-3",
+                    errors.answer && "border-red-400",
+                  )}
+                />
+                {errors.answer ? (
+                  <div id={`${questionId}-answer-error`}>
+                    <FieldError message={errors.answer} />
+                  </div>
+                ) : null}
+              </div>
+              {formError ? <FieldError message={formError} /> : null}
             </div>
-            <div>
-              <FieldLabel htmlFor={questionId}>
-                Question <span className="text-red-700">*</span>
-              </FieldLabel>
-              <input
-                id={questionId}
-                autoFocus
-                value={draft.question}
-                placeholder="How do I place an order?"
-                onChange={(event) => {
-                  setDraft({ ...draft, question: event.target.value });
-                  setErrors((current) => ({ ...current, question: undefined }));
-                }}
-                aria-invalid={errors.question ? true : undefined}
-                aria-describedby={
-                  errors.question ? `${questionId}-error` : undefined
-                }
-                className={cn(
-                  adminFieldClass,
-                  errors.question && "border-red-400",
-                )}
-              />
-              {errors.question ? (
-                <div id={`${questionId}-error`}>
-                  <FieldError message={errors.question} />
-                </div>
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+              {notice ? (
+                <p
+                  role="status"
+                  className="mr-auto text-sm font-medium text-emerald-800"
+                >
+                  {notice}
+                </p>
               ) : null}
-            </div>
-            <div>
-              <FieldLabel htmlFor={`${questionId}-answer`}>
-                Answer <span className="text-red-700">*</span>
-              </FieldLabel>
-              <textarea
-                id={`${questionId}-answer`}
-                value={draft.answer}
-                rows={5}
-                placeholder="The answer customers should see"
-                onChange={(event) => {
-                  setDraft({ ...draft, answer: event.target.value });
-                  setErrors((current) => ({ ...current, answer: undefined }));
-                }}
-                aria-invalid={errors.answer ? true : undefined}
-                aria-describedby={
-                  errors.answer ? `${questionId}-answer-error` : undefined
-                }
-                className={cn(
-                  adminFieldClass,
-                  "h-auto py-3",
-                  errors.answer && "border-red-400",
-                )}
-              />
-              {errors.answer ? (
-                <div id={`${questionId}-answer-error`}>
-                  <FieldError message={errors.answer} />
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-            {notice ? (
-              <p
-                role="status"
-                className="mr-auto text-sm font-medium text-emerald-800"
+              <button
+                type="button"
+                data-form-dismiss=""
+                onClick={() => setEdit(null)}
+                className={adminButtonClass.secondary}
               >
-                {notice}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              data-form-dismiss=""
-              onClick={() => setEdit(null)}
-              className={adminButtonClass.secondary}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={save}
-              disabled={saving}
-              className={adminButtonClass.primary}
-            >
-              {saving ? "Saving…" : creating ? "Save question" : "Save changes"}
-            </button>
-          </div>
-        </AdminFormModal>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void save()}
+                disabled={saving}
+                className={adminButtonClass.primary}
+              >
+                {saving
+                  ? "Saving…"
+                  : creating
+                    ? "Save question"
+                    : "Save changes"}
+              </button>
+            </div>
+          </AdminFormModal>
         </FormCloseGuard>
       ) : null}
     </div>
   );
+}
+
+function draftFrom(item: FaqItem): FaqDraft {
+  return {
+    category: item.category,
+    question: item.question,
+    answer: item.answer,
+    isActive: item.isActive,
+  };
 }
 
 function IconButton({

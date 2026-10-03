@@ -6,11 +6,12 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  readAboutSections,
-  saveAboutSections,
-  type AboutCard,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+  listAboutMission,
+  updateAboutMissionCard,
+  type AboutMissionCard,
+  type AboutMissionDraft,
+} from "@/lib/mart-api/about-mission";
+import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -72,18 +73,34 @@ function cardLabel(key: CardKey) {
 }
 
 export function AboutMissionEditor() {
-  const { mission } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("card");
   const cardKey = isCardKey(selected) ? selected : null;
-  const opened = cardKey ? mission[cardKey] : null;
+  const [cards, setCards] = useState<AboutMissionCard[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const opened = cardKey && cards ? (cards.find((card) => card.key === cardKey) ?? null) : null;
   const [notice, setNotice] = useState("");
   const [savedKey, setSavedKey] = useState<CardKey | null>(null);
   const focusId = useRef<string | null>(null);
   const page = findCmsPage("about");
   const drawerOpen = Boolean(opened);
+
+  useEffect(() => {
+    let cancelled = false;
+    listAboutMission()
+      .then((next) => {
+        if (!cancelled) setCards(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof MartApiError ? error.message : "Could not load the cards.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (drawerOpen || !focusId.current) return;
@@ -110,17 +127,18 @@ export function AboutMissionEditor() {
     }, 1600);
   }
 
-  function save(draft: AboutCard) {
-    if (!cardKey) return;
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      mission: { ...doc.mission, [cardKey]: draft },
-    });
+  async function save(draft: AboutMissionDraft) {
+    if (!cardKey || !cards) return;
+    const saved = await updateAboutMissionCard(cardKey, draft);
+    setCards(cards.map((card) => (card.key === cardKey ? saved : card)));
     setSavedKey(cardKey);
     focusId.current = `about-mission-${cardKey}`;
     flash("Saved");
     setCard(null);
+  }
+
+  function cardFor(key: CardKey) {
+    return cards?.find((card) => card.key === key) ?? null;
   }
 
   const missing = Boolean(selected && !cardKey);
@@ -171,7 +189,7 @@ export function AboutMissionEditor() {
         ) : null}
         <AdminPageHeader
           title="Mission & vision"
-          description="Two cards — vision and mission."
+          description="Two cards — vision and mission. Hidden cards stay off the about page."
           action={
             <a
               href="/about-us"
@@ -186,6 +204,11 @@ export function AboutMissionEditor() {
         />
       </div>
 
+      {loadError ? (
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+          {loadError}
+        </p>
+      ) : null}
       {notice && !drawerOpen ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The cards are up to date.
@@ -221,9 +244,13 @@ export function AboutMissionEditor() {
           </p>
         </div>
         <div className="p-4 sm:p-5">
+          {cards === null ? (
+            <p className="text-sm text-neutral-500">Loading mission cards…</p>
+          ) : (
           <div className="grid grid-cols-1 gap-3 rounded-2xl bg-[#f5f6f8] p-4 xl:grid-cols-2 xl:gap-4 sm:p-5">
             {CARDS.map((entry, index) => {
-              const card = mission[entry.key];
+              const card = cardFor(entry.key);
+              if (!card) return null;
               const dark = index === 1;
               return (
                 <button
@@ -271,6 +298,7 @@ export function AboutMissionEditor() {
               );
             })}
           </div>
+          )}
         </div>
       </section>
 
@@ -283,12 +311,15 @@ export function AboutMissionEditor() {
             id="about-mission-list-heading"
             className="text-sm font-semibold text-neutral-950"
           >
-            2 cards
+            {cards === null ? "Loading mission cards…" : "2 cards"}
           </h2>
         </div>
         <ol>
-          {CARDS.map((entry, index) => {
-            const card = mission[entry.key];
+          {cards === null
+            ? null
+            : CARDS.map((entry, index) => {
+            const card = cardFor(entry.key);
+            if (!card) return null;
             return (
               <li
                 key={entry.key}
@@ -362,22 +393,23 @@ function CardDrawer({
   onSave,
 }: {
   cardKey: CardKey;
-  initial: AboutCard;
+  initial: AboutMissionCard;
   notice: string;
   onClose: () => void;
-  onSave: (draft: AboutCard) => void;
+  onSave: (draft: AboutMissionDraft) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
   const baseline = useRef(draft);
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const titleId = useId();
   const descriptionId = useId();
   const label = cardLabel(cardKey);
   const title = draft.title.trim() || label;
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextTitle = draft.title.trim();
     const nextDescription = draft.description.trim();
@@ -385,12 +417,18 @@ function CardDrawer({
     setDescriptionError(nextDescription ? "" : "Description is required.");
     if (!nextTitle || !nextDescription) return;
     setSaving(true);
-    onSave({
-      icon: draft.icon || "verified",
-      title: nextTitle,
-      description: nextDescription,
-      isActive: draft.isActive,
-    });
+    setError("");
+    try {
+      await onSave({
+        icon: draft.icon || "verified",
+        title: nextTitle,
+        description: nextDescription,
+        isActive: draft.isActive,
+      });
+    } catch (caught) {
+      setSaving(false);
+      setError(caught instanceof MartApiError ? caught.message : "Could not save the card.");
+    }
   }
 
   return (
@@ -517,7 +555,11 @@ function CardDrawer({
         </div>
       </div>
       <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-        {notice ? (
+        {error ? (
+          <p role="alert" className="mr-auto text-sm font-medium text-red-700">
+            {error}
+          </p>
+        ) : notice ? (
           <p
             role="status"
             className="mr-auto text-sm font-medium text-emerald-800"

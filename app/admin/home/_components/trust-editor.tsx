@@ -4,13 +4,19 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { cn } from "@/lib/utils";
 import {
-  blankTrustItem,
-  readHomeSections,
-  saveHomeSections,
-  type TrustItem,
-} from "@/lib/mart-mock/home-sections";
+  blankTrustDraft,
+  createTrustBenefit,
+  deleteTrustBenefit,
+  listTrustBenefits,
+  reorderTrustBenefits,
+  updateTrustBenefit,
+  type TrustBenefit,
+  type TrustDraft,
+  type TrustIcon,
+} from "@/lib/mart-api/trust";
+import { MartApiError } from "@/lib/mart-api/products";
+import { cn } from "@/lib/utils";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 
 import { AdminFormModal } from "../../_components/admin-form-modal";
@@ -25,7 +31,7 @@ import {
 import { FormCloseGuard } from "../../_components/form-close-guard";
 import { HomeCmsHeader } from "./home-cms-header";
 
-const ICONS: { name: string; label: string }[] = [
+const ICONS: { name: TrustIcon; label: string }[] = [
   { name: "payments", label: "Payments" },
   { name: "local_shipping", label: "Delivery" },
   { name: "assignment_return", label: "Returns" },
@@ -37,17 +43,19 @@ const ICONS: { name: string; label: string }[] = [
   { name: "schedule", label: "Schedule" },
 ];
 
-type Draft = { icon: string; label: string; href: string; isActive: boolean };
-
-export function TrustBenefits({ items }: { items: TrustItem[] }) {
+export function TrustBenefits() {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [baseline, setBaseline] = useState<Draft | null>(null);
+  const [items, setItems] = useState<TrustBenefit[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [draft, setDraft] = useState<TrustDraft | null>(null);
+  const [baseline, setBaseline] = useState<TrustDraft | null>(null);
   const [labelError, setLabelError] = useState("");
+  const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -55,35 +63,45 @@ export function TrustBenefits({ items }: { items: TrustItem[] }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [resolved, setResolved] = useState<string | null>(null);
-  const loaded = useRef<string | null>(null);
   const focusId = useRef<string | null>(null);
   const labelId = useId();
 
   useEffect(() => {
-    if (loaded.current === selected) return;
-    loaded.current = selected;
+    let cancelled = false;
+    listTrustBenefits()
+      .then((next) => {
+        if (!cancelled) setItems(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof MartApiError ? error.message : "Could not load trust benefits.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if ((selected === null || selected === "new" || items) && selected !== openKey) {
+    setOpenKey(selected);
     setResolved(selected);
     setLabelError("");
+    setFormError("");
     if (!selected) {
       setDraft(null);
       setBaseline(null);
-      return;
-    }
-    if (selected === "new") {
-      const next = { icon: "verified", label: "", href: "/shipping-returns", isActive: true };
+    } else if (selected === "new") {
+      const next = blankTrustDraft();
       setDraft(next);
       setBaseline(next);
-      return;
+    } else {
+      const item = items?.find((entry) => entry.id === selected);
+      const next = item
+        ? { icon: item.icon, label: item.label, href: item.href, isActive: item.isActive }
+        : null;
+      setDraft(next);
+      setBaseline(next);
     }
-    const item = readHomeSections().trust.find(
-      (entry) => entry.id === selected,
-    );
-    const next = item
-      ? { icon: item.icon, label: item.label, href: item.href, isActive: item.isActive !== false }
-      : null;
-    setDraft(next);
-    setBaseline(next);
-  }, [selected]);
+  }
 
   useEffect(() => {
     if (draft || !focusId.current) return;
@@ -102,90 +120,111 @@ export function TrustBenefits({ items }: { items: TrustItem[] }) {
     });
   }
 
-  function save() {
-    if (!draft || saving) return;
+  async function save() {
+    if (!draft || saving || !items) return;
     const label = draft.label.trim();
     if (!label) {
       setLabelError("Label is required.");
       return;
     }
     setSaving(true);
-    const doc = readHomeSections();
-    const href = draft.href.trim();
-    const created = creating
-      ? { ...blankTrustItem(), icon: draft.icon, label, href, isActive: draft.isActive }
-      : null;
-    if (created) {
-      saveHomeSections({ ...doc, trust: [...doc.trust, created] });
-    } else if (selected) {
-      saveHomeSections({
-        ...doc,
-        trust: doc.trust.map((entry) =>
-          entry.id === selected
-            ? { ...entry, icon: draft.icon, label, href, isActive: draft.isActive }
-            : entry,
-        ),
-      });
+    setFormError("");
+    const nextDraft = { ...draft, label, href: draft.href.trim() };
+    try {
+      if (creating) {
+        const created = await createTrustBenefit(nextDraft);
+        setItems([...items, created]);
+        setSavedId(created.id);
+        focusId.current = created.id;
+      } else if (selected) {
+        const updated = await updateTrustBenefit(selected, nextDraft);
+        setItems(items.map((entry) => (entry.id === selected ? updated : entry)));
+        setSavedId(selected);
+        focusId.current = selected;
+      }
+      setSaving(false);
+      setNotice("Saved");
+      window.setTimeout(() => {
+        setNotice("");
+        setSavedId(null);
+      }, 1600);
+      setEdit(null);
+    } catch (error) {
+      setSaving(false);
+      setFormError(error instanceof MartApiError ? error.message : "Could not save the benefit.");
     }
-    const id = created?.id ?? selected;
-    setSaving(false);
-    setSavedId(id);
-    focusId.current = id;
-    setNotice("Saved");
-    window.setTimeout(() => {
-      setNotice("");
-      setSavedId(null);
-    }, 1600);
-    setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readHomeSections();
-    saveHomeSections({
-      ...doc,
-      trust: doc.trust.filter((item) => item.id !== id),
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    setNotice("Removed");
-    window.setTimeout(() => setNotice(""), 1600);
+  async function remove(id: string) {
+    if (!items) return;
+    setFormError("");
+    try {
+      await deleteTrustBenefit(id);
+      setItems(items.filter((item) => item.id !== id));
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      setNotice("Removed");
+      window.setTimeout(() => setNotice(""), 1600);
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the benefit.");
+    }
   }
 
-  function move(id: string, direction: -1 | 1) {
-    const doc = readHomeSections();
-    const index = doc.trust.findIndex((item) => item.id === id);
+  async function move(id: string, direction: -1 | 1) {
+    if (!items) return;
+    setLoadError("");
+    const index = items.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.trust.length) return;
-    const next = [...doc.trust];
+    if (index < 0 || target < 0 || target >= items.length) return;
+    const next = [...items];
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveHomeSections({ ...doc, trust: next });
+    try {
+      setItems(await reorderTrustBenefits(next.map((entry) => entry.id)));
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not reorder the benefits.");
+    }
   }
 
-  function dropOn(targetId: string) {
-    if (!dragId || dragId === targetId) {
+  async function dropOn(targetId: string) {
+    if (!dragId || dragId === targetId || !items) {
       setDragId(null);
       setOverId(null);
       return;
     }
-    const doc = readHomeSections();
-    const next = [...doc.trust];
+    const next = [...items];
     const from = next.findIndex((item) => item.id === dragId);
     const to = next.findIndex((item) => item.id === targetId);
+    setDragId(null);
+    setOverId(null);
+    setLoadError("");
     if (from < 0 || to < 0) return;
     const [item] = next.splice(from, 1);
     if (!item) return;
     next.splice(to, 0, item);
-    saveHomeSections({ ...doc, trust: next });
-    setDragId(null);
-    setOverId(null);
+    try {
+      setItems(await reorderTrustBenefits(next.map((entry) => entry.id)));
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not reorder the benefits.");
+    }
+  }
+
+  if (!items && !loadError) {
+    return <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />;
+  }
+  if (!items) {
+    return (
+      <p className="rounded-2xl bg-white px-4 py-10 text-center text-sm text-red-700 ring-1 ring-red-100">
+        {loadError}
+      </p>
+    );
   }
 
   const missing = Boolean(
     selected && selected !== "new" && resolved === selected && !draft,
   );
-  const editingLabel = draft?.label.trim() || "Benefit";
+  const visible = items.filter((item) => item.isActive);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -205,6 +244,9 @@ export function TrustBenefits({ items }: { items: TrustItem[] }) {
         }
       />
 
+      {loadError ? (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>
+      ) : null}
       {notice && !draft ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The benefit list is up to date.
@@ -235,8 +277,7 @@ export function TrustBenefits({ items }: { items: TrustItem[] }) {
             Storefront strip
           </h2>
           <p className="mt-0.5 text-sm text-neutral-500">
-            Shown under the hero, in this order. Every benefit in the list
-            appears on the home page.
+            Shown under the hero, in this order. Hidden benefits stay off the home page.
           </p>
         </div>
         {items.length === 0 ? (
@@ -257,10 +298,12 @@ export function TrustBenefits({ items }: { items: TrustItem[] }) {
               Add benefit
             </button>
           </div>
+        ) : visible.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-neutral-500">All benefits are hidden.</p>
         ) : (
           <div className="px-4 py-4 sm:px-5">
             <ul className="grid grid-cols-3 divide-x divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
-              {items.map((item) => (
+              {visible.map((item) => (
                 <li key={item.id}>
                   <button
                     type="button"
@@ -538,7 +581,9 @@ export function TrustBenefits({ items }: { items: TrustItem[] }) {
             </div>
           </div>
           <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
-            {notice ? (
+            {formError ? (
+              <p className="mr-auto text-sm text-red-700">{formError}</p>
+            ) : notice ? (
               <p
                 role="status"
                 className="mr-auto text-sm font-medium text-emerald-800"

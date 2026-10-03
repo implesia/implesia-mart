@@ -1,44 +1,57 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 
-import { isExternalHref, type AboutDressBlock, type AboutLink } from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { AboutDress } from "@/lib/mart-api/about-dresses";
+import { dressIcon } from "@/lib/mart-api/about-dresses";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function CustomDresses({ className }: { className?: string }) {
-  const { dresses } = useAboutSections();
-  const visible = dresses.filter(isContentActive);
-  if (!visible.length) return null;
+export function CustomDresses({
+  dresses,
+  className,
+}: {
+  dresses: AboutDress[];
+  className?: string;
+}) {
+  if (!dresses.length) return null;
 
   return (
     <div className={className}>
-      {visible.map((dress) => (
+      {dresses.map((dress) => (
         <DressBlock key={dress.id} dress={dress} />
       ))}
     </div>
   );
 }
 
-function DressBlock({ dress }: { dress: AboutDressBlock }) {
+function isExternalHref(href: string) {
+  return /^https?:\/\//.test(href);
+}
+
+function DressBlock({ dress }: { dress: AboutDress }) {
   const images = dress.gallery.filter((image) => image.src);
   const features = dress.features.filter(
-    (feature) => isContentActive(feature) && (feature.title.trim() || feature.description.trim()),
+    (feature) => feature.title.trim() || feature.description.trim(),
   );
 
   return (
     <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className={cn("grid grid-cols-1 items-start gap-6 lg:gap-10", images.length > 0 && "lg:grid-cols-12")}>
+        <div
+          className={cn(
+            "grid grid-cols-1 items-start gap-6 lg:gap-10",
+            images.length > 0 && "lg:grid-cols-12",
+          )}
+        >
           {images.length ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:col-span-7">
               {images.map((image) => (
-                <div key={image.id} className="group relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
+                <div
+                  key={image.id}
+                  className="group relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white"
+                >
                   <Image
                     src={image.src}
                     alt={image.alt}
@@ -52,20 +65,38 @@ function DressBlock({ dress }: { dress: AboutDressBlock }) {
           ) : null}
 
           <div className={images.length ? "lg:col-span-5" : undefined}>
-            {dress.kicker ? <p className="text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">{dress.kicker}</p> : null}
-            {dress.title ? <h2 className="mt-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">{dress.title}</h2> : null}
-            {dress.subtitle ? <p className="mt-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">{dress.subtitle}</p> : null}
+            {dress.kicker ? (
+              <p className="text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">
+                {dress.kicker}
+              </p>
+            ) : null}
+            {dress.title ? (
+              <h2 className="mt-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
+                {dress.title}
+              </h2>
+            ) : null}
+            {dress.subtitle ? (
+              <p className="mt-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
+                {dress.subtitle}
+              </p>
+            ) : null}
 
             {features.length ? (
               <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                 {features.map((feature) => (
                   <div key={feature.id} className="flex items-start gap-2.5">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <MaterialIcon name={feature.icon} className="text-[16px]" />
+                      <MaterialIcon name={dressIcon(feature.icon)} className="text-[16px]" />
                     </span>
                     <div className="min-w-0">
-                      {feature.title ? <h3 className="text-sm font-semibold text-neutral-950">{feature.title}</h3> : null}
-                      {feature.description ? <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">{feature.description}</p> : null}
+                      {feature.title ? (
+                        <h3 className="text-sm font-semibold text-neutral-950">{feature.title}</h3>
+                      ) : null}
+                      {feature.description ? (
+                        <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">
+                          {feature.description}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -80,7 +111,13 @@ function DressBlock({ dress }: { dress: AboutDressBlock }) {
   );
 }
 
-function DressButtons({ primary, secondary }: { primary: AboutLink; secondary: AboutLink }) {
+function DressButtons({
+  primary,
+  secondary,
+}: {
+  primary: AboutDress["primaryCta"];
+  secondary: AboutDress["secondaryCta"];
+}) {
   const first = primary.label.trim() && primary.href.trim() ? primary : null;
   const second = secondary.label.trim() && secondary.href.trim() ? secondary : null;
   if (!first && !second) return null;
@@ -93,7 +130,13 @@ function DressButtons({ primary, secondary }: { primary: AboutLink; secondary: A
   );
 }
 
-function DressLink({ link, tone }: { link: AboutLink; tone: "primary" | "secondary" }) {
+function DressLink({
+  link,
+  tone,
+}: {
+  link: AboutDress["primaryCta"];
+  tone: "primary" | "secondary";
+}) {
   const className =
     tone === "primary"
       ? "inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"

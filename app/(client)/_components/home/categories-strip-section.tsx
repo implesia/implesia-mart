@@ -1,16 +1,13 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 
-import { useHomeSections } from "@/lib/mart-mock/hooks";
+import type { CategorySection } from "@/lib/mart-api/categories";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 
 import { Container } from "../common/container";
 
-export function CategoriesStripSection() {
-  const { categories } = useHomeSections();
-  const tiles = categories.tiles.filter(isContentActive);
+export function CategoriesStripSection({ section }: { section: CategorySection }) {
+  const tiles = section.tiles.filter(isContentActive);
   if (tiles.length === 0) return null;
 
   return (
@@ -24,7 +21,7 @@ export function CategoriesStripSection() {
             id="home-categories-heading"
             className="mb-4 text-lg font-semibold tracking-tight text-neutral-950 sm:mb-5 sm:text-xl dark:text-white"
           >
-            {categories.heading}
+            {section.heading}
           </h2>
           <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {tiles.map((tile) => (

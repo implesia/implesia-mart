@@ -4,15 +4,21 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { cn } from "@/lib/utils";
 import {
-  blankPerk,
-  readHomeSections,
-  saveHomeSections,
-  type NewsletterContent,
+  blankNewsletterDraft,
+  createNewsletterPerk,
+  deleteNewsletterPerk,
+  getNewsletterSection,
+  reorderNewsletterPerks,
+  updateNewsletterCopy,
+  updateNewsletterPerk,
+  type NewsletterDraft,
   type NewsletterPerk,
-} from "@/lib/mart-mock/home-sections";
+  type NewsletterSection,
+} from "@/lib/mart-api/newsletter";
+import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
+import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../_components/admin-form-modal";
 import {
@@ -39,14 +45,10 @@ const ICONS: { name: string; label: string }[] = [
   { name: "schedule", label: "Schedule" },
 ];
 
-type Draft = Pick<NewsletterPerk, "icon" | "label" | "isActive">;
-
-function emptyDraft(): Draft {
-  return { icon: "local_offer", label: "", isActive: true };
-}
+type Draft = NewsletterDraft;
 
 function draftFromPerk(perk: NewsletterPerk): Draft {
-  return { icon: perk.icon, label: perk.label, isActive: perk.isActive !== false };
+  return { icon: perk.icon, label: perk.label, isActive: perk.isActive };
 }
 
 function iconChoices(current: string) {
@@ -54,13 +56,16 @@ function iconChoices(current: string) {
   return [{ name: current, label: current }, ...ICONS];
 }
 
-export function HomeNewsletter({ section }: { section: NewsletterContent }) {
+export function HomeNewsletter() {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
-  const perks = section.perks;
+  const [section, setSection] = useState<NewsletterSection | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const perks = section?.perks ?? [];
+  const visible = perks.filter(isContentActive);
   const opened =
     selected && selected !== "new"
       ? (perks.find((perk) => perk.id === selected) ?? null)
@@ -71,6 +76,23 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const focusId = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getNewsletterSection()
+      .then((next) => {
+        if (!cancelled) setSection(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof MartApiError ? error.message : "Could not load the newsletter.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (selected || !focusId.current) return;
@@ -97,34 +119,39 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
     }, 1600);
   }
 
-  function patch(partial: Partial<NewsletterContent>) {
-    const doc = readHomeSections();
-    saveHomeSections({ ...doc, newsletter: { ...doc.newsletter, ...partial } });
+  async function saveCopy(next: {
+    eyebrow?: string;
+    title?: string;
+    subtitle?: string;
+    placeholder?: string;
+    cta?: string;
+    success?: string;
+  }) {
+    if (!section) return;
+    setSection(
+      await updateNewsletterCopy({
+        eyebrow: next.eyebrow ?? "",
+        title: next.title ?? "",
+        subtitle: next.subtitle ?? "",
+        placeholder: next.placeholder ?? "",
+        cta: next.cta ?? "",
+        success: next.success ?? "",
+      }),
+    );
   }
 
-  function commit(draft: Draft) {
-    const doc = readHomeSections();
-    const label = draft.label.trim();
+  async function commit(draft: Draft) {
+    if (!section) return;
     if (creating) {
-      const perk = { ...blankPerk(), icon: draft.icon, label };
-      saveHomeSections({
-        ...doc,
-        newsletter: {
-          ...doc.newsletter,
-          perks: [...doc.newsletter.perks, perk],
-        },
-      });
+      const perk = await createNewsletterPerk(draft);
+      setSection({ ...section, perks: [...section.perks, perk] });
       setSavedId(perk.id);
       focusId.current = perk.id;
     } else if (selected) {
-      saveHomeSections({
-        ...doc,
-        newsletter: {
-          ...doc.newsletter,
-          perks: doc.newsletter.perks.map((perk) =>
-            perk.id === selected ? { ...perk, icon: draft.icon, label } : perk,
-          ),
-        },
+      const perk = await updateNewsletterPerk(selected, draft);
+      setSection({
+        ...section,
+        perks: section.perks.map((entry) => (entry.id === selected ? perk : entry)),
       });
       setSavedId(selected);
       focusId.current = selected;
@@ -133,34 +160,38 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
     setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readHomeSections();
-    saveHomeSections({
-      ...doc,
-      newsletter: {
-        ...doc.newsletter,
-        perks: doc.newsletter.perks.filter((perk) => perk.id !== id),
-      },
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    if (!section) return;
+    setLoadError("");
+    try {
+      await deleteNewsletterPerk(id);
+      setSection({ ...section, perks: section.perks.filter((perk) => perk.id !== id) });
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the perk.");
+    }
+  }
+
+  async function applyOrder(ids: string[]) {
+    setLoadError("");
+    try {
+      setSection(await reorderNewsletterPerks(ids));
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not reorder the perks.");
+    }
   }
 
   function move(id: string, direction: -1 | 1) {
-    const doc = readHomeSections();
-    const index = doc.newsletter.perks.findIndex((perk) => perk.id === id);
+    const index = perks.findIndex((perk) => perk.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.newsletter.perks.length)
-      return;
-    const next = [...doc.newsletter.perks];
+    if (index < 0 || target < 0 || target >= perks.length) return;
+    const next = [...perks];
     const [perk] = next.splice(index, 1);
     if (!perk) return;
     next.splice(target, 0, perk);
-    saveHomeSections({
-      ...doc,
-      newsletter: { ...doc.newsletter, perks: next },
-    });
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   function dropOn(targetId: string) {
@@ -169,20 +200,16 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
       setOverId(null);
       return;
     }
-    const doc = readHomeSections();
-    const next = [...doc.newsletter.perks];
+    const next = [...perks];
     const from = next.findIndex((perk) => perk.id === dragId);
     const to = next.findIndex((perk) => perk.id === targetId);
+    setDragId(null);
+    setOverId(null);
     if (from < 0 || to < 0) return;
     const [perk] = next.splice(from, 1);
     if (!perk) return;
     next.splice(to, 0, perk);
-    saveHomeSections({
-      ...doc,
-      newsletter: { ...doc.newsletter, perks: next },
-    });
-    setDragId(null);
-    setOverId(null);
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   const missing = Boolean(selected && selected !== "new" && !opened);
@@ -210,6 +237,11 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
           {notice}. The subscribe block is up to date.
         </p>
       ) : null}
+      {loadError ? (
+        <p role="alert" className="rounded-2xl bg-white px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+          {loadError}
+        </p>
+      ) : null}
       {missing ? (
         <p className="rounded-2xl bg-white px-4 py-3 text-sm text-neutral-600 ring-1 ring-neutral-200/90">
           This perk is no longer here.{" "}
@@ -222,7 +254,12 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
           </button>
         </p>
       ) : null}
-
+      {!section ? (
+        loadError ? null : (
+          <p className="text-sm text-neutral-500">Loading the newsletter…</p>
+        )
+      ) : (
+      <>
       <section
         className="overflow-hidden rounded-2xl bg-admin-canvas ring-1 ring-neutral-200/90"
         aria-labelledby="newsletter-preview-heading"
@@ -235,8 +272,7 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
             Storefront preview
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Shown at the bottom of the home page. Perks sit under the form, in
-            this order.
+            Shown at the bottom of the home page. Hidden perks stay off the home page.
           </p>
         </div>
         <div className="p-4 sm:p-5">
@@ -277,9 +313,9 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
                   After subscribe: {section.success}
                 </p>
               ) : null}
-              {perks.length > 0 ? (
+              {visible.length > 0 ? (
                 <ul className="mt-8 flex w-full flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-8">
-                  {perks.map((perk) => (
+                  {visible.map((perk) => (
                     <li key={perk.id}>
                       <button
                         type="button"
@@ -295,6 +331,8 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
                     </li>
                   ))}
                 </ul>
+              ) : perks.length > 0 ? (
+                <p className="mt-8 text-xs text-white/55">All perks are hidden.</p>
               ) : null}
             </div>
           </div>
@@ -325,16 +363,7 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
             { name: "success", label: "Success message", wide: true },
           ]}
           saveLabel="Save heading"
-          onSave={(next) =>
-            patch({
-              eyebrow: next.eyebrow ?? "",
-              title: next.title ?? "",
-              subtitle: next.subtitle ?? "",
-              placeholder: next.placeholder ?? "",
-              cta: next.cta ?? "",
-              success: next.success ?? "",
-            })
-          }
+          onSave={saveCopy}
         />
       </section>
 
@@ -500,12 +529,14 @@ export function HomeNewsletter({ section }: { section: NewsletterContent }) {
         <PerkDrawer
           key={selected}
           creating={creating}
-          initial={opened ? draftFromPerk(opened) : emptyDraft()}
+          initial={opened ? draftFromPerk(opened) : blankNewsletterDraft()}
           notice={notice}
           onClose={() => setEdit(null)}
           onSave={commit}
         />
       ) : null}
+      </>
+      )}
     </div>
   );
 }
@@ -521,7 +552,7 @@ function PerkDrawer({
   initial: Draft;
   notice: string;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(initial);
   const baseline = useRef(draft);
@@ -530,14 +561,20 @@ function PerkDrawer({
   const labelId = useId();
   const title = draft.label.trim() || "Perk";
 
-  function save() {
+  async function save() {
     if (saving) return;
     if (!draft.label.trim()) {
       setLabelError("Label is required.");
       return;
     }
     setSaving(true);
-    onSave({ icon: draft.icon, label: draft.label.trim(), isActive: draft.isActive });
+    setLabelError("");
+    try {
+      await onSave({ icon: draft.icon, label: draft.label.trim(), isActive: draft.isActive });
+    } catch (error) {
+      setSaving(false);
+      setLabelError(error instanceof MartApiError ? error.message : "Could not save the perk.");
+    }
   }
 
   return (

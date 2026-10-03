@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 
 import {
@@ -8,10 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
-import { useHomeSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
-import type { FaqItem } from "@/lib/mart-mock/home-sections";
+import type { FaqPublic, FaqPublicItem } from "@/lib/mart-api/faq";
 
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
@@ -30,7 +25,7 @@ function FaqColumn({
   idPrefix,
   defaultValue,
 }: {
-  items: FaqItem[];
+  items: FaqPublicItem[];
   idPrefix: string;
   defaultValue?: string;
 }) {
@@ -66,13 +61,11 @@ function FaqColumn({
   );
 }
 
-export function FaqSection() {
-  const { faq } = useHomeSections();
-  const visible = faq.items.filter(isContentActive);
-  if (visible.length === 0) return null;
+export function FaqSection({ section }: { section: FaqPublic }) {
+  if (section.items.length === 0) return null;
   const columns = [
-    visible.filter((_, index) => index % 2 === 0),
-    visible.filter((_, index) => index % 2 === 1),
+    section.items.filter((_, index) => index % 2 === 0),
+    section.items.filter((_, index) => index % 2 === 1),
   ];
 
   return (
@@ -83,16 +76,16 @@ export function FaqSection() {
       <Container className="px-4 sm:px-6 lg:px-8">
         <div className="mb-8 sm:mb-10">
           <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-white/50">
-            {faq.kicker}
+            {section.kicker}
           </p>
           <h2
             id="home-faq-heading"
             className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl dark:text-white"
           >
-            {faq.title}
+            {section.title}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base dark:text-white/65">
-            {faq.subtitle}
+            {section.subtitle}
           </p>
         </div>
 
@@ -111,10 +104,10 @@ export function FaqSection() {
 
         <div className="mt-8">
           <Link
-            href={faq.moreHref || "/faqs"}
+            href={section.moreHref || "/faqs"}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-950 transition-colors hover:text-neutral-600 dark:text-white dark:hover:text-white/70"
           >
-            {faq.moreLabel}
+            {section.moreLabel}
             <MaterialIcon name="arrow_forward" className="text-[18px]" />
           </Link>
         </div>

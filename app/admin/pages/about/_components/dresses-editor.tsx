@@ -3,17 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankDress,
-  blankFeature,
-  readAboutSections,
-  saveAboutSections,
-  type AboutDressBlock,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+  blankAboutDress,
+  createAboutDress,
+  deleteAboutDress,
+  listAboutDresses,
+  reorderAboutDresses,
+  updateAboutDress,
+  type AboutDress,
+} from "@/lib/mart-api/about-dresses";
+import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -44,20 +46,39 @@ const ICONS: { name: string; label: string }[] = [
 ];
 
 export function AboutDressesEditor() {
-  const { dresses } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const dressId = params.get("dress");
   const creating = dressId === "new";
+  const [dresses, setDresses] = useState<AboutDress[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const items = dresses ?? [];
   const editing = creating
     ? null
-    : (dresses.find((item) => item.id === dressId) ?? null);
+    : (items.find((item) => item.id === dressId) ?? null);
   const drawerOpen = creating || Boolean(editing);
-  const missing = Boolean(dressId && !creating && !editing);
+  const missing = dresses !== null && Boolean(dressId && !creating && !editing);
   const [notice, setNotice] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const page = findCmsPage("about");
+
+  useEffect(() => {
+    let cancelled = false;
+    listAboutDresses()
+      .then((next) => {
+        if (!cancelled) setDresses(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof MartApiError ? error.message : "Could not load the custom dresses.",
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function openDress(id: string | null) {
     const next = new URLSearchParams(window.location.search);
@@ -76,38 +97,56 @@ export function AboutDressesEditor() {
     window.setTimeout(() => setNotice(""), 1600);
   }
 
-  function saveDress(draft: AboutDressBlock) {
-    const doc = readAboutSections();
+  async function saveDress(draft: AboutDress) {
+    if (!dresses) return;
     const next = cleanDress(draft);
-    const dresses = creating
-      ? [...doc.dresses, next]
-      : doc.dresses.map((item) => (item.id === next.id ? next : item));
-    saveAboutSections({ ...doc, dresses });
+    if (creating) {
+      const saved = await createAboutDress(next);
+      setDresses([...dresses, saved]);
+    } else if (dressId) {
+      const saved = await updateAboutDress(dressId, next);
+      setDresses(dresses.map((item) => (item.id === dressId ? saved : item)));
+    }
     flash("Saved");
     openDress(null);
   }
 
-  function removeDress(id: string) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      dresses: doc.dresses.filter((item) => item.id !== id),
-    });
-    if (dressId === id) openDress(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function removeDress(id: string) {
+    if (!dresses) return;
+    setLoadError("");
+    try {
+      await deleteAboutDress(id);
+      setDresses(dresses.filter((item) => item.id !== id));
+      if (dressId === id) openDress(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError ? error.message : "Could not remove the custom dress.",
+      );
+    }
+  }
+
+  async function applyOrder(ids: string[]) {
+    setLoadError("");
+    try {
+      setDresses(await reorderAboutDresses(ids));
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError ? error.message : "Could not reorder the custom dresses.",
+      );
+    }
   }
 
   function moveDress(id: string, direction: -1 | 1) {
-    const doc = readAboutSections();
-    const index = doc.dresses.findIndex((item) => item.id === id);
+    const index = items.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.dresses.length) return;
-    const next = [...doc.dresses];
+    if (index < 0 || target < 0 || target >= items.length) return;
+    const next = [...items];
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveAboutSections({ ...doc, dresses: next });
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   return (
@@ -156,7 +195,7 @@ export function AboutDressesEditor() {
         ) : null}
         <AdminPageHeader
           title="Custom dresses"
-          description="Each block is one section on the about page: the writing, buttons, and photos."
+          description="Each block is one section on the about page. Hidden blocks stay off the about page."
           action={
             <div className="flex flex-wrap items-center gap-2">
               <a
@@ -181,6 +220,11 @@ export function AboutDressesEditor() {
         />
       </div>
 
+      {loadError ? (
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          {loadError}
+        </p>
+      ) : null}
       {notice && !drawerOpen ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The about page is up to date.
@@ -208,12 +252,18 @@ export function AboutDressesEditor() {
             id="about-dresses-heading"
             className="text-sm font-semibold text-neutral-950"
           >
-            {dresses.length === 1
-              ? "1 custom dress"
-              : `${dresses.length} custom dresses`}
+            {dresses === null
+              ? "Custom dresses"
+              : dresses.length === 1
+                ? "1 custom dress"
+                : `${dresses.length} custom dresses`}
           </h2>
         </div>
-        {dresses.length === 0 ? (
+        {dresses === null ? (
+          <p className="px-4 py-12 text-center text-sm text-neutral-500">
+            Loading custom dresses…
+          </p>
+        ) : dresses.length === 0 ? (
           <div className="px-4 py-12 text-center">
             <p className="text-sm font-semibold text-neutral-950">
               No custom dresses yet
@@ -232,7 +282,7 @@ export function AboutDressesEditor() {
           </div>
         ) : (
           <ol>
-            {dresses.map((dress, index) => {
+            {items.map((dress, index) => {
               const photos = dress.gallery.filter((image) => image.src);
               return (
                 <li
@@ -312,7 +362,7 @@ export function AboutDressesEditor() {
                       <IconButton
                         label="Move later"
                         icon="arrow_downward"
-                        disabled={index === dresses.length - 1}
+                        disabled={index === items.length - 1}
                         onClick={() => moveDress(dress.id, 1)}
                       />
                       <button
@@ -362,7 +412,7 @@ export function AboutDressesEditor() {
           <DressForm
             key={dressId}
             creating={creating}
-            initial={editing ?? blankDress()}
+            initial={editing ?? blankAboutDress()}
             notice={notice}
             onClose={() => openDress(null)}
             onSave={saveDress}
@@ -381,10 +431,10 @@ function DressForm({
   onSave,
 }: {
   creating: boolean;
-  initial: AboutDressBlock;
+  initial: AboutDress;
   notice: string;
   onClose: () => void;
-  onSave: (dress: AboutDressBlock) => void;
+  onSave: (dress: AboutDress) => Promise<void>;
 }) {
   const [dress, setDress] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
   const baseline = useRef(dress);
@@ -393,7 +443,7 @@ function DressForm({
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving || uploading > 0) return;
     const hasText = Boolean(
       dress.title.trim() ||
@@ -416,7 +466,12 @@ function DressForm({
       return;
     }
     setSaving(true);
-    onSave(dress);
+    try {
+      await onSave(dress);
+    } catch (error) {
+      setError(error instanceof MartApiError ? error.message : "Could not save the custom dress.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -598,7 +653,15 @@ function DressForm({
                 onClick={() =>
                   setDress({
                     ...dress,
-                    features: [...dress.features, blankFeature()],
+                    features: [
+                      ...dress.features,
+                      {
+                        id: `feature-${Date.now().toString(36)}`,
+                        icon: "design_services",
+                        title: "",
+                        description: "",
+                      },
+                    ],
                   })
                 }
                 className={adminButtonClass.secondary}
@@ -856,7 +919,7 @@ function DressForm({
   );
 }
 
-function cleanDress(dress: AboutDressBlock): AboutDressBlock {
+function cleanDress(dress: AboutDress): AboutDress {
   return {
     ...dress,
     kicker: dress.kicker.trim(),

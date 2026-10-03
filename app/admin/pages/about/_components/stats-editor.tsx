@@ -6,12 +6,16 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankStat,
-  readAboutSections,
-  saveAboutSections,
-  type AboutStatItem,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+  blankAboutStat,
+  createAboutStat,
+  deleteAboutStat,
+  listAboutStats,
+  reorderAboutStats,
+  updateAboutStat,
+  type AboutStat,
+  type AboutStatDraft,
+} from "@/lib/mart-api/about-stats";
+import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -48,14 +52,10 @@ const ICONS: { name: string; label: string }[] = [
   { name: "shield", label: "Shield" },
 ];
 
-type Draft = Pick<AboutStatItem, "icon" | "value" | "label" | "isActive">;
+type Draft = AboutStatDraft;
 
-function emptyDraft(): Draft {
-  return { icon: "verified", value: "", label: "", isActive: true };
-}
-
-function draftFromStat(stat: AboutStatItem): Draft {
-  return { icon: stat.icon, value: stat.value, label: stat.label, isActive: stat.isActive !== false };
+function draftFromStat(stat: AboutStat): Draft {
+  return { icon: stat.icon, value: stat.value, label: stat.label, isActive: stat.isActive };
 }
 
 function iconChoices(current: string) {
@@ -68,15 +68,18 @@ function iconLabel(name: string) {
 }
 
 export function AboutStatsEditor() {
-  const { stats } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
+  const [stats, setStats] = useState<AboutStat[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const items = stats ?? [];
+  const visible = items.filter(isContentActive);
   const opened =
     selected && selected !== "new"
-      ? (stats.find((stat) => stat.id === selected) ?? null)
+      ? (items.find((stat) => stat.id === selected) ?? null)
       : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -85,6 +88,21 @@ export function AboutStatsEditor() {
   const [overId, setOverId] = useState<string | null>(null);
   const focusId = useRef<string | null>(null);
   const page = findCmsPage("about");
+
+  useEffect(() => {
+    let cancelled = false;
+    listAboutStats()
+      .then((next) => {
+        if (!cancelled) setStats(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof MartApiError ? error.message : "Could not load the stats.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (selected || !focusId.current) return;
@@ -111,34 +129,16 @@ export function AboutStatsEditor() {
     }, 1600);
   }
 
-  function commit(draft: Draft) {
-    const doc = readAboutSections();
+  async function commit(draft: Draft) {
+    if (!stats) return;
     if (creating) {
-      const stat = {
-        ...blankStat(),
-        icon: draft.icon,
-        value: draft.value,
-        label: draft.label,
-        isActive: draft.isActive,
-      };
-      saveAboutSections({ ...doc, stats: [...doc.stats, stat] });
+      const stat = await createAboutStat(draft);
+      setStats([...stats, stat]);
       setSavedId(stat.id);
       focusId.current = stat.id;
     } else if (selected) {
-      saveAboutSections({
-        ...doc,
-        stats: doc.stats.map((stat) =>
-          stat.id === selected
-            ? {
-                ...stat,
-                icon: draft.icon,
-                value: draft.value,
-                label: draft.label,
-                isActive: draft.isActive,
-              }
-            : stat,
-        ),
-      });
+      const stat = await updateAboutStat(selected, draft);
+      setStats(stats.map((entry) => (entry.id === selected ? stat : entry)));
       setSavedId(selected);
       focusId.current = selected;
     }
@@ -146,27 +146,38 @@ export function AboutStatsEditor() {
     setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      stats: doc.stats.filter((stat) => stat.id !== id),
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    if (!stats) return;
+    setLoadError("");
+    try {
+      await deleteAboutStat(id);
+      setStats(stats.filter((stat) => stat.id !== id));
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the stat.");
+    }
+  }
+
+  async function applyOrder(ids: string[]) {
+    setLoadError("");
+    try {
+      setStats(await reorderAboutStats(ids));
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not reorder the stats.");
+    }
   }
 
   function move(id: string, direction: -1 | 1) {
-    const doc = readAboutSections();
-    const index = doc.stats.findIndex((stat) => stat.id === id);
+    const index = items.findIndex((stat) => stat.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.stats.length) return;
-    const next = [...doc.stats];
+    if (index < 0 || target < 0 || target >= items.length) return;
+    const next = [...items];
     const [stat] = next.splice(index, 1);
     if (!stat) return;
     next.splice(target, 0, stat);
-    saveAboutSections({ ...doc, stats: next });
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   function dropOn(targetId: string) {
@@ -175,17 +186,16 @@ export function AboutStatsEditor() {
       setOverId(null);
       return;
     }
-    const doc = readAboutSections();
-    const next = [...doc.stats];
+    const next = [...items];
     const from = next.findIndex((stat) => stat.id === dragId);
     const to = next.findIndex((stat) => stat.id === targetId);
+    setDragId(null);
+    setOverId(null);
     if (from < 0 || to < 0) return;
     const [stat] = next.splice(from, 1);
     if (!stat) return;
     next.splice(to, 0, stat);
-    saveAboutSections({ ...doc, stats: next });
-    setDragId(null);
-    setOverId(null);
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   const missing = Boolean(selected && selected !== "new" && !opened);
@@ -261,6 +271,11 @@ export function AboutStatsEditor() {
         />
       </div>
 
+      {loadError ? (
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          {loadError}
+        </p>
+      ) : null}
       {notice && !selected ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The stats bar is up to date.
@@ -291,14 +306,16 @@ export function AboutStatsEditor() {
             Storefront preview
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Shown under the about banner, in this order.
+            Shown under the about banner. Hidden stats stay off the about page.
           </p>
         </div>
         <div className="p-4 sm:p-5">
-          {stats.length === 0 ? (
+          {stats === null ? (
+            <p className="text-sm text-neutral-500">Loading stats…</p>
+          ) : visible.length === 0 ? (
             <div className="rounded-2xl bg-white px-4 py-10 text-center ring-1 ring-neutral-200">
               <p className="text-sm font-semibold text-neutral-950">
-                No stats yet
+                {items.length === 0 ? "No stats yet" : "All stats are hidden."}
               </p>
               <button
                 type="button"
@@ -311,7 +328,7 @@ export function AboutStatsEditor() {
             </div>
           ) : (
             <ul className="grid grid-cols-2 gap-2 xl:grid-cols-4">
-              {stats.map((stat) => (
+              {visible.map((stat) => (
                 <li key={stat.id}>
                   <button
                     type="button"
@@ -341,7 +358,7 @@ export function AboutStatsEditor() {
         </div>
       </section>
 
-      {stats.length > 0 ? (
+      {items.length > 0 ? (
         <section
           className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
           aria-labelledby="about-stats-list-heading"
@@ -351,11 +368,11 @@ export function AboutStatsEditor() {
               id="about-stats-list-heading"
               className="text-sm font-semibold text-neutral-950"
             >
-              {stats.length === 1 ? "1 stat" : `${stats.length} stats`}
+              {items.length === 1 ? "1 stat" : `${items.length} stats`}
             </h2>
           </div>
           <ol>
-            {stats.map((stat, index) => (
+            {items.map((stat, index) => (
               <li
                 key={stat.id}
                 onDragOver={(event) => {
@@ -437,7 +454,7 @@ export function AboutStatsEditor() {
                     <IconButton
                       label="Move later"
                       icon="arrow_downward"
-                      disabled={index === stats.length - 1}
+                      disabled={index === items.length - 1}
                       onClick={() => move(stat.id, 1)}
                     />
                     <button
@@ -485,7 +502,7 @@ export function AboutStatsEditor() {
         <StatDrawer
           key={selected}
           creating={creating}
-          initial={opened ? draftFromStat(opened) : emptyDraft()}
+          initial={opened ? draftFromStat(opened) : blankAboutStat()}
           notice={notice}
           onClose={() => setEdit(null)}
           onSave={commit}
@@ -506,7 +523,7 @@ function StatDrawer({
   initial: Draft;
   notice: string;
   onClose: () => void;
-  onSave: (draft: Draft) => void;
+  onSave: (draft: Draft) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(initial);
   const baseline = useRef(draft);
@@ -517,7 +534,7 @@ function StatDrawer({
   const labelId = useId();
   const title = draft.label.trim() || "Stat";
 
-  function save() {
+  async function save() {
     if (saving) return;
     const value = draft.value.trim();
     const label = draft.label.trim();
@@ -525,7 +542,12 @@ function StatDrawer({
     setLabelError(label ? "" : "Label is required.");
     if (!value || !label) return;
     setSaving(true);
-    onSave({ icon: draft.icon, value, label, isActive: draft.isActive });
+    try {
+      await onSave({ icon: draft.icon, value, label, isActive: draft.isActive });
+    } catch (error) {
+      setLabelError(error instanceof MartApiError ? error.message : "Could not save the stat.");
+      setSaving(false);
+    }
   }
 
   return (

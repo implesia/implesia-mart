@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Swiper as SwiperInstance } from "swiper/types";
 import { Autoplay, Keyboard } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
-import { useBanners } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import type { HeroSlide } from "../../_data/home/home";
@@ -22,28 +21,7 @@ const bannerTone: Record<HeroSlide["accent"], string> = {
   ink: "bg-[linear-gradient(100deg,#071018_0%,#07090f_46%,#05060a_100%)]",
 };
 
-export function HeroSection() {
-  const banners = useBanners();
-  const slides = useMemo<HeroSlide[]>(
-    () =>
-      banners
-        .filter((banner) => banner.published && banner.imageSrc)
-        .map((banner) => ({
-          id: banner.id,
-          eyebrow: banner.eyebrow,
-          title: banner.title,
-          description: banner.description,
-          priceLabel: banner.priceLabel,
-          compareAtLabel: undefined,
-          discountLabel: undefined,
-          primaryCta: { label: banner.primaryCtaLabel, href: banner.primaryCtaHref },
-          secondaryCta: { label: banner.secondaryCtaLabel, href: banner.secondaryCtaHref },
-          imageSrc: banner.imageSrc,
-          imageAlt: banner.imageAlt,
-          accent: banner.accent,
-        })),
-    [banners],
-  );
+export function HeroSection({ slides }: { slides: HeroSlide[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const swiperRef = useRef<SwiperInstance | null>(null);
   const loop = slides.length > 1;

@@ -129,16 +129,16 @@ async function readError(response: Response, fallback: string) {
   return fallback;
 }
 
-function isLocalImage(src: string) {
+export function isLocalImage(src: string) {
   return src.startsWith("/uploads/") || src.startsWith("blob:");
 }
 
-function sitePath(src: string) {
+export function sitePath(src: string) {
   if (src.startsWith(`${MART_API_URL}/`)) return src.slice(MART_API_URL.length);
   return src;
 }
 
-async function fileFromSrc(src: string, name: string) {
+export async function fileFromSrc(src: string, name: string) {
   const response = await fetch(src);
   if (!response.ok) {
     throw new MartApiError("Could not read an image. Upload it again.");

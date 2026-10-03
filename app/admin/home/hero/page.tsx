@@ -3,17 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { useBanners } from "@/lib/mart-mock/hooks";
 import {
-  deleteBanner,
-  moveBanner,
-  saveBanner,
-  type AdminBanner,
-  type HeroAccent,
-} from "@/lib/mart-mock/store";
+  deleteHeroSlide,
+  heroImage,
+  listHeroSlides,
+  moveHeroSlide,
+  updateHeroSlide,
+  type AdminHeroSlide,
+} from "@/lib/mart-api/hero";
+import { MartApiError } from "@/lib/mart-api/products";
+import { type HeroAccent } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
 import { adminButtonClass, AdminLoading } from "../../_components/admin-ui";
@@ -41,11 +43,66 @@ function HeroSlidesView() {
   const params = useSearchParams();
   const raw = params.get("status");
   const filter: PublishFilter = isFilter(raw) ? raw : "all";
-  const banners = useBanners();
+  const [banners, setBanners] = useState<AdminHeroSlide[] | null>(null);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
+  useEffect(() => {
+    let cancelled = false;
+    listHeroSlides()
+      .then((next) => {
+        if (!cancelled) {
+          setBanners(next);
+          setError("");
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (cancelled) return;
+        setError(loadError instanceof MartApiError ? loadError.message : "Could not load hero slides.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  if (!banners && !error) return <AdminLoading />;
+  if (!banners) {
+    return <p className="rounded-2xl bg-white px-4 py-10 text-center text-sm text-red-700 ring-1 ring-red-100">{error}</p>;
+  }
+
   const canReorder = filter === "all" && !needle;
   const firstLiveId = banners.find((banner) => banner.published && banner.imageSrc)?.id;
+
+  async function change(banner: AdminHeroSlide, published: boolean) {
+    setError("");
+    try {
+      await updateHeroSlide(banner.id, { ...banner, published });
+      setReloadKey((key) => key + 1);
+    } catch (actionError) {
+      setError(actionError instanceof MartApiError ? actionError.message : "Could not update the slide.");
+    }
+  }
+
+  async function move(id: string, direction: "earlier" | "later") {
+    setError("");
+    try {
+      await moveHeroSlide(id, direction);
+      setReloadKey((key) => key + 1);
+    } catch (actionError) {
+      setError(actionError instanceof MartApiError ? actionError.message : "Could not reorder the slide.");
+    }
+  }
+
+  async function remove(id: string) {
+    setError("");
+    try {
+      await deleteHeroSlide(id);
+      setReloadKey((key) => key + 1);
+    } catch (actionError) {
+      setError(actionError instanceof MartApiError ? actionError.message : "Could not delete the slide.");
+    }
+  }
 
   const counts = {
     all: banners.length,
@@ -78,6 +135,8 @@ function HeroSlidesView() {
           </Link>
         }
       />
+
+      {error ? <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
         <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -120,6 +179,9 @@ function HeroSlidesView() {
                 canReorder={canReorder}
                 isFirst={isFirst}
                 isLast={isLast}
+                onToggle={(published) => void change(banner, published)}
+                onMove={(direction) => void move(banner.id, direction)}
+                onDelete={() => void remove(banner.id)}
               />
             ))}
           </ol>
@@ -163,13 +225,19 @@ function SlideRow({
   canReorder,
   isFirst,
   isLast,
+  onToggle,
+  onMove,
+  onDelete,
 }: {
-  banner: AdminBanner;
+  banner: AdminHeroSlide;
   position: number;
   showsFirst: boolean;
   canReorder: boolean;
   isFirst: boolean;
   isLast: boolean;
+  onToggle: (published: boolean) => void;
+  onMove: (direction: "earlier" | "later") => void;
+  onDelete: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -188,7 +256,7 @@ function SlideRow({
             )}
           >
             {banner.imageSrc ? (
-              <Image src={banner.imageSrc} alt="" fill sizes="144px" className="object-contain p-1.5" />
+              <Image src={heroImage(banner.imageSrc)} alt="" fill sizes="144px" className="object-contain p-1.5" />
             ) : (
               <span className="grid h-full place-items-center text-[11px] text-white/50">No image</span>
             )}
@@ -229,7 +297,7 @@ function SlideRow({
             Delete this slide?
             <button
               type="button"
-              onClick={() => deleteBanner(banner.id)}
+              onClick={onDelete}
               className="font-semibold underline"
             >
               Delete
@@ -242,7 +310,7 @@ function SlideRow({
           <div className="flex shrink-0 flex-wrap items-center gap-1">
             <button
               type="button"
-              onClick={() => saveBanner({ ...banner, published: !banner.published })}
+              onClick={() => onToggle(!banner.published)}
               className="inline-flex h-9 items-center rounded-full px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
             >
               {banner.published ? "Hide" : "Publish"}
@@ -251,13 +319,13 @@ function SlideRow({
               label="Move earlier"
               icon="arrow_upward"
               disabled={!canReorder || isFirst}
-              onClick={() => moveBanner(banner.id, -1)}
+              onClick={() => onMove("earlier")}
             />
             <IconButton
               label="Move later"
               icon="arrow_downward"
               disabled={!canReorder || isLast}
-              onClick={() => moveBanner(banner.id, 1)}
+              onClick={() => onMove("later")}
             />
             <Link
               href={`/admin/home/hero/${banner.id}`}

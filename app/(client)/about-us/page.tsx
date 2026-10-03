@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 
+import { FALLBACK_ABOUT_HERO, listPublicAboutHero } from "@/lib/mart-api/about-hero";
+import { FALLBACK_ABOUT_STATS, listPublicAboutStats } from "@/lib/mart-api/about-stats";
+import { FALLBACK_ABOUT_STORIES, listPublicAboutStories } from "@/lib/mart-api/about-stories";
+import { FALLBACK_ABOUT_DRESSES, listPublicAboutDresses } from "@/lib/mart-api/about-dresses";
+import { FALLBACK_ABOUT_MISSION, listPublicAboutMission } from "@/lib/mart-api/about-mission";
+
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { AboutHero } from "./_components/about-hero";
@@ -18,7 +24,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about-us" },
 };
 
-export default function AboutUsPage() {
+export default async function AboutUsPage() {
+  const [hero, stats, stories, dresses, mission] = await Promise.all([
+    listPublicAboutHero(),
+    listPublicAboutStats(),
+    listPublicAboutStories(),
+    listPublicAboutDresses(),
+    listPublicAboutMission(),
+  ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <Container className="w-full px-4 sm:px-6 lg:px-8">
@@ -31,11 +44,11 @@ export default function AboutUsPage() {
           />
         </div>
       </Container>
-      <AboutHero />
-      <StatsBar />
-      <BrandStory />
-      <CustomDresses />
-      <MissionVision />
+      <AboutHero hero={hero ?? FALLBACK_ABOUT_HERO} />
+      <StatsBar stats={stats ?? FALLBACK_ABOUT_STATS} />
+      <BrandStory stories={stories ?? FALLBACK_ABOUT_STORIES} />
+      <CustomDresses dresses={dresses ?? FALLBACK_ABOUT_DRESSES} />
+      <MissionVision cards={mission ?? FALLBACK_ABOUT_MISSION} />
       <TrustBadges />
       <HowItWorks />
       <ShopCta />

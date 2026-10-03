@@ -1,18 +1,22 @@
-"use client";
-
 import Link from "next/link";
 
-import { useHomeSections } from "@/lib/mart-mock/hooks";
-
 import type { Product } from "../../_data/products/products";
+import type { FeaturedPublic } from "@/lib/mart-api/featured";
 import { ProductCard } from "../../products/_components/product-card";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
-export function FeaturedProductsSection({ products }: { products: Product[] }) {
-  const { featured } = useHomeSections();
-  const flagged = products.filter((product) => product.featured);
-  const featuredProducts = (flagged.length > 0 ? flagged : products).slice(0, 4);
+export function FeaturedProductsSection({
+  section,
+  products,
+}: {
+  section: FeaturedPublic;
+  products: Product[];
+}) {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const featuredProducts = section.productIds
+    .map((id) => byId.get(id))
+    .filter((product): product is Product => product != null);
   if (featuredProducts.length === 0) return null;
 
   return (
@@ -27,13 +31,13 @@ export function FeaturedProductsSection({ products }: { products: Product[] }) {
               id="featured-products-heading"
               className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl"
             >
-              {featured.heading}
+              {section.heading}
             </h2>
             <Link
-              href={featured.viewAllHref || "/products"}
+              href={section.viewAllHref || "/products"}
               className="inline-flex shrink-0 items-center gap-0.5 text-sm text-neutral-500 transition-colors hover:text-neutral-950"
             >
-              {featured.viewAllLabel}
+              {section.viewAllLabel}
               <MaterialIcon name="chevron_right" className="text-[18px]" />
             </Link>
           </div>

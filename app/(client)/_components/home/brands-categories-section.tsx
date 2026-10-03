@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { useHomeSections } from "@/lib/mart-mock/hooks";
+import type { ShowcasePublic } from "@/lib/mart-api/showcase";
 
 import { ProductCard } from "../../products/_components/product-card";
 import {
@@ -114,8 +114,23 @@ function CategoryProductRow({
   );
 }
 
-export function CategoryShowcaseSection({ products }: { products: Product[] }) {
-  const { showcase } = useHomeSections();
+export function CategoryShowcaseSection({
+  section,
+  products,
+}: {
+  section: ShowcasePublic;
+  products: Product[];
+}) {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const rows = section.rows
+    .map((row) => ({
+      ...row,
+      items: row.productIds
+        .map((id) => byId.get(id))
+        .filter((product): product is Product => product != null),
+    }))
+    .filter((row) => row.items.length > 0);
+  if (rows.length === 0) return null;
 
   return (
     <section
@@ -123,22 +138,9 @@ export function CategoryShowcaseSection({ products }: { products: Product[] }) {
       aria-label="ক্যাটাগরি অনুযায়ী প্রোডাক্ট"
     >
       <Container className="space-y-4 px-4 sm:px-6 lg:px-8">
-        {showcase.map((row) => {
-          const items = (
-            row.id === "gadgets" || row.id === "fashion"
-              ? products.filter((product) => product.categoryId === row.id)
-              : products
-          ).slice(0, 4);
-          if (items.length === 0) return null;
-          return (
-            <CategoryProductRow
-              key={row.id}
-              heading={row.heading}
-              href={row.href}
-              items={items}
-            />
-          );
-        })}
+        {rows.map((row) => (
+          <CategoryProductRow key={row.key} heading={row.heading} href={row.href} items={row.items} />
+        ))}
       </Container>
     </section>
   );

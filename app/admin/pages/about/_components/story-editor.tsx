@@ -3,17 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankParagraph,
-  blankStory,
-  readAboutSections,
-  saveAboutSections,
-  type AboutStoryBlock,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
+  blankAboutStory,
+  createAboutStory,
+  deleteAboutStory,
+  listAboutStories,
+  reorderAboutStories,
+  updateAboutStory,
+  type AboutStory,
+} from "@/lib/mart-api/about-stories";
+import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
@@ -32,20 +34,37 @@ import { ImageField, MultiImageUpload } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
 
 export function AboutStoryEditor() {
-  const { stories } = useAboutSections();
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const storyId = params.get("story");
   const creating = storyId === "new";
+  const [stories, setStories] = useState<AboutStory[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const items = stories ?? [];
   const editing = creating
     ? null
-    : (stories.find((item) => item.id === storyId) ?? null);
+    : (items.find((item) => item.id === storyId) ?? null);
   const drawerOpen = creating || Boolean(editing);
-  const missing = Boolean(storyId && !creating && !editing);
+  const missing = stories !== null && Boolean(storyId && !creating && !editing);
   const [notice, setNotice] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const page = findCmsPage("about");
+
+  useEffect(() => {
+    let cancelled = false;
+    listAboutStories()
+      .then((next) => {
+        if (!cancelled) setStories(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof MartApiError ? error.message : "Could not load the stories.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function openStory(id: string | null) {
     const next = new URLSearchParams(window.location.search);
@@ -64,38 +83,54 @@ export function AboutStoryEditor() {
     window.setTimeout(() => setNotice(""), 1600);
   }
 
-  function saveStory(draft: AboutStoryBlock) {
-    const doc = readAboutSections();
+  async function saveStory(draft: AboutStory) {
+    if (!stories) return;
     const next = cleanStory(draft);
-    const stories = creating
-      ? [...doc.stories, next]
-      : doc.stories.map((item) => (item.id === next.id ? next : item));
-    saveAboutSections({ ...doc, stories });
+    if (creating) {
+      const saved = await createAboutStory(next);
+      setStories([...stories, saved]);
+    } else if (storyId) {
+      const saved = await updateAboutStory(storyId, next);
+      setStories(stories.map((item) => (item.id === storyId ? saved : item)));
+    }
     flash("Saved");
     openStory(null);
   }
 
-  function removeStory(id: string) {
-    const doc = readAboutSections();
-    saveAboutSections({
-      ...doc,
-      stories: doc.stories.filter((item) => item.id !== id),
-    });
-    if (storyId === id) openStory(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function removeStory(id: string) {
+    if (!stories) return;
+    setLoadError("");
+    try {
+      await deleteAboutStory(id);
+      setStories(stories.filter((item) => item.id !== id));
+      if (storyId === id) openStory(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the story.");
+    }
+  }
+
+  async function applyOrder(ids: string[]) {
+    setLoadError("");
+    try {
+      setStories(await reorderAboutStories(ids));
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError ? error.message : "Could not reorder the stories.",
+      );
+    }
   }
 
   function moveStory(id: string, direction: -1 | 1) {
-    const doc = readAboutSections();
-    const index = doc.stories.findIndex((item) => item.id === id);
+    const index = items.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.stories.length) return;
-    const next = [...doc.stories];
+    if (index < 0 || target < 0 || target >= items.length) return;
+    const next = [...items];
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveAboutSections({ ...doc, stories: next });
+    void applyOrder(next.map((entry) => entry.id));
   }
 
   return (
@@ -144,7 +179,7 @@ export function AboutStoryEditor() {
         ) : null}
         <AdminPageHeader
           title="Story"
-          description="Each story is one block on the about page: the writing, a button, and photos."
+          description="Each story is one block on the about page. Hidden stories stay off the about page."
           action={
             <div className="flex flex-wrap items-center gap-2">
               <a
@@ -169,6 +204,11 @@ export function AboutStoryEditor() {
         />
       </div>
 
+      {loadError ? (
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          {loadError}
+        </p>
+      ) : null}
       {notice && !drawerOpen ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The about page is up to date.
@@ -196,10 +236,16 @@ export function AboutStoryEditor() {
             id="about-stories-heading"
             className="text-sm font-semibold text-neutral-950"
           >
-            {stories.length === 1 ? "1 story" : `${stories.length} stories`}
+            {stories === null
+              ? "Stories"
+              : stories.length === 1
+                ? "1 story"
+                : `${stories.length} stories`}
           </h2>
         </div>
-        {stories.length === 0 ? (
+        {stories === null ? (
+          <p className="px-4 py-12 text-center text-sm text-neutral-500">Loading stories…</p>
+        ) : stories.length === 0 ? (
           <div className="px-4 py-12 text-center">
             <p className="text-sm font-semibold text-neutral-950">
               No stories yet
@@ -218,7 +264,7 @@ export function AboutStoryEditor() {
           </div>
         ) : (
           <ol>
-            {stories.map((story, index) => {
+            {items.map((story, index) => {
               const excerpt =
                 story.paragraphs.find((item) => item.text.trim())?.text ?? "";
               const photos = story.images.filter((image) => image.src);
@@ -295,7 +341,7 @@ export function AboutStoryEditor() {
                       <IconButton
                         label="Move later"
                         icon="arrow_downward"
-                        disabled={index === stories.length - 1}
+                        disabled={index === items.length - 1}
                         onClick={() => moveStory(story.id, 1)}
                       />
                       <button
@@ -345,7 +391,7 @@ export function AboutStoryEditor() {
           <StoryForm
             key={storyId}
             creating={creating}
-            initial={editing ?? blankStory()}
+            initial={editing ?? blankAboutStory()}
             notice={notice}
             onClose={() => openStory(null)}
             onSave={saveStory}
@@ -364,10 +410,10 @@ function StoryForm({
   onSave,
 }: {
   creating: boolean;
-  initial: AboutStoryBlock;
+  initial: AboutStory;
   notice: string;
   onClose: () => void;
-  onSave: (story: AboutStoryBlock) => void;
+  onSave: (story: AboutStory) => Promise<void>;
 }) {
   const [story, setStory] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
   const baseline = useRef(story);
@@ -376,7 +422,7 @@ function StoryForm({
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving || uploading > 0) return;
     if (
       !story.title.trim() &&
@@ -390,7 +436,12 @@ function StoryForm({
       return;
     }
     setSaving(true);
-    onSave(story);
+    try {
+      await onSave(story);
+    } catch (error) {
+      setError(error instanceof MartApiError ? error.message : "Could not save the story.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -504,7 +555,10 @@ function StoryForm({
                 onClick={() =>
                   setStory({
                     ...story,
-                    paragraphs: [...story.paragraphs, blankParagraph()],
+                    paragraphs: [
+                      ...story.paragraphs,
+                      { id: `paragraph-${Date.now().toString(36)}`, text: "" },
+                    ],
                   })
                 }
                 className={adminButtonClass.secondary}
@@ -710,7 +764,7 @@ function StoryForm({
   );
 }
 
-function cleanStory(story: AboutStoryBlock): AboutStoryBlock {
+function cleanStory(story: AboutStory): AboutStory {
   return {
     ...story,
     kicker: story.kicker.trim(),

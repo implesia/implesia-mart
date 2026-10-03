@@ -1,34 +1,35 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 
-import {
-  isExternalHref,
-  type AboutStoryBlock,
-} from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { AboutStory } from "@/lib/mart-api/about-stories";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function BrandStory({ className }: { className?: string }) {
-  const { stories } = useAboutSections();
-  const visible = stories.filter(isContentActive);
-  if (!visible.length) return null;
+export function BrandStory({
+  stories,
+  className,
+}: {
+  stories: AboutStory[];
+  className?: string;
+}) {
+  if (!stories.length) return null;
 
   return (
     <div className={className}>
-      {visible.map((story) => (
+      {stories.map((story) => (
         <StoryBlock key={story.id} story={story} />
       ))}
     </div>
   );
 }
 
-function StoryBlock({ story }: { story: AboutStoryBlock }) {
+function isExternalHref(href: string) {
+  return /^https?:\/\//.test(href);
+}
+
+function StoryBlock({ story }: { story: AboutStory }) {
   const paragraphs = story.paragraphs.filter((item) => item.text.trim());
   const images = story.images.filter((item) => item.src);
   const buttonLabel = story.cta.label.trim();
@@ -71,10 +72,7 @@ function StoryBlock({ story }: { story: AboutStoryBlock }) {
                     className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
                   >
                     {buttonLabel}
-                    <MaterialIcon
-                      name="arrow_forward"
-                      className="text-[18px]"
-                    />
+                    <MaterialIcon name="arrow_forward" className="text-[18px]" />
                   </a>
                 ) : (
                   <Link
@@ -82,10 +80,7 @@ function StoryBlock({ story }: { story: AboutStoryBlock }) {
                     className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
                   >
                     {buttonLabel}
-                    <MaterialIcon
-                      name="arrow_forward"
-                      className="text-[18px]"
-                    />
+                    <MaterialIcon name="arrow_forward" className="text-[18px]" />
                   </Link>
                 )}
               </div>

@@ -2,15 +2,13 @@
 
 import { useState } from "react";
 
-import { useHomeSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { NewsletterPublic } from "@/lib/mart-api/newsletter";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
-export function NewsletterSection() {
-  const { newsletter } = useHomeSections();
+export function NewsletterSection({ section }: { section: NewsletterPublic }) {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
 
@@ -40,15 +38,15 @@ export function NewsletterSection() {
           <div className="relative z-10 mx-auto w-full max-w-2xl text-center">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">
               <span className="size-1.5 shrink-0 rounded-full bg-warm-gold" />
-              {newsletter.eyebrow}
+              {section.eyebrow}
             </p>
 
             <h2 className="mb-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              {newsletter.title}
+              {section.title}
             </h2>
 
             <p className="mx-auto mb-8 text-sm leading-relaxed text-white/70 sm:text-base">
-              {newsletter.subtitle}
+              {section.subtitle}
             </p>
 
             {done ? (
@@ -58,7 +56,7 @@ export function NewsletterSection() {
                   filled
                   className="shrink-0 text-warm-gold"
                 />
-                {newsletter.success}
+                {section.success}
               </div>
             ) : (
               <form
@@ -76,7 +74,7 @@ export function NewsletterSection() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={newsletter.placeholder}
+                    placeholder={section.placeholder}
                     className={cn(
                       "box-border h-12 w-full rounded-xl border border-white/20 bg-white/10",
                       "pl-10 pr-3 text-sm text-white outline-none sm:text-base",
@@ -94,14 +92,14 @@ export function NewsletterSection() {
                     "transition-colors hover:bg-warm-gold/90",
                   )}
                 >
-                  {newsletter.cta}
+                  {section.cta}
                   <MaterialIcon name="arrow_forward" className="text-[18px]" />
                 </button>
               </form>
             )}
 
             <ul className="mt-8 flex w-full flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-8">
-              {newsletter.perks.filter(isContentActive).map((perk) => (
+              {section.perks.map((perk) => (
                 <li
                   key={perk.id}
                   className="flex items-center gap-2 text-xs text-white/65 sm:text-sm"

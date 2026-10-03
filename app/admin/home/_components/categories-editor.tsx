@@ -5,34 +5,50 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { cn } from "@/lib/utils";
 import {
-  blankCategoryTile,
-  readHomeSections,
-  saveHomeSections,
-  type CategoriesSection,
-} from "@/lib/mart-mock/home-sections";
+  blankCategoryDraft,
+  categoryImage,
+  createCategoryTile,
+  deleteCategoryTile,
+  getCategorySection,
+  reorderCategoryTiles,
+  updateCategoryHeading,
+  updateCategoryTile,
+  type CategoryDraft,
+  type CategorySection,
+  type CategoryTile,
+} from "@/lib/mart-api/categories";
+import { MartApiError } from "@/lib/mart-api/products";
+import { cn } from "@/lib/utils";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 
 import { AdminFormModal } from "../../_components/admin-form-modal";
-import { ActiveStatusField, adminButtonClass, adminFieldClass, FieldError, FieldLabel, VisibilityBadge } from "../../_components/admin-ui";
+import {
+  ActiveStatusField,
+  adminButtonClass,
+  adminFieldClass,
+  FieldError,
+  FieldLabel,
+  VisibilityBadge,
+} from "../../_components/admin-ui";
 import { FormCloseGuard } from "../../_components/form-close-guard";
 import { ImageField } from "../../_components/image-field";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
 
-type Draft = { label: string; imageSrc: string; href: string; isActive: boolean };
-
-export function CategoryTiles({ section }: { section: CategoriesSection }) {
+export function CategoryTiles() {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const selected = params.get("edit");
   const creating = selected === "new";
-  const tiles = section.tiles;
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [baseline, setBaseline] = useState<Draft | null>(null);
+  const [section, setSection] = useState<CategorySection | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [draft, setDraft] = useState<CategoryDraft | null>(null);
+  const [baseline, setBaseline] = useState<CategoryDraft | null>(null);
   const [labelError, setLabelError] = useState("");
+  const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState("");
@@ -41,33 +57,44 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [resolved, setResolved] = useState<string | null>(null);
-  const loaded = useRef<string | null>(null);
   const focusId = useRef<string | null>(null);
   const labelId = useId();
+  const tiles = section?.tiles ?? [];
 
   useEffect(() => {
-    if (loaded.current === selected) return;
-    loaded.current = selected;
+    let cancelled = false;
+    getCategorySection()
+      .then((next) => {
+        if (!cancelled) setSection(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof MartApiError ? error.message : "Could not load categories.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if ((selected === null || selected === "new" || section) && selected !== openKey) {
+    setOpenKey(selected);
     setResolved(selected);
     setLabelError("");
+    setFormError("");
     if (!selected) {
       setDraft(null);
       setBaseline(null);
-      return;
-    }
-    if (selected === "new") {
-      const next = { label: "", imageSrc: "", href: "/products", isActive: true };
+    } else if (selected === "new") {
+      const next = blankCategoryDraft();
       setDraft(next);
       setBaseline(next);
-      return;
+    } else {
+      const tile = section?.tiles.find((entry) => entry.id === selected);
+      const next = tile ? draftFrom(tile) : null;
+      setDraft(next);
+      setBaseline(next);
     }
-    const tile = readHomeSections().categories.tiles.find((entry) => entry.id === selected);
-    const next = tile
-      ? { label: tile.label, imageSrc: tile.imageSrc, href: tile.href, isActive: tile.isActive !== false }
-      : null;
-    setDraft(next);
-    setBaseline(next);
-  }, [selected]);
+  }
 
   useEffect(() => {
     if (draft || !focusId.current) return;
@@ -92,88 +119,115 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
     }, 1600);
   }
 
-  function saveHeading(heading: string) {
-    const doc = readHomeSections();
-    saveHomeSections({ ...doc, categories: { ...doc.categories, heading } });
+  async function saveHeading(heading: string) {
+    if (!section) return;
+    setSection(await updateCategoryHeading(heading));
   }
 
-  function save() {
-    if (!draft || saving || uploading) return;
+  async function save() {
+    if (!draft || saving || uploading || !section) return;
     const label = draft.label.trim();
     if (!label) {
       setLabelError("Label is required.");
       return;
     }
     setSaving(true);
-    const doc = readHomeSections();
-    const href = draft.href.trim();
-    const imageSrc = draft.imageSrc;
-    const saved = creating ? { ...blankCategoryTile(), label, href, imageSrc, isActive: draft.isActive } : null;
-    if (saved) {
-      saveHomeSections({ ...doc, categories: { ...doc.categories, tiles: [...doc.categories.tiles, saved] } });
-    } else if (selected) {
-      saveHomeSections({
-        ...doc,
-        categories: {
-          ...doc.categories,
-          tiles: doc.categories.tiles.map((entry) =>
-            entry.id === selected ? { ...entry, label, href, imageSrc, isActive: draft.isActive } : entry,
-          ),
-        },
-      });
+    setFormError("");
+    const nextDraft = { ...draft, label, href: draft.href.trim() };
+    try {
+      if (creating) {
+        const created = await createCategoryTile(nextDraft);
+        setSection({ ...section, tiles: [...section.tiles, created] });
+        setSavedId(created.id);
+        focusId.current = created.id;
+      } else if (selected) {
+        const updated = await updateCategoryTile(selected, nextDraft);
+        setSection({
+          ...section,
+          tiles: section.tiles.map((entry) => (entry.id === selected ? updated : entry)),
+        });
+        setSavedId(selected);
+        focusId.current = selected;
+      }
+      setSaving(false);
+      flash("Saved");
+      setEdit(null);
+    } catch (error) {
+      setSaving(false);
+      setFormError(error instanceof MartApiError ? error.message : "Could not save the category.");
     }
-    const id = saved?.id ?? selected;
-    setSaving(false);
-    setSavedId(id);
-    focusId.current = id;
-    flash("Saved");
-    setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readHomeSections();
-    saveHomeSections({
-      ...doc,
-      categories: { ...doc.categories, tiles: doc.categories.tiles.filter((tile) => tile.id !== id) },
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    if (!section) return;
+    try {
+      await deleteCategoryTile(id);
+      setSection({ ...section, tiles: section.tiles.filter((tile) => tile.id !== id) });
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the category.");
+    }
   }
 
-  function move(id: string, direction: -1 | 1) {
-    const doc = readHomeSections();
-    const index = doc.categories.tiles.findIndex((tile) => tile.id === id);
+  async function move(id: string, direction: -1 | 1) {
+    if (!section) return;
+    setLoadError("");
+    const index = section.tiles.findIndex((tile) => tile.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.categories.tiles.length) return;
-    const next = [...doc.categories.tiles];
+    if (index < 0 || target < 0 || target >= section.tiles.length) return;
+    const next = [...section.tiles];
     const [tile] = next.splice(index, 1);
     if (!tile) return;
     next.splice(target, 0, tile);
-    saveHomeSections({ ...doc, categories: { ...doc.categories, tiles: next } });
+    try {
+      setSection(await reorderCategoryTiles(next.map((entry) => entry.id)));
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError ? error.message : "Could not reorder the categories.",
+      );
+    }
   }
 
-  function dropOn(targetId: string) {
-    if (!dragId || dragId === targetId) {
+  async function dropOn(targetId: string) {
+    if (!dragId || dragId === targetId || !section) {
       setDragId(null);
       setOverId(null);
       return;
     }
-    const doc = readHomeSections();
-    const next = [...doc.categories.tiles];
+    const next = [...section.tiles];
     const from = next.findIndex((tile) => tile.id === dragId);
     const to = next.findIndex((tile) => tile.id === targetId);
+    setDragId(null);
+    setOverId(null);
+    setLoadError("");
     if (from < 0 || to < 0) return;
     const [tile] = next.splice(from, 1);
     if (!tile) return;
     next.splice(to, 0, tile);
-    saveHomeSections({ ...doc, categories: { ...doc.categories, tiles: next } });
-    setDragId(null);
-    setOverId(null);
+    try {
+      setSection(await reorderCategoryTiles(next.map((entry) => entry.id)));
+    } catch (error) {
+      setLoadError(
+        error instanceof MartApiError ? error.message : "Could not reorder the categories.",
+      );
+    }
+  }
+
+  if (!section && !loadError) {
+    return <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />;
+  }
+  if (!section) {
+    return (
+      <p className="rounded-2xl bg-white px-4 py-10 text-center text-sm text-red-700 ring-1 ring-red-100">
+        {loadError}
+      </p>
+    );
   }
 
   const missing = Boolean(selected && selected !== "new" && resolved === selected && !draft);
-  const editingLabel = draft?.label.trim() || "Category";
+  const visible = tiles.filter(isContentActive);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -189,6 +243,9 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
         }
       />
 
+      {loadError ? (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>
+      ) : null}
       {notice && !draft ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
           {notice}. The category list is up to date.
@@ -203,12 +260,17 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl bg-[#f5f6f8] ring-1 ring-neutral-200/90" aria-labelledby="category-preview-heading">
+      <section
+        className="overflow-hidden rounded-2xl bg-[#f5f6f8] ring-1 ring-neutral-200/90"
+        aria-labelledby="category-preview-heading"
+      >
         <div className="px-4 pt-4 sm:px-5">
           <h2 id="category-preview-heading" className="text-sm font-semibold text-neutral-950">
             Storefront preview
           </h2>
-          <p className="mt-0.5 text-sm text-neutral-500">Shown on the home page, in this order. Every category in the list appears there.</p>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            Shown on the home page, in this order. Hidden categories stay off the home page.
+          </p>
         </div>
         <div className="px-4 py-4 sm:px-5">
           <div className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 sm:px-6 sm:py-5">
@@ -218,20 +280,24 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
               saveLabel="Save heading"
               onSave={(next) => saveHeading(next.heading ?? "")}
             />
-            {tiles.length === 0 ? (
+            {visible.length === 0 ? (
               <div className="px-2 py-10 text-center">
-                <p className="text-sm font-semibold text-neutral-950">No categories yet</p>
+                <p className="text-sm font-semibold text-neutral-950">
+                  {tiles.length === 0 ? "No categories yet" : "All categories are hidden."}
+                </p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
                   Add a category tile so customers can open a collection from the home page.
                 </p>
-                <button type="button" onClick={() => setEdit("new")} className={cn(adminButtonClass.primary, "mt-4")}>
-                  <MaterialIcon name="add" className="text-[18px]" />
-                  Add category
-                </button>
+                {tiles.length === 0 ? (
+                  <button type="button" onClick={() => setEdit("new")} className={cn(adminButtonClass.primary, "mt-4")}>
+                    <MaterialIcon name="add" className="text-[18px]" />
+                    Add category
+                  </button>
+                ) : null}
               </div>
             ) : (
               <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3">
-                {tiles.map((tile) => (
+                {visible.map((tile) => (
                   <li key={tile.id}>
                     <button
                       type="button"
@@ -242,7 +308,13 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                       )}
                     >
                       {tile.imageSrc ? (
-                        <Image src={tile.imageSrc} alt="" fill sizes="(max-width: 640px) 50vw, 40vw" className="object-cover" />
+                        <Image
+                          src={categoryImage(tile.imageSrc)}
+                          alt=""
+                          fill
+                          sizes="(max-width: 640px) 50vw, 40vw"
+                          className="object-cover"
+                        />
                       ) : (
                         <span className="absolute inset-0 bg-neutral-800" />
                       )}
@@ -276,7 +348,7 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                 }}
                 onDrop={(event) => {
                   event.preventDefault();
-                  dropOn(tile.id);
+                  void dropOn(tile.id);
                 }}
                 className={cn(
                   "border-t border-neutral-100 first:border-t-0",
@@ -305,11 +377,16 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                     >
                       <MaterialIcon name="drag_indicator" className="text-[18px]" />
                     </button>
-                    <button id={`category-${tile.id}`} type="button" onClick={() => setEdit(tile.id)} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                    <button
+                      id={`category-${tile.id}`}
+                      type="button"
+                      onClick={() => setEdit(tile.id)}
+                      className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
                       <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
                       <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                         {tile.imageSrc ? (
-                          <Image src={tile.imageSrc} alt="" fill sizes="48px" className="object-cover" />
+                          <Image src={categoryImage(tile.imageSrc)} alt="" fill sizes="48px" className="object-cover" />
                         ) : (
                           <span className="grid size-full place-items-center text-neutral-400">
                             <MaterialIcon name="image" className="text-[18px]" />
@@ -326,15 +403,15 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                    <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => move(tile.id, -1)} />
-                    <IconButton label="Move later" icon="arrow_downward" disabled={index === tiles.length - 1} onClick={() => move(tile.id, 1)} />
+                    <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => void move(tile.id, -1)} />
+                    <IconButton label="Move later" icon="arrow_downward" disabled={index === tiles.length - 1} onClick={() => void move(tile.id, 1)} />
                     <button type="button" onClick={() => setEdit(tile.id)} className={adminButtonClass.quiet}>
                       Edit
                     </button>
                     {confirmId === tile.id ? (
                       <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                         Remove from the home page?
-                        <button type="button" onClick={() => remove(tile.id)} className="font-semibold underline">
+                        <button type="button" onClick={() => void remove(tile.id)} className="font-semibold underline">
                           Yes
                         </button>
                         <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
@@ -354,13 +431,15 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
 
       {draft && baseline ? (
         <FormCloseGuard baseline={baseline} value={draft} onClose={() => setEdit(null)}>
-        <AdminFormModal key={selected ?? "closed"} titleId="category-drawer-title" size="sm">
+          <AdminFormModal key={selected ?? "closed"} titleId="category-drawer-title" size="sm">
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
               <div className="min-w-0">
                 <h2 id="category-drawer-title" className="text-lg font-semibold text-neutral-950">
                   {creating ? "Add category" : "Edit category"}
                 </h2>
-                <p className="mt-1 text-sm text-neutral-500">{creating ? "Create a category tile for the home page." : "Update this category tile."}</p>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {creating ? "Create a category tile for the home page." : "Update this category tile."}
+                </p>
               </div>
               <button
                 type="button"
@@ -377,7 +456,7 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
               <ActiveStatusField checked={draft.isActive} onChange={(isActive) => setDraft({ ...draft, isActive })} />
               <div className="relative flex min-h-28 overflow-hidden rounded-2xl bg-neutral-800">
                 {draft.imageSrc ? (
-                  <Image src={draft.imageSrc} alt="" fill sizes="400px" className="object-cover" />
+                  <Image src={categoryImage(draft.imageSrc)} alt="" fill sizes="400px" className="object-cover" />
                 ) : null}
                 <span aria-hidden className="absolute inset-0 bg-linear-to-t from-black/75 via-black/25 to-black/10" />
                 <span className="relative z-10 mt-auto px-4 py-3 text-sm font-semibold text-white">
@@ -385,7 +464,7 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                 </span>
               </div>
               <ImageField
-                value={draft.imageSrc}
+                value={categoryImage(draft.imageSrc)}
                 onChange={(imageSrc) => setDraft({ ...draft, imageSrc })}
                 onBusy={setUploading}
                 confirmRemove
@@ -422,10 +501,13 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
                   placeholder="/products"
                   className={adminFieldClass}
                 />
-                <p className="mt-1.5 text-xs text-neutral-500">Where this category goes when a customer taps it. Blank uses the products page.</p>
+                <p className="mt-1.5 text-xs text-neutral-500">
+                  Where this category goes when a customer taps it. Blank uses the products page.
+                </p>
               </div>
             </div>
             <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
+              {formError ? <p className="mr-auto text-sm text-red-700">{formError}</p> : null}
               {notice ? (
                 <p role="status" className="mr-auto text-sm font-medium text-emerald-800">
                   {notice}
@@ -434,15 +516,24 @@ export function CategoryTiles({ section }: { section: CategoriesSection }) {
               <button type="button" data-form-dismiss="" onClick={() => setEdit(null)} className={adminButtonClass.secondary}>
                 Cancel
               </button>
-              <button type="button" onClick={save} disabled={saving || uploading} className={adminButtonClass.primary}>
+              <button type="button" onClick={() => void save()} disabled={saving || uploading} className={adminButtonClass.primary}>
                 {saving ? "Saving…" : uploading ? "Uploading…" : creating ? "Save category" : "Save changes"}
               </button>
             </div>
-        </AdminFormModal>
+          </AdminFormModal>
         </FormCloseGuard>
       ) : null}
     </div>
   );
+}
+
+function draftFrom(tile: CategoryTile): CategoryDraft {
+  return {
+    label: tile.label,
+    imageSrc: tile.imageSrc,
+    href: tile.href,
+    isActive: tile.isActive,
+  };
 }
 
 function IconButton({

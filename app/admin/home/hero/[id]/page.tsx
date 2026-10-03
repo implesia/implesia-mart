@@ -6,15 +6,18 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { cn } from "@/lib/utils";
 import {
-  blankBanner,
-  deleteBanner,
-  readBanners,
-  saveBanner,
-  type AdminBanner,
-  type HeroAccent,
-} from "@/lib/mart-mock/store";
+  blankHeroSlide,
+  createHeroSlide,
+  deleteHeroSlide,
+  getHeroSlide,
+  heroImage,
+  updateHeroSlide,
+  type HeroSlideInput,
+} from "@/lib/mart-api/hero";
+import { MartApiError } from "@/lib/mart-api/products";
+import { type HeroAccent } from "@/lib/mart-mock/store";
+import { cn } from "@/lib/utils";
 
 import { ImageField } from "../../../_components/image-field";
 import {
@@ -38,18 +41,34 @@ export default function EditHomeHeroSlidePage() {
   const id = decodeURIComponent(params.id ?? "");
   const creating = id === "new";
   const router = useRouter();
-  const [banner, setBanner] = useState<AdminBanner | null | undefined>(undefined);
+  const [banner, setBanner] = useState<HeroSlideInput | null>(creating ? blankHeroSlide() : null);
+  const [missing, setMissing] = useState(false);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (id === "new") {
-      setBanner(blankBanner());
-      return;
-    }
-    setBanner(readBanners().find((item) => item.id === id) ?? null);
-  }, [id]);
+    if (creating) return;
+    let cancelled = false;
+    getHeroSlide(id)
+      .then((slide) => {
+        if (cancelled) return;
+        if (!slide) setMissing(true);
+        else setBanner(slide);
+      })
+      .catch((loadError: unknown) => {
+        if (cancelled) return;
+        setError(loadError instanceof MartApiError ? loadError.message : "Could not load this slide.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [creating, id]);
 
-  if (banner === undefined) return <AdminLoading />;
+  if (!banner && !missing && !error) return <AdminLoading />;
+  if (error && !banner) {
+    return <p className="rounded-2xl bg-white px-4 py-10 text-center text-sm text-red-700 ring-1 ring-red-100">{error}</p>;
+  }
 
   if (!banner) {
     return (
@@ -62,11 +81,19 @@ export default function EditHomeHeroSlidePage() {
     );
   }
 
-  function save(event: FormEvent) {
+  async function save(event: FormEvent) {
     event.preventDefault();
     if (!banner) return;
-    saveBanner(banner);
-    router.push("/admin/home/hero");
+    setSaving(true);
+    setError("");
+    try {
+      if (creating) await createHeroSlide(banner);
+      else await updateHeroSlide(id, banner);
+      router.push("/admin/home/hero");
+    } catch (saveError) {
+      setSaving(false);
+      setError(saveError instanceof MartApiError ? saveError.message : "Could not save the slide.");
+    }
   }
 
   const accent = ACCENTS.find((item) => item.id === banner.accent) ?? ACCENTS[1];
@@ -82,11 +109,13 @@ export default function EditHomeHeroSlidePage() {
         }
         sectionId="hero"
         extra={
-          <button type="submit" className={adminButtonClass.primary}>
-            {creating ? "Create slide" : "Save"}
+          <button type="submit" disabled={saving} className={adminButtonClass.primary}>
+            {saving ? "Saving…" : creating ? "Create slide" : "Save"}
           </button>
         }
       />
+
+      {error ? <p className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-4">
@@ -148,7 +177,7 @@ export default function EditHomeHeroSlidePage() {
 
           <Panel title="Image">
             <ImageField
-              value={banner.imageSrc}
+              value={heroImage(banner.imageSrc)}
               onChange={(imageSrc) => setBanner({ ...banner, imageSrc })}
             />
             <Field
@@ -219,8 +248,15 @@ export default function EditHomeHeroSlidePage() {
                     <button
                       type="button"
                       onClick={() => {
-                        deleteBanner(banner.id);
-                        router.push("/admin/home/hero");
+                        void deleteHeroSlide(id)
+                          .then(() => router.push("/admin/home/hero"))
+                          .catch((deleteError: unknown) => {
+                            setError(
+                              deleteError instanceof MartApiError
+                                ? deleteError.message
+                                : "Could not delete the slide.",
+                            );
+                          });
                       }}
                       className="font-semibold underline"
                     >
@@ -267,7 +303,7 @@ export default function EditHomeHeroSlidePage() {
               </div>
               <div className="relative h-full">
                 {banner.imageSrc ? (
-                  <Image src={banner.imageSrc} alt="" fill sizes="40vw" className="object-contain p-4" />
+                  <Image src={heroImage(banner.imageSrc)} alt="" fill sizes="40vw" className="object-contain p-4" />
                 ) : (
                   <div className="grid h-full place-items-center text-white/40">
                     <MaterialIcon name="image" className="text-[32px]" />

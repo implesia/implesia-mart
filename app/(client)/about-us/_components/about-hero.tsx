@@ -1,18 +1,21 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import type { AboutHero as AboutHeroContent } from "@/lib/mart-api/about-hero";
 import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { useAboutSections } from "@/lib/mart-mock/hooks";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function AboutHero({ className }: { className?: string }) {
-  const { hero } = useAboutSections();
+export function AboutHero({
+  hero,
+  className,
+}: {
+  hero: AboutHeroContent;
+  className?: string;
+}) {
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
@@ -43,19 +46,23 @@ export function AboutHero({ className }: { className?: string }) {
             </p>
 
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+              {hero.primaryLabel.trim() ? (
               <AboutCta
-                href={hero.primaryCta.href}
+                href={hero.primaryHref}
                 className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80 sm:h-10"
               >
-                {hero.primaryCta.label}
+                {hero.primaryLabel}
                 <MaterialIcon name="arrow_forward" className="text-[18px]" />
               </AboutCta>
+              ) : null}
+              {hero.secondaryLabel.trim() ? (
               <AboutCta
-                href={hero.secondaryCta.href}
+                href={hero.secondaryHref}
                 className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
-                {hero.secondaryCta.label}
+                {hero.secondaryLabel}
               </AboutCta>
+              ) : null}
             </div>
           </div>
 

@@ -22,10 +22,11 @@ export function SectionCopyForm({
 }: {
   values: Record<string, string>;
   fields: CopyField[];
-  onSave: (next: Record<string, string>) => void;
+  onSave: (next: Record<string, string>) => void | Promise<void>;
   saveLabel?: string;
 }) {
   const [notice, setNotice] = useState("");
+  const [failed, setFailed] = useState(false);
   const snapshot = fields.map((field) => values[field.name] ?? "").join("\u0000");
 
   return (
@@ -36,13 +37,23 @@ export function SectionCopyForm({
         fields={fields}
         saveLabel={saveLabel}
         onSave={(next) => {
-          onSave(next);
-          setNotice("Saved.");
-          window.setTimeout(() => setNotice(""), 1600);
+          void Promise.resolve(onSave(next))
+            .then(() => {
+              setFailed(false);
+              setNotice("Saved.");
+              window.setTimeout(() => setNotice(""), 1600);
+            })
+            .catch((error: unknown) => {
+              setFailed(true);
+              setNotice(error instanceof Error ? error.message : "Could not save.");
+            });
         }}
       />
       {notice ? (
-        <p role="status" className="mt-3 text-sm font-medium text-emerald-800">
+        <p
+          role="status"
+          className={failed ? "mt-3 text-sm text-red-700" : "mt-3 text-sm font-medium text-emerald-800"}
+        >
           {notice}
         </p>
       ) : null}

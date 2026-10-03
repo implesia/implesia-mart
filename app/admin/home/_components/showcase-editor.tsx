@@ -2,18 +2,24 @@
 
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { cn } from "@/lib/utils";
+import { featuredImage } from "@/lib/mart-api/featured";
+import type { FeaturedProduct } from "@/lib/mart-api/featured";
+import { MartApiError } from "@/lib/mart-api/products";
 import {
-  catalogChoices,
-  readHomeSections,
-  saveHomeSections,
-  type CatalogChoice,
+  createShowcaseItem,
+  deleteShowcaseItem,
+  getShowcaseSection,
+  reorderShowcaseItems,
+  updateShowcaseItem,
+  updateShowcaseRow,
   type ShowcaseRow,
-} from "@/lib/mart-mock/home-sections";
-import { formatTaka, getAdminProduct } from "@/lib/mart-mock/store";
+  type ShowcaseSection,
+} from "@/lib/mart-api/showcase";
+import { formatTaka } from "@/lib/mart-mock/store";
+import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../_components/admin-form-modal";
 import { FormCloseGuard } from "../../_components/form-close-guard";
@@ -26,18 +32,204 @@ import {
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
 
-export function ShowcaseRows({ rows }: { rows: ShowcaseRow[] }) {
+export function ShowcaseRows() {
   const params = useSearchParams();
-  const openRows = rows.filter((row) => params.get(`row-${row.id}`));
-  const [saved, setSaved] = useState<{ rowId: string; slug: string } | null>(
-    null,
-  );
+  const pathname = usePathname();
+  const router = useRouter();
+  const [section, setSection] = useState<ShowcaseSection | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [openKey, setOpenKey] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string | null>>({});
+  const [baselines, setBaselines] = useState<Record<string, string | null>>({});
+  const [formError, setFormError] = useState<{ key: string; message: string } | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ key: string; message: string } | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const focusId = useRef<string | null>(null);
+  const rows = section?.rows ?? [];
+  const selection = rows
+    .map((row) => `${row.key}:${params.get(`row-${row.key}`) ?? ""}`)
+    .join("|");
+  const openRows = rows.filter((row) => params.get(`row-${row.key}`));
 
   useEffect(() => {
-    if (!saved) return;
-    const timer = window.setTimeout(() => setSaved(null), 1600);
-    return () => window.clearTimeout(timer);
-  }, [saved]);
+    let cancelled = false;
+    getShowcaseSection()
+      .then((next) => {
+        if (!cancelled) setSection(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoadError(error instanceof MartApiError ? error.message : "Could not load the showcase.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (section && selection !== openKey) {
+    const next: Record<string, string | null> = {};
+    for (const row of section.rows) {
+      const selected = params.get(`row-${row.key}`);
+      if (!selected) next[row.key] = null;
+      else if (selected === "new") {
+        const used = new Set(row.items.map((item) => item.productId));
+        next[row.key] = row.choices.find((choice) => !used.has(choice.id))?.id ?? null;
+      } else {
+        next[row.key] = row.items.find((item) => item.id === selected)?.productId ?? null;
+      }
+    }
+    setOpenKey(selection);
+    setBaselines(next);
+    setDrafts(next);
+    setFormError(null);
+  }
+
+  useEffect(() => {
+    if (!focusId.current || openRows.length > 0) return;
+    const id = focusId.current;
+    focusId.current = null;
+    document.getElementById(id)?.focus();
+  }, [openRows.length, savedId]);
+
+  function setRowEdit(rowKey: string, id: string | null) {
+    const next = new URLSearchParams(window.location.search);
+    const key = `row-${rowKey}`;
+    if (id) next.set(key, id);
+    else next.delete(key);
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
+  function flash(key: string, message: string) {
+    setNotice({ key, message });
+    window.setTimeout(() => {
+      setNotice(null);
+      setSavedId(null);
+    }, 1600);
+  }
+
+  function replaceRow(next: ShowcaseSection, key: string) {
+    setSection(next);
+    return next.rows.find((row) => row.key === key);
+  }
+
+  async function saveCopy(row: ShowcaseRow, values: Record<string, string>) {
+    setLoadError("");
+    const next = await updateShowcaseRow(row.key, {
+      heading: values.heading ?? "",
+      href: values.href ?? "",
+    });
+    setSection(next);
+  }
+
+  async function saveItem(row: ShowcaseRow) {
+    const productId = drafts[row.key];
+    const selected = params.get(`row-${row.key}`);
+    if (!productId || !selected || savingKey) return;
+    setSavingKey(row.key);
+    setFormError(null);
+    try {
+      if (selected === "new") {
+        const created = await createShowcaseItem(row.key, productId);
+        setSection({
+          ...section!,
+          rows: section!.rows.map((entry) =>
+            entry.key === row.key ? { ...entry, items: [...entry.items, created] } : entry,
+          ),
+        });
+        setSavedId(created.id);
+        focusId.current = `showcase-${row.key}-${created.id}`;
+      } else {
+        const updated = await updateShowcaseItem(row.key, selected, productId);
+        setSection({
+          ...section!,
+          rows: section!.rows.map((entry) =>
+            entry.key === row.key
+              ? {
+                  ...entry,
+                  items: entry.items.map((item) => (item.id === selected ? updated : item)),
+                }
+              : entry,
+          ),
+        });
+        setSavedId(selected);
+        focusId.current = `showcase-${row.key}-${selected}`;
+      }
+      setSavingKey(null);
+      flash(row.key, "Saved");
+      setRowEdit(row.key, null);
+    } catch (error) {
+      setSavingKey(null);
+      setFormError({
+        key: row.key,
+        message: error instanceof MartApiError ? error.message : "Could not save the product.",
+      });
+    }
+  }
+
+  async function remove(row: ShowcaseRow, id: string) {
+    setLoadError("");
+    try {
+      await deleteShowcaseItem(row.key, id);
+      setSection({
+        ...section!,
+        rows: section!.rows.map((entry) =>
+          entry.key === row.key
+            ? { ...entry, items: entry.items.filter((item) => item.id !== id) }
+            : entry,
+        ),
+      });
+      if (params.get(`row-${row.key}`) === id) setRowEdit(row.key, null);
+      flash(row.key, "Removed");
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the product.");
+    }
+  }
+
+  async function move(row: ShowcaseRow, id: string, direction: -1 | 1) {
+    setLoadError("");
+    const index = row.items.findIndex((item) => item.id === id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= row.items.length) return;
+    const next = [...row.items];
+    const [item] = next.splice(index, 1);
+    if (!item) return;
+    next.splice(target, 0, item);
+    try {
+      replaceRow(await reorderShowcaseItems(row.key, next.map((entry) => entry.id)), row.key);
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not reorder the products.");
+    }
+  }
+
+  async function dropOn(row: ShowcaseRow, targetId: string, dragId: string) {
+    if (!dragId || dragId === targetId) return;
+    const next = [...row.items];
+    const from = next.findIndex((item) => item.id === dragId);
+    const to = next.findIndex((item) => item.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [item] = next.splice(from, 1);
+    if (!item) return;
+    next.splice(to, 0, item);
+    setLoadError("");
+    try {
+      replaceRow(await reorderShowcaseItems(row.key, next.map((entry) => entry.id)), row.key);
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not reorder the products.");
+    }
+  }
+
+  if (!section && !loadError) {
+    return <div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />;
+  }
+  if (!section) {
+    return (
+      <p className="rounded-2xl bg-white px-4 py-10 text-center text-sm text-red-700 ring-1 ring-red-100">
+        {loadError}
+      </p>
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-4">
@@ -46,18 +238,72 @@ export function ShowcaseRows({ rows }: { rows: ShowcaseRow[] }) {
         description="Manage the category product rows displayed on your storefront."
         sectionId="showcase"
       />
+      {loadError ? (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>
+      ) : null}
       {rows.map((row) => (
         <ShowcaseRowBlock
-          key={row.id}
+          key={row.key}
           row={row}
-          savedSlug={saved?.rowId === row.id ? saved.slug : null}
+          notice={notice?.key === row.key ? notice.message : ""}
+          savedId={savedId}
+          onSaveCopy={(values) => saveCopy(row, values)}
+          onRemove={(id) => remove(row, id)}
+          onMove={(id, direction) => move(row, id, direction)}
+          onDrop={(targetId, dragId) => dropOn(row, targetId, dragId)}
+          onEdit={(id) => setRowEdit(row.key, id)}
         />
       ))}
       {openRows.length > 0 ? (
-        <ShowcaseDrawer
-          rows={openRows}
-          onSaved={(rowId, slug) => setSaved({ rowId, slug })}
-        />
+        <FormCloseGuard baseline={baselines} value={drafts} onClose={() => {
+          for (const row of openRows) setRowEdit(row.key, null);
+        }}>
+          <AdminFormModal titleId="showcase-drawer-title" size="md">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
+              <div className="min-w-0">
+                <h2 id="showcase-drawer-title" className="text-lg font-semibold text-neutral-950">
+                  {openRows.length === 1 ? "Edit product" : "Edit products"}
+                </h2>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {openRows.length === 1
+                    ? `Choose the product for ${openRows[0]?.heading || "this row"}.`
+                    : "Choose a product for each open row."}
+                </p>
+              </div>
+              <button
+                type="button"
+                data-form-dismiss=""
+                aria-label="Close"
+                title="Close"
+                onClick={() => {
+                  for (const row of openRows) setRowEdit(row.key, null);
+                }}
+                className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <MaterialIcon name="close" className="text-[20px]" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4">
+              {openRows.map((row, index) => (
+                <ShowcaseProductForm
+                  key={row.key}
+                  row={row}
+                  selected={params.get(`row-${row.key}`)}
+                  draft={drafts[row.key] ?? null}
+                  autoFocus={index === 0}
+                  saving={savingKey === row.key}
+                  error={formError?.key === row.key ? formError.message : ""}
+                  onDraft={(productId) => {
+                    setDrafts((current) => ({ ...current, [row.key]: productId }));
+                    setFormError(null);
+                  }}
+                  onSave={() => void saveItem(row)}
+                  onClose={() => setRowEdit(row.key, null)}
+                />
+              ))}
+            </div>
+          </AdminFormModal>
+        </FormCloseGuard>
       ) : null}
     </div>
   );
@@ -65,134 +311,54 @@ export function ShowcaseRows({ rows }: { rows: ShowcaseRow[] }) {
 
 function ShowcaseRowBlock({
   row,
-  savedSlug,
+  notice,
+  savedId,
+  onSaveCopy,
+  onRemove,
+  onMove,
+  onDrop,
+  onEdit,
 }: {
   row: ShowcaseRow;
-  savedSlug: string | null;
+  notice: string;
+  savedId: string | null;
+  onSaveCopy: (values: Record<string, string>) => Promise<void>;
+  onRemove: (id: string) => Promise<void>;
+  onMove: (id: string, direction: -1 | 1) => Promise<void>;
+  onDrop: (targetId: string, dragId: string) => Promise<void>;
+  onEdit: (id: string | null) => void;
 }) {
   const params = useSearchParams();
-  const selected = params.get(`row-${row.id}`);
-  const choices = catalogChoices().filter((item) => item.categoryId === row.id);
-  const bySlug = new Map(choices.map((item) => [item.slug, item]));
-  const unused = choices.filter((item) => !row.slugs.includes(item.slug));
-  const [notice, setNotice] = useState("");
+  const selected = params.get(`row-${row.key}`);
+  const byId = new Map(row.choices.map((item) => [item.id, item]));
+  const used = new Set(row.items.map((item) => item.productId));
+  const unused = row.choices.filter((item) => !used.has(item.id));
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const { setRowEdit } = useRowQuery();
-
-  useEffect(() => {
-    if (selected || !savedSlug || document.querySelector("[role=dialog]"))
-      return;
-    document.getElementById(`showcase-${row.id}-${savedSlug}`)?.focus();
-  }, [selected, savedSlug, row.id]);
-
-  function flash(message: string) {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 1600);
-  }
-
-  function patch(partial: Partial<ShowcaseRow>) {
-    const doc = readHomeSections();
-    saveHomeSections({
-      ...doc,
-      showcase: doc.showcase.map((item) =>
-        item.id === row.id ? { ...item, ...partial } : item,
-      ),
-    });
-  }
-
-  function remove(slug: string) {
-    const doc = readHomeSections();
-    saveHomeSections({
-      ...doc,
-      showcase: doc.showcase.map((item) =>
-        item.id === row.id
-          ? { ...item, slugs: item.slugs.filter((entry) => entry !== slug) }
-          : item,
-      ),
-    });
-    if (selected === slug) setRowEdit(row.id, null);
-    setConfirmId(null);
-    flash("Removed");
-  }
-
-  function move(slug: string, direction: -1 | 1) {
-    const doc = readHomeSections();
-    const current = doc.showcase.find((item) => item.id === row.id);
-    if (!current) return;
-    const index = current.slugs.indexOf(slug);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= current.slugs.length) return;
-    const next = [...current.slugs];
-    const [item] = next.splice(index, 1);
-    if (!item) return;
-    next.splice(target, 0, item);
-    saveHomeSections({
-      ...doc,
-      showcase: doc.showcase.map((entry) =>
-        entry.id === row.id ? { ...entry, slugs: next } : entry,
-      ),
-    });
-  }
-
-  function dropOn(targetSlug: string) {
-    if (!dragId || dragId === targetSlug) {
-      setDragId(null);
-      setOverId(null);
-      return;
-    }
-    const doc = readHomeSections();
-    const current = doc.showcase.find((item) => item.id === row.id);
-    if (!current) return;
-    const next = [...current.slugs];
-    const from = next.indexOf(dragId);
-    const to = next.indexOf(targetSlug);
-    if (from < 0 || to < 0) return;
-    const [item] = next.splice(from, 1);
-    if (!item) return;
-    next.splice(to, 0, item);
-    saveHomeSections({
-      ...doc,
-      showcase: doc.showcase.map((entry) =>
-        entry.id === row.id ? { ...entry, slugs: next } : entry,
-      ),
-    });
-    setDragId(null);
-    setOverId(null);
-  }
 
   return (
-    <section className="space-y-4" aria-labelledby={`showcase-row-${row.id}`}>
+    <section className="space-y-4" aria-labelledby={`showcase-row-${row.key}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <h2
-          id={`showcase-row-${row.id}`}
-          className="text-lg font-semibold text-neutral-950"
-        >
+        <h2 id={`showcase-row-${row.key}`} className="text-lg font-semibold text-neutral-950">
           {row.heading || "Category row"}
         </h2>
         <button
           type="button"
-          onClick={() => setRowEdit(row.id, "new")}
+          onClick={() => onEdit("new")}
           disabled={unused.length === 0}
-          title={
-            unused.length === 0
-              ? "Every product in this category is already in the row."
-              : undefined
-          }
+          title={unused.length === 0 ? "Every product in this category is already in the row." : undefined}
           className={adminButtonClass.primary}
         >
           <MaterialIcon name="add" className="text-[18px]" />
           Add product
         </button>
       </div>
-
-      {notice || savedSlug ? (
+      {notice && !selected ? (
         <p role="status" className="text-sm font-medium text-emerald-800">
-          {notice || "Saved"}. This row is up to date.
+          {notice}. This row is up to date.
         </p>
       ) : null}
-
       <div className="overflow-hidden rounded-2xl bg-[#f5f6f8] ring-1 ring-neutral-200/90">
         <div className="px-4 py-4 sm:px-5">
           <div className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 sm:px-5 sm:py-5">
@@ -203,45 +369,33 @@ function ShowcaseRowBlock({
                 { name: "href", label: "View all link" },
               ]}
               saveLabel="Save heading"
-              onSave={(next) =>
-                patch({ heading: next.heading ?? "", href: next.href ?? "" })
-              }
+              onSave={onSaveCopy}
             />
-            {row.slugs.length === 0 ? (
+            <p className="mt-3 text-sm text-neutral-500">
+              Shown on the home page, in this order. Hidden products stay off the home page.
+            </p>
+            {row.items.length === 0 ? (
               <div className="px-2 py-10 text-center">
-                <p className="text-sm font-semibold text-neutral-950">
-                  No products in this row yet
-                </p>
+                <p className="text-sm font-semibold text-neutral-950">No products in this row yet</p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-                  Add a product from this category so it appears in the row on
-                  the home page.
+                  Add a product from this category so it appears in the row on the home page.
                 </p>
               </div>
             ) : (
               <ul className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {row.slugs.map((slug) => {
-                  const product = bySlug.get(slug);
+                {row.items.map((item) => {
+                  const product = item.product ?? byId.get(item.productId);
                   return (
-                    <li key={slug}>
+                    <li key={item.id}>
                       <button
                         type="button"
-                        onClick={() => setRowEdit(row.id, slug)}
+                        onClick={() => onEdit(item.id)}
                         className={cn(
                           "flex h-full w-full flex-col overflow-hidden rounded-2xl bg-white text-left ring-1 ring-neutral-200",
-                          selected === slug && "ring-2 ring-primary",
+                          selected === item.id && "ring-2 ring-primary",
                         )}
                       >
-                        <span className="relative aspect-4/5 bg-neutral-100">
-                          {product ? (
-                            <Image
-                              src={product.imageSrc}
-                              alt=""
-                              fill
-                              sizes="(max-width: 1280px) 40vw, 20vw"
-                              className="object-cover"
-                            />
-                          ) : null}
-                        </span>
+                        <ProductThumb product={product} sizes="(max-width: 1280px) 40vw, 20vw" />
                         <span className="min-w-0 px-2.5 py-2.5">
                           <span className="block truncate text-sm font-semibold text-neutral-950">
                             {product?.title || "Product unavailable"}
@@ -249,6 +403,7 @@ function ShowcaseRowBlock({
                           {product ? (
                             <span className="mt-0.5 block text-xs text-neutral-500">
                               {formatTaka(product.price)}
+                              {product.published ? "" : " · Hidden"}
                             </span>
                           ) : null}
                         </span>
@@ -261,39 +416,36 @@ function ShowcaseRowBlock({
           </div>
         </div>
       </div>
-
-      {row.slugs.length > 0 ? (
+      {row.items.length > 0 ? (
         <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
           <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
             <h3 className="text-sm font-semibold text-neutral-950">
-              {row.slugs.length === 1
-                ? "1 product"
-                : `${row.slugs.length} products`}
+              {row.items.length === 1 ? "1 product" : `${row.items.length} products`}
             </h3>
           </div>
           <ol>
-            {row.slugs.map((slug, index) => {
-              const product = bySlug.get(slug);
+            {row.items.map((item, index) => {
+              const product = item.product ?? byId.get(item.productId);
               return (
                 <li
-                  key={slug}
+                  key={item.id}
                   onDragOver={(event) => {
                     event.preventDefault();
-                    setOverId(slug);
+                    setOverId(item.id);
                   }}
                   onDrop={(event) => {
                     event.preventDefault();
-                    dropOn(slug);
+                    const from = dragId;
+                    setDragId(null);
+                    setOverId(null);
+                    if (from) void onDrop(item.id, from);
                   }}
                   className={cn(
                     "border-t border-neutral-100 first:border-t-0",
-                    selected === slug && "bg-primary/5",
-                    savedSlug === slug && "bg-emerald-50",
-                    overId === slug &&
-                      dragId &&
-                      dragId !== slug &&
-                      "bg-primary/10",
-                    dragId === slug && "opacity-60",
+                    selected === item.id && "bg-primary/5",
+                    savedId === item.id && "bg-emerald-50",
+                    overId === item.id && dragId && dragId !== item.id && "bg-primary/10",
+                    dragId === item.id && "opacity-60",
                   )}
                 >
                   <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:px-4">
@@ -303,9 +455,9 @@ function ShowcaseRowBlock({
                         draggable
                         aria-label={`Reorder ${product?.title || "product"}`}
                         onDragStart={(event) => {
-                          event.dataTransfer.setData("text/plain", slug);
+                          event.dataTransfer.setData("text/plain", item.id);
                           event.dataTransfer.effectAllowed = "move";
-                          setDragId(slug);
+                          setDragId(item.id);
                         }}
                         onDragEnd={() => {
                           setDragId(null);
@@ -313,35 +465,23 @@ function ShowcaseRowBlock({
                         }}
                         className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
-                        <MaterialIcon
-                          name="drag_indicator"
-                          className="text-[18px]"
-                        />
+                        <MaterialIcon name="drag_indicator" className="text-[18px]" />
                       </button>
                       <button
-                        id={`showcase-${row.id}-${slug}`}
+                        id={`showcase-${row.key}-${item.id}`}
                         type="button"
-                        onClick={() => setRowEdit(row.id, slug)}
+                        onClick={() => onEdit(item.id)}
                         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
                         <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
                           {index + 1}
                         </span>
                         <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-                          {product ? (
-                            <Image
-                              src={product.imageSrc}
-                              alt=""
-                              fill
-                              sizes="48px"
-                              className="object-cover"
-                            />
+                          {product?.imageSrc ? (
+                            <Image src={featuredImage(product.imageSrc)} alt="" fill sizes="48px" className="object-cover" />
                           ) : (
                             <span className="grid size-full place-items-center text-neutral-400">
-                              <MaterialIcon
-                                name="image"
-                                className="text-[18px]"
-                              />
+                              <MaterialIcon name="image" className="text-[18px]" />
                             </span>
                           )}
                         </span>
@@ -351,57 +491,35 @@ function ShowcaseRowBlock({
                           </span>
                           <span className="block truncate text-xs text-neutral-500">
                             {product
-                              ? formatTaka(product.price)
+                              ? `${formatTaka(product.price)}${product.published ? "" : " · Hidden"}`
                               : "Not in this category"}
                           </span>
                         </span>
                       </button>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                      <IconButton
-                        label="Move earlier"
-                        icon="arrow_upward"
-                        disabled={index === 0}
-                        onClick={() => move(slug, -1)}
-                      />
+                      <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => void onMove(item.id, -1)} />
                       <IconButton
                         label="Move later"
                         icon="arrow_downward"
-                        disabled={index === row.slugs.length - 1}
-                        onClick={() => move(slug, 1)}
+                        disabled={index === row.items.length - 1}
+                        onClick={() => void onMove(item.id, 1)}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setRowEdit(row.id, slug)}
-                        className={adminButtonClass.quiet}
-                      >
+                      <button type="button" onClick={() => onEdit(item.id)} className={adminButtonClass.quiet}>
                         Edit
                       </button>
-                      {confirmId === slug ? (
+                      {confirmId === item.id ? (
                         <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                           Remove from the home page?
-                          <button
-                            type="button"
-                            onClick={() => remove(slug)}
-                            className="font-semibold underline"
-                          >
+                          <button type="button" onClick={() => void onRemove(item.id).then(() => setConfirmId(null))} className="font-semibold underline">
                             Yes
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmId(null)}
-                            className="font-semibold"
-                          >
+                          <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
                             No
                           </button>
                         </span>
                       ) : (
-                        <IconButton
-                          label="Remove product"
-                          icon="delete"
-                          danger
-                          onClick={() => setConfirmId(slug)}
-                        />
+                        <IconButton label="Remove product" icon="delete" danger onClick={() => setConfirmId(item.id)} />
                       )}
                     </div>
                   </div>
@@ -415,203 +533,46 @@ function ShowcaseRowBlock({
   );
 }
 
-function ShowcaseDrawer({
-  rows,
-  onSaved,
-}: {
-  rows: ShowcaseRow[];
-  onSaved: (rowId: string, slug: string) => void;
-}) {
-  const { setRowEdit } = useRowQuery();
-  const [snapshots, setSnapshots] = useState<
-    Record<string, { baseline: string | null; value: string | null }>
-  >({});
-  const report = useCallback(
-    (rowId: string, baseline: string | null, value: string | null) => {
-      setSnapshots((current) => {
-        const prev = current[rowId];
-        if (prev?.baseline === baseline && prev?.value === value)
-          return current;
-        return { ...current, [rowId]: { baseline, value } };
-      });
-    },
-    [],
-  );
-  const baseline = Object.fromEntries(
-    Object.entries(snapshots).map(([id, item]) => [id, item.baseline]),
-  );
-  const value = Object.fromEntries(
-    Object.entries(snapshots).map(([id, item]) => [id, item.value]),
-  );
-
-  function closeAll() {
-    for (const row of rows) setRowEdit(row.id, null);
-  }
-
-  return (
-    <FormCloseGuard baseline={baseline} value={value} onClose={closeAll}>
-      <AdminFormModal titleId="showcase-drawer-title" size="md">
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
-          <div className="min-w-0">
-            <h2
-              id="showcase-drawer-title"
-              className="text-lg font-semibold text-neutral-950"
-            >
-              {rows.length === 1 ? "Edit product" : "Edit products"}
-            </h2>
-            <p className="mt-1 text-sm text-neutral-500">
-              {rows.length === 1
-                ? `Choose the product for ${rows[0]?.heading || "this row"}.`
-                : "Choose a product for each open row."}
-            </p>
-          </div>
-          <button
-            type="button"
-            data-form-dismiss=""
-            aria-label="Close"
-            title="Close"
-            onClick={closeAll}
-            className="grid size-9 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <MaterialIcon name="close" className="text-[20px]" />
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4">
-          {rows.map((row, index) => (
-            <ShowcaseProductForm
-              key={row.id}
-              row={row}
-              autoFocus={index === 0}
-              onSaved={onSaved}
-              onState={report}
-            />
-          ))}
-        </div>
-      </AdminFormModal>
-    </FormCloseGuard>
-  );
-}
-
-function openedSlug(row: ShowcaseRow, selected: string | null) {
-  if (!selected) return null;
-  if (selected === "new") {
-    const taken = new Set(row.slugs);
-    return (
-      catalogChoices().find(
-        (item) => item.categoryId === row.id && !taken.has(item.slug),
-      )?.slug ?? null
-    );
-  }
-  return row.slugs.includes(selected) ? selected : null;
-}
-
 function ShowcaseProductForm({
   row,
+  selected,
+  draft,
   autoFocus,
-  onSaved,
-  onState,
+  saving,
+  error,
+  onDraft,
+  onSave,
+  onClose,
 }: {
   row: ShowcaseRow;
+  selected: string | null;
+  draft: string | null;
   autoFocus: boolean;
-  onSaved: (rowId: string, slug: string) => void;
-  onState: (
-    rowId: string,
-    baseline: string | null,
-    value: string | null,
-  ) => void;
+  saving: boolean;
+  error: string;
+  onDraft: (productId: string) => void;
+  onSave: () => void;
+  onClose: () => void;
 }) {
-  const rowId = row.id;
-  const params = useSearchParams();
-  const selected = params.get(`row-${rowId}`);
+  const productFieldId = useId();
   const creating = selected === "new";
-  const choices = catalogChoices().filter((item) => item.categoryId === rowId);
-  const bySlug = new Map(choices.map((item) => [item.slug, item]));
-  const baseline = openedSlug(row, selected);
-  const selectionKey = `${selected ?? ""}:${baseline ?? ""}`;
-  const [draft, setDraft] = useState<string | null>(baseline);
-  const [appliedKey, setAppliedKey] = useState(selectionKey);
-  const [productError, setProductError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const productId = useId();
-  const { setRowEdit } = useRowQuery();
-  const used = new Set(row.slugs);
-
-  if (appliedKey !== selectionKey) {
-    setAppliedKey(selectionKey);
-    setDraft(baseline);
-    setProductError("");
-  }
-
-  useEffect(() => {
-    onState(rowId, baseline, draft);
-  }, [onState, rowId, baseline, draft]);
-
-  function save() {
-    if (!draft || saving) return;
-    setSaving(true);
-    const doc = readHomeSections();
-    const current = doc.showcase.find((item) => item.id === rowId);
-    if (!current) {
-      setSaving(false);
-      return;
-    }
-    if (creating) {
-      if (current.slugs.includes(draft)) {
-        setSaving(false);
-        setProductError("That product is already in this row.");
-        return;
-      }
-      saveHomeSections({
-        ...doc,
-        showcase: doc.showcase.map((item) =>
-          item.id === rowId ? { ...item, slugs: [...item.slugs, draft] } : item,
-        ),
-      });
-    } else if (selected) {
-      if (draft !== selected && current.slugs.includes(draft)) {
-        setSaving(false);
-        setProductError("That product is already in this row.");
-        return;
-      }
-      saveHomeSections({
-        ...doc,
-        showcase: doc.showcase.map((item) =>
-          item.id === rowId
-            ? {
-                ...item,
-                slugs: item.slugs.map((entry) =>
-                  entry === selected ? draft : entry,
-                ),
-              }
-            : item,
-        ),
-      });
-    }
-    setSaving(false);
-    onSaved(rowId, draft);
-    setRowEdit(rowId, null);
-  }
-
-  const missing = Boolean(selected && selected !== "new" && baseline === null);
-  const product = draft ? bySlug.get(draft) : undefined;
+  const byId = new Map(row.choices.map((item) => [item.id, item]));
+  const used = new Set(row.items.map((item) => item.productId));
+  const kept = creating ? "" : (row.items.find((item) => item.id === selected)?.productId ?? "");
+  const product = draft ? byId.get(draft) : undefined;
+  const missing = Boolean(selected && selected !== "new" && draft === null);
   const heading = row.heading || "Category row";
 
   if (missing) {
     return (
       <p className="text-sm text-neutral-600">
         This product is no longer in {heading}.{" "}
-        <button
-          type="button"
-          data-form-dismiss=""
-          onClick={() => setRowEdit(rowId, null)}
-          className="font-medium text-primary"
-        >
+        <button type="button" data-form-dismiss="" onClick={onClose} className="font-medium text-primary">
           Close
         </button>
       </p>
     );
   }
-
   if (!draft) return null;
 
   return (
@@ -627,62 +588,35 @@ function ShowcaseProductForm({
       </div>
       {product ? <ProductPreview product={product} /> : null}
       <div>
-        <FieldLabel htmlFor={productId}>
+        <FieldLabel htmlFor={productFieldId}>
           Product <span className="text-red-700">*</span>
         </FieldLabel>
         <select
-          id={productId}
+          id={productFieldId}
           autoFocus={autoFocus}
           value={draft}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            setProductError("");
-          }}
-          aria-invalid={productError ? true : undefined}
-          aria-describedby={productError ? `${productId}-error` : undefined}
-          className={cn(adminFieldClass, productError && "border-red-400")}
+          onChange={(event) => onDraft(event.target.value)}
+          className={adminFieldClass}
         >
-          {choices.map((item) => (
-            <option
-              key={item.slug}
-              value={item.slug}
-              disabled={
-                used.has(item.slug) && item.slug !== (creating ? "" : selected)
-              }
-            >
+          {row.choices.map((item) => (
+            <option key={item.id} value={item.id} disabled={used.has(item.id) && item.id !== kept}>
               {item.title}
             </option>
           ))}
         </select>
-        {productError ? (
-          <div id={`${productId}-error`}>
-            <FieldError message={productError} />
-          </div>
-        ) : (
-          <p className="mt-1.5 text-xs text-neutral-500">
-            Only products from this category. Ones already in the row stay
-            unavailable.{" "}
-            {draft && getAdminProduct(draft)?.published === false
-              ? "This product is hidden, so it stays off the website until you publish it on the product page."
-              : "Visibility follows the product’s Live or Hidden status."}
-          </p>
-        )}
+        <p className="mt-1.5 text-xs text-neutral-500">
+          Only products from this category. Ones already in the row stay unavailable.{" "}
+          {product && !product.published
+            ? "This product is hidden, so it stays off the website until you publish it on the product page."
+            : "Visibility follows the product’s Live or Hidden status."}
+        </p>
+        {error ? <FieldError message={error} /> : null}
       </div>
       <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          data-form-dismiss=""
-          onClick={() => setRowEdit(rowId, null)}
-          className={adminButtonClass.secondary}
-        >
+        <button type="button" data-form-dismiss="" onClick={onClose} className={adminButtonClass.secondary}>
           Cancel
         </button>
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className={adminButtonClass.primary}
-        >
+        <button type="button" onClick={onSave} disabled={saving} className={adminButtonClass.primary}>
           {saving ? "Saving…" : creating ? "Save product" : "Save changes"}
         </button>
       </div>
@@ -690,43 +624,27 @@ function ShowcaseProductForm({
   );
 }
 
-function useRowQuery() {
-  const pathname = usePathname();
-  const router = useRouter();
-
-  function setRowEdit(rowId: string, slug: string | null) {
-    const next = new URLSearchParams(window.location.search);
-    const key = `row-${rowId}`;
-    if (slug) next.set(key, slug);
-    else next.delete(key);
-    const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, {
-      scroll: false,
-    });
-  }
-
-  return { setRowEdit };
+function ProductThumb({ product, sizes }: { product: FeaturedProduct | undefined; sizes: string }) {
+  return (
+    <span className="relative aspect-4/5 bg-neutral-100">
+      {product?.imageSrc ? (
+        <Image src={featuredImage(product.imageSrc)} alt="" fill sizes={sizes} className="object-cover" />
+      ) : null}
+    </span>
+  );
 }
 
-function ProductPreview({ product }: { product: CatalogChoice }) {
+function ProductPreview({ product }: { product: FeaturedProduct }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-[#f5f6f8] p-3">
       <span className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-white">
-        <Image
-          src={product.imageSrc}
-          alt=""
-          fill
-          sizes="64px"
-          className="object-cover"
-        />
+        {product.imageSrc ? (
+          <Image src={featuredImage(product.imageSrc)} alt="" fill sizes="64px" className="object-cover" />
+        ) : null}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-neutral-950">
-          {product.title}
-        </span>
-        <span className="mt-0.5 block text-xs text-neutral-500">
-          {formatTaka(product.price)}
-        </span>
+        <span className="block truncate text-sm font-semibold text-neutral-950">{product.title}</span>
+        <span className="mt-0.5 block text-xs text-neutral-500">{formatTaka(product.price)}</span>
       </span>
     </div>
   );

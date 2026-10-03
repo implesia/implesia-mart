@@ -1,24 +1,27 @@
-"use client";
-
-import { useAboutSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import type { AboutMissionCard } from "@/lib/mart-api/about-mission";
+import { missionIcon } from "@/lib/mart-api/about-mission";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function MissionVision({ className }: { className?: string }) {
-  const { mission } = useAboutSections();
-  const cards = [mission.vision, mission.mission].filter(isContentActive);
-  if (cards.length === 0) return null;
+export function MissionVision({
+  cards,
+  className,
+}: {
+  cards: AboutMissionCard[];
+  className?: string;
+}) {
+  const visible = cards.filter((card) => card.title.trim() && card.description.trim());
+  if (!visible.length) return null;
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-          {cards.map((card, index) => (
+          {visible.map((card, index) => (
             <div
-              key={card.title}
+              key={card.id}
               className={cn(
                 "rounded-2xl border p-5 sm:p-6",
                 index === 0
@@ -32,7 +35,7 @@ export function MissionVision({ className }: { className?: string }) {
                   index === 0 ? "bg-primary/10 text-primary" : "bg-white/10 text-primary",
                 )}
               >
-                <MaterialIcon name={card.icon} filled className="text-[22px]" />
+                <MaterialIcon name={missionIcon(card.icon)} filled className="text-[22px]" />
               </span>
               <h3
                 className={cn(
