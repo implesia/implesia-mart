@@ -8,14 +8,14 @@ import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
   blankSustainBadge,
   blankSustainText,
-  readSustainabilitySections,
-  saveSustainabilitySections,
-  type SustainBadge,
-  type SustainMedia,
-  type SustainQuality,
-  type SustainTextItem,
 } from "@/lib/mart-mock/sustainability-sections";
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+import {
+  getSustainabilityQuality,
+  saveSustainabilityQuality,
+  type SustainabilityQuality,
+  type SustainabilityQualityBadge,
+  type SustainabilityQualityStep,
+} from "@/lib/mart-api/sustainability-quality";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -38,12 +38,12 @@ import {
 type QualityDraft = {
   title: string;
   body: string;
-  image: SustainMedia;
-  steps: SustainTextItem[];
-  badges: SustainBadge[];
+  image: { src: string; alt: string };
+  steps: SustainabilityQualityStep[];
+  badges: SustainabilityQualityBadge[];
 };
 
-function draftFrom(quality: SustainQuality): QualityDraft {
+function draftFrom(quality: SustainabilityQuality): QualityDraft {
   return {
     title: quality.title,
     body: quality.body,
@@ -64,7 +64,8 @@ function uniqueId(id: string) {
 }
 
 export function SustainabilityQualityEditor() {
-  const { quality } = useSustainabilitySections();
+  const [quality, setQuality] = useState<SustainabilityQuality | null>(null);
+  const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
   const editing =
@@ -76,11 +77,32 @@ export function SustainabilityQualityEditor() {
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
   const empty =
-    !quality.title.trim() &&
-    !quality.body.trim() &&
-    !quality.image.src &&
-    quality.steps.length === 0 &&
-    quality.badges.length === 0;
+    !quality ||
+    (!quality.title.trim() &&
+      !quality.body.trim() &&
+      !quality.image.src &&
+      quality.steps.length === 0 &&
+      quality.badges.length === 0);
+
+  useEffect(() => {
+    let active = true;
+    getSustainabilityQuality()
+      .then((next) => {
+        if (active) setQuality(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not load the quality section.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editing || !returnFocus.current) return;
@@ -101,30 +123,42 @@ export function SustainabilityQualityEditor() {
     });
   }
 
-  function save(draft: QualityDraft) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      quality: {
-        title: draft.title.trim(),
-        body: draft.body.trim(),
-        image: { src: draft.image.src, alt: draft.image.alt.trim() },
-        steps: draft.steps.map((step) => ({
-          id: step.id,
-          text: step.text.trim(),
-          isActive: step.isActive !== false,
-        })),
-        badges: draft.badges.map((badge) => ({
-          id: badge.id,
-          icon: badge.icon || "check_circle",
-          label: badge.label.trim(),
-          isActive: badge.isActive !== false,
-        })),
-      },
+  async function save(draft: QualityDraft) {
+    const saved = await saveSustainabilityQuality({
+      title: draft.title.trim(),
+      body: draft.body.trim(),
+      image: { src: draft.image.src, alt: draft.image.alt.trim() },
+      steps: draft.steps.map((step) => ({
+        id: step.id,
+        text: step.text.trim(),
+        isActive: step.isActive !== false,
+      })),
+      badges: draft.badges.map((badge) => ({
+        id: badge.id,
+        icon: badge.icon || "check_circle",
+        label: badge.label.trim(),
+        isActive: badge.isActive !== false,
+      })),
     });
+    setQuality(saved);
     setNotice("Saved.");
     window.setTimeout(() => setNotice(""), 1600);
     setEditing(false);
+  }
+
+  if (!quality) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <SustainHeader
+          sectionId="quality"
+          title="Quality"
+          description="Check process and badges."
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the quality section…"}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -195,7 +229,7 @@ export function SustainabilityQualityEditor() {
   );
 }
 
-function QualityPreview({ quality }: { quality: SustainQuality }) {
+function QualityPreview({ quality }: { quality: SustainabilityQuality }) {
   return (
     <div className="flex items-start gap-4">
       <div className="relative aspect-4/5 w-24 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-neutral-200 sm:w-28">
@@ -288,9 +322,9 @@ function QualityFormModal({
   onClose,
   onSave,
 }: {
-  quality: SustainQuality;
+  quality: SustainabilityQuality;
   onClose: () => void;
-  onSave: (draft: QualityDraft) => void;
+  onSave: (draft: QualityDraft) => void | Promise<void>;
 }) {
   const initial = draftFrom(quality);
   const [draft, setDraft] = useState(initial);
@@ -303,7 +337,7 @@ function QualityFormModal({
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function save() {
+  async function save() {
     if (saving || uploading > 0) return;
     const nextTitleError = draft.title.trim() ? "" : "Title is required.";
     const nextPhotoError = draft.image.src ? "" : "Cover photo is required.";
@@ -317,11 +351,29 @@ function QualityFormModal({
     setPhotoError(nextPhotoError);
     setStepError(nextStepError);
     setBadgeError(nextBadgeError);
+    if (draft.steps.length > 12) {
+      setStepError("You can add up to 12 steps");
+      return;
+    }
+    if (draft.badges.length > 12) {
+      setBadgeError("You can add up to 12 badges");
+      return;
+    }
     if (nextTitleError || nextPhotoError || nextStepError || nextBadgeError) {
       return;
     }
     setSaving(true);
-    onSave(draft);
+    setPhotoError("");
+    try {
+      await onSave(draft);
+    } catch (caught) {
+      setSaving(false);
+      setPhotoError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not save the quality section.",
+      );
+    }
   }
 
   function moveSteps(index: number, direction: -1 | 1) {
@@ -507,7 +559,7 @@ function QualityFormModal({
                     ...current,
                     steps: [
                       ...current.steps,
-                      { ...item, id: uniqueId(item.id) },
+                      { id: uniqueId(item.id), text: "", isActive: true },
                     ],
                   }));
                   setStepError("");
@@ -632,7 +684,12 @@ function QualityFormModal({
                     ...current,
                     badges: [
                       ...current.badges,
-                      { ...item, id: uniqueId(item.id) },
+                      {
+                        id: uniqueId(item.id),
+                        icon: item.icon,
+                        label: "",
+                        isActive: true,
+                      },
                     ],
                   }));
                   setBadgeError("");

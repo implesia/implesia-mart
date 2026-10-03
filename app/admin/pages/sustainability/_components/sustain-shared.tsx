@@ -592,20 +592,21 @@ export function CardPanel({
     title: string;
     description: string;
     isActive: boolean;
-  }) => void;
+  }) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState(() => ({
     ...initial,
     isActive: initial.isActive !== false,
   }));
-  const baseline = useRef(draft);
+  const [baseline] = useState(draft);
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const titleField = useId();
   const descriptionId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const nextTitle = draft.title.trim();
     const nextDescription = draft.description.trim();
@@ -613,16 +614,24 @@ export function CardPanel({
     setDescriptionError(nextDescription ? "" : "Description is required.");
     if (!nextTitle || !nextDescription) return;
     setSaving(true);
-    onSave({
-      icon: draft.icon || "verified",
-      title: nextTitle,
-      description: nextDescription,
-      isActive: draft.isActive,
-    });
+    setError("");
+    try {
+      await onSave({
+        icon: draft.icon || "verified",
+        title: nextTitle,
+        description: nextDescription,
+        isActive: draft.isActive,
+      });
+    } catch (caught) {
+      setSaving(false);
+      setError(
+        caught instanceof Error ? caught.message : "Could not save the card.",
+      );
+    }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
       <div className="flex min-h-0 flex-1 flex-col">
         <DrawerHead
           title={
@@ -639,6 +648,7 @@ export function CardPanel({
           onClose={onClose}
         />
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          {error ? <FieldError message={error} /> : null}
           <ActiveStatusField
             checked={draft.isActive}
             onChange={(isActive) => setDraft({ ...draft, isActive })}

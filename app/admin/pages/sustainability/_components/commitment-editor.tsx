@@ -1,16 +1,19 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
-  blankSustainCard,
-  readSustainabilitySections,
-  saveSustainabilitySections,
-  type SustainCard,
-} from "@/lib/mart-mock/sustainability-sections";
-import { useSustainabilitySections } from "@/lib/mart-mock/hooks";
+  createSustainabilityCommitmentCard,
+  deleteSustainabilityCommitmentCard,
+  listSustainabilityCommitment,
+  reorderSustainabilityCommitment,
+  updateSustainabilityCommitmentCard,
+  updateSustainabilityCommitmentCopy,
+  type SustainabilityCommitment,
+  type SustainabilityCommitmentDraft,
+} from "@/lib/mart-api/sustainability-commitment";
 
 import { SectionCopyForm } from "../../../home/_components/section-copy-form";
 import {
@@ -28,14 +31,18 @@ import {
 } from "./sustain-shared";
 
 export function SustainabilityCommitmentEditor() {
-  const { commitment } = useSustainabilitySections();
+  const [commitment, setCommitment] = useState<SustainabilityCommitment | null>(
+    null,
+  );
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = useSustainNav();
   const selected = params.get("edit");
   const creating = selected === "new";
   const opened =
     selected && selected !== "new"
-      ? (commitment.items.find((item) => item.id === selected) ?? null)
+      ? (commitment?.items.find((item) => item.id === selected) ?? null)
       : null;
   const drawerOpen = creating || Boolean(opened);
   const [notice, setNotice] = useState("");
@@ -44,6 +51,26 @@ export function SustainabilityCommitmentEditor() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const focusRef = useFocusWhenClosed(drawerOpen);
+
+  useEffect(() => {
+    let active = true;
+    listSustainabilityCommitment()
+      .then((next) => {
+        if (active) setCommitment(next);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not load the commitment.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function setEdit(id: string | null) {
     replaceSearch(router, pathname, (next) => {
@@ -60,44 +87,36 @@ export function SustainabilityCommitmentEditor() {
     }, 1600);
   }
 
-  function saveCopy(next: Record<string, string>) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      commitment: {
-        ...doc.commitment,
-        kicker: next.kicker ?? "",
-        title: next.title ?? "",
-        subtitle: next.subtitle ?? "",
-      },
+  async function saveCopy(next: Record<string, string>) {
+    const saved = await updateSustainabilityCommitmentCopy({
+      kicker: next.kicker ?? "",
+      title: next.title ?? "",
+      subtitle: next.subtitle ?? "",
     });
+    setCommitment(saved);
   }
 
-  function saveItem(
-    draft: Pick<SustainCard, "icon" | "title" | "description" | "isActive">,
-  ) {
-    const doc = readSustainabilitySections();
+  async function saveItem(draft: SustainabilityCommitmentDraft) {
+    setActionError("");
     if (creating) {
-      const item = { ...blankSustainCard(), ...draft };
-      saveSustainabilitySections({
-        ...doc,
-        commitment: {
-          ...doc.commitment,
-          items: [...doc.commitment.items, item],
-        },
-      });
+      const item = await createSustainabilityCommitmentCard(draft);
+      setCommitment((current) =>
+        current ? { ...current, items: [...current.items, item] } : current,
+      );
       setSavedId(item.id);
       focusRef.current = `sustain-commit-${item.id}`;
     } else if (selected) {
-      saveSustainabilitySections({
-        ...doc,
-        commitment: {
-          ...doc.commitment,
-          items: doc.commitment.items.map((item) =>
-            item.id === selected ? { ...item, ...draft } : item,
-          ),
-        },
-      });
+      const item = await updateSustainabilityCommitmentCard(selected, draft);
+      setCommitment((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((entry) =>
+                entry.id === item.id ? item : entry,
+              ),
+            }
+          : current,
+      );
       setSavedId(selected);
       focusRef.current = `sustain-commit-${selected}`;
     }
@@ -105,57 +124,94 @@ export function SustainabilityCommitmentEditor() {
     setEdit(null);
   }
 
-  function remove(id: string) {
-    const doc = readSustainabilitySections();
-    saveSustainabilitySections({
-      ...doc,
-      commitment: {
-        ...doc.commitment,
-        items: doc.commitment.items.filter((item) => item.id !== id),
-      },
-    });
-    if (selected === id) setEdit(null);
-    setConfirmId(null);
-    flash("Removed");
+  async function remove(id: string) {
+    setActionError("");
+    try {
+      await deleteSustainabilityCommitmentCard(id);
+      setCommitment((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.filter((item) => item.id !== id),
+            }
+          : current,
+      );
+      if (selected === id) setEdit(null);
+      setConfirmId(null);
+      flash("Removed");
+    } catch (error) {
+      setConfirmId(null);
+      setActionError(
+        error instanceof Error ? error.message : "Could not remove the card.",
+      );
+    }
   }
 
-  function move(id: string, direction: -1 | 1) {
-    const doc = readSustainabilitySections();
-    const index = doc.commitment.items.findIndex((item) => item.id === id);
+  async function persistOrder(ids: string[]) {
+    const saved = await reorderSustainabilityCommitment(ids);
+    setCommitment(saved);
+  }
+
+  async function move(id: string, direction: -1 | 1) {
+    if (!commitment) return;
+    const index = commitment.items.findIndex((item) => item.id === id);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= doc.commitment.items.length)
-      return;
-    const next = [...doc.commitment.items];
+    if (index < 0 || target < 0 || target >= commitment.items.length) return;
+    const next = [...commitment.items];
     const [item] = next.splice(index, 1);
     if (!item) return;
     next.splice(target, 0, item);
-    saveSustainabilitySections({
-      ...doc,
-      commitment: { ...doc.commitment, items: next },
-    });
+    setActionError("");
+    try {
+      await persistOrder(next.map((entry) => entry.id));
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Could not reorder the cards.",
+      );
+    }
   }
 
-  function dropOn(targetId: string) {
-    if (!dragId || dragId === targetId) {
+  async function dropOn(targetId: string) {
+    if (!dragId || dragId === targetId || !commitment) {
       setDragId(null);
       setOverId(null);
       return;
     }
-    const doc = readSustainabilitySections();
-    const next = [...doc.commitment.items];
+    const next = [...commitment.items];
     const from = next.findIndex((item) => item.id === dragId);
     const to = next.findIndex((item) => item.id === targetId);
+    setDragId(null);
+    setOverId(null);
     if (from < 0 || to < 0) return;
     const [item] = next.splice(from, 1);
     if (!item) return;
     next.splice(to, 0, item);
-    saveSustainabilitySections({
-      ...doc,
-      commitment: { ...doc.commitment, items: next },
-    });
-    setDragId(null);
-    setOverId(null);
+    setActionError("");
+    try {
+      await persistOrder(next.map((entry) => entry.id));
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Could not reorder the cards.",
+      );
+    }
   }
+
+  if (!commitment) {
+    return (
+      <div className="min-w-0 space-y-4">
+        <SustainHeader
+          sectionId="commitment"
+          title="Commitment"
+          description="Four responsibility cards."
+        />
+        <p className="text-sm text-neutral-600">
+          {loadError || "Loading the commitment…"}
+        </p>
+      </div>
+    );
+  }
+
+  const visible = commitment.items.filter((item) => item.isActive !== false);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -166,6 +222,9 @@ export function SustainabilityCommitmentEditor() {
         extra={<AddButton onClick={() => setEdit("new")}>Add card</AddButton>}
       />
       <SavedLine notice={notice} open={drawerOpen} />
+      {actionError ? (
+        <p className="text-sm text-red-700">{actionError}</p>
+      ) : null}
       <MissingLine
         show={Boolean(selected && selected !== "new" && !opened)}
         onClose={() => setEdit(null)}
@@ -176,7 +235,8 @@ export function SustainabilityCommitmentEditor() {
             Storefront preview
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Shown on the sustainability page. Cards stay in this order.
+            Shown on the sustainability page. Hidden cards stay off this
+            preview.
           </p>
         </div>
         <div className="p-4 sm:p-5">
@@ -193,7 +253,7 @@ export function SustainabilityCommitmentEditor() {
               </p>
             </div>
             <ul className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              {commitment.items.map((item) => (
+              {visible.map((item) => (
                 <li key={item.id}>
                   <button
                     type="button"
@@ -291,7 +351,12 @@ export function SustainabilityCommitmentEditor() {
                     description: opened.description,
                     isActive: opened.isActive,
                   }
-                : { icon: "verified", title: "", description: "", isActive: true }
+                : {
+                    icon: "verified",
+                    title: "",
+                    description: "",
+                    isActive: true,
+                  }
             }
             notice={notice}
             onClose={() => setEdit(null)}
