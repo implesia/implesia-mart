@@ -356,7 +356,10 @@ function CategoriesForm({
             setDraft((current) =>
               current.items.length >= 12
                 ? current
-                : { ...current, items: [...current.items, blankFaqCategory()] },
+                : {
+                    ...current,
+                    items: [...current.items, { ...blankFaqCategory(), isActive: true }],
+                  },
             )
           }
           className={adminButtonClass.secondary}

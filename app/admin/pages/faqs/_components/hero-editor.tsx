@@ -356,7 +356,10 @@ function HeroForm({
               setDraft((current) =>
                 current.trending.length >= 12
                   ? current
-                  : { ...current, trending: [...current.trending, blankFaqTrending()] },
+                  : {
+                      ...current,
+                      trending: [...current.trending, { ...blankFaqTrending(), isActive: true }],
+                    },
               )
             }
             className={adminButtonClass.secondary}

@@ -492,7 +492,7 @@ function DurabilityFormModal({
                     ...current,
                     bullets: [
                       ...current.bullets,
-                      { ...item, id: uniqueId(item.id) },
+                      { ...item, id: uniqueId(item.id), isActive: true },
                     ],
                   }));
                   setBulletError("");
