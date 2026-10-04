@@ -282,6 +282,18 @@ export async function loginMart(email: string, password: string) {
   return { accessToken: body.access_token, refreshToken: body.refresh_token };
 }
 
+export async function logoutMart(refreshToken: string) {
+  try {
+    await fetch(`${MART_API_URL}/api/v1/auth/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  } catch {
+    // The browser session is cleared even when the API is unreachable.
+  }
+}
+
 export async function saveMartProduct(productId: string | undefined, draft: ProductDraft) {
   const { files, alts, mainIsFile } = await imageParts(draft);
   const fields = productFields(draft, mainIsFile);

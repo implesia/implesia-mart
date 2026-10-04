@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
+import { logoutMart } from "@/lib/mart-api/products";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
@@ -418,6 +419,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   function logout() {
+    const refreshToken = session?.refreshToken;
+    if (refreshToken) void logoutMart(refreshToken);
     clearSession();
     sessionCache = null;
     window.dispatchEvent(new Event(SESSION_EVENT));
