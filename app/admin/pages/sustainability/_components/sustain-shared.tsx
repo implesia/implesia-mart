@@ -346,16 +346,16 @@ export function TextPanel({
   active?: boolean;
   notice: string;
   onClose: () => void;
-  onSave: (text: string, isActive: boolean) => void;
+  onSave: (text: string, isActive: boolean) => void | Promise<void>;
 }) {
   const [text, setText] = useState(initial);
   const [isActive, setActive] = useState(active !== false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fieldId = useId();
-  const baseline = useRef({ text: initial, isActive: active !== false });
+  const [baseline] = useState({ text: initial, isActive: active !== false });
 
-  function save() {
+  async function save() {
     if (saving) return;
     const next = text.trim();
     if (!next) {
@@ -363,12 +363,22 @@ export function TextPanel({
       return;
     }
     setSaving(true);
-    onSave(next, isActive);
+    setError("");
+    try {
+      await onSave(next, isActive);
+    } catch (caught) {
+      setSaving(false);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : `Could not save this ${noun.toLowerCase()}.`,
+      );
+    }
   }
 
   return (
     <FormCloseGuard
-      baseline={baseline.current}
+      baseline={baseline}
       value={{ text, isActive }}
       onClose={onClose}
     >
@@ -736,18 +746,22 @@ export function BadgePanel({
   initial: { icon: string; label: string; isActive?: boolean };
   notice: string;
   onClose: () => void;
-  onSave: (draft: { icon: string; label: string; isActive: boolean }) => void;
+  onSave: (draft: {
+    icon: string;
+    label: string;
+    isActive: boolean;
+  }) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState(() => ({
     ...initial,
     isActive: initial.isActive !== false,
   }));
-  const baseline = useRef(draft);
+  const [baseline] = useState(draft);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fieldId = useId();
 
-  function save() {
+  async function save() {
     if (saving) return;
     const label = draft.label.trim();
     if (!label) {
@@ -755,15 +769,23 @@ export function BadgePanel({
       return;
     }
     setSaving(true);
-    onSave({
-      icon: draft.icon || "check_circle",
-      label,
-      isActive: draft.isActive,
-    });
+    setError("");
+    try {
+      await onSave({
+        icon: draft.icon || "check_circle",
+        label,
+        isActive: draft.isActive,
+      });
+    } catch (caught) {
+      setSaving(false);
+      setError(
+        caught instanceof Error ? caught.message : "Could not save the badge.",
+      );
+    }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
       <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
         <DrawerHead
           title={creating ? "Add badge" : "Edit badge"}
@@ -837,35 +859,47 @@ export function ImagePanel({
   publishable?: boolean;
   notice: string;
   onClose: () => void;
-  onSave: (draft: { src: string; alt: string; isActive?: boolean }) => void;
+  onSave: (draft: {
+    src: string;
+    alt: string;
+    isActive?: boolean;
+  }) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState(() => ({
     src: initial.src,
     alt: initial.alt,
     isActive: initial.isActive !== false,
   }));
-  const baseline = useRef(draft);
+  const [baseline] = useState(draft);
   const [imageError, setImageError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const altId = useId();
 
-  function save() {
+  async function save() {
     if (saving || uploading) return;
     if (!draft.src) {
       setImageError("Image is required.");
       return;
     }
     setSaving(true);
-    onSave({
-      src: draft.src,
-      alt: draft.alt.trim(),
-      ...(publishable ? { isActive: draft.isActive } : {}),
-    });
+    setImageError("");
+    try {
+      await onSave({
+        src: draft.src,
+        alt: draft.alt.trim(),
+        ...(publishable ? { isActive: draft.isActive } : {}),
+      });
+    } catch (caught) {
+      setSaving(false);
+      setImageError(
+        caught instanceof Error ? caught.message : "Could not save the photo.",
+      );
+    }
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
       <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-100 first:border-t-0">
         <DrawerHead
           title={creating ? "Add photo" : "Edit photo"}
