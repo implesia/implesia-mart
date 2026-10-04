@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { SiteLogo } from "@/app/(client)/_components/common/site-logo";
 import { Input } from "@/components/ui/input";
 import { MartApiError, loginMart } from "@/lib/mart-api/products";
-import { writeSession } from "@/lib/mart-mock/store";
+import {
+  clearPasswordChanged,
+  passwordChangeNotice,
+  writeSession,
+} from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
 import {
@@ -22,6 +26,10 @@ const HIGHLIGHTS = [
   { icon: "local_shipping", label: "Orders and delivery" },
   { icon: "edit_note", label: "Pages customers see" },
 ] as const;
+
+function emptySubscribe() {
+  return () => {};
+}
 
 function emailProblem(value: string) {
   const trimmed = value.trim();
@@ -45,6 +53,11 @@ export default function AdminLoginPage() {
     form?: string;
   }>({});
   const [pending, setPending] = useState(false);
+  const passwordUpdated = useSyncExternalStore(
+    emptySubscribe,
+    passwordChangeNotice,
+    () => false,
+  );
 
   function noteCapsLock(event: React.KeyboardEvent<HTMLInputElement>) {
     setCapsLock(event.getModifierState("CapsLock"));
@@ -61,6 +74,7 @@ export default function AdminLoginPage() {
     setPending(true);
     try {
       const tokens = await loginMart(email.trim(), password);
+      clearPasswordChanged();
       writeSession(email.trim(), tokens.accessToken, tokens.refreshToken);
       router.replace("/admin");
     } catch (error) {
@@ -132,6 +146,16 @@ export default function AdminLoginPage() {
           <p className="mt-2 text-sm leading-relaxed text-neutral-600">
             Sign in with your Implesia Mart admin account.
           </p>
+
+          {passwordUpdated ? (
+            <p
+              role="status"
+              className="mt-5 flex items-start gap-2 rounded-2xl bg-emerald-50 px-3.5 py-3 text-sm leading-relaxed text-emerald-900 ring-1 ring-emerald-100"
+            >
+              <MaterialIcon name="check_circle" className="mt-0.5 text-[18px]" />
+              <span>Password updated. Sign in with your new password.</span>
+            </p>
+          ) : null}
 
           {errors.form ? (
             <p

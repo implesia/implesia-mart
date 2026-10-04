@@ -10,9 +10,12 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   clearSession,
+  markPasswordChanged,
   readSession,
   type AdminSession,
 } from "@/lib/mart-mock/store";
+
+import { ChangePasswordDialog } from "./change-password-dialog";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -321,6 +324,7 @@ function AdminHeader({
   collapsed,
   onToggleSidebar,
   onOpenMenu,
+  onChangePassword,
   onLogout,
 }: {
   pathname: string;
@@ -328,6 +332,7 @@ function AdminHeader({
   collapsed: boolean;
   onToggleSidebar: () => void;
   onOpenMenu: () => void;
+  onChangePassword: () => void;
   onLogout: () => void;
 }) {
   const page = currentAdminPage(pathname);
@@ -371,6 +376,14 @@ function AdminHeader({
         </p>
         <button
           type="button"
+          onClick={onChangePassword}
+          className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+        >
+          <MaterialIcon name="key" className="text-[20px]" />
+          <span className="hidden sm:inline">Password</span>
+        </button>
+        <button
+          type="button"
           onClick={onLogout}
           className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
         >
@@ -401,6 +414,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     () => false,
   );
   const [menuOpen, setMenuOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const isLogin = pathname === "/admin/login";
   const wide = isWideAdminPath(pathname);
   const backHref = adminBackHref(pathname);
@@ -425,6 +439,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     sessionCache = null;
     window.dispatchEvent(new Event(SESSION_EVENT));
     setMenuOpen(false);
+    setPasswordOpen(false);
+    router.replace("/admin/login");
+  }
+
+  function finishPasswordChange() {
+    markPasswordChanged();
+    clearSession();
+    sessionCache = null;
+    window.dispatchEvent(new Event(SESSION_EVENT));
+    setMenuOpen(false);
+    setPasswordOpen(false);
     router.replace("/admin/login");
   }
 
@@ -483,6 +508,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           collapsed={collapsed}
           onToggleSidebar={toggleSidebar}
           onOpenMenu={() => setMenuOpen(true)}
+          onChangePassword={() => setPasswordOpen(true)}
           onLogout={logout}
         />
         <div
@@ -507,6 +533,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </div>
+      {passwordOpen ? (
+        <ChangePasswordDialog onClose={() => setPasswordOpen(false)} onChanged={finishPasswordChange} />
+      ) : null}
     </div>
   );
 }

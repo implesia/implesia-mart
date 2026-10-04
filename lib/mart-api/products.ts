@@ -282,6 +282,48 @@ export async function loginMart(email: string, password: string) {
   return { accessToken: body.access_token, refreshToken: body.refresh_token };
 }
 
+export async function changeMartPassword(currentPassword: string, newPassword: string) {
+  async function send(token: string | undefined) {
+    const headers = new Headers({ "Content-Type": "application/json" });
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    return fetch(`${MART_API_URL}/api/v1/auth/change-password`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+  }
+
+  let response: Response;
+  try {
+    response = await send(readSession()?.accessToken);
+  } catch {
+    throw new MartApiError("Could not reach the API.");
+  }
+
+  // A wrong current password is also 401. Refreshing here would sign the user out.
+  if (response.status === 401) {
+    const message = await readError(response.clone(), "Current password is incorrect.");
+    if (message !== "Could not validate credentials") throw new MartApiError(message);
+    const refreshed = await refreshOnce();
+    if (!refreshed) {
+      clearSession();
+      throw new MartApiError("Sign in again to change your password.");
+    }
+    try {
+      response = await send(readSession()?.accessToken);
+    } catch {
+      throw new MartApiError("Could not reach the API.");
+    }
+  }
+
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "The password could not be changed."));
+  }
+}
+
 export async function logoutMart(refreshToken: string) {
   try {
     await fetch(`${MART_API_URL}/api/v1/auth/logout`, {

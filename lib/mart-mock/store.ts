@@ -569,3 +569,20 @@ export function clearSession() {
   window.sessionStorage.removeItem(SESSION_KEY);
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
+
+const PASSWORD_CHANGED_KEY = "implesia.admin.password-changed";
+
+export function markPasswordChanged() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(PASSWORD_CHANGED_KEY, "1");
+}
+
+export function passwordChangeNotice() {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(PASSWORD_CHANGED_KEY) === "1";
+}
+
+export function clearPasswordChanged() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(PASSWORD_CHANGED_KEY);
+}
