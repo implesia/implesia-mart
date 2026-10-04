@@ -9,23 +9,30 @@ import { cn } from "@/lib/utils";
 import { FieldLabel } from "./admin-ui";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif";
+const MAX_BYTES = 5 * 1024 * 1024;
+const TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+]);
 
+function releasePreview(src: string) {
+  if (src.startsWith("blob:")) URL.revokeObjectURL(src);
+}
+
+/** Keeps the file in the browser until Save sends it to the API.
+ *  The live site is a Cloudflare Worker and has no disk for this preview.
+ */
 export async function uploadImage(file: File): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Drop an image file.");
-  const body = new FormData();
-  body.set("file", file);
-  let data: { src?: string; error?: string };
-  let ok = false;
-  try {
-    const response = await fetch("/api/admin/upload", { method: "POST", body });
-    ok = response.ok;
-    data = (await response.json()) as { src?: string; error?: string };
-  } catch {
-    throw new Error("Upload failed. Try again.");
+  if (!TYPES.has(file.type)) {
+    throw new Error("Use a JPG, PNG, WEBP, GIF, or AVIF image.");
   }
-  if (!ok || !data.src)
-    throw new Error(data.error || "Upload failed. Try again.");
-  return data.src;
+  if (file.size > MAX_BYTES) {
+    throw new Error("Image must be 5 MB or smaller.");
+  }
+  return URL.createObjectURL(file);
 }
 
 export function MultiImageUpload({
@@ -180,7 +187,9 @@ export function ImageField({
     setUploading(true);
     onBusy?.(true);
     try {
-      onChange(await uploadImage(file));
+      const src = await uploadImage(file);
+      releasePreview(value);
+      onChange(src);
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -242,6 +251,7 @@ export function ImageField({
               src={value}
               alt=""
               fill
+              unoptimized={value.startsWith("blob:") || value.startsWith("data:")}
               sizes={thumb ? "64px" : "640px"}
               className={thumb ? "object-cover" : "object-contain p-3"}
             />
@@ -300,6 +310,7 @@ export function ImageField({
                 <button
                   type="button"
                   onClick={() => {
+                    releasePreview(value);
                     onChange("");
                     setConfirmingRemove(false);
                   }}
@@ -323,6 +334,7 @@ export function ImageField({
                     setConfirmingRemove(true);
                     return;
                   }
+                  releasePreview(value);
                   onChange("");
                 }}
                 className="h-9 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
