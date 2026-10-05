@@ -4,13 +4,16 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { getShippingBlock, type ShippingBlock } from "@/lib/mart-api/shipping-block";
 import {
   getShippingContents,
   saveShippingContents,
   type ShippingContents,
 } from "@/lib/mart-api/shipping-contents";
-import { useShippingSections } from "@/lib/mart-mock/hooks";
-import { isContentActive } from "@/lib/mart-mock/visibility";
+import { getShippingPayment, type ShippingPayment } from "@/lib/mart-api/shipping-payment";
+import { getShippingRefund, type ShippingRefund } from "@/lib/mart-api/shipping-refund";
+import { getShippingReturns, type ShippingReturns } from "@/lib/mart-api/shipping-returns";
+import { getShippingSupport, type ShippingSupport } from "@/lib/mart-api/shipping-support";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -32,6 +35,59 @@ type Draft = {
   navLabel: string;
 };
 
+type PreviewLink = { id: string; icon: string; label: string };
+
+async function optional<T>(task: Promise<T>): Promise<T | null> {
+  try {
+    return await task;
+  } catch {
+    return null;
+  }
+}
+
+function shippingPreviewLinks(
+  shipping: ShippingBlock | null,
+  payment: ShippingPayment | null,
+  returns: ShippingReturns | null,
+  refund: ShippingRefund | null,
+  support: ShippingSupport | null,
+): PreviewLink[] {
+  return [
+    {
+      id: "shipping",
+      label: shipping?.navLabel.trim() || shipping?.heading.trim() || "",
+      icon: shipping?.icon || "local_shipping",
+      active: Boolean(shipping?.isActive && shipping.heading.trim()),
+    },
+    {
+      id: "payment",
+      label: payment?.navLabel.trim() || payment?.heading.trim() || "",
+      icon: payment?.icon || "payments",
+      active: Boolean(payment?.isActive && payment.heading.trim()),
+    },
+    {
+      id: "returns",
+      label: returns?.navLabel.trim() || returns?.heading.trim() || "",
+      icon: returns?.icon || "assignment_return",
+      active: Boolean(returns?.isActive && returns.heading.trim()),
+    },
+    {
+      id: "refund",
+      label: refund?.navLabel.trim() || refund?.heading.trim() || "",
+      icon: refund?.icon || "receipt_long",
+      active: Boolean(refund?.isActive && refund.heading.trim()),
+    },
+    {
+      id: "support",
+      label: support?.navLabel.trim() || support?.title.trim() || "",
+      icon: support?.icon || "support_agent",
+      active: Boolean(support?.isActive && support.title.trim()),
+    },
+  ]
+    .filter((item) => item.active)
+    .map(({ id, icon, label }) => ({ id, icon, label }));
+}
+
 function draftFrom(contents: ShippingContents): Draft {
   return {
     isActive: contents.isActive !== false,
@@ -43,37 +99,32 @@ function draftFrom(contents: ShippingContents): Draft {
 
 export function ShippingContentsEditor() {
   const [contents, setContents] = useState<ShippingContents | null>(null);
+  const [links, setLinks] = useState<PreviewLink[]>([]);
   const [loadError, setLoadError] = useState("");
-  const sections = useShippingSections();
   const params = useSearchParams();
   const { pathname, router } = useShippingNav();
   const editing = params.get("edit") === "contents";
   const [notice, setNotice] = useState("");
   const { focusEdit, markReturn } = useReturnFocus(editing);
-  const links = [
-    sections.shipping,
-    sections.payment,
-    sections.returns,
-    sections.refund,
-    sections.support,
-  ]
-    .filter(isContentActive)
-    .map((item, index) => ({
-      id: `${item.navLabel}-${index}`,
-      icon: item.icon,
-      label: item.navLabel || ("heading" in item ? item.heading : item.title),
-    }));
 
   useEffect(() => {
     let active = true;
-    getShippingContents()
-      .then((next) => {
-        if (active) setContents(next);
+    Promise.all([
+      getShippingContents(),
+      optional(getShippingBlock()),
+      optional(getShippingPayment()),
+      optional(getShippingReturns()),
+      optional(getShippingRefund()),
+      optional(getShippingSupport()),
+    ])
+      .then(([next, shipping, payment, returns, refund, support]) => {
+        if (!active) return;
+        setContents(next);
+        setLinks(shippingPreviewLinks(shipping, payment, returns, refund, support));
       })
       .catch((error: unknown) => {
-        if (active) {
-          setLoadError(error instanceof Error ? error.message : "Could not load the contents.");
-        }
+        if (!active) return;
+        setLoadError(error instanceof Error ? error.message : "Could not load the contents.");
       });
     return () => {
       active = false;

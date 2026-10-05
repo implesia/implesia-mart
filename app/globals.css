@@ -268,7 +268,7 @@ body:has(.force-light) {
 }
 
 .material-symbols-outlined {
-  font-family: "Material Symbols Outlined";
+  font-family: var(--font-material-symbols), sans-serif;
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -357,7 +357,6 @@ details > summary {
 }
 
 :root {
-  --font-inter: "Inter";
   --background: #f7faf7;
   --foreground: #191c1b;
   --card: #ffffff;
@@ -521,42 +520,6 @@ details > summary {
 .hero-slide-active-zoom {
   transform: scale(1);
   transition: transform 6500ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.swiper-slide-active .hero-slide-active-zoom {
-  transform: scale(1.08);
-}
-
-/* Keep fade slides filling the aspect-ratio stage (prevents 0-height / overflow on mobile) */
-.hero-swiper-stage {
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.hero-swiper,
-.hero-swiper .swiper-wrapper,
-.hero-swiper .swiper-slide {
-  height: 100%;
-  width: 100%;
-}
-
-.banner-swiper .swiper-wrapper,
-.banner-swiper .swiper-slide {
-  height: 100%;
-}
-
-/*
-  Before Swiper JS adds `.swiper-initialized`, slides stack in normal flow and
-  `fill` images expand to intrinsic size (looks like fullscreen flash on reload).
-  Hide siblings until init; first slide stays as a stable placeholder.
-*/
-.swiper:not(.swiper-initialized) {
-  overflow: hidden;
-  max-width: 100%;
-}
-
-.swiper:not(.swiper-initialized) .swiper-slide:not(:first-child) {
-  display: none !important;
 }
 
 /* Constrain fill images if a parent briefly has no height */

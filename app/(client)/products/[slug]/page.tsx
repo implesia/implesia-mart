@@ -17,9 +17,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getStoreProduct(slug);
 
-  if (!product) {
-    return { title: "প্রোডাক্ট পাওয়া যায়নি", robots: { index: false, follow: false } };
-  }
+  if (!product) notFound();
 
   const url = `/products/${product.slug}`;
   const keywords = [product.title, product.subtitle, product.tagline].filter(

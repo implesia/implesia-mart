@@ -7,16 +7,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { catalogProductId } from "@/lib/mart-api/catalog";
-import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
+import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import type { Product, ProductBadge } from "../../_data/products/products";
-import { categoryLabels } from "../../_data/products/products";
+import {
+  categoryLabels,
+  type Product,
+  type ProductBadge,
+} from "../../_data/products/catalog-meta";
 import { useCart } from "../../_providers/cart-provider";
 
 type ProductCardProps = {
   product: Product;
+  priority?: boolean;
 };
 
 function formatPrice(value: number) {
@@ -29,24 +32,33 @@ const BADGE_LABEL: Record<ProductBadge, string> = {
   Limited: "লিমিটেড",
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, priority = false }: ProductCardProps) {
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
-  const overlay = useCatalogStockStatus(product.slug, product.status);
-  const stockStatus = catalogProductId(product.id) ? product.status : overlay;
-  const isComingSoon = stockStatus === "coming-soon";
-  const isSoldOut = stockStatus === "sold-out";
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [imageBroken, setImageBroken] = useState(false);
+  const productId = isCatalogProductId(product.id) ? product.id : undefined;
+  const isComingSoon = product.status === "coming-soon";
+  const isSoldOut = product.status === "sold-out";
   const isFashion = product.categoryId === "fashion";
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (pending || !productId) return;
+    setPending(true);
+    setFailed(false);
     void (async () => {
       const ok = await addItem(product.slug, 1, {
         openDrawer: true,
-        productId: catalogProductId(product.id),
+        productId,
       });
-      if (!ok) return;
+      setPending(false);
+      if (!ok) {
+        setFailed(true);
+        return;
+      }
       setJustAdded(true);
       window.setTimeout(() => setJustAdded(false), 1400);
     })();
@@ -55,7 +67,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
       ? Math.round(
-          ((product.compareAtPrice - product.price) / product.compareAtPrice) * 100,
+          ((product.compareAtPrice - product.price) / product.compareAtPrice) *
+            100,
         )
       : null;
 
@@ -82,16 +95,21 @@ export function ProductCard({ product }: ProductCardProps) {
         />
         <div className="absolute inset-0 bg-surface-container-low dark:bg-background/50" />
 
-        <Image
-          src={product.imageSrc}
-          alt={product.imageAlt}
-          fill
-          className={cn(
-            "relative z-[1] object-contain p-2 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02] sm:p-3 md:p-3.5",
-            (isComingSoon || isSoldOut) && "opacity-55 grayscale-[40%]",
-          )}
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-        />
+        {product.imageSrc && !imageBroken ? (
+          <Image
+            src={product.imageSrc}
+            alt={product.imageAlt || product.title}
+            fill
+            priority={priority}
+            onError={() => setImageBroken(true)}
+            className={cn(
+              "relative z-[1] object-contain p-2 motion-reduce:transition-none motion-reduce:group-hover:transform-none sm:p-3 md:p-3.5",
+              "transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02]",
+              (isComingSoon || isSoldOut) && "opacity-55 grayscale-[40%]",
+            )}
+            sizes="(max-width: 359px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+          />
+        ) : null}
 
         <div className="absolute top-2 left-2 z-10 flex max-w-[calc(100%-2.75rem)] flex-wrap gap-1 sm:top-2.5 sm:left-2.5 sm:gap-1.5">
           {isComingSoon ? (
@@ -117,15 +135,18 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {discountPct && !isComingSoon && !isSoldOut ? (
-          <span className="absolute top-2 right-2 z-10 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm sm:top-2.5 sm:right-2.5 sm:px-2 sm:py-1 sm:text-[10px]">
-            -{discountPct}%
+          <span className="absolute top-2 right-2 z-10 rounded-full bg-error px-1.5 py-0.5 text-[10px] font-bold text-on-error shadow-sm sm:top-2.5 sm:right-2.5 sm:px-2 sm:py-1 sm:text-xs">
+            <span className="sr-only">ছাড় </span>-{discountPct}%
           </span>
         ) : null}
 
         {/* Desktop hover cue only — touch devices use the card CTA */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 hidden bg-linear-to-t from-black/40 via-black/8 to-transparent px-3 pb-3 pt-8 opacity-0 transition-opacity duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-100 md:block">
           <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-on-surface shadow-sm dark:bg-surface-container/95">
-            <MaterialIcon name="visibility" className="text-[14px] text-primary" />
+            <MaterialIcon
+              name="visibility"
+              className="text-[14px] text-primary"
+            />
             বিস্তারিত দেখুন
           </span>
         </div>
@@ -165,11 +186,13 @@ export function ProductCard({ product }: ProductCardProps) {
                 {product.unitLabel}
               </span>
             ) : null}
-            <span className="text-base font-bold tabular-nums text-primary sm:text-lg md:text-xl">
+            <span className="text-base font-bold tabular-nums text-primary-ink sm:text-lg md:text-xl">
+              <span className="sr-only">বর্তমান দাম </span>
               {formatPrice(product.price)}
             </span>
             {product.compareAtPrice && !isComingSoon ? (
               <span className="text-[11px] tabular-nums text-on-surface-variant line-through sm:text-xs">
+                <span className="sr-only">আগের দাম </span>
                 {formatPrice(product.compareAtPrice)}
               </span>
             ) : null}
@@ -179,7 +202,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <Link
               href={`/products/${product.slug}`}
               className={cn(
-                "inline-flex h-9 w-full items-center justify-center gap-1 rounded-lg text-xs font-semibold sm:h-10 sm:gap-1.5 sm:rounded-xl sm:text-sm",
+                "inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg text-xs font-semibold sm:gap-1.5 sm:rounded-xl sm:text-sm",
                 "border border-outline-variant/40 text-primary",
                 "transition-colors hover:border-primary/40 hover:bg-primary/5",
                 "dark:border-white/12",
@@ -187,23 +210,33 @@ export function ProductCard({ product }: ProductCardProps) {
             >
               <span className="sm:hidden">বিস্তারিত</span>
               <span className="hidden sm:inline">বিস্তারিত দেখুন</span>
-              <MaterialIcon name="arrow_forward" className="text-[14px] sm:text-[16px]" />
+              <MaterialIcon
+                name="arrow_forward"
+                className="text-[14px] sm:text-[16px]"
+              />
             </Link>
           ) : isSoldOut ? (
             <Button
               type="button"
               disabled
-              className="h-9 w-full rounded-lg text-xs font-semibold sm:h-10 sm:rounded-xl sm:text-sm"
+              className="h-11 w-full rounded-lg text-xs font-semibold sm:rounded-xl sm:text-sm"
             >
-              শেষ
+              স্টক শেষ
             </Button>
           ) : (
             <Button
               type="button"
               onClick={handleAddToCart}
+              disabled={pending || !productId}
+              aria-busy={pending}
+              aria-label={
+                pending
+                  ? `${product.title} যোগ হচ্ছে`
+                  : `${product.title} কার্টে যোগ করুন`
+              }
               className={cn(
-                "h-9 w-full rounded-lg text-xs font-semibold shadow-sm sm:h-10 sm:rounded-xl sm:text-sm",
-                "transition-transform duration-200 ease-out active:scale-[0.99]",
+                "h-11 w-full rounded-lg text-xs font-semibold shadow-sm sm:rounded-xl sm:text-sm",
+                "motion-reduce:transition-none transition-transform duration-200 ease-out active:scale-[0.99]",
                 justAdded && "bg-primary/90",
               )}
             >
@@ -211,12 +244,26 @@ export function ProductCard({ product }: ProductCardProps) {
                 name={justAdded ? "check_circle" : "add_shopping_cart"}
                 className="mr-1 text-[16px] sm:mr-1.5 sm:text-[18px]"
               />
-              <span className="sm:hidden">{justAdded ? "যোগ" : "কার্টে"}</span>
+              <span className="sm:hidden">
+                {pending ? "যোগ…" : justAdded ? "যোগ" : "কার্টে"}
+              </span>
               <span className="hidden sm:inline">
-                {justAdded ? "যোগ হয়েছে" : "কার্টে যোগ করুন"}
+                {pending
+                  ? "যোগ হচ্ছে…"
+                  : justAdded
+                    ? "যোগ হয়েছে"
+                    : "কার্টে যোগ করুন"}
               </span>
             </Button>
           )}
+          {failed ? (
+            <p
+              role="alert"
+              className="text-[11px] leading-snug text-error sm:text-xs"
+            >
+              কার্টে যোগ করা যায়নি। আবার চেষ্টা করুন।
+            </p>
+          ) : null}
         </div>
       </div>
     </article>

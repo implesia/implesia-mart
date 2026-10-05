@@ -1,7 +1,7 @@
 "use client";
 
 import { ProductCard } from "./product-card";
-import type { Product } from "../../_data/products/products";
+import type { Product } from "../../_data/products/catalog-meta";
 
 type ProductsGridProps = {
   products: Product[];
@@ -9,9 +9,9 @@ type ProductsGridProps = {
 
 export function ProductsGrid({ products }: ProductsGridProps) {
   return (
-    <div className="grid w-full grid-cols-2 gap-2 min-[400px]:gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-      {products.map((p) => (
-        <ProductCard key={p.id} product={p} />
+    <div className="grid w-full min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+      {products.map((product, index) => (
+        <ProductCard key={product.id} product={product} priority={index === 0} />
       ))}
     </div>
   );

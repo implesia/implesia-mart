@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
 import {
@@ -17,6 +18,17 @@ const inter = Inter({
   weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
   variable: "--font-inter",
+  adjustFontFallback: true,
+  preload: true,
+});
+
+const materialSymbols = localFont({
+  src: "./fonts/material-symbols-outlined.woff2",
+  variable: "--font-material-symbols",
+  display: "swap",
+  weight: "400",
+  adjustFontFallback: false,
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -78,20 +90,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="bn" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang="bn"
+      className={`${inter.variable} ${materialSymbols.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var k='implesia.theme';var t=localStorage.getItem(k)||'system';var s=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var r=(t==='system'?s:t);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.style.colorScheme=r;}catch(e){}})();`,
           }}
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Material Symbols is an icon font, not a text face next/font can subset. */}
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
         />
       </head>
       <body className="flex min-h-full flex-col font-sans">

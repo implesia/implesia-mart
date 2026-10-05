@@ -1,3 +1,4 @@
+import { publicRequestInit } from "@/lib/mart-api/public-request";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
 import {
@@ -78,13 +79,11 @@ export async function authorizedFetch(path: string, init?: RequestInit) {
   return response;
 }
 
-/** Public storefront calls stay anonymous. An admin session is not attached. */
+export { publicRequestInit } from "@/lib/mart-api/public-request";
+
 export async function publicFetch(path: string, init?: RequestInit) {
-  const headers = new Headers(init?.headers);
-  headers.delete("Authorization");
-  if (!headers.has("Accept")) headers.set("Accept", "application/json");
   try {
-    return await fetch(`${MART_API_URL}${path}`, { ...init, headers, cache: "no-store" });
+    return await fetch(`${MART_API_URL}${path}`, publicRequestInit(init));
   } catch {
     throw new MartApiError("Could not reach the API.");
   }
@@ -278,10 +277,19 @@ export async function changeMartPassword(currentPassword: string, newPassword: s
 }
 
 export async function logoutMart() {
+  let response: Response;
   try {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    response = await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    });
   } catch {
-    /* The browser profile is cleared even when the API is unreachable. */
+    throw new MartApiError("Could not reach the API. You are still signed in.");
+  }
+  if (!response.ok) {
+    throw new MartApiError(
+      await readError(response, "Sign out did not finish. You are still signed in."),
+    );
   }
   clearSession();
 }

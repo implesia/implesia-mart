@@ -1,5 +1,8 @@
 "use client";
 
+import "swiper/css";
+import "swiper/css/navigation";
+import "../../_components/carousels/swiper-storefront.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";

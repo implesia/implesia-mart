@@ -5,7 +5,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { contactChannel, type ContactDetails } from "@/lib/mart-api/contact-details";
 import { cn } from "@/lib/utils";
-import { productsHref } from "../../_data/products/products";
+import { productsHref } from "../../_data/products/catalog-meta";
 import { FacebookIcon, LinkedinIcon, WhatsAppIcon } from "./brand-icons";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";

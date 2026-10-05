@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
-import { formatCartMoney } from "../../_lib/cart";
+import { formatCartMoney } from "../../_lib/cart-shared";
 import { rememberOrder } from "../../_lib/saved-orders";
 
 import { useCheckoutForm } from "./checkout-form-context";

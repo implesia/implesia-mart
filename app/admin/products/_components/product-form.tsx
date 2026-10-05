@@ -123,7 +123,7 @@ function toForm(product?: AdminProduct): FormState {
       badge: "",
       imageSrc: "",
       featured: false,
-      published: true,
+      published: false,
       content: emptyProductContent(),
     };
   }
@@ -412,7 +412,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         description={
           product
             ? form.title.trim() || product.title
-            : "Add product information, pricing, inventory, media, and storefront details."
+            : "Add product information, pricing, inventory, and media. It stays hidden until you publish it."
         }
       />
       {saveError ? (
@@ -944,8 +944,8 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 label="Published"
                 hint={
                   form.published
-                    ? "Marked Live in the product list."
-                    : "Marked Hidden in the product list."
+                    ? "Customers can see this product."
+                    : "Hidden from the store until you publish it."
                 }
                 checked={form.published}
                 onChange={(checked) => setField("published", checked)}

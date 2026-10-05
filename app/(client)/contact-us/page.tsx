@@ -17,6 +17,8 @@ import { ContactForm } from "./_components/contact-form";
 import { ContactHero } from "./_components/contact-hero";
 import { ContactSupport } from "./_components/contact-support";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "যোগাযোগ",
   description:

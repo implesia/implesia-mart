@@ -12,6 +12,8 @@ import { bengaliDateToIso } from "@/lib/seo";
 
 import { BlogArticle } from "../_components/blog-article";
 
+export const revalidate = 60;
+
 export async function generateMetadata({
   params,
 }: {

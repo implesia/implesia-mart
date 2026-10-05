@@ -9,7 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { catalogProductId } from "@/lib/mart-api/catalog";
-import { useCatalogStockStatus } from "@/lib/mart-mock/hooks";
+import { directCheckoutHref } from "@/lib/mart-api/product-page";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
@@ -38,27 +38,34 @@ const TRUST_BADGES = [
 
 export function ProductInfo({ product }: { product: ProductDetail }) {
   const router = useRouter();
-  const { quantity, inCart, atMin, atMax, decrease, increase, addItem, openCart, selected } =
-    usePurchaseQuantity(product.slug);
+  const {
+    quantity,
+    inCart,
+    atMin,
+    atMax,
+    decrease,
+    increase,
+    addItem,
+    openCart,
+    selected,
+  } = usePurchaseQuantity(product.slug);
   const groups = product.purchaseOptions ?? [];
-  const [choices, setChoices] = useState<Record<string, string>>({});
+  const [choices, setChoices] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      defaultPicks(groups).map((pick) => [pick.groupId, pick.valueId]),
+    ),
+  );
   const [justAdded, setJustAdded] = useState(false);
-  const overlay = useCatalogStockStatus(product.slug, product.status);
-  const stockStatus = catalogProductId(product.id) ? product.status : overlay;
-  const isComingSoon = stockStatus === "coming-soon";
-  const isSoldOut = stockStatus === "sold-out";
-
-  const optionKey = groups.map((group) => `${group.id}:${group.values.map((value) => value.id).join(",")}`).join("|");
+  const [pending, setPending] = useState<"cart" | "buy" | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const isComingSoon = product.status === "coming-soon";
+  const isSoldOut = product.status === "sold-out";
+  const canBuy = !isComingSoon && !isSoldOut;
 
   useEffect(() => {
     setBuyQuantity(1);
-    const nextGroups = product.purchaseOptions ?? [];
-    const next = Object.fromEntries(defaultPicks(nextGroups).map((pick) => [pick.groupId, pick.valueId]));
-    setChoices(next);
-    setActivePicks(picksFromChoices(nextGroups, next));
-    // optionKey already captures the group and value ids for this product.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.slug, optionKey]);
+    setActivePicks(defaultPicks(product.purchaseOptions ?? []));
+  }, [product.slug, product.purchaseOptions]);
 
   function choose(groupId: string, valueId: string) {
     setChoices((current) => {
@@ -69,43 +76,60 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
   }
 
   function handleAddToCart() {
+    if (pending || !canBuy) return;
     void (async () => {
+      setActionError(null);
       if (inCart) {
         openCart();
         setJustAdded(true);
         window.setTimeout(() => setJustAdded(false), 1600);
         return;
       }
+      setPending("cart");
       const ok = await addItem(product.slug, selected(), {
         openDrawer: true,
         productId: catalogProductId(product.id),
         selection: activePicks(),
       });
-      if (!ok) return;
+      setPending(null);
+      if (!ok) {
+        setActionError("কার্টে যোগ করা যায়নি। আবার চেষ্টা করুন।");
+        return;
+      }
       setJustAdded(true);
       window.setTimeout(() => setJustAdded(false), 1600);
     })();
   }
 
   function handleBuyNow() {
-    const qty = Math.min(5, Math.max(1, selected()));
+    if (pending || !canBuy) return;
+    setPending("buy");
+    setActionError(null);
     rememberBuySelection(product.slug, activePicks());
-    router.push(`/checkout?product=${encodeURIComponent(product.slug)}&qty=${qty}`);
+    router.push(directCheckoutHref(product, selected()));
   }
 
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
       ? Math.round(
-          ((product.compareAtPrice - product.price) / product.compareAtPrice) * 100,
+          ((product.compareAtPrice - product.price) / product.compareAtPrice) *
+            100,
         )
       : null;
+  const availabilityLabel = isSoldOut
+    ? "শেষ"
+    : isComingSoon
+      ? "শীঘ্রই আসছে"
+      : product.stockLabel || "স্টকে আছে";
 
   return (
     <div id="buy-box" className="flex flex-col">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-        <span className="text-[11px] font-semibold tracking-[0.12em] text-primary uppercase sm:text-sm sm:tracking-[0.18em]">
-          {product.tagline}
-        </span>
+        {product.tagline ? (
+          <span className="text-xs font-semibold text-[#0b5e56] sm:text-sm">
+            {product.tagline}
+          </span>
+        ) : null}
         {product.rating ? (
           <div className="flex shrink-0 items-center gap-1 text-tertiary">
             <MaterialIcon name="star" filled className="text-sm" />
@@ -120,13 +144,11 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         {product.title}
       </h1>
 
-      <p className="mb-5 text-sm leading-relaxed text-on-surface-variant sm:mb-6 sm:text-base">
-        {product.description}
-      </p>
-
       <div className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 sm:mb-6">
         {product.unitLabel ? (
-          <span className="text-xs text-muted-foreground sm:text-sm">{product.unitLabel}</span>
+          <span className="text-xs text-muted-foreground sm:text-sm">
+            {product.unitLabel}
+          </span>
         ) : null}
         <span className="text-2xl font-semibold tracking-tight text-on-background sm:text-3xl">
           {formatPrice(product.price)}
@@ -134,17 +156,139 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         {product.compareAtPrice ? (
           <>
             <span className="text-base text-muted-foreground line-through sm:text-lg">
+              <span className="sr-only">আগের দাম </span>
               {formatPrice(product.compareAtPrice)}
             </span>
             {discountPct ? (
-              <span className="text-sm font-bold text-red-500">-{discountPct}%</span>
+              <span className="text-sm font-bold text-[#ba1a1a]">
+                {discountPct}% ছাড়
+              </span>
             ) : null}
           </>
         ) : null}
-        <span className="rounded-full bg-surface-container px-2.5 py-1 text-[11px] font-semibold text-outline sm:px-3 sm:text-sm">
-          {isSoldOut ? "শেষ" : isComingSoon ? "প্রত্যাশিত মূল্য" : product.stockLabel}
+        <span className="rounded-full bg-surface-container px-2.5 py-1 text-[11px] font-semibold text-[#042422] sm:px-3 sm:text-sm">
+          {availabilityLabel}
         </span>
       </div>
+
+      <ProductPurchaseOptions
+        groups={groups}
+        choices={choices}
+        onChoose={choose}
+      />
+
+      {isSoldOut ? (
+        <div className="mb-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-4 sm:mb-8 sm:p-6">
+          <p className="text-sm font-semibold text-neutral-800">শেষ</p>
+          <p className="mt-2 text-sm text-on-surface-variant sm:text-base">
+            এই প্রোডাক্টটি এখন শেষ। কার্টে যোগ করা যাবে না।
+          </p>
+        </div>
+      ) : isComingSoon ? (
+        <div className="mb-6 rounded-2xl border border-dashed border-[#0b5e56]/40 bg-[#2BC0B5]/10 p-4 sm:mb-8 sm:p-6">
+          <p className="text-sm font-semibold text-[#0b5e56]">শীঘ্রই আসছে</p>
+          <p className="mt-2 text-sm text-on-surface-variant sm:text-base">
+            এই প্রোডাক্টটি এখনও অর্ডার করা যাচ্ছে না। জানতে চাইলে আমাদের সাথে
+            যোগাযোগ করুন।
+          </p>
+          <Link
+            href="/contact-us"
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "mt-4 hidden h-11 w-full rounded-full text-sm lg:inline-flex",
+            )}
+          >
+            মেসেজ করে জানুন
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
+            <span
+              id={`${product.slug}-qty-label`}
+              className="text-sm font-semibold text-on-background"
+            >
+              পরিমাণ
+            </span>
+            <div
+              className="inline-flex items-center rounded-full border border-outline-variant/40"
+              role="group"
+              aria-labelledby={`${product.slug}-qty-label`}
+            >
+              <button
+                type="button"
+                className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
+                onClick={decrease}
+                disabled={atMin || pending !== null}
+                aria-label={`${product.title} এর পরিমাণ কমান`}
+              >
+                <MaterialIcon name="remove" className="text-[18px]" />
+              </button>
+              <span
+                className="w-8 text-center text-sm font-semibold text-on-surface"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <span className="sr-only">বর্তমান পরিমাণ </span>
+                {quantity}
+              </span>
+              <button
+                type="button"
+                className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
+                onClick={increase}
+                disabled={atMax || pending !== null}
+                aria-label={`${product.title} এর পরিমাণ বাড়ান`}
+              >
+                <MaterialIcon name="add" className="text-[18px]" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mb-2 hidden flex-col gap-3 lg:flex">
+            <Button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={pending !== null}
+              className="h-12 w-full rounded-full text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56]"
+            >
+              {pending === "cart"
+                ? "যোগ হচ্ছে…"
+                : justAdded
+                  ? "কার্টে যোগ হয়েছে"
+                  : "কার্টে যুক্ত করুন"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleBuyNow}
+              disabled={pending !== null}
+              className="h-12 w-full rounded-full border border-[#d7a20a] bg-warm-gold text-sm font-semibold text-[#042422] hover:bg-[#e0a400] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56]"
+            >
+              {pending === "buy" ? "চেকআউটে যাচ্ছে…" : "অর্ডার করুন"}
+            </Button>
+          </div>
+        </>
+      )}
+
+      {actionError ? (
+        <p role="alert" className="mt-3 text-sm font-medium text-[#ba1a1a]">
+          {actionError}
+        </p>
+      ) : null}
+      {justAdded ? (
+        <p
+          role="status"
+          className="mt-3 text-sm font-medium text-[#0b5e56] lg:sr-only"
+        >
+          {product.title} কার্টে যোগ হয়েছে।
+        </p>
+      ) : null}
+
+      {product.description ? (
+        <p className="mt-6 text-sm leading-relaxed text-on-surface-variant sm:text-base">
+          {product.description}
+        </p>
+      ) : null}
 
       {product.keyFeatures?.length ? (
         <ul className="mb-5 space-y-2.5 sm:mb-6 sm:space-y-3">
@@ -181,9 +325,9 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
 
       {product.suitableFor?.length ? (
         <div className="mb-6 sm:mb-8">
-          <label className="mb-2.5 block text-sm font-semibold text-on-background sm:mb-3">
+          <p className="mb-2.5 text-sm font-semibold text-on-background sm:mb-3">
             কার জন্য উপযোগী
-          </label>
+          </p>
           <div className="flex flex-wrap gap-2">
             {product.suitableFor.map((item) => (
               <span
@@ -197,97 +341,10 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </div>
       ) : null}
 
-      <ProductPurchaseOptions groups={groups} choices={choices} onChoose={choose} />
-
-      {isSoldOut ? (
-        <div className="mb-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-4 sm:mb-8 sm:p-6">
-          <div className="mb-3 flex items-center gap-2 text-neutral-800">
-            <MaterialIcon name="block" />
-            <span className="text-sm font-semibold tracking-widest uppercase">শেষ</span>
-          </div>
-          <p className="mb-4 text-sm text-on-surface-variant sm:text-base">
-            এই প্রোডাক্টটি এখন শেষ। কার্টে যোগ করা যাবে না।
-          </p>
-          <Button type="button" disabled className="hidden h-auto w-full rounded-full py-4 lg:inline-flex lg:py-5">
-            কার্টে যোগ বন্ধ
-          </Button>
-        </div>
-      ) : isComingSoon ? (
-        <div className="mb-6 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 sm:mb-8 sm:p-6">
-          <div className="mb-3 flex items-center gap-2 text-primary">
-            <MaterialIcon name="hourglass_top" />
-            <span className="text-sm font-semibold tracking-widest uppercase">কামিং সুন</span>
-          </div>
-          <p className="mb-4 text-sm text-on-surface-variant sm:mb-5 sm:text-base">
-            এই প্রোডাক্টটি শীঘ্রই স্টকে আসছে। আগে থেকে জানতে বা প্রি-বুকিংয়ে আগ্রহী হলে আমাদের সাথে
-            যোগাযোগ করুন।
-          </p>
-          <Link
-            href="/contact-us"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "hidden h-auto w-full rounded-full py-4 text-sm shadow-xl lg:inline-flex lg:py-5",
-            )}
-          >
-            <MaterialIcon name="chat" className="mr-2 text-[20px]" />
-            মেসেজ করে জানুন
-          </Link>
-        </div>
-      ) : (
-        <>
-          <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
-            <label className="text-sm font-semibold text-on-background">পরিমাণ</label>
-            <div className="inline-flex items-center rounded-full border border-outline-variant/40">
-              <button
-                type="button"
-                className="flex size-9 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40 sm:size-10"
-                onClick={decrease}
-                disabled={atMin}
-                aria-label="পরিমাণ কমান"
-              >
-                <MaterialIcon name="remove" className="text-[18px]" />
-              </button>
-              <span className="w-9 text-center text-sm font-semibold text-on-surface sm:w-10">
-                {quantity}
-              </span>
-              <button
-                type="button"
-                className="flex size-9 items-center justify-center text-on-surface transition-colors hover:text-primary disabled:opacity-40 sm:size-10"
-                onClick={increase}
-                disabled={atMax}
-                aria-label="পরিমাণ বাড়ান"
-              >
-                <MaterialIcon name="add" className="text-[18px]" />
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop CTAs — mobile uses sticky buy bar */}
-          <div className="mb-0 hidden flex-col gap-3 lg:mb-0 lg:flex lg:gap-4">
-            <Button
-              type="button"
-              onClick={handleAddToCart}
-              className="h-auto w-full rounded-full py-5 text-label-md shadow-xl hover:translate-y-[-2px] hover:shadow-2xl active:scale-95"
-            >
-              <MaterialIcon
-                name={justAdded ? "check_circle" : "shopping_bag"}
-                className="mr-2 text-[22px]"
-              />
-              {justAdded ? "কার্টে যোগ হয়েছে" : "কার্টে যুক্ত করুন"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleBuyNow}
-              className="h-auto w-full rounded-full bg-warm-gold py-5 text-label-md text-white shadow-lg transition-all hover:translate-y-[-2px] hover:bg-warm-gold/95 hover:shadow-xl active:scale-95"
-            >
-              অর্ডার করুন
-            </Button>
-          </div>
-        </>
-      )}
-
-      <ProductSupportPanel product={product} className="mt-6 sm:mt-8 lg:hidden" />
+      <ProductSupportPanel
+        product={product}
+        className="mt-6 sm:mt-8 lg:hidden"
+      />
     </div>
   );
 }

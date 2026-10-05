@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCartMoney } from "../../_lib/cart";
+import { formatCartMoney } from "../../_lib/cart-shared";
 
 import { CheckoutPlaceOrderButton } from "./checkout-place-order-button";
 import { useCheckoutForm } from "./checkout-form-context";

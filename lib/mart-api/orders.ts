@@ -346,8 +346,6 @@ export type PublicOrder = {
   phone: string;
   district: string;
   area: string;
-  address: string;
-  notes: string;
   deliveryZone: DeliveryZone;
   subtotal: number;
   shipping: number;
@@ -376,8 +374,6 @@ type ApiPublicOrder = {
   phone: string;
   district: string;
   area: string;
-  address: string;
-  notes: string;
   delivery_zone: DeliveryZone;
   subtotal: number;
   shipping: number;
@@ -397,8 +393,6 @@ function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
     phone: body.phone,
     district: body.district,
     area: body.area,
-    address: body.address,
-    notes: body.notes,
     deliveryZone: body.delivery_zone,
     subtotal: body.subtotal,
     shipping: body.shipping,

@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { MAX_CART_QTY } from "../../_lib/cart";
+import { MAX_CART_QTY } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import {
   adjustBuyQuantity,

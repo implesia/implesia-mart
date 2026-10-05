@@ -2,16 +2,26 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { contactChannel, type ContactDetails } from "@/lib/mart-api/contact-details";
+import {
+  contactChannel,
+  type ContactDetails,
+} from "@/lib/mart-api/contact-details";
 
 import { headerNav } from "../../_data/common/site-nav";
-import { productFilters } from "../../_data/products/products";
+import { productFilters } from "../../_data/products/catalog-meta";
 import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
@@ -40,7 +50,11 @@ function submitSearch(
   go(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
 }
 
-export default function Header({ details }: { details: ContactDetails | null }) {
+export default function Header({
+  details,
+}: {
+  details: ContactDetails | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const phoneChannel = contactChannel(details, "call");
@@ -112,7 +126,9 @@ export default function Header({ details }: { details: ContactDetails | null }) 
             <form
               className="hidden w-[clamp(18rem,34vw,32rem)] lg:block"
               role="search"
-              onSubmit={(event) => submitSearch(event, (href) => router.push(href))}
+              onSubmit={(event) =>
+                submitSearch(event, (href) => router.push(href))
+              }
             >
               <div className="flex w-full">
                 <input
@@ -371,7 +387,10 @@ export default function Header({ details }: { details: ContactDetails | null }) 
                 onClick={() => setMenuPath(null)}
                 className="inline-flex h-11 items-center justify-center rounded-full border border-neutral-200 text-sm font-medium dark:border-white/15"
               >
-                <MaterialIcon name="receipt_long" className="mr-1.5 text-[18px]" />
+                <MaterialIcon
+                  name="receipt_long"
+                  className="mr-1.5 text-[18px]"
+                />
                 আমার অর্ডার
               </Link>
             </div>

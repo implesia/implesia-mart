@@ -1,3 +1,4 @@
+import { cartItemBody } from "@/lib/mart-api/cart-body";
 import {
   MART_API_URL,
   MartApiError,
@@ -5,6 +6,8 @@ import {
   mediaUrl,
   publicFetch,
 } from "@/lib/mart-api/products";
+
+export { cartItemBody } from "@/lib/mart-api/cart-body";
 
 const GUEST_KEY = "implesia.cart.guest.v1";
 
@@ -250,14 +253,7 @@ export function addCartItem(
   quantity: number,
   selection: { groupId: string; valueId: string }[] = [],
 ) {
-  return shop("/items", "POST", {
-    product_id: productId,
-    quantity,
-    selection: selection.map((choice) => ({
-      group_id: choice.groupId,
-      value_id: choice.valueId,
-    })),
-  });
+  return shop("/items", "POST", cartItemBody(productId, quantity, selection));
 }
 
 export function setCartItemQuantity(itemId: string, quantity: number) {

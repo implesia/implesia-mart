@@ -20,12 +20,17 @@ import { CheckoutSuccess } from "./checkout-success";
 type CheckoutViewProps = {
   seedSlug?: string;
   seedQty?: number;
+  seedProductId?: string;
 };
 
 const pagePad =
   "px-4 pt-2 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 lg:px-8 lg:pb-10";
 
-export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
+export function CheckoutView({
+  seedSlug,
+  seedQty,
+  seedProductId,
+}: CheckoutViewProps) {
   const { hydrated, items } = useCart();
 
   const productHref = seedSlug
@@ -53,6 +58,7 @@ export function CheckoutView({ seedSlug, seedQty }: CheckoutViewProps) {
       source={seedSlug ? "direct" : "cart"}
       seedSlug={seedSlug}
       seedQty={seedQty}
+      seedProductId={seedProductId}
     >
       <CheckoutReadyView productHref={productHref} />
     </CheckoutFormProvider>

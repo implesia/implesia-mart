@@ -11,6 +11,8 @@ import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { FaqsView } from "./_components/faqs-view";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "প্রশ্নোত্তর",
   description:

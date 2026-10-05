@@ -1,9 +1,16 @@
+import { Suspense } from "react";
+
 import { JsonLd } from "./_components/common/json-ld";
 import { StorefrontFrame } from "./_components/common/storefront-frame";
+import Footer from "./_components/common/footer";
+import { FloatingActions } from "./_components/common/floating-actions";
+import Header from "./_components/common/header";
 import { CartProvider } from "./_providers/cart-provider";
 import {
+  FALLBACK_CONTACT_DETAILS,
   contactChannel,
   listPublicContactDetails,
+  type ContactDetails,
 } from "@/lib/mart-api/contact-details";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
@@ -17,18 +24,15 @@ const websiteJsonLd = {
   publisher: { "@id": `${SITE_URL}/#organization` },
 };
 
-export default async function ClientLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const details = await listPublicContactDetails();
+const fallbackChat = contactChannel(FALLBACK_CONTACT_DETAILS, "chat")?.href ?? "";
+
+function organizationJsonLd(details: ContactDetails) {
   const phone = contactChannel(details, "call");
   const chat = contactChannel(details, "chat");
-  const sameAs = details?.isActive
+  const sameAs = details.isActive
     ? details.social.map((item) => item.href).filter((href) => href.startsWith("http"))
     : [];
-  const organizationJsonLd = {
+  return {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${SITE_URL}/#organization`,
@@ -51,12 +55,55 @@ export default async function ClientLayout({
         }
       : {}),
   };
+}
 
+async function ContactHeader() {
+  const details = await listPublicContactDetails();
+  return (
+    <>
+      <JsonLd data={organizationJsonLd(details)} />
+      <Header details={details} />
+    </>
+  );
+}
+
+async function ContactFooter() {
+  const details = await listPublicContactDetails();
+  return <Footer details={details} />;
+}
+
+async function ContactFloating() {
+  const details = await listPublicContactDetails();
+  return <FloatingActions whatsappHref={contactChannel(details, "chat")?.href ?? ""} />;
+}
+
+export default function ClientLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <CartProvider>
-      <JsonLd data={organizationJsonLd} />
       <JsonLd data={websiteJsonLd} />
-      <StorefrontFrame details={details}>{children}</StorefrontFrame>
+      <StorefrontFrame
+        header={
+          <Suspense fallback={<Header details={FALLBACK_CONTACT_DETAILS} />}>
+            <ContactHeader />
+          </Suspense>
+        }
+        footer={
+          <Suspense fallback={<Footer details={FALLBACK_CONTACT_DETAILS} />}>
+            <ContactFooter />
+          </Suspense>
+        }
+        floating={
+          <Suspense fallback={<FloatingActions whatsappHref={fallbackChat} />}>
+            <ContactFloating />
+          </Suspense>
+        }
+      >
+        {children}
+      </StorefrontFrame>
     </CartProvider>
   );
 }

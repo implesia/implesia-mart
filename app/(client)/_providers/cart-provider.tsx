@@ -25,7 +25,7 @@ import {
   MAX_CART_QTY,
   type CartLineResolved,
   type CartPricing,
-} from "../_lib/cart";
+} from "../_lib/cart-shared";
 
 type AddItemOptions = {
   openDrawer?: boolean;
@@ -58,12 +58,13 @@ const EMPTY_PRICING: CartPricing = {
   shipping: 0,
   tax: 0,
   total: 0,
-  insideDhaka: 70,
-  dhakaSuburban: 100,
-  outsideDhaka: 130,
-  insideEnabled: true,
-  suburbanEnabled: true,
-  outsideEnabled: true,
+  insideDhaka: 0,
+  dhakaSuburban: 0,
+  outsideDhaka: 0,
+  insideEnabled: false,
+  suburbanEnabled: false,
+  outsideEnabled: false,
+  ratesConfirmed: false,
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -92,6 +93,7 @@ function applyCart(cart: ShopCart) {
     insideEnabled: cart.insideEnabled,
     suburbanEnabled: cart.suburbanEnabled,
     outsideEnabled: cart.outsideEnabled,
+    ratesConfirmed: true,
   };
   return { items, ids, pricing, itemCount: cart.itemCount };
 }
@@ -143,6 +145,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       insideEnabled: current.insideEnabled,
       suburbanEnabled: current.suburbanEnabled,
       outsideEnabled: current.outsideEnabled,
+      ratesConfirmed: current.ratesConfirmed,
     };
     itemsRef.current = nextItems;
     pricingRef.current = pricing;
@@ -169,6 +172,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (ticket === flight.current) setHydrated(true);
     }
   }, [commit]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.removeItem("implesia.cart.v1");
+    } catch {
+      /* The old slug cart is not the shop cart. */
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

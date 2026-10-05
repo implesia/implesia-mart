@@ -1,9 +1,6 @@
 import { cache } from "react";
 
-import {
-  categoryLabels,
-  placeholderImage,
-} from "@/app/(client)/_data/products/products";
+import { categoryLabels } from "@/app/(client)/_data/products/catalog-meta";
 import type {
   ProductDetail,
   ProductSpecGroupId,
@@ -13,11 +10,26 @@ import type {
   ProductBadge,
   ProductCategoryId,
   ProductStatus,
-} from "@/app/(client)/_data/products/products";
+} from "@/app/(client)/_data/products/catalog-meta";
+import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import {
-  isCatalogProductId,
-  isPublicCatalogCard,
-} from "@/lib/mart-api/catalog-rules";
+  catalogResponseKind,
+  normalizeProductDetail,
+  normalizeProductSlug,
+} from "@/lib/mart-api/product-page";
+import {
+  CATALOG_PAGE_SIZE,
+  CATALOG_SEARCH_PAGE_SIZE,
+  CATALOG_SEARCH_SCAN_PAGES,
+  emptyCatalogCounts,
+  interpretPublicCatalog,
+  matchesCatalogText,
+  paginateMatches,
+  toApiSearchParams,
+  type CatalogPageData,
+  type CatalogSearch,
+  type PublicCatalogCard,
+} from "@/lib/mart-api/catalog-query";
 
 const API = process.env.NEXT_PUBLIC_MART_API_URL ?? "http://127.0.0.1:8001";
 
@@ -105,37 +117,19 @@ type ApiCard = {
   featured: boolean;
 };
 
-type ApiDetail = ApiCard & {
-  tagline: string;
-  description: string;
-  stock_label: string;
-  gallery: { src: string; alt: string }[];
-  highlights: string[];
-  suitable_for: string[];
-  package_items: string[];
-  how_to_use: string[];
-  story_heading: string;
-  story_body: string;
-  story_bullets: string[];
-  quality_title: string;
-  quality_body: string;
-  quality_image_src: string;
-  quality_image_alt: string;
-  specs: { label: string; value: string; group: string }[];
-  faqs: { question: string; answer: string }[];
-  options?: {
-    id: string;
-    name: string;
-    kind: string;
-    values: { id: string; label: string; swatch: string }[];
-  }[];
-  related: ApiCard[];
-};
-
 function media(src: string) {
-  if (!src) return "";
-  if (src.startsWith("/media/")) return `${API}${src}`;
-  return src;
+  const value = src.trim();
+  if (!value || value.includes("..") || value.startsWith("//")) return "";
+  if (value.startsWith("/")) {
+    return value.startsWith("/media/") ? `${API}${value}` : value;
+  }
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    return url.href;
+  } catch {
+    return "";
+  }
 }
 
 function money(value: number) {
@@ -159,7 +153,7 @@ export type CatalogLoad = {
 };
 
 function mapCard(item: ApiCard): Product {
-  const imageSrc = media(item.image_src) || placeholderImage(item.title);
+  const imageSrc = media(item.image_src);
   return {
     id: item.id,
     slug: item.slug,
@@ -177,7 +171,10 @@ function mapCard(item: ApiCard): Product {
   };
 }
 
-function mapDetail(item: ApiDetail, rates: StoreDeliveryRates | null): ProductDetail {
+function mapDetail(
+  item: NonNullable<ReturnType<typeof normalizeProductDetail>>,
+  rates: StoreDeliveryRates | null,
+): ProductDetail {
   const card = mapCard(item);
   const gallery = (
     item.gallery.length > 0
@@ -212,10 +209,7 @@ function mapDetail(item: ApiDetail, rates: StoreDeliveryRates | null): ProductDe
       },
       { label: item.title },
     ],
-    gallery:
-      gallery.length > 0
-        ? gallery
-        : [{ src: card.imageSrc, alt: card.imageAlt, type: "image" }],
+    gallery: gallery.filter((image) => image.src),
     tagline: item.tagline,
     stockLabel: item.stock_label,
     description: item.description,
@@ -229,7 +223,8 @@ function mapDetail(item: ApiDetail, rates: StoreDeliveryRates | null): ProductDe
       .map((group) => ({
         id: group.id,
         name: group.name,
-        kind: group.kind === "color" || group.kind === "size" ? group.kind : "text",
+        kind:
+          group.kind === "color" || group.kind === "size" ? group.kind : "text",
         values: group.values.map((value) => ({
           id: value.id,
           label: value.label,
@@ -270,66 +265,231 @@ function mapDetail(item: ApiDetail, rates: StoreDeliveryRates | null): ProductDe
   };
 }
 
-async function readJson<T>(path: string): Promise<T | null> {
+type CatalogFetch =
+  | { kind: "ok"; body: unknown }
+  | { kind: "missing" }
+  | { kind: "down" };
+
+async function fetchCatalog(path: string): Promise<CatalogFetch> {
+  try {
+    const response = await fetch(`${API}${path}`, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60 },
+    });
+    const kind = catalogResponseKind(response.status);
+    if (kind === "missing") return { kind: "missing" };
+    if (kind === "down") return { kind: "down" };
+    return { kind: "ok", body: await response.json() };
+  } catch (error) {
+    console.error(
+      "Catalog request failed",
+      error instanceof Error ? error.name : "Error",
+    );
+    return { kind: "down" };
+  }
+}
+
+async function readJson(path: string): Promise<unknown | null> {
   try {
     const response = await fetch(`${API}${path}`, {
       headers: { Accept: "application/json" },
       next: { revalidate: 60 },
     });
     if (!response.ok) return null;
-    return (await response.json()) as T;
+    return await response.json();
   } catch {
     return null;
   }
 }
 
-/** Published catalog. An empty API and a failed API never become demo products. */
+function toProduct(card: PublicCatalogCard): Product {
+  return {
+    id: card.id,
+    slug: card.slug,
+    title: card.title,
+    subtitle: card.subtitle,
+    price: card.price,
+    compareAtPrice: card.compareAtPrice,
+    unitLabel: card.unitLabel || undefined,
+    imageSrc: media(card.imageSrc),
+    imageAlt: card.imageAlt || card.title,
+    badge: card.badge,
+    status: card.status,
+    categoryId: card.category,
+    featured: card.featured,
+  };
+}
+
+function unavailableCatalog(search: CatalogSearch): CatalogPageData {
+  return {
+    products: [],
+    total: 0,
+    page: search.page,
+    pages: 0,
+    unavailable: true,
+    searchTruncated: false,
+    ...emptyCatalogCounts(),
+  };
+}
+
+async function fetchCatalogPage(
+  search: CatalogSearch,
+  page: number,
+  pageSize: number,
+) {
+  const params = toApiSearchParams(search, { page, pageSize });
+  const body = await readJson(`/api/v1/products?${params}`);
+  if (!body) return null;
+  return interpretPublicCatalog(body);
+}
+
+/**
+ * Every published product, for the homepage rails and the sitemap.
+ * `/products` does not use this. It queries one filtered page instead.
+ * The public API already excludes unpublished rows. Names are never filtered here.
+ */
 export const loadStoreCatalog = cache(async (): Promise<CatalogLoad> => {
   const all: Product[] = [];
   let page = 1;
   let pages = 1;
   while (page <= pages && page <= 20) {
-    const body = await readJson<{ items?: ApiCard[]; pages?: number }>(
-      `/api/v1/products?page=${page}&page_size=48`,
-    );
+    const body = await readJson(`/api/v1/products?page=${page}&page_size=48`);
     if (!body) return { products: [], unavailable: true };
-    for (const item of body.items ?? []) {
-      if (!isPublicCatalogCard(item)) continue;
-      all.push(mapCard(item));
-    }
-    pages = body.pages ?? 1;
+    const parsed = interpretPublicCatalog(body);
+    if (!parsed) return { products: [], unavailable: true };
+    for (const item of parsed.items) all.push(toProduct(item));
+    pages = parsed.pages || 1;
+    if (parsed.pages === 0) break;
     page += 1;
   }
   return { products: all, unavailable: false };
 });
 
+/** One public catalog page. No admin token, no seed products, no client prices. */
+export const queryStoreCatalog = cache(
+  async (search: CatalogSearch): Promise<CatalogPageData> => {
+    if (search.statuses.length === 0) {
+      return {
+        products: [],
+        total: 0,
+        page: 1,
+        pages: 0,
+        unavailable: false,
+        searchTruncated: false,
+        ...emptyCatalogCounts(),
+      };
+    }
+
+    if (search.q) {
+      const matches: Product[] = [];
+      let apiPage = 1;
+      let apiPages = 1;
+      while (apiPage <= apiPages && apiPage <= CATALOG_SEARCH_SCAN_PAGES) {
+        const parsed = await fetchCatalogPage(
+          search,
+          apiPage,
+          CATALOG_SEARCH_PAGE_SIZE,
+        );
+        if (!parsed) return unavailableCatalog(search);
+        for (const item of parsed.items) {
+          const product = toProduct(item);
+          if (matchesCatalogText(product, search.q)) matches.push(product);
+        }
+        apiPages = parsed.pages;
+        if (parsed.pages === 0) break;
+        apiPage += 1;
+      }
+      const page = paginateMatches(matches, search.page, CATALOG_PAGE_SIZE);
+      const counts = emptyCatalogCounts();
+      for (const product of matches) {
+        counts.categoryCounts[product.categoryId] += 1;
+        counts.availabilityCounts[product.status] += 1;
+      }
+      return {
+        products: page.items,
+        total: page.total,
+        page: page.page,
+        pages: page.pages,
+        unavailable: false,
+        searchTruncated: apiPages > CATALOG_SEARCH_SCAN_PAGES,
+        ...counts,
+      };
+    }
+
+    const parsed = await fetchCatalogPage(
+      search,
+      search.page,
+      CATALOG_PAGE_SIZE,
+    );
+    if (!parsed) return unavailableCatalog(search);
+    return {
+      products: parsed.items.map(toProduct),
+      total: parsed.total,
+      page: parsed.page || search.page,
+      pages: parsed.pages,
+      unavailable: false,
+      searchTruncated: false,
+      categoryCounts: parsed.categoryCounts,
+      availabilityCounts: parsed.availabilityCounts,
+    };
+  },
+);
+
 export const listStoreProducts = cache(async (): Promise<Product[]> => {
   return (await loadStoreCatalog()).products;
 });
 
+async function findPublishedCard(slug: string) {
+  let page = 1;
+  let pages = 1;
+  while (page <= pages && page <= 20) {
+    const result = await fetchCatalog(
+      `/api/v1/products?page=${page}&page_size=48`,
+    );
+    if (result.kind !== "ok") return "unavailable" as const;
+    const parsed = interpretPublicCatalog(result.body);
+    if (!parsed) return "unavailable" as const;
+    const found = parsed.items.find((item) => item.slug === slug);
+    if (found) return found;
+    pages = parsed.pages || 1;
+    if (parsed.pages === 0) return null;
+    page += 1;
+  }
+  return null;
+}
+
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
-    const catalog = await loadStoreCatalog();
-    if (catalog.unavailable) throw new CatalogUnavailableError();
-    const card = catalog.products.find((product) => product.slug === slug);
+    const safeSlug = normalizeProductSlug(slug);
+    if (!safeSlug) return null;
+    const card = await findPublishedCard(safeSlug);
+    if (card === "unavailable") throw new CatalogUnavailableError();
     if (!card || !catalogProductId(card.id)) return null;
-    const detail = await readJson<ApiDetail>(`/api/v1/products/${card.id}`);
-    if (!detail) throw new CatalogUnavailableError();
-    if (detail.slug !== slug) return null;
+    const result = await fetchCatalog(
+      `/api/v1/products/${encodeURIComponent(card.id)}`,
+    );
+    if (result.kind === "missing") return null;
+    if (result.kind === "down") throw new CatalogUnavailableError();
+    const detail = normalizeProductDetail(result.body);
+    if (!detail) {
+      console.error("Product detail response was not usable");
+      throw new CatalogUnavailableError();
+    }
+    if (detail.slug !== safeSlug || detail.id !== card.id) return null;
     return mapDetail(detail, await getStoreDeliveryRates());
   },
 );
 
 export const getStoreDeliveryRates = cache(
   async (): Promise<StoreDeliveryRates | null> => {
-    const body = await readJson<{
+    const body = (await readJson("/api/v1/delivery")) as {
       inside_dhaka?: number;
       dhaka_suburban?: number;
       outside_dhaka?: number;
       inside_enabled?: boolean;
       suburban_enabled?: boolean;
       outside_enabled?: boolean;
-    }>("/api/v1/delivery");
+    } | null;
     if (
       typeof body?.inside_dhaka !== "number" ||
       typeof body.dhaka_suburban !== "number" ||

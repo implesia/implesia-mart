@@ -12,6 +12,8 @@ import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs"
 import { BlogsGrid } from "./_components/blogs-grid";
 import { BlogsHero } from "./_components/blogs-hero";
 
+export const revalidate = 60;
+
 const TITLE = "ব্লগ";
 const DESCRIPTION =
   "ইমপ্লেসিয়া মার্ট ব্লগ — গ্যাজেট গাইড ও গর্জিয়াস ড্রেস টিপস, বাংলায়।";

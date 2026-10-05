@@ -1,29 +1,22 @@
 import { getProductMedia, type ProductMediaId } from "./product-media";
+import type { Product } from "./catalog-meta";
 
-export type ProductBadge = "New" | "Best Seller" | "Limited";
-export type ProductStatus = "available" | "sold-out" | "coming-soon";
-export type ProductCategoryId = "gadgets" | "fashion";
-
-export type Product = {
-  id: string;
-  slug: string;
-  title: string;
-  subtitle: string;
-  price: number;
-  compareAtPrice?: number;
-  unitLabel?: string;
-  imageSrc: string;
-  imageAlt: string;
-  badge?: ProductBadge;
-  status: ProductStatus;
-  categoryId: ProductCategoryId;
-  featured?: boolean;
-};
-
-export const categoryLabels: Record<ProductCategoryId, string> = {
-  gadgets: "ট্রেন্ডিং গ্যাজেট",
-  fashion: "গর্জিয়াস ড্রেস",
-};
+export type {
+  CatalogView,
+  Product,
+  ProductBadge,
+  ProductCategoryId,
+  ProductSortId,
+  ProductStatus,
+} from "./catalog-meta";
+export {
+  categoryLabels,
+  PRICE_FILTER_MAX,
+  PRICE_FILTER_MIN,
+  productFilters,
+  productsHref,
+} from "./catalog-meta";
+export { readCatalogQuery } from "@/lib/mart-api/catalog-query";
 
 /**
  * Temporary on-brand placeholder (kept for non-product surfaces / avatars).
@@ -191,29 +184,6 @@ export const products: Product[] = [
   }),
 ];
 
-export const PRICE_FILTER_MIN = 0;
-export const PRICE_FILTER_MAX = 15000;
-
-export const productFilters = {
-  categories: [
-    { id: "gadgets", label: categoryLabels.gadgets },
-    { id: "fashion", label: categoryLabels.fashion },
-  ],
-  availability: [
-    { id: "available", label: "স্টকে আছে" },
-    { id: "sold-out", label: "শেষ" },
-    { id: "coming-soon", label: "শীঘ্রই আসছে" },
-  ],
-  sortOptions: [
-    { id: "popularity", label: "জনপ্রিয়তা" },
-    { id: "price-asc", label: "দাম: কম থেকে বেশি" },
-    { id: "price-desc", label: "দাম: বেশি থেকে কম" },
-    { id: "newest", label: "নতুন সংযোজন" },
-  ],
-} as const;
-
-export type ProductSortId = (typeof productFilters.sortOptions)[number]["id"];
-
 /** Same four available picks as the home featured rail. */
 export const FEATURED_PRODUCT_SLUGS = [
   "sunset-rainbow-projection-lamp",
@@ -234,43 +204,3 @@ export const LATEST_PRODUCT_SLUGS = [
   "galaxy-projector-humidifier",
 ] as const;
 
-/** Cross-category homepage rails. Real categories stay on `?category=`. */
-export type CatalogView = "featured" | "latest" | "new";
-
-const CATALOG_VIEWS: readonly CatalogView[] = ["featured", "latest", "new"];
-
-export function productsHref(options?: {
-  category?: ProductCategoryId;
-  view?: CatalogView;
-}) {
-  const params = new URLSearchParams();
-  if (options?.view) params.set("view", options.view);
-  if (options?.category) params.set("category", options.category);
-  const query = params.toString();
-  return query ? `/products?${query}` : "/products";
-}
-
-export function readCatalogQuery(raw: {
-  category?: string | null;
-  view?: string | null;
-}) {
-  const category = productFilters.categories.some(
-    (item) => item.id === raw.category,
-  )
-    ? (raw.category as ProductCategoryId)
-    : undefined;
-  const view = CATALOG_VIEWS.find((item) => item === raw.view);
-  const sort: ProductSortId = view === "latest" ? "newest" : "popularity";
-  const badge: ProductBadge | undefined = view === "new" ? "New" : undefined;
-  const title = category
-    ? categoryLabels[category]
-    : view === "featured"
-      ? "ফিচার্ড প্রোডাক্ট"
-      : view === "latest"
-        ? "সর্বশেষ প্রোডাক্ট"
-        : view === "new"
-          ? "নতুন আগমন"
-          : "সব প্রোডাক্ট";
-
-  return { category, view, sort, badge, title };
-}

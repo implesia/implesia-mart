@@ -1,5 +1,7 @@
 "use client";
 
+import "swiper/css";
+import "../carousels/swiper-storefront.css";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Autoplay } from "swiper/modules";

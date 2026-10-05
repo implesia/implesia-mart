@@ -28,6 +28,8 @@ import {
   type OrderQuote,
   type QuoteLine,
 } from "@/lib/mart-api/orders";
+import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
+import { purchaseQuantity } from "@/lib/mart-api/product-page";
 import { MartApiError } from "@/lib/mart-api/products";
 
 import {
@@ -72,7 +74,9 @@ type CheckoutFormContextValue = {
   resetStatus: () => void;
 };
 
-const CheckoutFormContext = createContext<CheckoutFormContextValue | null>(null);
+const CheckoutFormContext = createContext<CheckoutFormContextValue | null>(
+  null,
+);
 
 const initialShipping: CheckoutShippingValues = {
   name: "",
@@ -104,14 +108,17 @@ export function CheckoutFormProvider({
   source,
   seedSlug,
   seedQty,
+  seedProductId,
 }: {
   children: React.ReactNode;
   source: OrderSource;
   seedSlug?: string;
   seedQty?: number;
+  seedProductId?: string;
 }) {
   const { reloadCart } = useCart();
-  const [shipping, setShipping] = useState<CheckoutShippingValues>(initialShipping);
+  const [shipping, setShipping] =
+    useState<CheckoutShippingValues>(initialShipping);
   const [rates, setRates] = useState<DeliveryRates | null>(null);
   const [directItems, setDirectItems] = useState<DirectItem[]>([]);
   const [directReady, setDirectReady] = useState(source !== "direct");
@@ -119,8 +126,12 @@ export function CheckoutFormProvider({
   const [pricingBusy, setPricingBusy] = useState(false);
   const [pricingMessage, setPricingMessage] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Partial<Record<keyof CheckoutShippingValues, string>>>({});
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof CheckoutShippingValues, string>>
+  >({});
+  const [status, setStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const idempotencyKey = useRef(crypto.randomUUID());
   const pickedZone = useRef(false);
@@ -135,7 +146,10 @@ export function CheckoutFormProvider({
   }, [directItems]);
 
   const setShippingField = useCallback(
-    <K extends keyof CheckoutShippingValues>(key: K, value: CheckoutShippingValues[K]) => {
+    <K extends keyof CheckoutShippingValues>(
+      key: K,
+      value: CheckoutShippingValues[K],
+    ) => {
       if (!holdZone.current && (key === "district" || key === "area")) {
         pickedZone.current = false;
         chosenZone.current = null;
@@ -152,7 +166,12 @@ export function CheckoutFormProvider({
   );
 
   const refreshQuote = useCallback(
-    async (district: string, area: string, items: DirectItem[], zone?: DeliveryZone) => {
+    async (
+      district: string,
+      area: string,
+      items: DirectItem[],
+      zone?: DeliveryZone,
+    ) => {
       const current = ++ticket.current;
       setPricingBusy(true);
       try {
@@ -161,7 +180,11 @@ export function CheckoutFormProvider({
           source,
           district,
           area,
-          deliveryZone: zone ?? (pickedZone.current ? chosenZone.current ?? undefined : undefined),
+          deliveryZone:
+            zone ??
+            (pickedZone.current
+              ? (chosenZone.current ?? undefined)
+              : undefined),
           items: source === "direct" ? items : undefined,
         });
         if (current !== ticket.current) return null;
@@ -173,7 +196,11 @@ export function CheckoutFormProvider({
         }
         setShownZone(next.deliveryZone);
         chosenZone.current = next.deliveryZone;
-        setPricingMessage(next.items.some((line) => !line.available) ? "এক বা একাধিক পণ্য এখন কেনা যাচ্ছে না।" : null);
+        setPricingMessage(
+          next.items.some((line) => !line.available)
+            ? "এক বা একাধিক পণ্য এখন কেনা যাচ্ছে না।"
+            : null,
+        );
         return next;
       } catch (error) {
         if (current !== ticket.current) return null;
@@ -208,7 +235,9 @@ export function CheckoutFormProvider({
       let district = shipping.district;
       if ((zone === "inside" || zone === "suburban") && !district.trim()) {
         district = "ঢাকা";
-        setShipping((prev) => (prev.district.trim() ? prev : { ...prev, district }));
+        setShipping((prev) =>
+          prev.district.trim() ? prev : { ...prev, district },
+        );
       }
       void refreshQuote(district, shipping.area, itemsRef.current, zone);
     },
@@ -218,7 +247,20 @@ export function CheckoutFormProvider({
   useEffect(() => {
     if (source !== "direct" || !seedSlug) return;
     let cancelled = false;
-    const quantity = Math.min(5, Math.max(1, seedQty ?? 1));
+    const quantity = purchaseQuantity(seedQty ?? 1);
+    if (seedProductId && isCatalogProductId(seedProductId)) {
+      const productId = seedProductId;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setDirectItems([
+          { productId, quantity, selection: readBuySelection(seedSlug) },
+        ]);
+        setDirectReady(true);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     void lookupProductId(seedSlug).then((productId) => {
       if (cancelled) return;
       if (!productId) {
@@ -228,13 +270,15 @@ export function CheckoutFormProvider({
         setDirectReady(true);
         return;
       }
-      setDirectItems([{ productId, quantity, selection: readBuySelection(seedSlug) }]);
+      setDirectItems([
+        { productId, quantity, selection: readBuySelection(seedSlug) },
+      ]);
       setDirectReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [source, seedSlug, seedQty]);
+  }, [source, seedSlug, seedQty, seedProductId]);
 
   useEffect(() => {
     if (source === "direct" && !directReady) return;
@@ -248,11 +292,19 @@ export function CheckoutFormProvider({
       );
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [source, directReady, shipping.district, shipping.area, directItems, refreshQuote]);
+  }, [
+    source,
+    directReady,
+    shipping.district,
+    shipping.area,
+    directItems,
+    refreshQuote,
+  ]);
 
   const changeQuantity = useCallback(
     (line: QuoteLine, quantity: number) => {
-      if (busyRef.current || quantity < 1 || quantity > line.maxQuantity) return;
+      if (busyRef.current || quantity < 1 || quantity > line.maxQuantity)
+        return;
       busyRef.current = true;
       void (async () => {
         try {
@@ -270,7 +322,11 @@ export function CheckoutFormProvider({
             setDirectItems(nextItems);
             itemsRef.current = nextItems;
           }
-          await refreshQuote(shipping.district, shipping.area, itemsRef.current);
+          await refreshQuote(
+            shipping.district,
+            shipping.area,
+            itemsRef.current,
+          );
         } catch (error) {
           setPricingMessage(messageFrom(error));
           setPricingBusy(false);
@@ -292,10 +348,16 @@ export function CheckoutFormProvider({
             if (!line.cartItemId) return;
             await removeCartItem(line.cartItemId);
             await reloadCart();
-            await refreshQuote(shipping.district, shipping.area, itemsRef.current);
+            await refreshQuote(
+              shipping.district,
+              shipping.area,
+              itemsRef.current,
+            );
             return;
           }
-          const nextItems = itemsRef.current.filter((item) => item.productId !== line.productId);
+          const nextItems = itemsRef.current.filter(
+            (item) => item.productId !== line.productId,
+          );
           setDirectItems(nextItems);
           itemsRef.current = nextItems;
           if (nextItems.length === 0) {
@@ -373,11 +435,11 @@ export function CheckoutFormProvider({
 
   const canSubmit = Boolean(
     quote &&
-      quote.deliveryAvailable &&
-      quote.items.length > 0 &&
-      quote.items.every((line) => line.available) &&
-      !pricingBusy &&
-      status !== "submitting",
+    quote.deliveryAvailable &&
+    quote.items.length > 0 &&
+    quote.items.every((line) => line.available) &&
+    !pricingBusy &&
+    status !== "submitting",
   );
 
   const value = useMemo<CheckoutFormContextValue>(
@@ -425,7 +487,11 @@ export function CheckoutFormProvider({
     ],
   );
 
-  return <CheckoutFormContext.Provider value={value}>{children}</CheckoutFormContext.Provider>;
+  return (
+    <CheckoutFormContext.Provider value={value}>
+      {children}
+    </CheckoutFormContext.Provider>
+  );
 }
 
 export function useCheckoutForm() {

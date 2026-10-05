@@ -21,6 +21,7 @@ export function ProductDetailLayout({ product }: { product: ProductDetail }) {
       <div className="grid grid-cols-1 items-start gap-5 sm:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
         <div className="min-w-0 lg:col-span-7">
           <ProductGallery
+            title={product.title}
             badge={
               product.status === "coming-soon"
                 ? "কামিং সুন"
@@ -39,13 +40,13 @@ export function ProductDetailLayout({ product }: { product: ProductDetail }) {
         </div>
 
         <div className="min-w-0 lg:col-span-5">
-          <ProductInfo product={product} />
+          <ProductInfo key={product.slug} product={product} />
         </div>
       </div>
 
       <ProductDetailsTabs product={product} />
       <RelatedProducts items={product.related} />
-      <ProductMobileBuyBar product={product} />
+      <ProductMobileBuyBar key={product.slug} product={product} />
     </main>
   );
 }

@@ -536,23 +536,51 @@ export function saveDeliveryCharges(charges: DeliveryCharges) {
 
 const SESSION_EVENT = "implesia-admin-session";
 
-export function readSession(): AdminSession | null {
+type StoredSession = {
+  email?: string;
+  accessToken?: string;
+  refreshToken?: string;
+};
+
+function readStoredSession(): StoredSession | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { email?: string; accessToken?: string };
-    if (!parsed?.email?.trim()) return null;
-    if (parsed.accessToken) {
-      window.sessionStorage.setItem(
-        SESSION_KEY,
-        JSON.stringify({ email: parsed.email.trim() }),
-      );
-    }
-    return { email: parsed.email.trim() };
+    const parsed = JSON.parse(raw) as StoredSession;
+    return parsed && typeof parsed === "object" ? parsed : null;
   } catch {
     return null;
   }
+}
+
+/** A refresh token left by the old login. Null when storage only has the email. */
+export function readStoredRefreshToken() {
+  const parsed = readStoredSession();
+  return typeof parsed?.refreshToken === "string" && parsed.refreshToken.trim()
+    ? parsed.refreshToken.trim()
+    : null;
+}
+
+/** Drop any token fields. The email can stay so the shell still knows who is signed in. */
+export function dropStoredTokens() {
+  const parsed = readStoredSession();
+  if (!parsed) return;
+  const email = parsed.email?.trim();
+  if (!email) {
+    clearSession();
+    return;
+  }
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email }));
+}
+
+export function readSession(): AdminSession | null {
+  if (typeof window === "undefined") return null;
+  const parsed = readStoredSession();
+  const email = parsed?.email?.trim();
+  if (!email) return null;
+  if (parsed?.accessToken && !parsed.refreshToken) dropStoredTokens();
+  return { email };
 }
 
 export function writeSession(email: string) {

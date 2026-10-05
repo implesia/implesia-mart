@@ -17,12 +17,18 @@ export function ProductPurchaseOptions({
   return (
     <div className="mb-5 flex flex-col gap-4 sm:mb-6">
       {groups.map((group) => {
-        const selected = group.values.find((value) => value.id === choices[group.id]) ?? group.values[0];
+        const selected =
+          group.values.find((value) => value.id === choices[group.id]) ??
+          group.values[0];
         return (
           <fieldset key={group.id}>
             <legend className="mb-2 text-sm font-semibold text-on-background">
               {group.name}
-              {selected ? <span className="ml-2 font-medium text-on-surface-variant">{selected.label}</span> : null}
+              {selected ? (
+                <span className="ml-2 font-medium text-on-surface-variant">
+                  {selected.label}
+                </span>
+              ) : null}
             </legend>
             <div className="flex flex-wrap gap-2">
               {group.values.map((value) => {
@@ -36,8 +42,10 @@ export function ProductPurchaseOptions({
                       aria-label={value.label}
                       onClick={() => onChoose(group.id, value.id)}
                       className={cn(
-                        "grid size-9 place-items-center rounded-full ring-2 ring-offset-2 transition-shadow",
-                        pressed ? "ring-primary" : "ring-transparent hover:ring-neutral-300",
+                        "grid size-11 place-items-center rounded-full ring-2 ring-offset-2 transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56]",
+                        pressed
+                          ? "ring-primary"
+                          : "ring-transparent hover:ring-neutral-300",
                       )}
                     >
                       <span
@@ -54,7 +62,7 @@ export function ProductPurchaseOptions({
                     aria-pressed={pressed}
                     onClick={() => onChoose(group.id, value.id)}
                     className={cn(
-                      "h-9 min-w-9 rounded-full px-3 text-sm font-semibold transition-colors",
+                      "h-11 min-w-11 rounded-full px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56]",
                       pressed
                         ? "bg-neutral-950 text-white"
                         : "bg-surface-container text-on-surface hover:bg-neutral-200",

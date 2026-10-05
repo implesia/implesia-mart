@@ -30,16 +30,6 @@ import {
   type HomeSections,
 } from "./home-sections";
 import {
-  readPrivacySections,
-  seedPrivacySections,
-  type PrivacySections,
-} from "./privacy-sections";
-import {
-  readShippingSections,
-  seedShippingSections,
-  type ShippingSections,
-} from "./shipping-sections";
-import {
   readSustainabilitySections,
   seedSustainabilitySections,
   type SustainabilitySections,
@@ -158,30 +148,6 @@ export function useContactSections() {
 
   useEffect(() => {
     const sync = () => setSections(readContactSections());
-    sync();
-    return subscribe(sync);
-  }, []);
-
-  return sections;
-}
-
-export function usePrivacySections() {
-  const [sections, setSections] = useState<PrivacySections>(seedPrivacySections);
-
-  useEffect(() => {
-    const sync = () => setSections(readPrivacySections());
-    sync();
-    return subscribe(sync);
-  }, []);
-
-  return sections;
-}
-
-export function useShippingSections() {
-  const [sections, setSections] = useState<ShippingSections>(seedShippingSections);
-
-  useEffect(() => {
-    const sync = () => setSections(readShippingSections());
     sync();
     return subscribe(sync);
   }, []);

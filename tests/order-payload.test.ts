@@ -24,6 +24,18 @@ test("quote payload sends ids and quantity, not money", () => {
   ]);
 });
 
+test("a declared zone is sent without a client price", () => {
+  const body = buildQuotePayload({
+    source: "direct",
+    district: "চাঁপাইনবাবগঞ্জ",
+    area: "নবাবগঞ্জ",
+    deliveryZone: "inside",
+    items: [{ productId: "11111111-1111-4111-8111-111111111111", quantity: 1 }],
+  });
+  assert.equal(body.delivery_zone, "inside");
+  assert.equal(payloadOmitsClientMoney(body), true);
+});
+
 test("cart quotes do not invent line items", () => {
   const body = buildQuotePayload({ source: "cart", district: "চট্টগ্রাম" });
   assert.equal("items" in body, false);

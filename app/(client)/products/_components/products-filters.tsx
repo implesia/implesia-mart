@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -19,7 +21,7 @@ import {
   productFilters,
   type ProductCategoryId,
   type ProductStatus,
-} from "../../_data/products/products";
+} from "../../_data/products/catalog-meta";
 
 export type ProductsFilterControls = {
   priceRange: [number, number];
@@ -35,12 +37,13 @@ export type ProductsFilterControls = {
   canReset: boolean;
 };
 
-const PRICE_PRESETS: { id: string; label: string; range: [number, number] }[] = [
-  { id: "all", label: "সব", range: [PRICE_FILTER_MIN, PRICE_FILTER_MAX] },
-  { id: "under-1k", label: "৳1,000-এর কম", range: [0, 1000] },
-  { id: "mid", label: "৳1,000–3,000", range: [1000, 3000] },
-  { id: "high", label: "৳3,000+", range: [3000, PRICE_FILTER_MAX] },
-];
+const PRICE_PRESETS: { id: string; label: string; range: [number, number] }[] =
+  [
+    { id: "all", label: "সব", range: [PRICE_FILTER_MIN, PRICE_FILTER_MAX] },
+    { id: "under-1k", label: "৳1,000-এর কম", range: [0, 1000] },
+    { id: "mid", label: "৳1,000–3,000", range: [1000, 3000] },
+    { id: "high", label: "৳3,000+", range: [3000, PRICE_FILTER_MAX] },
+  ];
 
 function clampPrice(value: number, min: number, max: number) {
   if (Number.isNaN(value)) return min;
@@ -59,42 +62,54 @@ function FilterBody({
   availabilityCounts,
   resultCount,
   canReset,
-}: ProductsFilterControls) {
+  showHeading = true,
+}: ProductsFilterControls & { showHeading?: boolean }) {
+  const [draft, setDraft] = useState(priceRange);
   const allCategoriesSelected =
     categories.length === productFilters.categories.length;
 
   const setBound = (index: 0 | 1, raw: number) => {
-    const next: [number, number] = [...priceRange];
+    const next: [number, number] = [...draft];
     next[index] = raw;
-    const min = clampPrice(Math.min(next[0], next[1]), PRICE_FILTER_MIN, PRICE_FILTER_MAX);
-    const max = clampPrice(Math.max(next[0], next[1]), PRICE_FILTER_MIN, PRICE_FILTER_MAX);
-    onPriceRangeChange([min, max]);
+    const min = clampPrice(
+      Math.min(next[0], next[1]),
+      PRICE_FILTER_MIN,
+      PRICE_FILTER_MAX,
+    );
+    const max = clampPrice(
+      Math.max(next[0], next[1]),
+      PRICE_FILTER_MIN,
+      PRICE_FILTER_MAX,
+    );
+    setDraft([min, max]);
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold text-on-surface">ফিল্টার</h2>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            {resultCount}টি প্রোডাক্ট
-          </p>
+      {showHeading ? (
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-on-surface">ফিল্টার</h2>
+            <p className="mt-1 text-xs text-on-surface-variant">
+              {resultCount}টি প্রোডাক্ট
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onReset}
+            disabled={!canReset}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
+              canReset
+                ? "bg-primary/10 text-primary hover:bg-primary/15"
+                : "cursor-default bg-surface-container-low text-on-surface-variant/50",
+            )}
+          >
+            <MaterialIcon name="refresh" className="text-[14px]" />
+            রিসেট
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onReset}
-          disabled={!canReset}
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
-            canReset
-              ? "bg-primary/10 text-primary hover:bg-primary/15"
-              : "cursor-default bg-surface-container-low text-on-surface-variant/50",
-          )}
-        >
-          <MaterialIcon name="refresh" className="text-[14px]" />
-          রিসেট
-        </button>
-      </div>
+      ) : null}
 
       <section>
         <div className="mb-2 flex items-center gap-2">
@@ -109,8 +124,9 @@ function FilterBody({
           <button
             type="button"
             onClick={() => onCategorySelect("all")}
+            aria-pressed={allCategoriesSelected}
             className={cn(
-              "flex w-full items-center rounded-xl px-3 py-2 text-left text-sm transition-colors",
+              "flex min-h-11 w-full items-center rounded-xl px-3 py-2 text-left text-sm transition-colors",
               allCategoriesSelected
                 ? "bg-primary/8 font-medium text-on-surface ring-1 ring-primary/20"
                 : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
@@ -128,14 +144,17 @@ function FilterBody({
                 key={option.id}
                 type="button"
                 onClick={() => onCategorySelect(option.id)}
+                aria-pressed={active}
                 className={cn(
-                  "flex w-full items-center rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                  "flex min-h-11 w-full items-center rounded-xl px-3 py-2 text-left text-sm transition-colors",
                   active
                     ? "bg-primary/8 font-medium text-on-surface ring-1 ring-primary/20"
                     : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
                 )}
               >
-                <span className="min-w-0 flex-1">{categoryLabels[option.id]}</span>
+                <span className="min-w-0 flex-1">
+                  {categoryLabels[option.id]}
+                </span>
                 <span className="text-xs font-medium text-on-surface-variant tabular-nums">
                   {categoryCounts[option.id]}
                 </span>
@@ -156,12 +175,17 @@ function FilterBody({
         </div>
         <div className="rounded-xl bg-surface-container-low/80 px-3 pt-5 pb-3">
           <Slider
-            value={priceRange}
+            value={draft}
             min={PRICE_FILTER_MIN}
             max={PRICE_FILTER_MAX}
             step={100}
             minStepsBetweenValues={1}
             onValueChange={(value) => {
+              if (!Array.isArray(value) || value.length < 2) return;
+              const [min, max] = value;
+              setDraft([Math.min(min, max), Math.max(min, max)]);
+            }}
+            onValueCommitted={(value) => {
               if (!Array.isArray(value) || value.length < 2) return;
               const [min, max] = value;
               onPriceRangeChange([Math.min(min, max), Math.max(min, max)]);
@@ -175,10 +199,11 @@ function FilterBody({
                 type="number"
                 inputMode="numeric"
                 min={PRICE_FILTER_MIN}
-                max={priceRange[1]}
+                max={draft[1]}
                 step={100}
-                value={priceRange[0]}
+                value={draft[0]}
                 onChange={(event) => setBound(0, Number(event.target.value))}
+                onBlur={() => onPriceRangeChange(draft)}
                 className="w-full bg-transparent text-xs font-semibold text-on-surface outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             </label>
@@ -188,11 +213,12 @@ function FilterBody({
                 aria-label="সর্বোচ্চ দাম"
                 type="number"
                 inputMode="numeric"
-                min={priceRange[0]}
+                min={draft[0]}
                 max={PRICE_FILTER_MAX}
                 step={100}
-                value={priceRange[1]}
+                value={draft[1]}
                 onChange={(event) => setBound(1, Number(event.target.value))}
+                onBlur={() => onPriceRangeChange(draft)}
                 className="w-full bg-transparent text-xs font-semibold text-on-surface outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             </label>
@@ -200,12 +226,16 @@ function FilterBody({
           <div className="mt-3 flex flex-wrap gap-1.5">
             {PRICE_PRESETS.map((preset) => {
               const active =
-                priceRange[0] === preset.range[0] && priceRange[1] === preset.range[1];
+                draft[0] === preset.range[0] && draft[1] === preset.range[1];
               return (
                 <button
                   key={preset.id}
                   type="button"
-                  onClick={() => onPriceRangeChange(preset.range)}
+                  aria-pressed={active}
+                  onClick={() => {
+                    setDraft(preset.range);
+                    onPriceRangeChange(preset.range);
+                  }}
                   className={cn(
                     "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
                     active
@@ -237,7 +267,7 @@ function FilterBody({
               <label
                 key={option.id}
                 className={cn(
-                  "group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 transition-colors",
+                  "group flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 transition-colors",
                   checked
                     ? "bg-primary/8 ring-1 ring-primary/20"
                     : "hover:bg-surface-container-low",
@@ -282,7 +312,10 @@ export function ProductsFilters({
         className,
       )}
     >
-      <FilterBody {...filterProps} />
+      <FilterBody
+        key={`${filterProps.priceRange[0]}-${filterProps.priceRange[1]}`}
+        {...filterProps}
+      />
     </aside>
   );
 }
@@ -299,16 +332,29 @@ export function ProductsMobileFilters({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
+        showCloseButton={false}
         className="force-light flex h-full w-[min(100%,20rem)] flex-col gap-0 border-outline-variant/30 bg-white p-0"
       >
-        <SheetHeader className="shrink-0 border-b border-outline-variant/25 px-4 py-3 text-left sm:px-5 dark:border-white/10">
+        <SheetHeader className="relative shrink-0 border-b border-outline-variant/25 px-4 py-3 pr-20 text-left sm:px-5 dark:border-white/10">
           <SheetTitle className="text-on-surface">ফিল্টার</SheetTitle>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="absolute top-3 right-3 inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-on-surface"
+          >
+            বন্ধ
+          </button>
           <SheetDescription className="text-on-surface-variant">
-            ক্যাটাগরি, দাম ও স্টক দিয়ে সীমিত করুন
+            {filterProps.resultCount}টি প্রোডাক্ট। ক্যাটাগরি, দাম ও স্টক দিয়ে
+            সীমিত করুন।
           </SheetDescription>
         </SheetHeader>
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-          <FilterBody {...filterProps} />
+          <FilterBody
+            key={`${filterProps.priceRange[0]}-${filterProps.priceRange[1]}`}
+            {...filterProps}
+            showHeading={false}
+          />
         </div>
         <div className="shrink-0 border-t border-outline-variant/25 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-white/10">
           <button

@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-import { formatCartMoney, MAX_CART_QTY, offeredDeliveryLabel } from "../../_lib/cart";
+import {
+  formatCartMoney,
+  MAX_CART_QTY,
+  offeredDeliveryLabel,
+} from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
 
@@ -37,7 +41,8 @@ export function CartDrawer() {
     <Sheet open={isOpen} onOpenChange={setCartOpen}>
       <SheetContent
         side="right"
-        className="w-full gap-0 border-outline-variant/30 bg-surface-container-lowest p-0 sm:max-w-md"
+        closeLabel="কার্ট বন্ধ করুন"
+        className="w-full max-w-full gap-0 border-outline-variant/30 bg-surface-container-lowest p-0 sm:max-w-md"
       >
         <SheetHeader className="border-b border-outline-variant/25 px-5 py-5 text-left">
           <SheetTitle className="font-headline-sm text-on-background">
@@ -83,13 +88,15 @@ export function CartDrawer() {
                   className="flex gap-3 rounded-2xl border border-outline-variant/25 bg-surface-container-low/50 p-3"
                 >
                   <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-surface-container">
-                    <Image
-                      src={item.imageSrc}
-                      alt={item.imageAlt}
-                      fill
-                      className="object-contain p-1.5"
-                      sizes="80px"
-                    />
+                    {item.imageSrc ? (
+                      <Image
+                        src={item.imageSrc}
+                        alt={item.imageAlt || item.title}
+                        fill
+                        className="object-contain p-1.5"
+                        sizes="80px"
+                      />
+                    ) : null}
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -103,7 +110,9 @@ export function CartDrawer() {
                           {item.title}
                         </Link>
                         {item.meta ? (
-                          <p className="mt-0.5 text-label-sm text-primary">{item.meta}</p>
+                          <p className="mt-0.5 text-label-sm text-primary">
+                            {item.meta}
+                          </p>
                         ) : null}
                         <p className="mt-0.5 text-label-sm text-outline">
                           {formatCartMoney(item.unitPrice)} / পিস
@@ -120,25 +129,32 @@ export function CartDrawer() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center rounded-full border border-outline-variant/40 bg-surface-container-lowest">
+                      <div
+                        className="inline-flex items-center rounded-full border border-outline-variant/40 bg-surface-container-lowest"
+                        role="group"
+                        aria-label={`${item.title} এর পরিমাণ`}
+                      >
                         <button
                           type="button"
-                          className="flex size-8 items-center justify-center text-on-surface hover:text-primary disabled:opacity-40"
+                          className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
                           onClick={() => adjustQuantity(item.slug, -1)}
                           disabled={item.quantity <= 1}
-                          aria-label="পরিমাণ কমান"
+                          aria-label={`${item.title} এর পরিমাণ কমান`}
                         >
                           <MaterialIcon name="remove" className="text-[16px]" />
                         </button>
-                        <span className="w-8 text-center text-label-sm text-on-surface">
+                        <span
+                          className="w-8 text-center text-label-sm text-on-surface"
+                          aria-live="polite"
+                        >
                           {item.quantity}
                         </span>
                         <button
                           type="button"
-                          className="flex size-8 items-center justify-center text-on-surface hover:text-primary disabled:opacity-40"
+                          className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
                           onClick={() => adjustQuantity(item.slug, 1)}
                           disabled={item.quantity >= MAX_CART_QTY}
-                          aria-label="পরিমাণ বাড়ান"
+                          aria-label={`${item.title} এর পরিমাণ বাড়ান`}
                         >
                           <MaterialIcon name="add" className="text-[16px]" />
                         </button>
@@ -170,7 +186,7 @@ export function CartDrawer() {
             </div>
             <div className="mb-4 flex items-center justify-between rounded-xl bg-surface-container-low px-4 py-3">
               <span className="font-label-md text-on-surface">সর্বমোট</span>
-              <span className="font-headline-sm text-primary">
+              <span className="font-headline-sm text-[#0b5e56]">
                 {formatCartMoney(pricing.total)}
               </span>
             </div>

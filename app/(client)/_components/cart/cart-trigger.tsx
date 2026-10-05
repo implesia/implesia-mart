@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { formatCartMoney } from "../../_lib/cart";
+import { formatCartMoney } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
 

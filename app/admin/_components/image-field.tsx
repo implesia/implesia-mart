@@ -8,14 +8,13 @@ import { cn } from "@/lib/utils";
 
 import { FieldLabel } from "./admin-ui";
 
-const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif";
+const ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const MAX_BYTES = 5 * 1024 * 1024;
 const TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
-  "image/avif",
 ]);
 
 function releasePreview(src: string) {
@@ -27,7 +26,7 @@ function releasePreview(src: string) {
  */
 export async function uploadImage(file: File): Promise<string> {
   if (!TYPES.has(file.type)) {
-    throw new Error("Use a JPG, PNG, WEBP, GIF, or AVIF image.");
+    throw new Error("Use a JPG, PNG, WEBP, or GIF image.");
   }
   if (file.size > MAX_BYTES) {
     throw new Error("Image must be 5 MB or smaller.");
@@ -74,7 +73,7 @@ export function MultiImageUpload({
         );
       else if (failed.length > 1)
         setError(
-          `${failed.length} images could not be uploaded. Use JPG, PNG, WEBP, GIF, or AVIF up to 5 MB.`,
+          `${failed.length} images could not be uploaded. Use JPG, PNG, WEBP, or GIF up to 5 MB.`,
         );
     } finally {
       setPending(0);
@@ -145,7 +144,7 @@ export function MultiImageUpload({
           />
         </label>
         <p className="text-xs text-neutral-500">
-          JPG, PNG, WEBP, GIF, or AVIF. Up to 5 MB each.
+          JPG, PNG, WEBP, or GIF. Up to 5 MB each.
         </p>
       </div>
       {error ? <p className="mt-1.5 text-xs text-red-600">{error}</p> : null}
@@ -344,7 +343,7 @@ export function ImageField({
             )
           ) : (
             <p className="text-xs text-neutral-500">
-              JPG, PNG, WEBP, GIF, or AVIF. Up to 5 MB.
+              JPG, PNG, WEBP, or GIF. Up to 5 MB.
             </p>
           )}
         </div>

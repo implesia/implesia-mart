@@ -1,0 +1,17 @@
+.banner-swiper .swiper-wrapper,
+.banner-swiper .swiper-slide {
+  height: 100%;
+}
+
+/*
+  Before Swiper JS adds `.swiper-initialized`, slides stack in normal flow and
+  fill images expand to intrinsic size. Hide siblings until init.
+*/
+.swiper:not(.swiper-initialized) {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.swiper:not(.swiper-initialized) .swiper-slide:not(:first-child) {
+  display: none !important;
+}

@@ -39,6 +39,8 @@ import { SustainabilityImpact } from "./_components/sustainability-impact";
 import { SustainabilityOrigin } from "./_components/sustainability-origin";
 import { SustainabilityQuality } from "./_components/sustainability-quality";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "সাসটেইনেবিলিটি",
   description:

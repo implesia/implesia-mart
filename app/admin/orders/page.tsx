@@ -186,7 +186,13 @@ function OrdersView() {
           <AdminEmpty title="No orders yet" detail="A checkout order will show up here with the server price." />
         ) : null}
         {directory && directory.items.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="divide-y divide-neutral-100 lg:hidden">
+            {directory.items.map((order) => (
+              <OrderCard key={order.id} order={order} onStatus={changeStatus} />
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto overscroll-x-contain lg:block">
             <table className="w-full min-w-[52rem] text-left text-sm">
               <thead className="text-xs text-neutral-500">
                 <tr>
@@ -205,6 +211,7 @@ function OrdersView() {
               </tbody>
             </table>
           </div>
+          </>
         ) : null}
         {directory && directory.pages > 1 ? (
           <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3 text-sm">
@@ -261,6 +268,61 @@ function StatusTab({ href, label, count, active }: { href: string; label: string
       <span className={cn("rounded-full px-1.5 py-0.5 text-xs tabular-nums", active ? "bg-primary/10 text-[#0b3d39]" : "bg-neutral-100 text-neutral-500")}>{count}</span>
       {active ? <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary" /> : null}
     </Link>
+  );
+}
+
+function OrderCard({
+  order,
+  onStatus,
+}: {
+  order: MartOrder;
+  onStatus: (order: MartOrder, status: OrderStatus) => void;
+}) {
+  const item = order.items[0];
+  const pieces = order.items.reduce((sum, line) => sum + line.quantity, 0);
+  const href = `/admin/orders/${order.id}`;
+  return (
+    <li className="px-4 py-3">
+      <Link href={href} className="flex min-w-0 items-start gap-3">
+        {item?.imageSrc ? (
+          <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+            <Image src={item.imageSrc} alt="" fill sizes="48px" className="object-cover" />
+          </span>
+        ) : null}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-2">
+            <span className="truncate font-semibold text-neutral-950">{order.number}</span>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-neutral-950">
+              {formatTaka(order.total)}
+            </span>
+          </span>
+          <span className="mt-0.5 block truncate text-xs text-neutral-500">
+            {order.customerName} · {order.district}
+          </span>
+          <span className="mt-0.5 block truncate text-xs text-neutral-500">
+            {item ? item.title : "—"} · {pieces} pcs
+          </span>
+        </span>
+      </Link>
+      <span className="mt-3 flex items-center justify-between gap-3">
+        <PaymentBadge />
+        <select
+          aria-label={`Status for ${order.number}`}
+          value={order.status}
+          onChange={(event) => onStatus(order, event.target.value as OrderStatus)}
+          className={cn(
+            "h-10 cursor-pointer appearance-none rounded-full py-0 pr-7 pl-3 text-xs font-semibold outline-none",
+            ORDER_STATUS_TONE[order.status],
+          )}
+        >
+          {ORDER_STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {ADMIN_ORDER_STATUS_LABEL[status]}
+            </option>
+          ))}
+        </select>
+      </span>
+    </li>
   );
 }
 

@@ -9,5 +9,5 @@ export async function POST(request: Request) {
       { status: 403, headers: { "Cache-Control": "no-store" } },
     );
   }
-  return logoutSession();
+  return logoutSession(request);
 }

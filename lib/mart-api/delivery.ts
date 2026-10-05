@@ -1,4 +1,8 @@
-import { MART_API_URL, MartApiError, authorizedFetch } from "@/lib/mart-api/products";
+import {
+  MartApiError,
+  authorizedFetch,
+  publicFetch,
+} from "@/lib/mart-api/products";
 
 export type DeliveryZone = "inside" | "suburban" | "outside";
 
@@ -45,15 +49,13 @@ async function readError(response: Response, fallback: string) {
     /* not the API envelope */
   }
   if (response.status === 401) return "Sign in again to change delivery rates.";
-  if (response.status === 403) return "You do not have permission to change delivery rates.";
+  if (response.status === 403)
+    return "You do not have permission to change delivery rates.";
   return fallback;
 }
 
 export async function getPublicDeliveryRates() {
-  const response = await fetch(`${MART_API_URL}/api/v1/delivery`, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 60 },
-  });
+  const response = await publicFetch("/api/v1/delivery");
   if (!response.ok) {
     throw new MartApiError("Delivery rates could not be loaded.");
   }
@@ -63,7 +65,9 @@ export async function getPublicDeliveryRates() {
 export async function getAdminDeliveryRates() {
   const response = await authorizedFetch("/api/v1/admin/delivery");
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Delivery rates could not be loaded."));
+    throw new MartApiError(
+      await readError(response, "Delivery rates could not be loaded."),
+    );
   }
   return mapRates((await response.json()) as ApiRates);
 }
@@ -82,7 +86,9 @@ export async function saveAdminDeliveryRates(rates: DeliveryRates) {
     }),
   });
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Delivery rates could not be saved."));
+    throw new MartApiError(
+      await readError(response, "Delivery rates could not be saved."),
+    );
   }
   return mapRates((await response.json()) as ApiRates);
 }

@@ -22,6 +22,10 @@ export function refreshCookieOptions(secure: boolean) {
   return sessionCookieOptions(secure, REFRESH_MAX_AGE);
 }
 
+export function clearedCookieOptions(secure: boolean) {
+  return sessionCookieOptions(secure, 0);
+}
+
 /** Browser fetches from this site send Origin. Cross-site posts do not match Host. */
 export function isSameOrigin(request: Request) {
   const origin = request.headers.get("origin");

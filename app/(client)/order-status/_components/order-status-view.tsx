@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { WHATSAPP_HREF } from "@/app/(client)/_data/contact/contact";
-import { orderPhoneDigits, readSavedOrders, rememberOrder, type SavedOrder } from "@/app/(client)/_lib/saved-orders";
+import {
+  orderPhoneDigits,
+  readSavedOrders,
+  rememberOrder,
+  type SavedOrder,
+} from "@/app/(client)/_lib/saved-orders";
 import { Input } from "@/components/ui/input";
 import { MartApiError } from "@/lib/mart-api/products";
 import { lookupPublicOrder, type PublicOrder } from "@/lib/mart-api/orders";
@@ -13,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { formatCartMoney } from "../../_lib/cart";
+import { formatCartMoney } from "../../_lib/cart-shared";
 
 const fieldClass =
   "h-11 rounded-xl border-neutral-200 bg-[#f5f6f8] px-3.5 text-sm shadow-none focus-visible:border-primary focus-visible:ring-primary/30";
@@ -70,11 +75,16 @@ function lookupMessage(error: unknown) {
   if (message === "Order not found") {
     return "অর্ডার নম্বর বা মোবাইল মিলছে না। নম্বরটা কনফার্মের সময় যেটা দেখেছিলেন, সেটা দিন।";
   }
-  if (message.includes("reach")) return "এখন সংযোগ হয়নি। একটু পরে আবার চেষ্টা করুন।";
+  if (message.includes("reach"))
+    return "এখন সংযোগ হয়নি। একটু পরে আবার চেষ্টা করুন।";
   return "অর্ডার নম্বর আর ১১ সংখ্যার মোবাইল দিন।";
 }
 
-export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }) {
+export function OrderStatusView({
+  initialOrder = "",
+}: {
+  initialOrder?: string;
+}) {
   const [saved, setSaved] = useState<SavedOrder[]>([]);
   const [number, setNumber] = useState(initialOrder);
   const [phone, setPhone] = useState("");
@@ -91,7 +101,9 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
     setPhone(nextPhone);
     if (!/^IM-[0-9A-F]{8}$/.test(nextNumber)) {
       setResult(null);
-      setError("অর্ডার নম্বর IM- দিয়ে শুরু, তারপর ৮টা অক্ষর। যেমন IM-9F216D67।");
+      setError(
+        "অর্ডার নম্বর IM- দিয়ে শুরু, তারপর ৮টা অক্ষর। যেমন IM-9F216D67।",
+      );
       return;
     }
     if (!/^01\d{9}$/.test(nextPhone)) {
@@ -116,7 +128,10 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
       setSaved(readSavedOrders());
       setResult(order);
       window.setTimeout(() => {
-        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        resultRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
       }, 40);
     } catch (cause) {
       if (id !== requestId.current) return;
@@ -128,17 +143,24 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
   }
 
   useEffect(() => {
-    const stored = readSavedOrders();
-    setSaved(stored);
-    const wanted = initialOrder.replace(/\s+/g, "").toUpperCase();
-    const match = wanted ? stored.find((item) => item.number === wanted) : stored[0];
-    if (!match) {
-      if (wanted) setNumber(wanted);
-      return;
-    }
-    void runLookup(match.number, match.phone);
-    // Saved receipts are read once when the page opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const stored = readSavedOrders();
+      setSaved(stored);
+      const wanted = initialOrder.replace(/\s+/g, "").toUpperCase();
+      const match = wanted
+        ? stored.find((item) => item.number === wanted)
+        : stored[0];
+      if (!match) {
+        if (wanted) setNumber(wanted);
+        return;
+      }
+      void runLookup(match.number, match.phone);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [initialOrder]);
 
   return (
@@ -151,13 +173,15 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
           আমার অর্ডার
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-          অর্ডার নম্বর আর চেকআউটে দেওয়া মোবাইল মিললে স্ট্যাটাস দেখাবে। একই ব্রাউজারে
-          অর্ডার করলে নম্বর সেভ থাকে।
+          অর্ডার নম্বর আর চেকআউটে দেওয়া মোবাইল মিললে স্ট্যাটাস দেখাবে। একই
+          ব্রাউজারে অর্ডার করলে নম্বর সেভ থাকে।
         </p>
 
         {saved.length > 0 ? (
           <div className="mt-5">
-            <p className="mb-2 text-xs font-medium text-neutral-500">এই ব্রাউজারে</p>
+            <p className="mb-2 text-xs font-medium text-neutral-500">
+              এই ব্রাউজারে
+            </p>
             <ul className="flex gap-2 overflow-x-auto pb-1">
               {saved.map((item) => {
                 const active = result?.number === item.number;
@@ -195,7 +219,10 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
           }}
           className="mt-4 rounded-[24px] bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5"
         >
-          <label htmlFor="order-number" className="mb-1.5 block text-sm font-medium text-neutral-800">
+          <label
+            htmlFor="order-number"
+            className="mb-1.5 block text-sm font-medium text-neutral-800"
+          >
             অর্ডার নম্বর
           </label>
           <Input
@@ -205,9 +232,14 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
             placeholder="IM-9F216D67"
             autoComplete="off"
             spellCheck={false}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "order-lookup-error" : undefined}
             className={cn(fieldClass, "font-mono tracking-wide uppercase")}
           />
-          <label htmlFor="order-phone" className="mt-4 mb-1.5 block text-sm font-medium text-neutral-800">
+          <label
+            htmlFor="order-phone"
+            className="mt-4 mb-1.5 block text-sm font-medium text-neutral-800"
+          >
             মোবাইল নম্বর
           </label>
           <Input
@@ -217,10 +249,18 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
             inputMode="numeric"
             autoComplete="tel"
             placeholder="01XXXXXXXXX"
+            aria-invalid={Boolean(error)}
+            aria-describedby={
+              error ? "order-phone-hint order-lookup-error" : "order-phone-hint"
+            }
             className={fieldClass}
           />
-          <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-            যে নম্বর দিয়ে অর্ডার করেছেন, সেটাই দিন। ভুল ফোন দিলে অর্ডার খুলবে না।
+          <p
+            id="order-phone-hint"
+            className="mt-2 text-xs leading-relaxed text-neutral-500"
+          >
+            যে নম্বর দিয়ে অর্ডার করেছেন, সেটাই দিন। ভুল ফোন দিলে অর্ডার খুলবে
+            না।
           </p>
           <button
             type="submit"
@@ -233,6 +273,7 @@ export function OrderStatusView({ initialOrder = "" }: { initialOrder?: string }
 
         {error ? (
           <p
+            id="order-lookup-error"
             role="alert"
             className="mt-4 rounded-2xl bg-white px-4 py-4 text-sm leading-relaxed text-neutral-800 ring-1 ring-neutral-200/90"
           >
@@ -287,7 +328,9 @@ function OrderCard({
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs text-neutral-500">{formatWhen(order.createdAt)}</p>
+          <p className="text-xs text-neutral-500">
+            {formatWhen(order.createdAt)}
+          </p>
           <h2 className="mt-1 text-lg font-semibold tracking-tight text-neutral-950">
             {firstName ? `${firstName}, আপনার অর্ডার` : "আপনার অর্ডার"}
           </h2>
@@ -329,7 +372,10 @@ function OrderCard({
                   </span>
                   {index < FLOW.length - 1 ? (
                     <span
-                      className={cn("my-1 w-px flex-1", done ? "bg-primary" : "bg-neutral-200")}
+                      className={cn(
+                        "my-1 w-px flex-1",
+                        done ? "bg-primary" : "bg-neutral-200",
+                      )}
                       style={{ minHeight: 22 }}
                     />
                   ) : null}
@@ -357,17 +403,24 @@ function OrderCard({
         <div className="mt-4 rounded-2xl bg-primary/10 px-3.5 py-3 text-sm">
           <p className="text-xs font-medium text-primary">কুরিয়ার</p>
           {order.courierName ? (
-            <p className="mt-1 font-medium text-neutral-950">{order.courierName}</p>
+            <p className="mt-1 font-medium text-neutral-950">
+              {order.courierName}
+            </p>
           ) : null}
           {order.trackingNumber ? (
-            <p className="mt-0.5 font-mono text-neutral-800">{order.trackingNumber}</p>
+            <p className="mt-0.5 font-mono text-neutral-800">
+              {order.trackingNumber}
+            </p>
           ) : null}
         </div>
       ) : null}
 
       <ul className="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4">
         {order.items.map((item) => (
-          <li key={`${item.slug}-${item.title}`} className="flex items-center gap-3">
+          <li
+            key={`${item.slug}-${item.title}`}
+            className="flex items-center gap-3"
+          >
             {item.imageSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -377,13 +430,18 @@ function OrderCard({
               />
             ) : null}
             <div className="min-w-0 flex-1">
-              <Link href={`/products/${item.slug}`} className="line-clamp-2 text-sm font-medium text-neutral-950">
+              <Link
+                href={`/products/${item.slug}`}
+                className="line-clamp-2 text-sm font-medium text-neutral-950"
+              >
                 {item.title}
               </Link>
               <p className="text-xs text-neutral-500">× {item.quantity}</p>
               {item.selection.length > 0 ? (
                 <p className="text-xs text-primary">
-                  {item.selection.map((choice) => `${choice.name}: ${choice.label}`).join(" · ")}
+                  {item.selection
+                    .map((choice) => `${choice.name}: ${choice.label}`)
+                    .join(" · ")}
                 </p>
               ) : null}
             </div>
@@ -398,8 +456,12 @@ function OrderCard({
         <Row label="পণ্য" value={formatCartMoney(order.subtotal)} />
         <Row label="ডেলিভারি" value={formatCartMoney(order.shipping)} />
         <div className="flex items-center justify-between pt-1">
-          <dt className="font-semibold text-neutral-950">মোট · ক্যাশ অন ডেলিভারি</dt>
-          <dd className="text-base font-semibold text-primary">{formatCartMoney(order.total)}</dd>
+          <dt className="font-semibold text-neutral-950">
+            মোট · ক্যাশ অন ডেলিভারি
+          </dt>
+          <dd className="text-base font-semibold text-primary">
+            {formatCartMoney(order.total)}
+          </dd>
         </div>
       </dl>
 

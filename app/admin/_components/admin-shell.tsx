@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
 import { logoutMart } from "@/lib/mart-api/products";
 import {
   clearSession,
+  dropStoredTokens,
   markPasswordChanged,
   readSession,
+  readStoredRefreshToken,
   writeSession,
   type AdminSession,
 } from "@/lib/mart-mock/store";
@@ -411,14 +413,33 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const isLogin = pathname === "/admin/login";
   const wide = isWideAdminPath(pathname);
   const backHref = adminBackHref(pathname);
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/auth/session", { credentials: "same-origin" })
-      .then(async (response) => {
+    void (async () => {
+      const leftover = readStoredRefreshToken();
+      if (leftover) {
+        try {
+          const revoked = await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: leftover }),
+          });
+          if (revoked.ok) dropStoredTokens();
+        } catch {
+          /* Keep the stored token so the next visit can revoke it. */
+        }
+      }
+      if (cancelled) return;
+      try {
+        const response = await fetch("/api/auth/session", {
+          credentials: "same-origin",
+        });
         if (cancelled) return;
         if (response.ok) {
           const body = (await response.json()) as { email?: string };
@@ -428,10 +449,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         clearSession();
         sessionCache = null;
         window.dispatchEvent(new Event(SESSION_EVENT));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setChecked(true);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -451,7 +472,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
-    await logoutMart();
+    setLogoutError("");
+    try {
+      await logoutMart();
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error
+          ? error.message
+          : "Sign out did not finish. You are still signed in.",
+      );
+      return;
+    }
     sessionCache = null;
     window.dispatchEvent(new Event(SESSION_EVENT));
     setMenuOpen(false);
@@ -459,9 +490,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     router.replace("/admin/login");
   }
 
-  function finishPasswordChange() {
+  async function finishPasswordChange() {
     markPasswordChanged();
-    clearSession();
+    try {
+      await logoutMart();
+    } catch {
+      clearSession();
+    }
     sessionCache = null;
     window.dispatchEvent(new Event(SESSION_EVENT));
     setMenuOpen(false);
@@ -525,8 +560,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           onToggleSidebar={toggleSidebar}
           onOpenMenu={() => setMenuOpen(true)}
           onChangePassword={() => setPasswordOpen(true)}
-          onLogout={logout}
+          onLogout={() => void logout()}
         />
+        {logoutError ? (
+          <p
+            role="alert"
+            className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800"
+          >
+            {logoutError}
+          </p>
+        ) : null}
         <div
           className={cn(
             "w-full",
@@ -550,7 +593,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       {passwordOpen ? (
-        <ChangePasswordDialog onClose={() => setPasswordOpen(false)} onChanged={finishPasswordChange} />
+        <ChangePasswordDialog
+          onClose={() => setPasswordOpen(false)}
+          onChanged={finishPasswordChange}
+        />
       ) : null}
     </div>
   );

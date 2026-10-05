@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
-import { formatCartMoney } from "../../_lib/cart";
+import { formatCartMoney } from "../../_lib/cart-shared";
 
 import { CheckoutPlaceOrderButton } from "./checkout-place-order-button";
 import { useCheckoutForm } from "./checkout-form-context";
@@ -50,7 +50,10 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
 
         <div className="flex max-h-[min(50vh,22rem)] flex-col gap-3.5 overflow-y-auto pr-0.5 sm:max-h-none sm:overflow-visible">
           {items.map((item) => (
-            <div key={item.productId} className="flex items-start gap-2.5 sm:gap-3">
+            <div
+              key={item.productId}
+              className="flex items-start gap-2.5 sm:gap-3"
+            >
               <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-[#f5f6f8] ring-1 ring-neutral-200/90 sm:size-20">
                 {item.imageSrc ? (
                   <Image
@@ -66,14 +69,20 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h3 className="line-clamp-2 text-sm font-medium text-neutral-950">{item.title}</h3>
+                    <h3 className="line-clamp-2 text-sm font-medium text-neutral-950">
+                      {item.title}
+                    </h3>
                     {item.selection.length > 0 ? (
                       <p className="mt-0.5 text-xs text-primary">
-                        {item.selection.map((choice) => `${choice.name}: ${choice.label}`).join(" · ")}
+                        {item.selection
+                          .map((choice) => `${choice.name}: ${choice.label}`)
+                          .join(" · ")}
                       </p>
                     ) : null}
                     {item.available ? null : (
-                      <p className="mt-0.5 text-xs text-red-500">এখন কেনা যাচ্ছে না</p>
+                      <p className="mt-0.5 text-xs text-red-500">
+                        এখন কেনা যাচ্ছে না
+                      </p>
                     )}
                   </div>
                   <button
@@ -98,18 +107,29 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                     >
                       <MaterialIcon name="remove" className="text-[16px]" />
                     </button>
-                    <span className="w-7 text-center text-xs">{item.quantity}</span>
+                    <span className="w-7 text-center text-xs">
+                      {item.quantity}
+                    </span>
                     <button
                       type="button"
                       className="flex size-8 items-center justify-center hover:text-primary disabled:opacity-40"
                       onClick={() => changeQuantity(item, item.quantity + 1)}
-                      disabled={pricingBusy || !item.available || item.quantity >= item.maxQuantity}
+                      disabled={
+                        pricingBusy ||
+                        !item.available ||
+                        item.quantity >= item.maxQuantity
+                      }
                       aria-label="পরিমাণ বাড়ান"
                     >
                       <MaterialIcon name="add" className="text-[16px]" />
                     </button>
                   </div>
-                  <span className={cn("text-sm font-semibold text-neutral-950", pricingBusy && "opacity-50")}>
+                  <span
+                    className={cn(
+                      "text-sm font-semibold text-neutral-950",
+                      pricingBusy && "opacity-50",
+                    )}
+                  >
                     {formatCartMoney(item.lineTotal)}
                   </span>
                 </div>
@@ -119,8 +139,13 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
         </div>
 
         <div className="flex items-start gap-2.5 rounded-2xl border-l-4 border-primary bg-[#f5f6f8] px-3 py-2.5 text-sm text-neutral-600">
-          <MaterialIcon name="schedule" className="mt-0.5 shrink-0 text-[18px] text-primary" />
-          <span className="min-w-0 leading-snug">{checkoutCopy.deliveryEta}</span>
+          <MaterialIcon
+            name="schedule"
+            className="mt-0.5 shrink-0 text-[18px] text-primary"
+          />
+          <span className="min-w-0 leading-snug">
+            {checkoutCopy.deliveryEta}
+          </span>
         </div>
 
         <Separator className="bg-neutral-200" />
@@ -128,7 +153,12 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-neutral-600">সাবটোটাল</span>
-            <span className={cn("font-medium text-neutral-950", pricingBusy && "opacity-50")}>
+            <span
+              className={cn(
+                "font-medium text-neutral-950",
+                pricingBusy && "opacity-50",
+              )}
+            >
               {formatCartMoney(quote?.subtotal ?? 0)}
             </span>
           </div>
@@ -145,19 +175,33 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                       : "ঢাকার বাইরে"}
               </span>
             </span>
-            <span className={cn("font-medium text-neutral-950", pricingBusy && "opacity-50")}>
+            <span
+              className={cn(
+                "font-medium text-neutral-950",
+                pricingBusy && "opacity-50",
+              )}
+            >
               {formatCartMoney(deliveryFee)}
             </span>
           </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f6f8] px-3.5 py-3.5">
-          <span className="text-base font-semibold text-neutral-950">সর্বমোট</span>
-          <span className={cn("text-base font-semibold text-primary", pricingBusy && "opacity-50")}>
+          <span className="text-base font-semibold text-neutral-950">
+            সর্বমোট
+          </span>
+          <span
+            className={cn(
+              "text-base font-semibold text-primary",
+              pricingBusy && "opacity-50",
+            )}
+          >
             {formatCartMoney(grandTotal)}
           </span>
         </div>
-        {pricingMessage ? <p className="text-center text-xs text-red-500">{pricingMessage}</p> : null}
+        {pricingMessage ? (
+          <p className="text-center text-xs text-red-500">{pricingMessage}</p>
+        ) : null}
 
         <div className="hidden lg:block">
           <CheckoutPlaceOrderButton />
@@ -169,13 +213,20 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
               key={item.label}
               className="flex flex-col items-center gap-1 rounded-xl bg-[#f5f6f8] px-1.5 py-2.5 text-center"
             >
-              <MaterialIcon name={item.icon} className="text-[18px] text-primary" />
-              <span className="text-[10px] leading-tight text-neutral-600">{item.label}</span>
+              <MaterialIcon
+                name={item.icon}
+                className="text-[18px] text-primary"
+              />
+              <span className="text-[10px] leading-tight text-neutral-600">
+                {item.label}
+              </span>
             </div>
           ))}
         </div>
 
-        <p className="text-center text-[11px] text-neutral-500">{checkoutCopy.sslNote}</p>
+        <p className="text-center text-[11px] text-neutral-500">
+          {checkoutCopy.sslNote}
+        </p>
       </div>
     </aside>
   );

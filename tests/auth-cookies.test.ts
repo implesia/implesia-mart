@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   accessCookieOptions,
+  clearedCookieOptions,
   isSameOrigin,
   refreshCookieOptions,
 } from "../lib/auth/cookies.ts";
@@ -19,6 +20,15 @@ test("session cookies are httpOnly and lax", () => {
 
 test("local http keeps the secure flag off", () => {
   assert.equal(accessCookieOptions(false).secure, false);
+});
+
+test("logout expires the same httpOnly cookie", () => {
+  const cleared = clearedCookieOptions(true);
+  assert.equal(cleared.httpOnly, true);
+  assert.equal(cleared.secure, true);
+  assert.equal(cleared.sameSite, "lax");
+  assert.equal(cleared.path, "/");
+  assert.equal(cleared.maxAge, 0);
 });
 
 test("cross-site posts are rejected", () => {

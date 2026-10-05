@@ -5,6 +5,7 @@ import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
   accessCookieOptions,
+  clearedCookieOptions,
   isSameOrigin,
   refreshCookieOptions,
 } from "@/lib/auth/cookies";
@@ -26,8 +27,9 @@ function applyPair(response: NextResponse, pair: TokenPair) {
 }
 
 export function clearSessionCookies(response: NextResponse) {
-  response.cookies.delete(ACCESS_COOKIE);
-  response.cookies.delete(REFRESH_COOKIE);
+  const options = clearedCookieOptions(secureCookie());
+  response.cookies.set(ACCESS_COOKIE, "", options);
+  response.cookies.set(REFRESH_COOKIE, "", options);
 }
 
 async function rotate(refreshToken: string): Promise<TokenPair | null> {
@@ -122,21 +124,48 @@ export async function loginWithPassword(email: string, password: string) {
   return result;
 }
 
-export async function logoutSession() {
+async function revokeRefreshToken(refresh: string) {
+  try {
+    const response = await fetch(`${API}/api/v1/auth/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+      cache: "no-store",
+    });
+    return response.ok || response.status === 401;
+  } catch {
+    return false;
+  }
+}
+
+export async function logoutSession(request: Request) {
   const jar = await cookies();
-  const refresh = jar.get(REFRESH_COOKIE)?.value;
-  if (refresh) {
-    try {
-      await fetch(`${API}/api/v1/auth/logout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refresh }),
-        cache: "no-store",
-      });
-    } catch {
-      /* The cookie is cleared even when the API cannot be reached. */
+  const tokens = new Set<string>();
+  const cookieRefresh = jar.get(REFRESH_COOKIE)?.value;
+  if (cookieRefresh) tokens.add(cookieRefresh);
+  try {
+    const body = (await request.json()) as { refresh_token?: unknown };
+    if (typeof body.refresh_token === "string" && body.refresh_token.trim()) {
+      tokens.add(body.refresh_token.trim());
+    }
+  } catch {
+    /* A normal logout posts no body. The refresh cookie is enough. */
+  }
+
+  for (const token of tokens) {
+    const revoked = await revokeRefreshToken(token);
+    if (!revoked) {
+      return NextResponse.json(
+        {
+          error: {
+            message: "Sign out did not finish. You are still signed in.",
+          },
+        },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
+      );
     }
   }
+
   const result = NextResponse.json(
     { ok: true },
     { headers: { "Cache-Control": "no-store" } },

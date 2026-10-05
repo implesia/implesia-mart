@@ -20,6 +20,8 @@ import { ShopCta } from "./_components/shop-cta";
 import { StatsBar } from "./_components/stats-bar";
 import { TrustBadges } from "./_components/trust-badges";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "আমাদের সম্পর্কে",
   description:

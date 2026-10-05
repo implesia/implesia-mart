@@ -1,8 +1,7 @@
 "use client";
 
 import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/effect-fade";
+import "../carousels/swiper-storefront.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
