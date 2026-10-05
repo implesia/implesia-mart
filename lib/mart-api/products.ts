@@ -6,8 +6,6 @@ import {
 } from "@/lib/mart-mock/product-content";
 import {
   clearSession,
-  readSession,
-  writeSession,
   type AdminProduct,
   type ProductDraft,
   type StockStatus,
@@ -62,60 +60,34 @@ export function withSavedMedia(draft: ProductDraft, saved: SavedProduct): Produc
   };
 }
 
-let refreshInFlight: Promise<boolean> | null = null;
-
-async function refreshAccessToken() {
-  const session = readSession();
-  if (!session?.refreshToken) return false;
-  let response: Response;
-  try {
-    response = await fetch(`${MART_API_URL}/api/v1/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: session.refreshToken }),
-    });
-  } catch {
-    return false;
-  }
-  if (!response.ok) return false;
-  const body = (await response.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-  };
-  if (!body.access_token || !body.refresh_token) return false;
-  writeSession(session.email, body.access_token, body.refresh_token);
-  return true;
-}
-
-function refreshOnce() {
-  if (!refreshInFlight) {
-    refreshInFlight = refreshAccessToken().finally(() => {
-      refreshInFlight = null;
-    });
-  }
-  return refreshInFlight;
-}
-
-/** Sends an API request and replaces an expired access token before retrying once. */
-export async function authorizedFetch(path: string, init?: RequestInit, attempt = 0) {
+/** Admin calls go through the same-origin proxy. The browser never sees the tokens. */
+export async function authorizedFetch(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
-  const access = readSession()?.accessToken;
-  if (access) headers.set("Authorization", `Bearer ${access}`);
-
+  headers.delete("Authorization");
   let response: Response;
   try {
-    response = await fetch(`${MART_API_URL}${path}`, { ...init, headers });
+    response = await fetch(`/api/proxy${path.startsWith("/") ? path : `/${path}`}`, {
+      ...init,
+      headers,
+      credentials: "same-origin",
+    });
   } catch {
     throw new MartApiError("Could not reach the API.");
   }
+  if (response.status === 401 && !path.includes("/auth/change-password")) clearSession();
+  return response;
+}
 
-  if (response.status !== 401 || attempt > 0 || !readSession()) return response;
-  const refreshed = await refreshOnce();
-  if (!refreshed) {
-    clearSession();
-    return response;
+/** Public storefront calls stay anonymous. An admin session is not attached. */
+export async function publicFetch(path: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  headers.delete("Authorization");
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  try {
+    return await fetch(`${MART_API_URL}${path}`, { ...init, headers, cache: "no-store" });
+  } catch {
+    throw new MartApiError("Could not reach the API.");
   }
-  return authorizedFetch(path, init, attempt + 1);
 }
 
 async function readError(response: Response, fallback: string) {
@@ -254,10 +226,10 @@ function formDataFor(
 }
 
 async function sendProduct(path: string, method: "POST" | "PATCH", body: FormData) {
-  if (!readSession()?.accessToken) {
+  const response = await authorizedFetch(path, { method, body });
+  if (response.status === 401) {
     throw new MartApiError("Sign in again to manage products.");
   }
-  const response = await authorizedFetch(path, { method, body });
   if (!response.ok) throw new MartApiError(await readError(response, "The product could not be saved."));
   return (await response.json()) as SavedProduct;
 }
@@ -265,75 +237,53 @@ async function sendProduct(path: string, method: "POST" | "PATCH", body: FormDat
 export async function loginMart(email: string, password: string) {
   let response: Response;
   try {
-    response = await fetch(`${MART_API_URL}/api/v1/auth/login`, {
+    response = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({ email, password }),
     });
   } catch {
     throw new MartApiError("Could not reach the product API.");
   }
   if (!response.ok) throw new MartApiError(await readError(response, "Sign in failed."));
-  const body = (await response.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-  };
-  if (!body.access_token || !body.refresh_token) throw new MartApiError("Sign in failed.");
-  return { accessToken: body.access_token, refreshToken: body.refresh_token };
+  const body = (await response.json()) as { email?: string };
+  if (!body.email) throw new MartApiError("Sign in failed.");
+  return { email: body.email };
 }
 
 export async function changeMartPassword(currentPassword: string, newPassword: string) {
-  async function send(token: string | undefined) {
-    const headers = new Headers({ "Content-Type": "application/json" });
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    return fetch(`${MART_API_URL}/api/v1/auth/change-password`, {
+  let response: Response;
+  try {
+    response = await fetch("/api/proxy/api/v1/auth/change-password", {
       method: "POST",
-      headers,
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({
         current_password: currentPassword,
         new_password: newPassword,
       }),
     });
-  }
-
-  let response: Response;
-  try {
-    response = await send(readSession()?.accessToken);
   } catch {
     throw new MartApiError("Could not reach the API.");
   }
-
-  // A wrong current password is also 401. Refreshing here would sign the user out.
-  if (response.status === 401) {
-    const message = await readError(response.clone(), "Current password is incorrect.");
-    if (message !== "Could not validate credentials") throw new MartApiError(message);
-    const refreshed = await refreshOnce();
-    if (!refreshed) {
+  if (!response.ok) {
+    const message = await readError(response, "The password could not be changed.");
+    if (response.status === 401 && message === "Could not validate credentials") {
       clearSession();
       throw new MartApiError("Sign in again to change your password.");
     }
-    try {
-      response = await send(readSession()?.accessToken);
-    } catch {
-      throw new MartApiError("Could not reach the API.");
-    }
-  }
-
-  if (!response.ok) {
-    throw new MartApiError(await readError(response, "The password could not be changed."));
+    throw new MartApiError(message);
   }
 }
 
-export async function logoutMart(refreshToken: string) {
+export async function logoutMart() {
   try {
-    await fetch(`${MART_API_URL}/api/v1/auth/logout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
   } catch {
-    // The browser session is cleared even when the API is unreachable.
+    /* The browser profile is cleared even when the API is unreachable. */
   }
+  clearSession();
 }
 
 export async function saveMartProduct(productId: string | undefined, draft: ProductDraft) {
@@ -526,10 +476,11 @@ function cardToProduct(item: ApiCard): AdminProduct {
 }
 
 async function apiFetch(path: string, init?: RequestInit) {
-  if (!readSession()?.accessToken) {
+  const response = await authorizedFetch(path, init);
+  if (response.status === 401) {
     throw new MartApiError("Sign in again to manage products.");
   }
-  return authorizedFetch(path, init);
+  return response;
 }
 
 function wholeNumber(value: string | undefined) {

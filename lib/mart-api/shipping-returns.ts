@@ -117,7 +117,7 @@ export async function listPublicShippingReturns(): Promise<ShippingReturns | nul
   try {
     const response = await fetch(`${API}/api/v1/pages/shipping/returns`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const returns = toReturns((await response.json()) as ApiReturns, false);

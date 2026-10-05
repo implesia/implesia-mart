@@ -98,7 +98,7 @@ export async function listPublicBlogRelated(): Promise<BlogRelated | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/blogs/related`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const related = toRelated((await response.json()) as ApiRelated, true);

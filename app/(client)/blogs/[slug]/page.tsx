@@ -12,8 +12,6 @@ import { bengaliDateToIso } from "@/lib/seo";
 
 import { BlogArticle } from "../_components/blog-article";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata({
   params,
 }: {

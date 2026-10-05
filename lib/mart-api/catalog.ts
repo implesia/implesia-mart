@@ -3,9 +3,7 @@ import { cache } from "react";
 import {
   categoryLabels,
   placeholderImage,
-  products as staticProducts,
 } from "@/app/(client)/_data/products/products";
-import { getProductDetailBySlug } from "@/app/(client)/_data/products/product-details";
 import type {
   ProductDetail,
   ProductSpecGroupId,
@@ -16,6 +14,10 @@ import type {
   ProductCategoryId,
   ProductStatus,
 } from "@/app/(client)/_data/products/products";
+import {
+  isCatalogProductId,
+  isPublicCatalogCard,
+} from "@/lib/mart-api/catalog-rules";
 
 const API = process.env.NEXT_PUBLIC_MART_API_URL ?? "http://127.0.0.1:8001";
 
@@ -43,15 +45,6 @@ export type StoreDeliveryRates = {
   outsideEnabled: boolean;
 };
 
-const FALLBACK_RATES: StoreDeliveryRates = {
-  insideDhaka: 70,
-  dhakaSuburban: 100,
-  outsideDhaka: 130,
-  insideEnabled: true,
-  suburbanEnabled: true,
-  outsideEnabled: true,
-};
-
 function taka(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
 }
@@ -66,7 +59,7 @@ function deliveryChargeLine(rates: StoreDeliveryRates) {
   return `${parts.join(", ")}। ঢাকায় ২৪-৪৮ ঘণ্টা, বাইরে ২৪-৭২ ঘণ্টা।`;
 }
 
-function deliveryBlocks(rates: StoreDeliveryRates) {
+function deliveryBlocks(rates: StoreDeliveryRates | null) {
   return [
     {
       icon: "payments",
@@ -77,7 +70,9 @@ function deliveryBlocks(rates: StoreDeliveryRates) {
     {
       icon: "local_shipping",
       title: "সারাদেশে ডেলিভারি",
-      description: deliveryChargeLine(rates),
+      description: rates
+        ? deliveryChargeLine(rates)
+        : "ডেলিভারি চার্জ চেকআউটে ঠিকানা অনুযায়ী নিশ্চিত হবে।",
     },
     {
       icon: "assignment_return",
@@ -148,12 +143,20 @@ function money(value: number) {
 }
 
 export function catalogProductId(id: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    id,
-  )
-    ? id
-    : undefined;
+  return isCatalogProductId(id) ? id : undefined;
 }
+
+export class CatalogUnavailableError extends Error {
+  constructor() {
+    super("Catalog unavailable");
+    this.name = "CatalogUnavailableError";
+  }
+}
+
+export type CatalogLoad = {
+  products: Product[];
+  unavailable: boolean;
+};
 
 function mapCard(item: ApiCard): Product {
   const imageSrc = media(item.image_src) || placeholderImage(item.title);
@@ -174,7 +177,7 @@ function mapCard(item: ApiCard): Product {
   };
 }
 
-function mapDetail(item: ApiDetail, rates: StoreDeliveryRates): ProductDetail {
+function mapDetail(item: ApiDetail, rates: StoreDeliveryRates | null): ProductDetail {
   const card = mapCard(item);
   const gallery = (
     item.gallery.length > 0
@@ -280,8 +283,8 @@ async function readJson<T>(path: string): Promise<T | null> {
   }
 }
 
-/** Published catalog. Slug stays a URL; the resource key is the product id. */
-export const listStoreProducts = cache(async (): Promise<Product[]> => {
+/** Published catalog. An empty API and a failed API never become demo products. */
+export const loadStoreCatalog = cache(async (): Promise<CatalogLoad> => {
   const all: Product[] = [];
   let page = 1;
   let pages = 1;
@@ -289,30 +292,36 @@ export const listStoreProducts = cache(async (): Promise<Product[]> => {
     const body = await readJson<{ items?: ApiCard[]; pages?: number }>(
       `/api/v1/products?page=${page}&page_size=48`,
     );
-    if (!body) break;
-    for (const item of body.items ?? []) all.push(mapCard(item));
+    if (!body) return { products: [], unavailable: true };
+    for (const item of body.items ?? []) {
+      if (!isPublicCatalogCard(item)) continue;
+      all.push(mapCard(item));
+    }
     pages = body.pages ?? 1;
     page += 1;
   }
-  // Production catalog is empty until products are published in admin.
-  // Keep the existing storefront visible until then.
-  return all.length > 0 ? all : staticProducts;
+  return { products: all, unavailable: false };
+});
+
+export const listStoreProducts = cache(async (): Promise<Product[]> => {
+  return (await loadStoreCatalog()).products;
 });
 
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
-    const list = await listStoreProducts();
-    const card = list.find((product) => product.slug === slug);
-    if (!card) return null;
-    if (!catalogProductId(card.id)) return getProductDetailBySlug(slug);
+    const catalog = await loadStoreCatalog();
+    if (catalog.unavailable) throw new CatalogUnavailableError();
+    const card = catalog.products.find((product) => product.slug === slug);
+    if (!card || !catalogProductId(card.id)) return null;
     const detail = await readJson<ApiDetail>(`/api/v1/products/${card.id}`);
-    if (!detail || detail.slug !== slug) return null;
+    if (!detail) throw new CatalogUnavailableError();
+    if (detail.slug !== slug) return null;
     return mapDetail(detail, await getStoreDeliveryRates());
   },
 );
 
 export const getStoreDeliveryRates = cache(
-  async (): Promise<StoreDeliveryRates> => {
+  async (): Promise<StoreDeliveryRates | null> => {
     const body = await readJson<{
       inside_dhaka?: number;
       dhaka_suburban?: number;
@@ -326,7 +335,7 @@ export const getStoreDeliveryRates = cache(
       typeof body.dhaka_suburban !== "number" ||
       typeof body.outside_dhaka !== "number"
     ) {
-      return FALLBACK_RATES;
+      return null;
     }
     return {
       insideDhaka: body.inside_dhaka,

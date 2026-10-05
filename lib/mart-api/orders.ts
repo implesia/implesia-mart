@@ -1,7 +1,8 @@
 import { guestCartHeaders } from "@/lib/mart-api/cart";
 import type { DeliveryZone } from "@/lib/mart-api/delivery";
-import { MartApiError, authorizedFetch, mediaUrl } from "@/lib/mart-api/products";
-import { readSession, type OrderStatus } from "@/lib/mart-mock/store";
+import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
+import { MartApiError, authorizedFetch, mediaUrl, publicFetch } from "@/lib/mart-api/products";
+import type { OrderStatus } from "@/lib/mart-mock/store";
 
 export type QuoteLine = {
   productId: string;
@@ -219,36 +220,14 @@ async function readError(response: Response, fallback: string) {
   return fallback;
 }
 
-type QuoteInput = {
-  source: "cart" | "direct";
-  district: string;
-  area?: string;
-  deliveryZone?: DeliveryZone;
-  items?: { productId: string; quantity: number; selection?: { groupId: string; valueId: string }[] }[];
-};
+type QuoteInput = QuotePayloadInput;
 
 function quoteBody(input: QuoteInput) {
-  const body: Record<string, unknown> = {
-    source: input.source,
-    district: input.district.trim(),
-  };
-  if (input.area?.trim()) body.area = input.area.trim();
-  if (input.deliveryZone) body.delivery_zone = input.deliveryZone;
-  if (input.source === "direct") {
-    body.items = (input.items ?? []).map((item) => ({
-      product_id: item.productId,
-      quantity: item.quantity,
-      selection: (item.selection ?? []).map((choice) => ({
-        group_id: choice.groupId,
-        value_id: choice.valueId,
-      })),
-    }));
-  }
-  return body;
+  return buildQuotePayload(input);
 }
 
 export async function quoteOrder(input: QuoteInput) {
-  const response = await authorizedFetch("/api/v1/orders/quote", {
+  const response = await publicFetch("/api/v1/orders/quote", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -271,7 +250,7 @@ export async function placeOrder(
     notes: string;
   },
 ) {
-  const response = await authorizedFetch("/api/v1/orders", {
+  const response = await publicFetch("/api/v1/orders", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -299,7 +278,6 @@ export async function listOrders(query: {
   sort?: "newest" | "oldest" | "high" | "low";
   page: number;
 }) {
-  if (!readSession()?.accessToken) throw new MartApiError("Sign in again to view orders.");
   const search = new URLSearchParams();
   if (query.q) search.set("q", query.q);
   if (query.status) search.set("status", query.status);
@@ -346,7 +324,6 @@ export async function listOrders(query: {
 }
 
 export async function getOrder(orderId: string) {
-  if (!readSession()?.accessToken) throw new MartApiError("Sign in again to view orders.");
   const response = await authorizedFetch(`/api/v1/admin/orders/${orderId}`);
   if (!response.ok) throw new MartApiError(await readError(response, "Could not load this order."));
   return mapOrder((await response.json()) as ApiOrder);
@@ -443,7 +420,7 @@ function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
 }
 
 export async function lookupPublicOrder(number: string, phone: string) {
-  const response = await authorizedFetch("/api/v1/orders/lookup", {
+  const response = await publicFetch("/api/v1/orders/lookup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ number: number.trim(), phone: phone.trim() }),
@@ -458,7 +435,6 @@ export async function patchOrder(
   orderId: string,
   patch: { status?: OrderStatus; courierName?: string; trackingNumber?: string },
 ) {
-  if (!readSession()?.accessToken) throw new MartApiError("Sign in again to update orders.");
   const body: Record<string, string> = {};
   if (patch.status) body.status = patch.status;
   if (patch.courierName !== undefined) body.courier_name = patch.courierName;

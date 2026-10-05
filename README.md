@@ -7,7 +7,7 @@ Implesia Mart is a Bangla-language e-commerce storefront built for selling trend
 - **Homepage** — hero slider, best-selling carousel, flash sale, trust/organic highlight section, testimonials, newsletter
 - **Product catalog** — filterable/sortable grid, detailed product pages (gallery, video, specifications, FAQ, reviews)
 - **Shopping cart** — persistent `localStorage`-based cart, header drawer, quantity controls
-- **Checkout** — shipping address form, COD payment, order summary, and order notification emails via [EmailJS](https://www.emailjs.com/)
+- **Checkout** — shipping address form, COD payment, and server-priced order placement
 - **Content pages** — About, Sustainability, FAQs, Shipping & Returns, Privacy Policy, Contact Us
 - **Theming** — light/dark mode toggle (system-preference aware)
 
@@ -19,7 +19,7 @@ Implesia Mart is a Bangla-language e-commerce storefront built for selling trend
 - [Base UI](https://base-ui.com) + [shadcn](https://ui.shadcn.com)-style components
 - [Framer Motion](https://motion.dev) — animations
 - [Swiper](https://swiperjs.com) — carousels/sliders
-- [EmailJS](https://www.emailjs.com) — serverless order emails
+- Production build path is `npm run build` (Next.js). `dev:vinext` / `deploy:vinext` are an optional Cloudflare target.
 
 > **Note:** The Next.js version in this repo may include breaking changes from upstream. Check `node_modules/next/dist/docs/` before writing new code.
 
@@ -66,14 +66,7 @@ components/ui/         # shadcn/Base UI primitive components
 public/images/products/ # Product image/video assets
 ```
 
-## EmailJS configuration
-
-EmailJS is used to send order notification emails from checkout. Credentials and template logic live in `app/(client)/_lib/emailjs/`:
-
-- `config.ts` — service ID, template ID, public key
-- `build-template-params.ts` — builds template variables from order data
-- `send-order.ts` — sends the email via `@emailjs/browser`
-- `order-email-template.html` — HTML template to paste into the EmailJS dashboard (usage instructions in the file's comments)
+Orders are created by the Mart API. The browser sends product ids and quantities. The API calculates price, stock, and delivery. Admin sign-in stores tokens in HttpOnly cookies on this app; the API still receives a Bearer token from the server.
 
 ## Learn more
 

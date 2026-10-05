@@ -353,14 +353,17 @@ function HeroForm({
             type="button"
             disabled={draft.trending.length >= 12}
             onClick={() =>
-              setDraft((current) =>
-                current.trending.length >= 12
-                  ? current
-                  : {
-                      ...current,
-                      trending: [...current.trending, { ...blankFaqTrending(), isActive: true }],
-                    },
-              )
+              setDraft((current) => {
+                if (current.trending.length >= 12) return current;
+                const item = blankFaqTrending();
+                return {
+                  ...current,
+                  trending: [
+                    ...current.trending,
+                    { id: item.id, label: item.label, isActive: true },
+                  ],
+                };
+              })
             }
             className={adminButtonClass.secondary}
           >

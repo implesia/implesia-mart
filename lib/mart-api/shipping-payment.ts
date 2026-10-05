@@ -103,7 +103,7 @@ export async function listPublicShippingPayment(): Promise<ShippingPayment | nul
   try {
     const response = await fetch(`${API}/api/v1/pages/shipping/payment`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const payment = toPayment((await response.json()) as ApiPayment, false);

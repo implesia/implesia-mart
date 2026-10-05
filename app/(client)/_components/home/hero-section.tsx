@@ -1,5 +1,8 @@
 "use client";
 
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/effect-fade";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";

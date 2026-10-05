@@ -191,7 +191,7 @@ export async function listPublicNewsletter(): Promise<NewsletterPublic | null> {
   try {
     const response = await fetch(`${API}/api/v1/home/newsletter`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const body = (await response.json()) as ApiSection;

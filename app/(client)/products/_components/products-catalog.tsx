@@ -63,6 +63,7 @@ type ProductsCatalogProps = {
   initialBadge?: ProductBadge;
   initialView?: CatalogView;
   initialCollectionTitle?: string;
+  initialQuery?: string;
 };
 
 function syncDocumentTitle(title: string) {
@@ -93,6 +94,7 @@ export function ProductsCatalog({
   initialBadge,
   initialView,
   initialCollectionTitle,
+  initialQuery = "",
 }: ProductsCatalogProps) {
   const [priceRange, setPriceRange] = useState<[number, number]>([
     PRICE_FILTER_MIN,
@@ -114,6 +116,7 @@ export function ProductsCatalog({
   const [collectionTitle, setCollectionTitle] = useState(
     initialCollectionTitle ?? null,
   );
+  const query = initialQuery;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [loadedPage, setLoadedPage] = useState({ key: "", shown: CATALOG_PAGE_SIZE });
   const [loadingMore, setLoadingMore] = useState(false);
@@ -140,6 +143,10 @@ export function ProductsCatalog({
 
       const matchesMin = product.price >= minPrice;
       const matchesMax = product.price <= maxPrice;
+      const needle = query.trim().toLowerCase();
+      const matchesQuery =
+        needle.length === 0 ||
+        `${product.title} ${product.subtitle}`.toLowerCase().includes(needle);
 
       return (
         matchesAvailability &&
@@ -147,12 +154,13 @@ export function ProductsCatalog({
         matchesBadge &&
         matchesView &&
         matchesMin &&
-        matchesMax
+        matchesMax &&
+        matchesQuery
       );
     });
 
     return sortProducts(matched, sort);
-  }, [activeView, availability, badge, categories, priceRange, products, sort]);
+  }, [activeView, availability, badge, categories, priceRange, products, query, sort]);
 
   const catalogQueryKey = [
     [...categories].sort().join(","),
@@ -161,6 +169,7 @@ export function ProductsCatalog({
     sort,
     badge ?? "",
     activeView ?? "",
+    query.trim().toLowerCase(),
   ].join("|");
   const shownCount =
     loadedPage.key === catalogQueryKey ? loadedPage.shown : CATALOG_PAGE_SIZE;

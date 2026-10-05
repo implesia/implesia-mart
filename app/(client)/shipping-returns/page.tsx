@@ -14,8 +14,6 @@ import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { ShippingReturnsView } from "./_components/shipping-returns-view";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: "শিপিং ও রিটার্ন",
   description:

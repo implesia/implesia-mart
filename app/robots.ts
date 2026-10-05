@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       /* Checkout is session/cart-specific with no unique indexable content. */
-      disallow: ["/checkout"],
+      disallow: ["/admin", "/checkout", "/order-status", "/api"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,

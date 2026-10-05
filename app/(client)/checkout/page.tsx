@@ -6,7 +6,7 @@ import { CheckoutView } from "./_components/checkout-view";
 
 export const metadata: Metadata = {
   title: "চেকআউট",
-  robots: { index: false, follow: true },
+  robots: { index: false, follow: false },
 };
 
 type CheckoutPageProps = {

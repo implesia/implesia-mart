@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +31,18 @@ function useScrollLock(locked: boolean) {
   }, [locked]);
 }
 
+function submitSearch(
+  event: FormEvent<HTMLFormElement>,
+  go: (href: string) => void,
+) {
+  event.preventDefault();
+  const q = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+  go(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
+}
+
 export default function Header({ details }: { details: ContactDetails | null }) {
   const pathname = usePathname();
+  const router = useRouter();
   const phoneChannel = contactChannel(details, "call");
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
@@ -102,7 +112,7 @@ export default function Header({ details }: { details: ContactDetails | null }) 
             <form
               className="hidden w-[clamp(18rem,34vw,32rem)] lg:block"
               role="search"
-              onSubmit={(event) => event.preventDefault()}
+              onSubmit={(event) => submitSearch(event, (href) => router.push(href))}
             >
               <div className="flex w-full">
                 <input
@@ -250,14 +260,16 @@ export default function Header({ details }: { details: ContactDetails | null }) 
           mobileOpen ? "pointer-events-auto" : "pointer-events-none",
         )}
         aria-hidden={!mobileOpen}
+        inert={!mobileOpen}
       >
         <button
           type="button"
+          tabIndex={-1}
+          aria-hidden
           className={cn(
             "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300",
             mobileOpen ? "opacity-100" : "opacity-0",
           )}
-          aria-label="মেনু বন্ধ করুন"
           onClick={() => setMenuPath(null)}
         />
 
@@ -295,13 +307,19 @@ export default function Header({ details }: { details: ContactDetails | null }) 
             <form
               className="relative mb-4"
               role="search"
-              onSubmit={(event) => event.preventDefault()}
+              onSubmit={(event) => {
+                submitSearch(event, (href) => {
+                  setMenuPath(null);
+                  router.push(href);
+                });
+              }}
             >
               <MaterialIcon
                 name="search"
                 className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-neutral-400"
               />
               <Input
+                name="q"
                 placeholder="প্রোডাক্ট খুঁজুন..."
                 className="h-11 w-full rounded-md border border-neutral-200 bg-white py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-neutral-950/15 dark:border-white/15"
                 aria-label="প্রোডাক্ট খুঁজুন"

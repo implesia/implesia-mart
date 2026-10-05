@@ -38,7 +38,7 @@ export function ShippingReturnsView({
   support,
   faq,
 }: {
-  rates: StoreDeliveryRates;
+  rates: StoreDeliveryRates | null;
   hero: ShippingHero | null;
   contents: ShippingContents | null;
   shipping: ShippingBlock | null;
@@ -280,7 +280,17 @@ function Hero({ hero }: { hero: ShippingHero }) {
   );
 }
 
-function DeliveryRatesCard({ rates }: { rates: StoreDeliveryRates }) {
+function DeliveryRatesCard({ rates }: { rates: StoreDeliveryRates | null }) {
+  if (!rates) {
+    return (
+      <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
+        <h2 className="text-sm font-semibold text-neutral-950 sm:text-base">ডেলিভারি চার্জ</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+          ডেলিভারি চার্জ এখন লোড করা যায়নি। চেকআউটে ঠিকানা দিলে চার্জ দেখাবে।
+        </p>
+      </section>
+    );
+  }
   const rows = [
     {
       label: "ঢাকার ভেতরে",

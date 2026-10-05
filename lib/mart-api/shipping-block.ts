@@ -167,7 +167,7 @@ export async function listPublicShippingBlock(): Promise<ShippingBlock | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/shipping/shipping`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const block = toBlock((await response.json()) as ApiBlock, false);

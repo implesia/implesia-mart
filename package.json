@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "dev:vinext": "vinext dev --port 3001",
     "build:vinext": "vinext build",
     "start:vinext": "wrangler dev --config dist/server/wrangler.json",
@@ -14,7 +16,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
-    "@emailjs/browser": "^4.4.1",
     "@vinext/cloudflare": "^1.0.0-beta.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

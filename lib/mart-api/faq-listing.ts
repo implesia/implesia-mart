@@ -64,7 +64,7 @@ export async function listPublicFaqListing(): Promise<FaqListing | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/faqs/listing`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const listing = toListing((await response.json()) as ApiListing, true);

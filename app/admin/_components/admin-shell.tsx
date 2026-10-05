@@ -5,13 +5,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { logoutMart } from "@/lib/mart-api/products";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { logoutMart } from "@/lib/mart-api/products";
 import {
   clearSession,
   markPasswordChanged,
   readSession,
+  writeSession,
   type AdminSession,
 } from "@/lib/mart-mock/store";
 
@@ -58,13 +59,7 @@ let sessionCache: AdminSession | null | undefined;
 
 function getSessionSnapshot() {
   const next = readSession();
-  if (
-    sessionCache &&
-    next &&
-    sessionCache.email === next.email &&
-    sessionCache.accessToken === next.accessToken &&
-    sessionCache.refreshToken === next.refreshToken
-  ) {
+  if (sessionCache && next && sessionCache.email === next.email) {
     return sessionCache;
   }
   if (!sessionCache && !next) return sessionCache ?? null;
@@ -415,27 +410,48 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   );
   const [menuOpen, setMenuOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [checked, setChecked] = useState(false);
   const isLogin = pathname === "/admin/login";
   const wide = isWideAdminPath(pathname);
   const backHref = adminBackHref(pathname);
 
   useEffect(() => {
-    if (!hydrated) return;
+    let cancelled = false;
+    void fetch("/api/auth/session", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (cancelled) return;
+        if (response.ok) {
+          const body = (await response.json()) as { email?: string };
+          if (body.email) writeSession(body.email);
+          return;
+        }
+        clearSession();
+        sessionCache = null;
+        window.dispatchEvent(new Event(SESSION_EVENT));
+      })
+      .finally(() => {
+        if (!cancelled) setChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!hydrated || !checked) return;
     if (pathname === "/admin/login") {
       if (session) router.replace("/admin");
       return;
     }
     if (!session) router.replace("/admin/login");
-  }, [hydrated, pathname, router, session]);
+  }, [checked, hydrated, pathname, router, session]);
 
   function toggleSidebar() {
     writeCollapsed(!collapsed);
   }
 
-  function logout() {
-    const refreshToken = session?.refreshToken;
-    if (refreshToken) void logoutMart(refreshToken);
-    clearSession();
+  async function logout() {
+    await logoutMart();
     sessionCache = null;
     window.dispatchEvent(new Event(SESSION_EVENT));
     setMenuOpen(false);
@@ -453,7 +469,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     router.replace("/admin/login");
   }
 
-  if (!hydrated) {
+  if (!hydrated || !checked) {
     return <div className="force-light min-h-dvh bg-[#f5f6f8]" />;
   }
 

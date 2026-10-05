@@ -123,8 +123,6 @@ export const DEFAULT_DELIVERY: DeliveryCharges = {
 
 export type AdminSession = {
   email: string;
-  accessToken: string;
-  refreshToken?: string;
 };
 
 function emitMockChange() {
@@ -543,24 +541,23 @@ export function readSession(): AdminSession | null {
   try {
     const raw = window.sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as AdminSession;
-    if (!parsed?.email?.trim() || !parsed.accessToken) return null;
-    return {
-      email: parsed.email.trim(),
-      accessToken: parsed.accessToken,
-      refreshToken: parsed.refreshToken || undefined,
-    };
+    const parsed = JSON.parse(raw) as { email?: string; accessToken?: string };
+    if (!parsed?.email?.trim()) return null;
+    if (parsed.accessToken) {
+      window.sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ email: parsed.email.trim() }),
+      );
+    }
+    return { email: parsed.email.trim() };
   } catch {
     return null;
   }
 }
 
-export function writeSession(email: string, accessToken: string, refreshToken: string) {
+export function writeSession(email: string) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(
-    SESSION_KEY,
-    JSON.stringify({ email: email.trim(), accessToken, refreshToken }),
-  );
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: email.trim() }));
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
 

@@ -3,8 +3,8 @@ import {
   MartApiError,
   authorizedFetch,
   mediaUrl,
+  publicFetch,
 } from "@/lib/mart-api/products";
-import { readSession } from "@/lib/mart-mock/store";
 
 const GUEST_KEY = "implesia.cart.guest.v1";
 
@@ -229,7 +229,7 @@ async function shop(
   if (guest) headers["X-Cart-Token"] = guest;
   if (payload) headers["Content-Type"] = "application/json";
 
-  const response = await authorizedFetch(`/api/v1/cart${path}`, {
+  const response = await publicFetch(`/api/v1/cart${path}`, {
     method,
     headers,
     body: payload ? JSON.stringify(payload) : undefined,
@@ -277,8 +277,6 @@ export async function listCarts(query: {
   owner?: "all" | "user" | "guest";
   page: number;
 }) {
-  if (!readSession()?.accessToken)
-    throw new MartApiError("Sign in again to view carts.");
   const search = new URLSearchParams();
   if (query.q) search.set("q", query.q);
   if (query.owner && query.owner !== "all") search.set("owner", query.owner);

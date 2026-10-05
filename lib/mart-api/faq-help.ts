@@ -80,7 +80,7 @@ export async function listPublicFaqHelp(): Promise<FaqHelp | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/faqs/help`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const help = toHelp((await response.json()) as ApiHelp, true);

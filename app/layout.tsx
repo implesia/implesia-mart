@@ -1,15 +1,7 @@
-/* eslint-disable @next/next/no-page-custom-font */
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
-/* Load Swiper CSS with the root layout so carousels don’t FOUC before client chunks */
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/effect-fade";
-import { JsonLd } from "./(client)/_components/common/json-ld";
-import { StorefrontFrame } from "./(client)/_components/common/storefront-frame";
-import { CartProvider } from "./(client)/_providers/cart-provider";
+import { Inter } from "next/font/google";
+
 import { ThemeProvider } from "./(client)/_providers/theme-provider";
-import { contactChannel, listPublicContactDetails } from "@/lib/mart-api/contact-details";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_KEYWORDS,
@@ -17,6 +9,15 @@ import {
   SITE_NAME,
   SITE_URL,
 } from "@/lib/seo";
+
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -71,82 +72,28 @@ export const viewport: Viewport = {
   ],
 };
 
-const websiteJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "@id": `${SITE_URL}/#website`,
-  name: SITE_NAME,
-  url: SITE_URL,
-  inLanguage: "bn-BD",
-  publisher: { "@id": `${SITE_URL}/#organization` },
-};
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const details = await listPublicContactDetails();
-  const phone = contactChannel(details, "call");
-  const chat = contactChannel(details, "chat");
-  const sameAs = details?.isActive
-    ? details.social.map((item) => item.href).filter((href) => href.startsWith("http"))
-    : [];
-  const organizationJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "@id": `${SITE_URL}/#organization`,
-    name: SITE_NAME,
-    url: SITE_URL,
-    logo: `${SITE_URL}/images/common/logo.png`,
-    ...(sameAs.length ? { sameAs } : {}),
-    ...(phone || chat
-      ? {
-          contactPoint: [
-            {
-              "@type": "ContactPoint",
-              contactType: "customer support",
-              ...(phone ? { telephone: phone.value } : {}),
-              ...(chat ? { url: chat.href } : {}),
-              areaServed: "BD",
-              availableLanguage: ["bn", "en"],
-            },
-          ],
-        }
-      : {}),
-  };
   return (
-    <html lang="bn" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="bn" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <script
-          // Runs before React hydration to avoid theme flash
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var k='implesia.theme';var t=localStorage.getItem(k)||'system';var s=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var r=(t==='system'?s:t);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.style.colorScheme=r;}catch(e){}})();`,
           }}
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-        />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
         />
-        <JsonLd data={organizationJsonLd} />
-        <JsonLd data={websiteJsonLd} />
       </head>
-      <body className="min-h-full flex flex-col font-sans">
-        <ThemeProvider>
-          <CartProvider>
-            <StorefrontFrame details={details}>{children}</StorefrontFrame>
-          </CartProvider>
-        </ThemeProvider>
+      <body className="flex min-h-full flex-col font-sans">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

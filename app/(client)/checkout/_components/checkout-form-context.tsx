@@ -33,7 +33,7 @@ import { MartApiError } from "@/lib/mart-api/products";
 import {
   validateShipping,
   type CheckoutShippingValues,
-} from "../../_lib/emailjs";
+} from "../../_lib/checkout-shipping";
 import { readBuySelection } from "../../products/_components/purchase-selection";
 import { useCart } from "../../_providers/cart-provider";
 

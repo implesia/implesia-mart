@@ -410,8 +410,6 @@ function OrderCard({
         <p className="mt-1 font-medium text-neutral-950">
           {order.area}, {order.district}
         </p>
-        <p>{order.address}</p>
-        {order.notes ? <p className="mt-1 text-neutral-600">নোট: {order.notes}</p> : null}
       </div>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">

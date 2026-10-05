@@ -52,7 +52,7 @@ async function readError(response: Response, fallback: string) {
 export async function getPublicDeliveryRates() {
   const response = await fetch(`${MART_API_URL}/api/v1/delivery`, {
     headers: { Accept: "application/json" },
-    cache: "no-store",
+    next: { revalidate: 60 },
   });
   if (!response.ok) {
     throw new MartApiError("Delivery rates could not be loaded.");

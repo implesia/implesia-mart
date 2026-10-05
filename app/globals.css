@@ -41,6 +41,13 @@
   --color-error-container: #ffdad6;
   --color-on-surface-variant: #3f4945;
   --color-on-primary-fixed-variant: #005143;
+  --color-primary-ink: #0b5e56;
+  --color-primary-hover: #22a79d;
+  --color-primary-active: #1a847b;
+  --color-success: #067647;
+  --color-warning: #b54708;
+  --color-info: #175cd3;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-secondary-fixed: #d6e3ff;
   --color-tertiary: #632c20;
   --color-on-primary-container: #0b3d39;
@@ -564,4 +571,29 @@ img[data-nimg="fill"] {
 */
 .max-w-xl {
   max-width: 36rem !important;
+}
+
+/* Brand fill stays #2BC0B5. Small brand text and button labels use darker teal for contrast. */
+.text-primary {
+  color: #0b5e56;
+}
+
+button.bg-primary,
+a.bg-primary {
+  color: #042422;
+}
+
+button.bg-primary:hover,
+a.bg-primary:hover {
+  background-color: #22a79d;
+}
+
+button.bg-primary:active,
+a.bg-primary:active {
+  background-color: #1a847b;
+}
+
+:focus-visible {
+  outline: 2px solid #0b5e56;
+  outline-offset: 2px;
 }

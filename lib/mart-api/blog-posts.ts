@@ -176,7 +176,7 @@ export async function listPublicBlogPosts(): Promise<BlogPostRecord[]> {
   try {
     const response = await fetch(`${API}/api/v1/pages/blogs/posts`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return [];
     const body = (await response.json()) as ApiPosts;
@@ -190,7 +190,7 @@ export async function getPublicBlogPost(slug: string): Promise<BlogPostRecord | 
   try {
     const response = await fetch(`${API}/api/v1/pages/blogs/posts/${encodeURIComponent(slug)}`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     return toPost((await response.json()) as ApiPost, 0);

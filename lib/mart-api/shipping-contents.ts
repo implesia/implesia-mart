@@ -64,7 +64,7 @@ export async function listPublicShippingContents(): Promise<ShippingContents | n
   try {
     const response = await fetch(`${API}/api/v1/pages/shipping/contents`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const contents = toContents((await response.json()) as ApiContents, true);

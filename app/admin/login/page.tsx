@@ -73,9 +73,9 @@ export default function AdminLoginPage() {
     if (next.email || next.password || pending) return;
     setPending(true);
     try {
-      const tokens = await loginMart(email.trim(), password);
+      const account = await loginMart(email.trim(), password);
       clearPasswordChanged();
-      writeSession(email.trim(), tokens.accessToken, tokens.refreshToken);
+      writeSession(account.email);
       router.replace("/admin");
     } catch (error) {
       setPending(false);

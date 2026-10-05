@@ -81,7 +81,7 @@ export async function listPublicPrivacySharing(): Promise<PrivacySharing | null>
   try {
     const response = await fetch(`${API}/api/v1/pages/privacy/sharing`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const block = toSharing((await response.json()) as ApiSharing, false);

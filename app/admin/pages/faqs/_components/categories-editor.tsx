@@ -353,14 +353,17 @@ function CategoriesForm({
           type="button"
           disabled={draft.items.length >= 12}
           onClick={() =>
-            setDraft((current) =>
-              current.items.length >= 12
-                ? current
-                : {
-                    ...current,
-                    items: [...current.items, { ...blankFaqCategory(), isActive: true }],
-                  },
-            )
+            setDraft((current) => {
+              if (current.items.length >= 12) return current;
+              const item = blankFaqCategory();
+              return {
+                ...current,
+                items: [
+                  ...current.items,
+                  { id: item.id, label: item.label, icon: item.icon, isActive: true },
+                ],
+              };
+            })
           }
           className={adminButtonClass.secondary}
         >

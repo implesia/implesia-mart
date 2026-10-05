@@ -13,8 +13,6 @@ import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { PrivacyPolicyView } from "./_components/privacy-policy-view";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: "গোপনীয়তা নীতি",
   description:

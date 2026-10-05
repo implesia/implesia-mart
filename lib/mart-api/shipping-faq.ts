@@ -88,7 +88,7 @@ export async function listPublicShippingFaq(): Promise<ShippingFaq | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/shipping/faq`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!response.ok) return null;
     const faq = toFaq((await response.json()) as ApiFaq, false);
