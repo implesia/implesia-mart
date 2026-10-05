@@ -219,7 +219,7 @@ export async function proxyAdmin(request: Request, path: string) {
   }
 
   const jar = await cookies();
-  let access = jar.get(ACCESS_COOKIE)?.value;
+  const access = jar.get(ACCESS_COOKIE)?.value;
   const refresh = jar.get(REFRESH_COOKIE)?.value;
   const method = request.method;
   const body =
