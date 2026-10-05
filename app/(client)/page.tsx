@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { CategoryShowcaseSection } from "./_components/home/brands-categories-section";
 import { FaqSection } from "./_components/home/faq-section";
-import { CategoriesStripSection } from "./_components/home/categories-strip-section";
 import { FeaturedProductsSection } from "./_components/home/featured-products-section";
 import { HeroSection } from "./_components/home/hero-section";
 import { HomeTrustStrip } from "./_components/home/home-trust-strip";
@@ -82,33 +80,11 @@ export default async function HomePage() {
             </p>
           </Container>
         ) : null}
-        {hero && hero.length > 0 ? (
-          <HeroSection slides={hero} />
-        ) : (
-          <section className="bg-[#f5f6f8] px-4 pt-4 pb-2 sm:px-6 lg:px-8" aria-label="ইমপ্লেসিয়া মার্ট">
-            <Container>
-              <div className="rounded-2xl bg-[#071820] px-5 py-8 text-white sm:px-8 sm:py-10">
-                <p className="text-xs font-semibold tracking-[0.16em] text-[#8ed4c1] uppercase">
-                  Implesia Mart
-                </p>
-                <h1 className="mt-2 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">
-                  ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি ড্রেস
-                </h1>
-                <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/75">
-                  ক্যাশ অন ডেলিভারি। দাম ও স্টক চেকআউটে নিশ্চিত হয়।
-                </p>
-                <Link
-                  href="/products"
-                  className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#2bc0b5] px-5 text-sm font-semibold text-[#042422]"
-                >
-                  সব প্রোডাক্ট
-                </Link>
-              </div>
-            </Container>
-          </section>
-        )}
+        <HeroSection
+          slides={hero ?? []}
+          categories={categories ?? FALLBACK_CATEGORIES}
+        />
         <HomeTrustStrip items={trust ?? FALLBACK_TRUST} />
-        <CategoriesStripSection section={categories ?? FALLBACK_CATEGORIES} />
         {featuredSection ? (
           <FeaturedProductsSection section={featuredSection} products={products} />
         ) : null}

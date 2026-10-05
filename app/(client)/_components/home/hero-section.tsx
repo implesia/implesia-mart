@@ -9,10 +9,13 @@ import type { Swiper as SwiperInstance } from "swiper/types";
 import { Autoplay, Keyboard } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
+import type { CategorySection } from "@/lib/mart-api/categories";
+import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
 
 import type { HeroSlide } from "../../_data/home/home";
 import { Container } from "../common/container";
+import { CategoryRail } from "./categories-strip-section";
 
 const AUTOPLAY_DELAY = 5500;
 
@@ -23,12 +26,18 @@ const bannerTone: Record<HeroSlide["accent"], string> = {
   ink: "bg-[linear-gradient(100deg,#071018_0%,#07090f_46%,#05060a_100%)]",
 };
 
-export function HeroSection({ slides }: { slides: HeroSlide[] }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const swiperRef = useRef<SwiperInstance | null>(null);
-  const loop = slides.length > 1;
-
-  if (slides.length === 0) return null;
+export function HeroSection({
+  slides,
+  categories,
+}: {
+  slides: HeroSlide[];
+  categories: CategorySection;
+}) {
+  const openCategories = {
+    ...categories,
+    tiles: categories.tiles.filter(isContentActive),
+  };
+  if (slides.length === 0 && openCategories.tiles.length === 0) return null;
 
   return (
     <section
@@ -36,7 +45,55 @@ export function HeroSection({ slides }: { slides: HeroSlide[] }) {
       aria-label="ফিচার্ড প্রোডাক্ট"
     >
       <Container className="px-4 sm:px-6 lg:px-8">
-        <div className="relative min-w-0">
+        <div
+          className={cn(
+            "grid items-stretch gap-3 lg:gap-4",
+            openCategories.tiles.length > 0 && "lg:grid-cols-[18rem_minmax(0,1fr)]",
+          )}
+        >
+          <CategoryRail section={openCategories} />
+          <div className="min-w-0">
+            {slides.length > 0 ? (
+              <HeroCarousel slides={slides} />
+            ) : (
+              <FallbackHero />
+            )}
+          </div>
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+function FallbackHero() {
+  return (
+    <div className="flex h-full min-h-56 flex-col justify-center rounded-3xl bg-[#071820] px-5 py-8 text-white sm:px-8 sm:py-10 lg:min-h-[23rem]">
+      <p className="text-xs font-semibold tracking-[0.16em] text-[#8ed4c1] uppercase">
+        Implesia Mart
+      </p>
+      <h1 className="mt-2 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">
+        ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি ড্রেস
+      </h1>
+      <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/75">
+        ক্যাশ অন ডেলিভারি। দাম ও স্টক চেকআউটে নিশ্চিত হয়।
+      </p>
+      <Link
+        href="/products"
+        className="mt-5 inline-flex h-11 w-fit items-center justify-center rounded-full bg-[#2bc0b5] px-5 text-sm font-semibold text-[#042422]"
+      >
+        সব প্রোডাক্ট
+      </Link>
+    </div>
+  );
+}
+
+function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const swiperRef = useRef<SwiperInstance | null>(null);
+  const loop = slides.length > 1;
+
+  return (
+        <div className="relative min-w-0 h-full">
           <Swiper
             key={slides.map((slide) => slide.id).join("|")}
             modules={[Autoplay, Keyboard]}
@@ -65,7 +122,7 @@ export function HeroSection({ slides }: { slides: HeroSlide[] }) {
             onSlideChange={(swiper) => {
               setActiveIndex(swiper.realIndex);
             }}
-            className="banner-swiper h-[248px] overflow-hidden rounded-2xl sm:h-[280px] lg:h-[360px] xl:h-[400px]"
+            className="banner-swiper h-[268px] overflow-hidden rounded-3xl shadow-[0_12px_40px_rgba(7,24,32,0.12)] ring-1 ring-black/5 sm:h-[320px] lg:h-[23rem]"
           >
             {slides.map((slide, index) => (
               <SwiperSlide key={slide.id}>
@@ -80,8 +137,8 @@ export function HeroSection({ slides }: { slides: HeroSlide[] }) {
                     className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
                   />
                   <div className="relative grid h-full grid-cols-[minmax(0,1.45fr)_minmax(0,0.7fr)] items-center sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                    <div className="min-w-0 px-3.5 pt-4 pb-9 sm:px-7 sm:pt-6 sm:pb-9 lg:px-8">
-                      <p className="mb-1.5 text-[11px] font-medium tracking-wide text-primary sm:text-xs">
+                    <div className="min-w-0 px-4 pt-5 pb-10 sm:px-8 sm:pt-7 sm:pb-10 lg:px-10">
+                      <p className="mb-3 inline-flex max-w-full items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium tracking-wide text-[#b7efe8] ring-1 ring-white/15 sm:text-xs">
                         {slide.eyebrow}
                       </p>
                       {index === activeIndex ? (
@@ -110,15 +167,17 @@ export function HeroSection({ slides }: { slides: HeroSlide[] }) {
                         ) : null}
                       </div>
                     </div>
-                    <div className="relative h-full min-w-0">
-                      <Image
-                        src={slide.imageSrc}
-                        alt={slide.imageAlt}
-                        fill
-                        priority={index === 0}
-                        sizes="(max-width: 640px) 38vw, (max-width: 1024px) 46vw, 32vw"
-                        className="object-contain object-right p-2 sm:p-5 lg:p-6"
-                      />
+                    <div className="flex h-full min-w-0 items-center justify-center px-2 sm:px-5 lg:pr-8">
+                      <div className="relative aspect-[4/5] h-[72%] max-h-72 w-full max-w-[13.5rem] overflow-hidden rounded-[1.6rem] bg-[#f6f7f8] shadow-[0_18px_44px_rgba(0,0,0,0.32)] ring-1 ring-white/25 sm:h-[78%] sm:max-w-[15rem]">
+                        <Image
+                          src={slide.imageSrc}
+                          alt={slide.imageAlt}
+                          fill
+                          priority={index === 0}
+                          sizes="(max-width: 640px) 42vw, 240px"
+                          className="object-contain p-2"
+                        />
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -148,7 +207,5 @@ export function HeroSection({ slides }: { slides: HeroSlide[] }) {
             ))}
           </div>
         </div>
-      </Container>
-    </section>
   );
 }
