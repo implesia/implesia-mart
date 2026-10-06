@@ -14,9 +14,9 @@ import { listPublicHeroSlides } from "@/lib/mart-api/hero";
 import { FALLBACK_CATEGORIES, listPublicCategories } from "@/lib/mart-api/categories";
 import { FALLBACK_FAQ, listPublicFaq } from "@/lib/mart-api/faq";
 import { FALLBACK_NEWSLETTER, listPublicNewsletter } from "@/lib/mart-api/newsletter";
-import { fallbackFeatured, listPublicFeatured } from "@/lib/mart-api/featured";
+import { featuredForStore, listPublicFeatured } from "@/lib/mart-api/featured";
 import { FALLBACK_REVIEWS, listPublicReviews } from "@/lib/mart-api/reviews";
-import { fallbackShowcase, listPublicShowcase } from "@/lib/mart-api/showcase";
+import { listPublicShowcase, showcaseForStore } from "@/lib/mart-api/showcase";
 import { FALLBACK_TRUST, listPublicTrustBenefits } from "@/lib/mart-api/trust";
 import { DEFAULT_DESCRIPTION, DEFAULT_TITLE } from "@/lib/seo";
 
@@ -47,8 +47,8 @@ export default async function HomePage() {
       listPublicNewsletter(),
     ]);
   const products = catalog.products;
-  const featuredSection = featured ?? (catalog.unavailable ? null : fallbackFeatured(products));
-  const showcaseSection = showcase ?? (catalog.unavailable ? null : fallbackShowcase(products));
+  const featuredSection = featuredForStore(featured, products, catalog.unavailable);
+  const showcaseSection = showcaseForStore(showcase, products, catalog.unavailable);
   const faqSection = faq ?? FALLBACK_FAQ;
   const faqJsonLd =
     faqSection.items.length > 0

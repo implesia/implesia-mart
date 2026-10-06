@@ -80,6 +80,18 @@ export function fallbackShowcase(products: Product[]): ShowcasePublic {
   };
 }
 
+/** A saved showcase wins. Empty rows mean nothing was pinned yet. */
+export function showcaseForStore(
+  curated: ShowcasePublic | null,
+  products: Product[],
+  unavailable: boolean,
+): ShowcasePublic | null {
+  if (curated && curated.rows.some((row) => row.productIds.length > 0)) return curated;
+  if (unavailable) return null;
+  const fallback = fallbackShowcase(products);
+  return fallback.rows.some((row) => row.productIds.length > 0) ? fallback : null;
+}
+
 function toProduct(body: ApiProduct): FeaturedProduct {
   return {
     id: body.id,

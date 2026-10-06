@@ -76,6 +76,18 @@ export function fallbackFeatured(products: Product[]): FeaturedPublic {
   };
 }
 
+/** A saved featured list wins. An empty list means nothing was pinned yet. */
+export function featuredForStore(
+  curated: FeaturedPublic | null,
+  products: Product[],
+  unavailable: boolean,
+): FeaturedPublic | null {
+  if (curated && curated.productIds.length > 0) return curated;
+  if (unavailable) return null;
+  const fallback = fallbackFeatured(products);
+  return fallback.productIds.length > 0 ? fallback : null;
+}
+
 function toProduct(body: ApiProduct): FeaturedProduct {
   return {
     id: body.id,
