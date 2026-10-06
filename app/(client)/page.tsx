@@ -11,9 +11,15 @@ import { Container } from "./_components/common/container";
 import { JsonLd } from "./_components/common/json-ld";
 import { loadStoreCatalog } from "@/lib/mart-api/catalog";
 import { listPublicHeroSlides } from "@/lib/mart-api/hero";
-import { FALLBACK_CATEGORIES, listPublicCategories } from "@/lib/mart-api/categories";
+import {
+  FALLBACK_CATEGORIES,
+  listPublicCategories,
+} from "@/lib/mart-api/categories";
 import { FALLBACK_FAQ, listPublicFaq } from "@/lib/mart-api/faq";
-import { FALLBACK_NEWSLETTER, listPublicNewsletter } from "@/lib/mart-api/newsletter";
+import {
+  FALLBACK_NEWSLETTER,
+  listPublicNewsletter,
+} from "@/lib/mart-api/newsletter";
 import { featuredForStore, listPublicFeatured } from "@/lib/mart-api/featured";
 import { FALLBACK_REVIEWS, listPublicReviews } from "@/lib/mart-api/reviews";
 import { listPublicShowcase, showcaseForStore } from "@/lib/mart-api/showcase";
@@ -34,21 +40,38 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [catalog, hero, trust, categories, featured, showcase, reviews, faq, newsletter] =
-    await Promise.all([
-      loadStoreCatalog(),
-      listPublicHeroSlides(),
-      listPublicTrustBenefits(),
-      listPublicCategories(),
-      listPublicFeatured(),
-      listPublicShowcase(),
-      listPublicReviews(),
-      listPublicFaq(),
-      listPublicNewsletter(),
-    ]);
+  const [
+    catalog,
+    hero,
+    trust,
+    categories,
+    featured,
+    showcase,
+    reviews,
+    faq,
+    newsletter,
+  ] = await Promise.all([
+    loadStoreCatalog(),
+    listPublicHeroSlides(),
+    listPublicTrustBenefits(),
+    listPublicCategories(),
+    listPublicFeatured(),
+    listPublicShowcase(),
+    listPublicReviews(),
+    listPublicFaq(),
+    listPublicNewsletter(),
+  ]);
   const products = catalog.products;
-  const featuredSection = featuredForStore(featured, products, catalog.unavailable);
-  const showcaseSection = showcaseForStore(showcase, products, catalog.unavailable);
+  const featuredSection = featuredForStore(
+    featured,
+    products,
+    catalog.unavailable,
+  );
+  const showcaseSection = showcaseForStore(
+    showcase,
+    products,
+    catalog.unavailable,
+  );
   const faqSection = faq ?? FALLBACK_FAQ;
   const faqJsonLd =
     faqSection.items.length > 0
@@ -86,10 +109,16 @@ export default async function HomePage() {
         />
         <HomeTrustStrip items={trust ?? FALLBACK_TRUST} />
         {featuredSection ? (
-          <FeaturedProductsSection section={featuredSection} products={products} />
+          <FeaturedProductsSection
+            section={featuredSection}
+            products={products}
+          />
         ) : null}
         {showcaseSection ? (
-          <CategoryShowcaseSection section={showcaseSection} products={products} />
+          <CategoryShowcaseSection
+            section={showcaseSection}
+            products={products}
+          />
         ) : null}
         <TestimonialsSection section={reviews ?? FALLBACK_REVIEWS} />
         <FaqSection section={faqSection} />
