@@ -466,11 +466,8 @@ function OrderCard({
       </dl>
 
       <div className="mt-4 rounded-2xl bg-[#f5f6f8] px-3.5 py-3 text-sm leading-relaxed text-neutral-700">
-        <p className="text-xs font-medium text-neutral-500">
+        <p className="font-medium text-neutral-950">
           {ZONE_LABEL[order.deliveryZone]} · {maskPhone(order.phone)}
-        </p>
-        <p className="mt-1 font-medium text-neutral-950">
-          {order.area}, {order.district}
         </p>
       </div>
 

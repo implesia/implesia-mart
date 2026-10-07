@@ -9,10 +9,13 @@ import {
   isSameOrigin,
   refreshCookieOptions,
 } from "@/lib/auth/cookies";
+import {
+  exchangeRefreshToken,
+  shareRefresh,
+  type TokenPair,
+} from "@/lib/auth/refresh";
 
 const API = process.env.NEXT_PUBLIC_MART_API_URL ?? "http://127.0.0.1:8001";
-
-type TokenPair = { access: string; refresh: string };
 
 const refreshJobs = new Map<string, Promise<TokenPair | null>>();
 
@@ -32,37 +35,16 @@ export function clearSessionCookies(response: NextResponse) {
   response.cookies.set(REFRESH_COOKIE, "", options);
 }
 
-async function rotate(refreshToken: string): Promise<TokenPair | null> {
-  let response: Response;
-  try {
-    response = await fetch(`${API}/api/v1/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-      cache: "no-store",
-    });
-  } catch {
-    return null;
-  }
-  if (!response.ok) return null;
-  const body = (await response.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-  };
-  if (!body.access_token || !body.refresh_token) return null;
-  return { access: body.access_token, refresh: body.refresh_token };
+function rotate(refreshToken: string) {
+  return exchangeRefreshToken(
+    refreshToken,
+    (url, init) => fetch(url, { ...init, cache: "no-store" }),
+    API,
+  );
 }
 
-/** One refresh per presented token, so parallel 401s cannot rotate twice and revoke the family. */
 function rotateOnce(refreshToken: string) {
-  let job = refreshJobs.get(refreshToken);
-  if (!job) {
-    job = rotate(refreshToken).finally(() => {
-      refreshJobs.delete(refreshToken);
-    });
-    refreshJobs.set(refreshToken, job);
-  }
-  return job;
+  return shareRefresh(refreshJobs, refreshToken, () => rotate(refreshToken));
 }
 
 async function readEmail(access: string) {

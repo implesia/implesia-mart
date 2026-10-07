@@ -19,9 +19,8 @@ export function MaterialIcon({
         filled && "material-symbols-outlined--fill",
         className,
       )}
-      aria-hidden
-    >
-      {name}
-    </span>
+      data-icon={name}
+      aria-hidden="true"
+    />
   );
 }

@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      /* Checkout is session/cart-specific with no unique indexable content. */
+      /* Staff screens, checkout, and a shopper's order lookup are not public pages. */
       disallow: ["/admin", "/checkout", "/order-status", "/api"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

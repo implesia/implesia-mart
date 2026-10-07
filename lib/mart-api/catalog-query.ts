@@ -259,6 +259,7 @@ function readCard(value: unknown): PublicCatalogCard | null {
   const title = typeof record.title === "string" ? record.title : "";
   const price = typeof record.price === "number" ? record.price : Number.NaN;
   if (!isPublicCatalogCard({ id, slug, title, price })) return null;
+  if (record.published === false) return null;
   const category = record.category;
   const status = record.status;
   if (!CATEGORIES.has(category as ProductCategoryId)) return null;

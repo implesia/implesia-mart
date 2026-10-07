@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { privacyContentsNav } from "@/lib/mart-api/contents-nav";
 import type { PrivacyCollection } from "@/lib/mart-api/privacy-collection";
 import type { PrivacyContents } from "@/lib/mart-api/privacy-contents";
 import type { PrivacyHero } from "@/lib/mart-api/privacy-hero";
@@ -38,44 +39,14 @@ export function PrivacyPolicyView({
   rights: PrivacyRights | null;
   support: PrivacySupport | null;
 }) {
-  const links = [
-    {
-      id: "introduction",
-      label: introduction?.navLabel.trim() || introduction?.heading.trim() || "",
-      icon: introduction?.icon || "info",
-      active: Boolean(introduction?.isActive && introduction.heading.trim()),
-    },
-    {
-      id: "collection",
-      label: collection?.navLabel.trim() || collection?.heading.trim() || "",
-      icon: collection?.icon || "database",
-      active: Boolean(collection?.isActive && collection.heading.trim()),
-    },
-    {
-      id: "usage",
-      label: usage?.navLabel.trim() || usage?.heading.trim() || "",
-      icon: usage?.icon || "query_stats",
-      active: Boolean(usage?.isActive && usage.heading.trim()),
-    },
-    {
-      id: "sharing",
-      label: sharing?.navLabel.trim() || sharing?.heading.trim() || "",
-      icon: sharing?.icon || "share",
-      active: Boolean(sharing?.isActive && sharing.heading.trim()),
-    },
-    {
-      id: "rights",
-      label: rights?.navLabel.trim() || rights?.heading.trim() || "",
-      icon: rights?.icon || "gavel",
-      active: Boolean(rights?.isActive && rights.heading.trim()),
-    },
-    {
-      id: "support",
-      label: support?.navLabel.trim() || support?.title.trim() || "",
-      icon: support?.icon || "support_agent",
-      active: Boolean(support?.isActive && support.title.trim()),
-    },
-  ].filter((item) => item.active);
+  const links = privacyContentsNav({
+    introduction,
+    collection,
+    usage,
+    sharing,
+    rights,
+    support,
+  });
   const visibleKey = links.map((item) => item.id).join(",");
   const [tracked, setTracked] = useState("introduction");
   const activeId = links.some((item) => item.id === tracked)

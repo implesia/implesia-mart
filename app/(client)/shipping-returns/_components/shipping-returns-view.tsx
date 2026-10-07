@@ -15,6 +15,7 @@ import type { ShippingPayment } from "@/lib/mart-api/shipping-payment";
 import type { ShippingRefund } from "@/lib/mart-api/shipping-refund";
 import type { ShippingReturns } from "@/lib/mart-api/shipping-returns";
 import type { ShippingSupport } from "@/lib/mart-api/shipping-support";
+import { shippingContentsNav } from "@/lib/mart-api/contents-nav";
 import type { ShippingContents } from "@/lib/mart-api/shipping-contents";
 import type { ShippingFaq } from "@/lib/mart-api/shipping-faq";
 import type { ShippingHero } from "@/lib/mart-api/shipping-hero";
@@ -48,38 +49,7 @@ export function ShippingReturnsView({
   support: ShippingSupport | null;
   faq: ShippingFaq | null;
 }) {
-  const links = [
-    {
-      id: "shipping",
-      label: shipping?.navLabel.trim() || shipping?.heading.trim() || "",
-      icon: shipping?.icon || "local_shipping",
-      active: Boolean(shipping?.isActive && shipping.heading.trim()),
-    },
-    {
-      id: "payment",
-      label: payment?.navLabel.trim() || payment?.heading.trim() || "",
-      icon: payment?.icon || "payments",
-      active: Boolean(payment?.isActive && payment.heading.trim()),
-    },
-    {
-      id: "returns",
-      label: returns?.navLabel.trim() || returns?.heading.trim() || "",
-      icon: returns?.icon || "assignment_return",
-      active: Boolean(returns?.isActive && returns.heading.trim()),
-    },
-    {
-      id: "refund",
-      label: refund?.navLabel.trim() || refund?.heading.trim() || "",
-      icon: refund?.icon || "receipt_long",
-      active: Boolean(refund?.isActive && refund.heading.trim()),
-    },
-    {
-      id: "support",
-      label: support?.navLabel.trim() || support?.title.trim() || "",
-      icon: support?.icon || "support_agent",
-      active: Boolean(support?.isActive && support.title.trim()),
-    },
-  ].filter((item) => item.active);
+  const links = shippingContentsNav({ shipping, payment, returns, refund, support });
   const visibleKey = links.map((item) => item.id).join(",");
   const [tracked, setTracked] = useState("shipping");
   const activeId = links.some((item) => item.id === tracked)

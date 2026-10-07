@@ -5,7 +5,7 @@ import {
   buildQuotePayload,
   payloadOmitsClientMoney,
 } from "../lib/mart-api/order-payload.ts";
-import { validateShipping } from "../app/(client)/_lib/checkout-shipping.ts";
+import { validateShipping } from "../app/(client)/checkout/_lib/validate-shipping.ts";
 
 test("quote payload sends ids and quantity, not money", () => {
   const body = buildQuotePayload({

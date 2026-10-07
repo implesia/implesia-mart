@@ -4,17 +4,18 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
-import { getPrivacyCollection, type PrivacyCollection } from "@/lib/mart-api/privacy-collection";
+import { privacyContentsNav, type ContentsNavLink } from "@/lib/mart-api/contents-nav";
+import { getPrivacyCollection } from "@/lib/mart-api/privacy-collection";
 import {
   getPrivacyContents,
   savePrivacyContents,
   type PrivacyContents,
 } from "@/lib/mart-api/privacy-contents";
-import { getPrivacyIntroduction, type PrivacyIntroduction } from "@/lib/mart-api/privacy-introduction";
-import { getPrivacyRights, type PrivacyRights } from "@/lib/mart-api/privacy-rights";
-import { getPrivacySharing, type PrivacySharing } from "@/lib/mart-api/privacy-sharing";
-import { getPrivacySupport, type PrivacySupport } from "@/lib/mart-api/privacy-support";
-import { getPrivacyUsage, type PrivacyUsage } from "@/lib/mart-api/privacy-usage";
+import { getPrivacyIntroduction } from "@/lib/mart-api/privacy-introduction";
+import { getPrivacyRights } from "@/lib/mart-api/privacy-rights";
+import { getPrivacySharing } from "@/lib/mart-api/privacy-sharing";
+import { getPrivacySupport } from "@/lib/mart-api/privacy-support";
+import { getPrivacyUsage } from "@/lib/mart-api/privacy-usage";
 
 import { ActiveStatusField } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
@@ -36,64 +37,12 @@ type Draft = {
   navLabel: string;
 };
 
-type PreviewLink = { id: string; icon: string; label: string };
-
 async function optional<T>(task: Promise<T>): Promise<T | null> {
   try {
     return await task;
   } catch {
     return null;
   }
-}
-
-function privacyPreviewLinks(
-  introduction: PrivacyIntroduction | null,
-  collection: PrivacyCollection | null,
-  usage: PrivacyUsage | null,
-  sharing: PrivacySharing | null,
-  rights: PrivacyRights | null,
-  support: PrivacySupport | null,
-): PreviewLink[] {
-  return [
-    {
-      id: "introduction",
-      label: introduction?.navLabel.trim() || introduction?.heading.trim() || "",
-      icon: introduction?.icon || "info",
-      active: Boolean(introduction?.isActive && introduction.heading.trim()),
-    },
-    {
-      id: "collection",
-      label: collection?.navLabel.trim() || collection?.heading.trim() || "",
-      icon: collection?.icon || "database",
-      active: Boolean(collection?.isActive && collection.heading.trim()),
-    },
-    {
-      id: "usage",
-      label: usage?.navLabel.trim() || usage?.heading.trim() || "",
-      icon: usage?.icon || "query_stats",
-      active: Boolean(usage?.isActive && usage.heading.trim()),
-    },
-    {
-      id: "sharing",
-      label: sharing?.navLabel.trim() || sharing?.heading.trim() || "",
-      icon: sharing?.icon || "share",
-      active: Boolean(sharing?.isActive && sharing.heading.trim()),
-    },
-    {
-      id: "rights",
-      label: rights?.navLabel.trim() || rights?.heading.trim() || "",
-      icon: rights?.icon || "gavel",
-      active: Boolean(rights?.isActive && rights.heading.trim()),
-    },
-    {
-      id: "support",
-      label: support?.navLabel.trim() || support?.title.trim() || "",
-      icon: support?.icon || "support_agent",
-      active: Boolean(support?.isActive && support.title.trim()),
-    },
-  ]
-    .filter((item) => item.active)
-    .map(({ id, icon, label }) => ({ id, icon, label }));
 }
 
 function draftFrom(contents: PrivacyContents): Draft {
@@ -107,7 +56,7 @@ function draftFrom(contents: PrivacyContents): Draft {
 
 export function PrivacyContentsEditor() {
   const [contents, setContents] = useState<PrivacyContents | null>(null);
-  const [links, setLinks] = useState<PreviewLink[]>([]);
+  const [links, setLinks] = useState<ContentsNavLink[]>([]);
   const [loadError, setLoadError] = useState("");
   const params = useSearchParams();
   const { pathname, router } = usePrivacyNav();
@@ -130,7 +79,7 @@ export function PrivacyContentsEditor() {
         if (!active) return;
         setContents(next);
         setLinks(
-          privacyPreviewLinks(introduction, collection, usage, sharing, rights, support),
+          privacyContentsNav({ introduction, collection, usage, sharing, rights, support }),
         );
       })
       .catch((error: unknown) => {

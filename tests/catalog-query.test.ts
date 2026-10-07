@@ -54,6 +54,19 @@ test("published names are kept, seed rows are dropped", () => {
   assert.equal(parsed.items[0]?.compareAtPrice, 700);
 });
 
+test("an unpublished row and a failed body are not a catalog", () => {
+  const hidden = interpretPublicCatalog({
+    items: [{ ...published, published: false }],
+    total: 1,
+    page: 1,
+    pages: 1,
+  });
+  if (hidden === null) throw new Error("expected a catalog");
+  assert.deepEqual(hidden.items, []);
+  assert.equal(interpretPublicCatalog(null), null);
+  assert.equal(interpretPublicCatalog({ error: "down" }), null);
+});
+
 test("an empty catalog is empty, not a fallback list", () => {
   const parsed = interpretPublicCatalog({
     items: [],

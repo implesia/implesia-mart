@@ -64,8 +64,18 @@ export default function Header({
   const categoriesRef = useRef<HTMLDivElement>(null);
   const mobileOpen = menuPath === pathname;
   const categoriesOpen = categoriesPath === pathname;
+  const [menuEntered, setMenuEntered] = useState(false);
 
   useScrollLock(mobileOpen);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      setMenuEntered(false);
+      return;
+    }
+    const frame = requestAnimationFrame(() => setMenuEntered(true));
+    return () => cancelAnimationFrame(frame);
+  }, [mobileOpen]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -102,7 +112,7 @@ export default function Header({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50">
+      <header className="fixed inset-x-0 top-0 z-50" inert={mobileOpen}>
         <div className="border-b border-neutral-200 bg-white text-neutral-800">
           <Container className="flex items-end gap-3 px-4 py-2 sm:gap-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-end lg:gap-6 lg:px-8 lg:py-3">
             <div className="flex min-w-0 shrink-0 flex-col gap-1">
@@ -171,7 +181,7 @@ export default function Header({
                   className="inline-flex size-9 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 lg:hidden"
                   aria-label={mobileOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
                   aria-expanded={mobileOpen}
-                  aria-controls={menuId}
+                  aria-controls={mobileOpen ? menuId : undefined}
                   onClick={() =>
                     setMenuPath((current) =>
                       current === pathname ? null : pathname,
@@ -194,6 +204,7 @@ export default function Header({
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100"
+                aria-label="ক্যাটাগরি"
                 aria-expanded={categoriesOpen}
                 aria-haspopup="true"
                 onClick={() => {
@@ -269,14 +280,10 @@ export default function Header({
 
       <div aria-hidden className="h-[6.75rem] sm:h-[8.5rem] lg:h-[9.25rem]" />
 
+      {mobileOpen ? (
       <div
         id={menuId}
-        className={cn(
-          "fixed inset-0 z-60 lg:hidden",
-          mobileOpen ? "pointer-events-auto" : "pointer-events-none",
-        )}
-        aria-hidden={!mobileOpen}
-        inert={!mobileOpen}
+        className="fixed inset-0 z-60 lg:hidden"
       >
         <button
           type="button"
@@ -284,7 +291,7 @@ export default function Header({
           aria-hidden
           className={cn(
             "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300",
-            mobileOpen ? "opacity-100" : "opacity-0",
+            menuEntered ? "opacity-100" : "opacity-0",
           )}
           onClick={() => setMenuPath(null)}
         />
@@ -293,7 +300,7 @@ export default function Header({
           className={cn(
             "absolute top-0 right-0 flex h-full w-[min(100vw-2.5rem,22rem)] max-w-full flex-col bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-[#0e1514]",
             "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
-            mobileOpen ? "translate-x-0" : "translate-x-full",
+            menuEntered ? "translate-x-0" : "translate-x-full",
           )}
           role="dialog"
           aria-modal="true"
@@ -401,6 +408,7 @@ export default function Header({
           </div>
         </aside>
       </div>
+      ) : null}
     </>
   );
 }

@@ -35,7 +35,7 @@
   --color-surface-tint: #2bc0b5;
   --color-on-surface: #191c1b;
   --color-primary-container: #d6f7f5;
-  --color-on-primary: #ffffff;
+  --color-on-primary: #042422;
   --color-on-background: #191c1b;
   --color-outline: #6f7975;
   --color-error-container: #ffdad6;
@@ -43,7 +43,7 @@
   --color-on-primary-fixed-variant: #005143;
   --color-primary-ink: #0b5e56;
   --color-primary-hover: #22a79d;
-  --color-primary-active: #1a847b;
+  --color-primary-active: #1f9e94;
   --color-success: #067647;
   --color-warning: #b54708;
   --color-info: #175cd3;
@@ -100,6 +100,7 @@
   --color-outline-variant: rgba(238, 248, 247, 0.14);
 
   --color-primary: #3dd4c8;
+  --color-primary-ink: #3dd4c8;
   --color-surface-tint: #3dd4c8;
   --color-on-primary: #042422;
   --color-primary-container: rgba(61, 212, 200, 0.14);
@@ -118,7 +119,7 @@
   --popover: #ffffff;
   --popover-foreground: #191c1b;
   --primary: #2bc0b5;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #042422;
   --secondary: #eceeec;
   --secondary-foreground: #4c5e7d;
   --muted: #e6e9e6;
@@ -136,7 +137,8 @@
   --color-popover: #ffffff;
   --color-popover-foreground: #191c1b;
   --color-primary: #2bc0b5;
-  --color-primary-foreground: #ffffff;
+  --color-primary-ink: #0b5e56;
+  --color-primary-foreground: #042422;
   --color-secondary: #eceeec;
   --color-secondary-foreground: #4c5e7d;
   --color-muted: #e6e9e6;
@@ -161,7 +163,7 @@
   --color-outline: #6f7975;
   --color-outline-variant: #bec9c4;
   --color-surface-tint: #2bc0b5;
-  --color-on-primary: #ffffff;
+  --color-on-primary: #042422;
   --color-primary-container: #d6f7f5;
   --color-on-primary-container: #0b3d39;
   --color-warm-gold: #f5b301;
@@ -282,6 +284,11 @@ body:has(.force-light) {
   font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+.material-symbols-outlined::before {
+  content: attr(data-icon);
+  font-feature-settings: "liga";
   font-variation-settings:
     "FILL" 0,
     "wght" 400,
@@ -289,7 +296,7 @@ body:has(.force-light) {
     "opsz" 24;
 }
 
-.material-symbols-outlined--fill {
+.material-symbols-outlined--fill::before {
   font-variation-settings:
     "FILL" 1,
     "wght" 400,
@@ -364,7 +371,7 @@ details > summary {
   --popover: #ffffff;
   --popover-foreground: #191c1b;
   --primary: #2bc0b5;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #042422;
   --secondary: #eceeec;
   --secondary-foreground: #4c5e7d;
   --muted: #e6e9e6;
@@ -536,27 +543,31 @@ img[data-nimg="fill"] {
   max-width: 36rem !important;
 }
 
-/* Brand fill stays #2BC0B5. Small brand text and button labels use darker teal for contrast. */
-.text-primary {
-  color: #0b5e56;
+/* #2bc0b5 stays the fill. Text uses --color-primary-ink: #0b5e56 on light (7.6:1 on white) and #3dd4c8 on dark (10.4:1). */
+.text-primary,
+.hover\:text-primary:hover,
+.group-hover\:text-primary:is(:where(.group):hover *),
+.data-active\:text-primary:is([data-state="active"], [data-active]:not([data-active="false"])),
+.\*\*\:data-\[slot\=accordion-trigger-icon\]\:text-primary [data-slot="accordion-trigger-icon"] {
+  color: var(--color-primary-ink);
 }
 
 button.bg-primary,
 a.bg-primary {
-  color: #042422;
+  color: var(--color-on-primary);
 }
 
 button.bg-primary:hover,
 a.bg-primary:hover {
-  background-color: #22a79d;
+  background-color: var(--color-primary-hover);
 }
 
 button.bg-primary:active,
 a.bg-primary:active {
-  background-color: #1a847b;
+  background-color: var(--color-primary-active);
 }
 
 :focus-visible {
-  outline: 2px solid #0b5e56;
+  outline: 2px solid var(--color-primary-ink);
   outline-offset: 2px;
 }

@@ -1,15 +1,16 @@
 # Implesia Mart
 
-Implesia Mart is a Bangla-language e-commerce storefront built for selling trending gadgets — such as a sunset projection lamp and an AI face-tracking selfie stand. The site is designed around BDT currency, a cash-on-delivery (COD) model, and fully Bangla UI/copy.
+Bangla storefront for trending gadgets and handmade dresses. Prices are in BDT. Checkout is cash on delivery.
 
 ## Features
 
-- **Homepage** — hero slider, best-selling carousel, flash sale, trust/organic highlight section, testimonials, newsletter
-- **Product catalog** — filterable/sortable grid, detailed product pages (gallery, video, specifications, FAQ, reviews)
-- **Shopping cart** — persistent `localStorage`-based cart, header drawer, quantity controls
-- **Checkout** — shipping address form, COD payment, and server-priced order placement
-- **Content pages** — About, Sustainability, FAQs, Shipping & Returns, Privacy Policy, Contact Us
-- **Theming** — light/dark mode toggle (system-preference aware)
+- **Homepage** — hero, product sections, reviews, and newsletter loaded from the Mart API
+- **Catalog** — filterable product grid and product pages. A failed catalog response shows no stand-in products
+- **Cart** — line items, prices, and delivery rates live on the API. A guest stores only the cart token `implesia.cart.guest.v1` in the browser
+- **Checkout** — shipping form and cash on delivery. The browser sends product ids, quantities, and a delivery-zone hint. The API sets price, stock, shipping, and the total
+- **Order lookup** — a shopper can check a recent order by number and phone. The browser may remember that number locally; the order itself stays on the API
+- **Content** — About, Sustainability, FAQs, Shipping & Returns, Privacy, Contact, and Blog, loaded from the API
+- **Admin** — `/admin` uses HttpOnly session cookies. Every admin API call still requires a staff token
 
 ## Tech stack
 
@@ -18,58 +19,51 @@ Implesia Mart is a Bangla-language e-commerce storefront built for selling trend
 - [Tailwind CSS 4](https://tailwindcss.com)
 - [Base UI](https://base-ui.com) + [shadcn](https://ui.shadcn.com)-style components
 - [Framer Motion](https://motion.dev) — animations
-- [Swiper](https://swiperjs.com) — carousels/sliders
-- Production build path is `npm run build` (Next.js). `dev:vinext` / `deploy:vinext` are an optional Cloudflare target.
+- [Swiper](https://swiperjs.com) — carousels
+- The release build is `npm run build`, then `npm run start`. That is the only deploy path.
 
-> **Note:** The Next.js version in this repo may include breaking changes from upstream. Check `node_modules/next/dist/docs/` before writing new code.
+> The Next.js version in this repo may include breaking changes from upstream. Check `node_modules/next/dist/docs/` before writing new code.
 
 ## Getting started
 
-Install dependencies:
+Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_MART_API_URL`. Catalog, cart, and checkout need the Mart API running.
 
 ```bash
 npm install
-```
-
-Start the development server:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to view the result.
-
-You can start editing the homepage in `app/page.tsx` — the page auto-updates as you save changes.
+Open [http://localhost:3000](http://localhost:3000). The homepage is `app/(client)/page.tsx`.
 
 ## Scripts
 
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Starts the development server (Webpack) |
-| `npm run build` | Creates a production build |
+| `npm run build` | Creates the production build. This is the release path |
 | `npm run start` | Runs the production build |
 | `npm run lint` | Lints the codebase with ESLint |
+| `npm run test` | Runs the storefront tests |
+| `npm run typecheck` | Typechecks the project |
 
 ## Project structure
 
 ```
 app/
-├─ (client)/
-│  ├─ _components/     # Shared UI (header, footer, home sections, cart)
-│  ├─ _data/           # Static content/copy and product data
-│  ├─ _lib/            # Cart helpers, EmailJS integration
-│  ├─ _providers/      # Cart and theme context providers
-│  ├─ products/        # Product listing and detail pages
-│  ├─ checkout/        # Checkout flow
-│  └─ ...              # about-us, faqs, sustainability, and other content pages
-components/ui/         # shadcn/Base UI primitive components
-public/images/products/ # Product image/video assets
+├─ (client)/                 # Storefront
+│  ├─ checkout/              # Checkout form and shipping validation
+│  ├─ products/              # Catalog and product pages
+│  ├─ order-status/          # Order lookup
+│  └─ ...                    # Home and content pages
+├─ admin/                    # Staff screens
+lib/
+├─ mart-api/                 # Catalog, cart, checkout, and CMS clients
+└─ auth/                     # HttpOnly admin session cookies
 ```
 
-Orders are created by the Mart API. The browser sends product ids and quantities. The API calculates price, stock, and delivery. Admin sign-in stores tokens in HttpOnly cookies on this app; the API still receives a Bearer token from the server.
+The Mart API is the price authority. The storefront does not calculate order totals.
 
 ## Learn more
 
 - [Next.js documentation](https://nextjs.org/docs)
 - [Tailwind CSS documentation](https://tailwindcss.com/docs)
-- [EmailJS documentation](https://www.emailjs.com/docs/)

@@ -1,0 +1,36 @@
+name: Storefront
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: storefront-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Test and production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://mart.implesia.com
+          NEXT_PUBLIC_MART_API_URL: https://mart-api.implesia.com
