@@ -103,7 +103,7 @@ export function BlogArticle({
 
           <div className="mt-3 max-w-3xl">
             {category ? (
-              <span className="mb-3 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <span className="mb-3 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-ink">
                 {category}
               </span>
             ) : null}
@@ -119,7 +119,7 @@ export function BlogArticle({
             <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500 sm:gap-5 sm:text-sm">
               {post.author.trim() ? (
                 <span className="inline-flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary-ink">
                     {post.author.charAt(0)}
                   </span>
                   <span className="text-left">

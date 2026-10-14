@@ -128,7 +128,7 @@ function FeaturedBlogCard({
       <div className="flex flex-col justify-center px-4 py-5 sm:px-6 sm:py-6 lg:col-span-5 lg:px-7">
         <div className="mb-2.5 flex flex-wrap items-center gap-2">
           {featuredLabel ? (
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary-ink">
               {featuredLabel}
             </span>
           ) : null}
