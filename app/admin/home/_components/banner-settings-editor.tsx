@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { getBannerSettings, updateBannerSettings, type BannerSettingsInput } from "@/lib/mart-api/hero";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 import { adminButtonClass, adminFieldClass, AdminLoading, FieldError, FieldLabel } from "../../_components/admin-ui";
 import { sameFormSnapshot } from "../../_components/form-close-guard";
+import { UnsavedChangesDialog } from "../../_components/unsaved-changes-dialog";
 
 type TextKey = "brandName" | "trustLine" | "ariaLabel" | "previousLabel" | "nextLabel" | "slideLabel";
 type NumberKey = "autoplayDelayMs" | "transitionSpeedMs";
@@ -83,6 +85,9 @@ function BannerSettingsForm({
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [touched, setTouched] = useState(false);
+  const [leaveHref, setLeaveHref] = useState<string | null>(null);
+  const bypassLeave = useRef(false);
+  const router = useRouter();
   const baseId = useId();
   const dirty = !sameFormSnapshot(saved, draft);
   const errors = validateBannerSettings(draft);
@@ -93,9 +98,43 @@ function BannerSettingsForm({
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
+    // Same in-app link guard as the product form: the sidebar and breadcrumbs would drop the draft.
+    const onClick = (event: MouseEvent) => {
+      if (bypassLeave.current) return;
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const anchor = (event.target as Element | null)?.closest("a[href]");
+      if (!anchor || anchor.getAttribute("target") === "_blank") return;
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      const url = new URL(href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setLeaveHref(`${url.pathname}${url.search}${url.hash}`);
+    };
     window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("click", onClick, true);
+    };
   }, [dirty]);
+
+  function confirmLeave() {
+    const href = leaveHref;
+    bypassLeave.current = true;
+    setLeaveHref(null);
+    if (href) router.push(href);
+  }
 
   function set<K extends keyof BannerSettingsInput>(key: K, value: BannerSettingsInput[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -226,6 +265,9 @@ function BannerSettingsForm({
           ) : null}
         </div>
       </form>
+      {leaveHref ? (
+        <UnsavedChangesDialog onStay={() => setLeaveHref(null)} onDiscard={confirmLeave} />
+      ) : null}
     </section>
   );
 }
