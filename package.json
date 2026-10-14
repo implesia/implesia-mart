@@ -42,5 +42,8 @@
     "vite": "^8.1.5",
     "wrangler": "^4.112.0"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "@babel/plugin-transform-runtime": "^7.29.0"
+  }
 }
