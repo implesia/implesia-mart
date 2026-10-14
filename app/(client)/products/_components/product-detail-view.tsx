@@ -18,7 +18,9 @@ export function ProductDetailLayout({ product }: { product: ProductDetail }) {
     <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 pt-4 pb-28 sm:px-6 sm:pb-32 lg:px-8 lg:pt-8 lg:pb-16 xl:px-10">
       <ProductBreadcrumbs items={product.breadcrumbs} />
 
-      <div className="grid grid-cols-1 items-start gap-5 sm:gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
+      {/* DOM order is gallery, info (h1), then the desktop support panel (h2s) so headings stay in order;
+          on lg the panel sits in row 2 under the gallery and the info column spans both rows. */}
+      <div className="grid grid-cols-1 items-start gap-5 sm:gap-8 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-0 xl:gap-x-14">
         <div className="min-w-0 lg:col-span-7">
           <ProductGallery
             title={product.title}
@@ -33,15 +35,16 @@ export function ProductDetailLayout({ product }: { product: ProductDetail }) {
             }
             images={product.gallery}
           />
-          <ProductSupportPanel
-            product={product}
-            className="mt-6 hidden lg:mt-8 lg:block"
-          />
         </div>
 
-        <div className="min-w-0 lg:col-span-5">
+        <div className="min-w-0 lg:col-span-5 lg:row-span-2">
           <ProductInfo key={product.slug} product={product} />
         </div>
+
+        <ProductSupportPanel
+          product={product}
+          className="hidden min-w-0 lg:col-span-7 lg:mt-8 lg:block"
+        />
       </div>
 
       <ProductDetailsTabs product={product} />

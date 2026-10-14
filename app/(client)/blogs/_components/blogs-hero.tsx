@@ -14,7 +14,8 @@ export function BlogsHero({
   count?: number;
   className?: string;
 }) {
-  if (!hero?.isActive) return null;
+  // The page still needs one h1 when the hero is switched off or has no title.
+  if (!hero?.isActive || !hero.title.trim()) return <h1 className="sr-only">ব্লগ</h1>;
   const postCount = count;
 
   return (

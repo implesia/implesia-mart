@@ -48,9 +48,9 @@ export function ProductsToolbar({
     <div className={cn("mb-2 space-y-2 sm:mb-2.5", className)}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-on-surface sm:text-xl">
+          <p aria-hidden="true" className="text-lg font-semibold text-on-surface sm:text-xl">
             {title}
-          </h1>
+          </p>
           <p className="mt-0.5 text-sm text-on-surface-variant">{totalLabel}</p>
         </div>
         <div className="flex items-center justify-end gap-2">

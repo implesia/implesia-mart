@@ -48,6 +48,10 @@ export function HeroSection({
       aria-label={settings.ariaLabel}
     >
       <Container className="px-4 sm:px-6 lg:px-8">
+        {/* The page's one h1 comes first so the category rail (h2) and slide titles (h2) follow it. */}
+        <h1 className="sr-only">
+          {settings.brandName} — ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি ড্রেস
+        </h1>
         <div
           className={cn(
             // minmax(0,1fr): an implicit track would grow to the category rail's min-content width
@@ -83,9 +87,9 @@ function FallbackHero({ brandName, trustLine }: { brandName: string; trustLine: 
       <p className="text-xs font-semibold tracking-[0.16em] text-[#8ed4c1] uppercase">
         {brandName}
       </p>
-      <h1 className="mt-2 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">
+      <h2 className="mt-2 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">
         ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি ড্রেস
-      </h1>
+      </h2>
       <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/75">
         {trustLine}
       </p>
@@ -162,9 +166,9 @@ function HeroCarousel({
                         {slide.eyebrow}
                       </p>
                       {index === activeIndex ? (
-                        <h1 className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.35rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
+                        <h2 className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.35rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
                           {slide.title}
-                        </h1>
+                        </h2>
                       ) : (
                         <p className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.35rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
                           {slide.title}

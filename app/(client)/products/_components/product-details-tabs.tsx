@@ -118,9 +118,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                 <div className="space-y-8">
                   <div className="space-y-6">
                     {product.details.heading.trim() ? (
-                      <h3 className="font-headline-sm text-on-background">
+                      <h2 className="font-headline-sm text-on-background">
                         {product.details.heading}
-                      </h3>
+                      </h2>
                     ) : null}
                     <p className="text-body-lg text-on-surface-variant">
                       {product.details.body}
@@ -140,9 +140,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
 
                   {howToUse.length ? (
                     <div className="space-y-4">
-                      <h4 className="font-headline-sm text-on-background">
+                      <h3 className="font-headline-sm text-on-background">
                         কীভাবে ব্যবহার করবেন
-                      </h4>
+                      </h3>
                       <ol className="space-y-3">
                         {howToUse.map((step, index) => (
                           <li
@@ -161,9 +161,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
 
                   {suitableFor.length ? (
                     <div className="space-y-3">
-                      <h4 className="font-headline-sm text-on-background">
+                      <h3 className="font-headline-sm text-on-background">
                         কার জন্য উপযোগী
-                      </h4>
+                      </h3>
                       <div className="flex flex-wrap gap-2">
                         {suitableFor.map((item) => (
                           <span
@@ -198,9 +198,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                       </span>
                     </div>
 
-                    <h4 className="mb-2 text-lg font-medium text-white sm:mb-3 sm:text-xl">
+                    <h3 className="mb-2 text-lg font-medium text-white sm:mb-3 sm:text-xl">
                       {product.details.authenticity.title}
-                    </h4>
+                    </h3>
                     <p className="mb-4 max-w-md text-sm leading-relaxed text-white/75 sm:mb-6 sm:text-base">
                       {product.details.authenticity.body}
                     </p>
@@ -250,9 +250,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
             {activeTab === "faq" && faqs.length ? (
               <div className="mx-auto max-w-3xl space-y-3 sm:space-y-4">
                 <div className="mb-4 sm:mb-6">
-                  <h3 className="text-lg font-medium text-on-background sm:font-headline-sm">
+                  <h2 className="text-lg font-medium text-on-background sm:font-headline-sm">
                     সাধারণ জিজ্ঞাসা
-                  </h3>
+                  </h2>
                   <p className="mt-1.5 text-sm text-on-surface-variant sm:mt-2 sm:text-base">
                     অর্ডার, ডেলিভারি, ব্যবহার ও কেয়ার — যে প্রশ্নগুলো বেশি আসে,
                     তার উত্তর।
@@ -289,9 +289,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                       রিভিউ
                     </span>
                   </div>
-                  <h3 className="mb-3 text-xl font-medium text-on-background sm:font-headline-sm">
+                  <h2 className="mb-3 text-xl font-medium text-on-background sm:font-headline-sm">
                     এখনও কোনো রিভিউ নেই
-                  </h3>
+                  </h2>
                   <p className="max-w-2xl text-sm text-on-surface-variant sm:text-body-md">
                     {product.status === "coming-soon"
                       ? "প্রোডাক্ট লঞ্চ হওয়ার পর এখানে ভেরিফাইড কাস্টমার রিভিউ যুক্ত হবে।"
@@ -365,9 +365,9 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
                                 {r.initials}
                               </div>
                               <div className="min-w-0">
-                                <h5 className="truncate font-label-md text-on-surface">
+                                <h3 className="truncate font-label-md text-on-surface">
                                   {r.name}
-                                </h5>
+                                </h3>
                                 <p className="text-label-sm text-outline">
                                   {r.meta}
                                 </p>

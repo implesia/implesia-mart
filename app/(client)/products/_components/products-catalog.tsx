@@ -145,6 +145,8 @@ export function ProductsCatalog({
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-0 lg:flex-row lg:items-start lg:gap-3.5 xl:gap-4">
+      {/* h1 before the filter sidebar's h2; the toolbar shows the same title visually. */}
+      <h1 className="sr-only">{title}</h1>
       <ProductsFilters {...filterControls} />
       <ProductsMobileFilters
         open={mobileFiltersOpen}
