@@ -27,9 +27,10 @@ export function BlogsGrid({
   posts: BlogPostRecord[];
 }) {
   const visiblePosts = posts.filter(isContentActive);
-  const categoryItems = categories?.isActive
-    ? categories.items.filter((item) => item.isActive)
-    : [];
+  const categoryItems = useMemo(
+    () => (categories?.isActive ? categories.items.filter((item) => item.isActive) : []),
+    [categories],
+  );
   const allLabel = listing?.allLabel.trim() ?? "";
   const [active, setActive] = useState("all");
   const showHeading = Boolean(listing?.isActive);
@@ -113,7 +114,7 @@ export function BlogsGrid({
                     <span
                       className={cn(
                         "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
-                        isActive ? "bg-white/20 text-white" : "bg-[#f5f6f8] text-neutral-500",
+                        isActive ? "bg-black/10 text-on-primary" : "bg-[#f5f6f8] text-neutral-600",
                       )}
                     >
                       {count}

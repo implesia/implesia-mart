@@ -19,6 +19,7 @@ import { type HeroAccent } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
 import { adminButtonClass, AdminLoading } from "../../_components/admin-ui";
+import { BannerSettingsEditor } from "../_components/banner-settings-editor";
 import { HomeCmsHeader } from "../_components/home-cms-header";
 
 type PublishFilter = "all" | "live" | "off";
@@ -135,6 +136,8 @@ function HeroSlidesView() {
           </Link>
         }
       />
+
+      <BannerSettingsEditor />
 
       {error ? <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 

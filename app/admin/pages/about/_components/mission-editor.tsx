@@ -417,7 +417,6 @@ function CardDrawer({
   const titleId = useId();
   const descriptionId = useId();
   const label = cardLabel(cardKey);
-  const title = draft.title.trim() || label;
 
   async function save() {
     if (saving) return;

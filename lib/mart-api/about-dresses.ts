@@ -113,7 +113,7 @@ export const FALLBACK_ABOUT_DRESSES: AboutDress[] = [
       },
       {
         id: "dress-image-2",
-        src: "/images/products/baby-products/female-gorgious-ground-dress.jpeg",
+        src: "/images/products/baby-products/wedding-dress.jpeg",
         alt: "নারীদের জন্য হাতে তৈরি গর্জিয়াস গাউন",
       },
       {

@@ -68,10 +68,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
         modules={[Navigation]}
         spaceBetween={16}
         slidesPerView={1.2}
-        navigation={{
-          prevEl: prevRef.current,
-          nextEl: nextRef.current,
-        }}
+        navigation
         onBeforeInit={(swiper) => {
           // @ts-expect-error Swiper navigation refs assigned before init
           swiper.params.navigation.prevEl = prevRef.current;

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { listPublicBlogCategories } from "@/lib/mart-api/blog-categories";
 import { listPublicBlogCta } from "@/lib/mart-api/blog-cta";
 import { listPublicBlogListing } from "@/lib/mart-api/blog-listing";
 import {
   getPublicBlogPost,
+  isMissingBlogPost,
   listPublicBlogPosts,
 } from "@/lib/mart-api/blog-posts";
 import { listPublicBlogRelated } from "@/lib/mart-api/blog-related";
@@ -21,7 +23,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPublicBlogPost(slug);
-  if (!post) return { title: "ব্লগ" };
+  if (!post) {
+    if (await isMissingBlogPost(slug)) notFound();
+    return { title: "ব্লগ" };
+  }
 
   const url = `/blogs/${post.slug}`;
 
@@ -65,6 +70,7 @@ export default async function BlogDetailPage({
     listPublicBlogRelated(),
     listPublicBlogCta(),
   ]);
+  if (!post && (await isMissingBlogPost(slug))) notFound();
   return (
     <BlogArticle
       post={post}

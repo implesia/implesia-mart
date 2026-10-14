@@ -43,7 +43,7 @@ type ApiHero = {
 };
 
 const LEFT = "/images/products/lamp/lamp-1.jpg";
-const RIGHT = "/images/products/baby-products/female-gorgious-ground-dress.jpeg";
+const RIGHT = "/images/products/baby-products/wedding-dress.jpeg";
 
 export const FALLBACK_ABOUT_HERO: AboutHero = {
   eyebrow: "আমাদের সম্পর্কে",

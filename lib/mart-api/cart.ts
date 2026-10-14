@@ -308,31 +308,21 @@ export async function listCarts(query: {
   } satisfies CartDirectory;
 }
 
-let catalogIds: Map<string, string> | null = null;
+// Slug -> id, filled one product at a time from the by-slug endpoint. Only hits are kept, so a
+// product published after the page loaded is still found.
+const catalogIds = new Map<string, string>();
 
 async function productIdForSlug(slug: string) {
-  if (!catalogIds) {
-    const map = new Map<string, string>();
-    let page = 1;
-    let pages = 1;
-    while (page <= pages && page <= 5) {
-      const response = await fetch(
-        `${MART_API_URL}/api/v1/products?page=${page}&page_size=48`,
-      );
-      if (!response.ok) break;
-      const body = (await response.json()) as {
-        items?: { id: string; slug: string }[];
-        pages?: number;
-      };
-      for (const item of body.items ?? []) {
-        if (item.slug && item.id) map.set(item.slug, item.id);
-      }
-      pages = body.pages ?? 1;
-      page += 1;
-    }
-    catalogIds = map;
-  }
-  return catalogIds.get(slug) ?? null;
+  const known = catalogIds.get(slug);
+  if (known) return known;
+  const response = await fetch(
+    `${MART_API_URL}/api/v1/products/by-slug/${encodeURIComponent(slug)}`,
+  );
+  if (!response.ok) return null;
+  const body = (await response.json()) as { id?: string; slug?: string };
+  if (!body.id || body.slug !== slug) return null;
+  catalogIds.set(slug, body.id);
+  return body.id;
 }
 
 let lastSync: Promise<ShopCart | null> = Promise.resolve(null);

@@ -117,9 +117,11 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
               <div className="grid grid-cols-1 gap-10 sm:gap-12 lg:grid-cols-2 lg:gap-16">
                 <div className="space-y-8">
                   <div className="space-y-6">
-                    <h3 className="font-headline-sm text-on-background">
-                      {product.details.heading}
-                    </h3>
+                    {product.details.heading.trim() ? (
+                      <h3 className="font-headline-sm text-on-background">
+                        {product.details.heading}
+                      </h3>
+                    ) : null}
                     <p className="text-body-lg text-on-surface-variant">
                       {product.details.body}
                     </p>

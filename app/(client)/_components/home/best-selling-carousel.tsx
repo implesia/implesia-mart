@@ -89,10 +89,7 @@ export function BestSellingCarousel() {
           disableOnInteraction: false,
           pauseOnMouseEnter: true,
         }}
-        navigation={{
-          prevEl: prevRef.current,
-          nextEl: nextRef.current,
-        }}
+        navigation
         onBeforeInit={(swiper) => {
           // @ts-expect-error Swiper navigation refs assigned before init
           swiper.params.navigation.prevEl = prevRef.current;

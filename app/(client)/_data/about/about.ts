@@ -44,7 +44,7 @@ export const aboutCopy = {
     secondaryCta: { label: "যোগাযোগ", href: "/contact-us" },
     imageSrc: "/images/products/lamp/lamp-1.jpg",
     imageAlt: "সানসেট ল্যাম্প — ইমপ্লেসিয়া মার্টের ট্রেন্ডিং গ্যাজেট",
-    secondaryImageSrc: "/images/products/baby-products/female-gorgious-ground-dress.jpeg",
+    secondaryImageSrc: "/images/products/baby-products/wedding-dress.jpeg",
     secondaryImageAlt: "হাতে তৈরি গর্জিয়াস উইমেন্স গাউন",
   },
   stats: [
@@ -108,7 +108,7 @@ export const aboutCopy = {
         alt: "হাতে তৈরি বেবি পার্টি ড্রেস — সরাসরি ব্যবহারের ছবি",
       },
       {
-        src: "/images/products/baby-products/female-gorgious-ground-dress.jpeg",
+        src: "/images/products/baby-products/wedding-dress.jpeg",
         alt: "নারীদের জন্য হাতে তৈরি গর্জিয়াস গাউন",
       },
       {

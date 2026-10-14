@@ -24,6 +24,7 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
     deliveryFee,
     grandTotal,
     deliveryZone,
+    zoneKnown,
     pricingBusy,
     pricingMessage,
     changeQuantity,
@@ -166,7 +167,9 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
             <span className="text-neutral-600">
               ডেলিভারি চার্জ
               <span className="mt-0.5 block text-[11px] text-neutral-400">
-                {quote?.deliveryAvailable === false
+                {!zoneKnown
+                  ? "জেলা দিলে হিসাব হবে"
+                  : quote?.deliveryAvailable === false
                   ? "এই এলাকায় বন্ধ"
                   : deliveryZone === "inside"
                     ? "ঢাকার ভেতর"
@@ -181,7 +184,7 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                 pricingBusy && "opacity-50",
               )}
             >
-              {formatCartMoney(deliveryFee)}
+              {zoneKnown ? formatCartMoney(deliveryFee) : "—"}
             </span>
           </div>
         </div>
@@ -196,7 +199,7 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
               pricingBusy && "opacity-50",
             )}
           >
-            {formatCartMoney(grandTotal)}
+            {formatCartMoney(zoneKnown ? grandTotal : (quote?.subtotal ?? 0))}
           </span>
         </div>
         {pricingMessage ? (

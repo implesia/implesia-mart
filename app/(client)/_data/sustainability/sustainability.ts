@@ -20,7 +20,7 @@ export const sustainabilityCopy = {
     secondaryCta: { label: "আমাদের সম্পর্কে", href: "/about-us" },
     imageSrc: "/images/products/lamp/lamp-1.jpg",
     imageAlt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা গ্যাজেট",
-    secondaryImageSrc: "/images/products/baby-products/female-gorgious-ground-dress.jpeg",
+    secondaryImageSrc: "/images/products/baby-products/wedding-dress.jpeg",
     secondaryImageAlt: "হাতে তৈরি গর্জিয়াস উইমেন্স গাউন",
   },
   origin: {

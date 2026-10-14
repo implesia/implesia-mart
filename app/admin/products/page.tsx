@@ -88,7 +88,7 @@ function ProductsView() {
   );
   const [pageState, setPageState] = useState({ key: "", page: 0 });
   const [list, setList] = useState<ProductListResult | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [settledKey, setSettledKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -100,9 +100,20 @@ function ProductsView() {
   const filterKey = `${params.toString()}|${debouncedQuery}`;
   const page = pageState.key === filterKey ? pageState.page : 0;
 
+  const requestKey = JSON.stringify([
+    debouncedQuery,
+    category,
+    status,
+    visibility,
+    minPrice,
+    maxPrice,
+    sort,
+    page,
+  ]);
+  const loading = settledKey !== requestKey;
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     listMartProducts({
       q: debouncedQuery,
       category,
@@ -127,7 +138,7 @@ function ProductsView() {
         );
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setSettledKey(requestKey);
       });
     return () => {
       cancelled = true;
@@ -141,6 +152,7 @@ function ProductsView() {
     maxPrice,
     sort,
     page,
+    requestKey,
   ]);
 
   async function updateRow(

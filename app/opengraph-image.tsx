@@ -23,7 +23,6 @@ export default function OpengraphImage() {
           position: "relative",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={OG_LOGO_DATA_URL} width={440} height={110} alt="" />
         <div
           style={{

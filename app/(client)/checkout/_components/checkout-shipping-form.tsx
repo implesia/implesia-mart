@@ -114,7 +114,7 @@ function AreaChip({
 }
 
 export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
-  const { shipping, setShippingField, errors, rates, deliveryZone, chooseDeliveryZone, pricingBusy } =
+  const { shipping, setShippingField, errors, rates, deliveryZone, zoneKnown, chooseDeliveryZone, pricingBusy } =
     useCheckoutForm();
 
   function pickSuburbanArea(name: string) {
@@ -155,7 +155,7 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
         ) : null}
         <div className="grid gap-2">
           {visibleZones.map((zone) => {
-            const selected = deliveryZone === zone.id;
+            const selected = zoneKnown && deliveryZone === zone.id;
             const price = prices[zone.id];
             return (
               <div

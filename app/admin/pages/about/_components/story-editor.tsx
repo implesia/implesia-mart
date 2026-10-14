@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -416,7 +416,7 @@ function StoryForm({
   onSave: (story: AboutStory) => Promise<void>;
 }) {
   const [story, setStory] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
-  const baseline = useRef(story);
+  const [baseline] = useState(story);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -445,7 +445,7 @@ function StoryForm({
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={story} onClose={onClose}>
+    <FormCloseGuard baseline={baseline} value={story} onClose={onClose}>
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
         <div className="min-w-0">

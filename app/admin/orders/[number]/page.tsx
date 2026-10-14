@@ -133,6 +133,14 @@ export default function AdminOrderDetailPage() {
     order.trackingNumber.trim().length > 0;
 
   async function changeStatus(status: OrderStatus) {
+    if (
+      (status === "cancelled" || status === "returned") &&
+      !window.confirm(
+        `Mark order ${order!.number} as ${ADMIN_ORDER_STATUS_LABEL[status]}? Stock is put back and this cannot be undone.`,
+      )
+    ) {
+      return;
+    }
     try {
       const saved = await patchOrder(order!.id, {
         status,
@@ -347,9 +355,10 @@ export default function AdminOrderDetailPage() {
                 onChange={(event) =>
                   void changeStatus(event.target.value as OrderStatus)
                 }
+                disabled={order.nextStatuses.length === 0}
                 className={adminFieldClass}
               >
-                {ORDER_STATUSES.map((status) => (
+                {[order.status, ...order.nextStatuses].map((status) => (
                   <option key={status} value={status}>
                     {ADMIN_ORDER_STATUS_LABEL[status]}
                   </option>

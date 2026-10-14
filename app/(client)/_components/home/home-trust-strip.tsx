@@ -7,6 +7,16 @@ import type { TrustBenefit } from "@/lib/mart-api/trust";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
 
+// Literal class names so Tailwind keeps them. Three items (the seed) keep the original layout.
+const COLUMNS: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-2 sm:grid-cols-4",
+  5: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+};
+const MANY_COLUMNS = "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6";
+
 export function HomeTrustStrip({ items }: { items: TrustBenefit[] }) {
   if (items.length === 0) return null;
 
@@ -16,7 +26,9 @@ export function HomeTrustStrip({ items }: { items: TrustBenefit[] }) {
       aria-label="স্টোর প্রতিশ্রুতি"
     >
       <Container className="px-4 sm:px-6 lg:px-8">
-        <ul className="grid grid-cols-3 divide-x divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
+        <ul
+          className={`grid ${COLUMNS[items.length] ?? MANY_COLUMNS} divide-x divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white`}
+        >
           {items.map((item) => (
             <li key={item.id}>
               <Link

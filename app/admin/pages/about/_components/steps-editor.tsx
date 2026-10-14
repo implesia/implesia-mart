@@ -386,7 +386,7 @@ export function AboutStepsEditor() {
                     onClick={() => setEdit(item.id)}
                     className="flex h-full w-full flex-col rounded-2xl border border-neutral-200/90 bg-white p-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-5"
                   >
-                    <span className="mb-2 text-lg font-bold text-neutral-200">
+                    <span className="mb-2 text-lg font-bold text-neutral-500">
                       {item.step}
                     </span>
                     <span className="mb-2.5 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -631,7 +631,6 @@ function StepDrawer({
   const stepId = useId();
   const titleId = useId();
   const descriptionId = useId();
-  const title = draft.title.trim() || "Step";
 
   async function save() {
     if (saving) return;
@@ -695,7 +694,7 @@ function StepDrawer({
             onChange={(isActive) => setDraft({ ...draft, isActive })}
           />
           <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200">
-            <p className="text-lg font-bold text-neutral-200">
+            <p className="text-lg font-bold text-neutral-500">
               {draft.step.trim() || "০১"}
             </p>
             <span className="mt-2 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">

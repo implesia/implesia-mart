@@ -62,6 +62,8 @@ export type MartOrder = {
   trackingNumber: string;
   items: MartOrderItem[];
   createdAt: string;
+  /** Statuses the backend will accept next; empty once the order is final. */
+  nextStatuses: OrderStatus[];
 };
 
 export type OrderDirectory = {
@@ -140,6 +142,7 @@ type ApiOrder = {
   tracking_number: string;
   items: ApiOrderItem[];
   created_at: string;
+  next_statuses?: OrderStatus[];
 };
 
 function mapSelection(selection: { name: string; label: string; swatch?: string }[] | undefined) {
@@ -196,6 +199,7 @@ function mapOrder(body: ApiOrder): MartOrder {
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
     createdAt: body.created_at,
+    nextStatuses: body.next_statuses ?? [],
     items: body.items.map((item) => ({
       id: item.id,
       productId: item.product_id,

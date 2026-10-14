@@ -43,7 +43,7 @@ export function HowItWorks({
                 key={item.id}
                 className="flex flex-col rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5"
               >
-                <span className="mb-2 text-lg font-bold text-neutral-200">{item.step}</span>
+                <span className="mb-2 text-lg font-bold text-neutral-500">{item.step}</span>
                 <span className="mb-2.5 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <MaterialIcon name={stepIcon(item.icon)} className="text-[18px]" />
                 </span>

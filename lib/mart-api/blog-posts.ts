@@ -186,6 +186,19 @@ export async function listPublicBlogPosts(): Promise<BlogPostRecord[]> {
   }
 }
 
+/** True only when the API answered 404, so an outage is not reported as a missing post. */
+export async function isMissingBlogPost(slug: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API}/api/v1/pages/blogs/posts/${encodeURIComponent(slug)}`, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60 },
+    });
+    return response.status === 404;
+  } catch {
+    return false;
+  }
+}
+
 export async function getPublicBlogPost(slug: string): Promise<BlogPostRecord | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/blogs/posts/${encodeURIComponent(slug)}`, {

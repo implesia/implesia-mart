@@ -27,6 +27,8 @@
   --color-inverse-surface: #2d3130;
   --color-surface-container-low: #f2f4f1;
   --color-tertiary-fixed-dim: #ffb4a4;
+  /* WCAG AA: Tailwind neutral-500 (#737373) is 4.38:1 on the #f5f6f8 page background. */
+  --color-neutral-500: #6b6b6b;
   --color-on-tertiary: #ffffff;
   --color-secondary: #4d5f7e;
   --color-on-secondary-fixed: #071b37;
@@ -37,7 +39,7 @@
   --color-primary-container: #d6f7f5;
   --color-on-primary: #042422;
   --color-on-background: #191c1b;
-  --color-outline: #6f7975;
+  --color-outline: #636d69; /* WCAG AA: was #6f7975 (4.1:1 on surfaces) */
   --color-error-container: #ffdad6;
   --color-on-surface-variant: #3f4945;
   --color-on-primary-fixed-variant: #005143;
@@ -160,7 +162,7 @@
   --color-on-background: #191c1b;
   --color-on-surface: #191c1b;
   --color-on-surface-variant: #3f4945;
-  --color-outline: #6f7975;
+  --color-outline: #636d69; /* WCAG AA: was #6f7975 (4.1:1 on surfaces) */
   --color-outline-variant: #bec9c4;
   --color-surface-tint: #2bc0b5;
   --color-on-primary: #042422;

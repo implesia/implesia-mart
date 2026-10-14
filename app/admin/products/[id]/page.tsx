@@ -16,33 +16,42 @@ const PRODUCT_ID =
 export default function EditProductPage() {
   const params = useParams<{ id: string }>();
   const id = decodeURIComponent(params.id ?? "");
-  const [product, setProduct] = useState<AdminProduct | null | undefined>(undefined);
-  const [error, setError] = useState("");
+  const validId = PRODUCT_ID.test(id);
+  // The loaded result is keyed by id, so a stale product never shows for a new id.
+  const [loaded, setLoaded] = useState<{
+    id: string;
+    product: AdminProduct | null;
+    error: string;
+  } | null>(null);
+  const product: AdminProduct | null | undefined = !validId
+    ? null
+    : loaded?.id === id
+      ? loaded.product
+      : undefined;
+  const error = validId && loaded?.id === id ? loaded.error : "";
 
   useEffect(() => {
-    if (!PRODUCT_ID.test(id)) {
-      setProduct(null);
-      return;
-    }
+    if (!validId) return;
     let cancelled = false;
-    setProduct(undefined);
     getMartProduct(id)
       .then((next) => {
-        if (!cancelled) setProduct(next);
+        if (!cancelled) setLoaded({ id, product: next, error: "" });
       })
       .catch((loadError) => {
         if (cancelled) return;
-        setProduct(null);
-        setError(
+        setLoaded({
+          id,
+          product: null,
+          error:
           loadError instanceof MartApiError
             ? loadError.message
             : "Could not load this product.",
-        );
+        });
       });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, validId]);
 
   if (product === undefined) return <AdminLoading />;
 

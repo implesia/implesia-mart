@@ -64,6 +64,8 @@ type CheckoutFormContextValue = {
   deliveryFee: number;
   grandTotal: number;
   deliveryZone: DeliveryZone;
+  /** False until a district is typed or a zone picked: no zone or fee is shown before that. */
+  zoneKnown: boolean;
   rates: DeliveryRates | null;
   chooseDeliveryZone: (zone: DeliveryZone) => void;
   orderNumber: string | null;
@@ -138,6 +140,7 @@ export function CheckoutFormProvider({
   const chosenZone = useRef<DeliveryZone | null>(null);
   const holdZone = useRef(false);
   const [shownZone, setShownZone] = useState<DeliveryZone>("outside");
+  const [zonePicked, setZonePicked] = useState(false);
   const ticket = useRef(0);
   const busyRef = useRef(false);
   const itemsRef = useRef(directItems);
@@ -229,6 +232,7 @@ export function CheckoutFormProvider({
     (zone: DeliveryZone) => {
       if (rates && !zoneEnabled(rates, zone)) return;
       pickedZone.current = true;
+      setZonePicked(true);
       chosenZone.current = zone;
       holdZone.current = true;
       setShownZone(zone);
@@ -442,6 +446,8 @@ export function CheckoutFormProvider({
     status !== "submitting",
   );
 
+  const zoneKnown = shipping.district.trim().length > 0 || zonePicked;
+
   const value = useMemo<CheckoutFormContextValue>(
     () => ({
       shipping,
@@ -457,6 +463,7 @@ export function CheckoutFormProvider({
       deliveryFee: quote?.shipping ?? 0,
       grandTotal: quote?.total ?? 0,
       deliveryZone: shownZone,
+      zoneKnown,
       rates,
       chooseDeliveryZone,
       orderNumber,
@@ -468,6 +475,7 @@ export function CheckoutFormProvider({
     }),
     [
       shipping,
+      zoneKnown,
       setShippingField,
       errors,
       status,

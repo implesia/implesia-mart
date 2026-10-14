@@ -10,7 +10,7 @@ import { TestimonialsSection } from "./_components/home/testimonials-section";
 import { Container } from "./_components/common/container";
 import { JsonLd } from "./_components/common/json-ld";
 import { loadStoreCatalog } from "@/lib/mart-api/catalog";
-import { listPublicHeroSlides } from "@/lib/mart-api/hero";
+import { getPublicHeroSettings, listPublicHeroSlides } from "@/lib/mart-api/hero";
 import {
   FALLBACK_CATEGORIES,
   listPublicCategories,
@@ -61,6 +61,7 @@ export default async function HomePage() {
     listPublicFaq(),
     listPublicNewsletter(),
   ]);
+  const heroSettings = await getPublicHeroSettings();
   const products = catalog.products;
   const featuredSection = featuredForStore(
     featured,
@@ -105,6 +106,7 @@ export default async function HomePage() {
         ) : null}
         <HeroSection
           slides={hero ?? []}
+          settings={heroSettings}
           categories={categories ?? FALLBACK_CATEGORIES}
         />
         <HomeTrustStrip items={trust ?? FALLBACK_TRUST} />

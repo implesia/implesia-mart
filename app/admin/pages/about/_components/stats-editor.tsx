@@ -549,7 +549,6 @@ function StatDrawer({
   const [saving, setSaving] = useState(false);
   const valueId = useId();
   const labelId = useId();
-  const title = draft.label.trim() || "Stat";
 
   async function save() {
     if (saving) return;

@@ -263,7 +263,11 @@ function QuestionForm({
   onRemove?: () => void | Promise<void>;
 }) {
   const initial = draftFrom(item);
-  const [draft, setDraft] = useState(initial);
+  const [rawDraft, setDraft] = useState(initial);
+  // A new item defaults to the first category until the editor picks one.
+  const firstCategory = isNew ? categories[0]?.id : undefined;
+  const draft =
+    firstCategory && !rawDraft.categoryId ? { ...rawDraft, categoryId: firstCategory } : rawDraft;
   const [baseline] = useState(initial);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -273,12 +277,6 @@ function QuestionForm({
     options.unshift({ id: draft.categoryId, label: "Unknown category", icon: "help", isActive: true });
   }
 
-  useEffect(() => {
-    if (!isNew || draft.categoryId || categories.length === 0) return;
-    setDraft((current) =>
-      current.categoryId ? current : { ...current, categoryId: categories[0].id },
-    );
-  }, [categories, draft.categoryId, isNew]);
 
   async function save() {
     if (saving) return;

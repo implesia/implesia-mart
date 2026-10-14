@@ -439,34 +439,13 @@ export const listStoreProducts = cache(async (): Promise<Product[]> => {
   return (await loadStoreCatalog()).products;
 });
 
-async function findPublishedCard(slug: string) {
-  let page = 1;
-  let pages = 1;
-  while (page <= pages && page <= 20) {
-    const result = await fetchCatalog(
-      `/api/v1/products?page=${page}&page_size=48`,
-    );
-    if (result.kind !== "ok") return "unavailable" as const;
-    const parsed = interpretPublicCatalog(result.body);
-    if (!parsed) return "unavailable" as const;
-    const found = parsed.items.find((item) => item.slug === slug);
-    if (found) return found;
-    pages = parsed.pages || 1;
-    if (parsed.pages === 0) return null;
-    page += 1;
-  }
-  return null;
-}
-
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
     const safeSlug = normalizeProductSlug(slug);
     if (!safeSlug) return null;
-    const card = await findPublishedCard(safeSlug);
-    if (card === "unavailable") throw new CatalogUnavailableError();
-    if (!card || !catalogProductId(card.id)) return null;
+    // One lookup by slug; the API answers 404 for missing and unpublished alike.
     const result = await fetchCatalog(
-      `/api/v1/products/${encodeURIComponent(card.id)}`,
+      `/api/v1/products/by-slug/${encodeURIComponent(safeSlug)}`,
     );
     if (result.kind === "missing") return null;
     if (result.kind === "down") throw new CatalogUnavailableError();
@@ -475,7 +454,7 @@ export const getStoreProduct = cache(
       console.error("Product detail response was not usable");
       throw new CatalogUnavailableError();
     }
-    if (detail.slug !== safeSlug || detail.id !== card.id) return null;
+    if (detail.slug !== safeSlug || !catalogProductId(detail.id)) return null;
     return mapDetail(detail, await getStoreDeliveryRates());
   },
 );

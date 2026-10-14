@@ -412,7 +412,10 @@ export function saveAdminProduct(product: AdminProduct) {
   const inCatalog = products.some((item) => item.slug === product.slug);
   if (inCatalog) {
     const overrides = readOverrides();
-    const { slug: _slug, custom: _custom, ...draft } = product;
+    // Overrides store everything except the catalog identity fields.
+    const draft: ProductDraft & Partial<Pick<AdminProduct, "slug" | "custom">> = { ...product };
+    delete draft.slug;
+    delete draft.custom;
     overrides[product.slug] = draft;
     writeJson(PRODUCT_OVERRIDES_KEY, overrides);
     return;

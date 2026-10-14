@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -437,7 +437,7 @@ function DressForm({
   onSave: (dress: AboutDress) => Promise<void>;
 }) {
   const [dress, setDress] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
-  const baseline = useRef(dress);
+  const [baseline] = useState(dress);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -475,7 +475,7 @@ function DressForm({
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={dress} onClose={onClose}>
+    <FormCloseGuard baseline={baseline} value={dress} onClose={onClose}>
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
         <div className="min-w-0">

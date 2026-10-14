@@ -57,9 +57,9 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h3 className="mb-4 text-[11px] font-semibold tracking-[0.16em] text-white uppercase">
+      <h2 className="mb-4 text-[11px] font-semibold tracking-[0.16em] text-white uppercase">
         {title}
-      </h3>
+      </h2>
       <ul className="space-y-3">
         {links.map((item) => (
           <li key={`${title}-${item.label}`}>

@@ -555,11 +555,10 @@ function PerkDrawer({
   onSave: (draft: Draft) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(initial);
-  const baseline = useRef(draft);
+  const [baseline] = useState(draft);
   const [labelError, setLabelError] = useState("");
   const [saving, setSaving] = useState(false);
   const labelId = useId();
-  const title = draft.label.trim() || "Perk";
 
   async function save() {
     if (saving) return;
@@ -578,7 +577,7 @@ function PerkDrawer({
   }
 
   return (
-    <FormCloseGuard baseline={baseline.current} value={draft} onClose={onClose}>
+    <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
     <AdminFormModal titleId="newsletter-drawer-title" size="sm">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
         <div className="min-w-0">

@@ -69,12 +69,13 @@ export default function Header({
   useScrollLock(mobileOpen);
 
   useEffect(() => {
-    if (!mobileOpen) {
-      setMenuEntered(false);
-      return;
-    }
+    if (!mobileOpen) return;
+    // Enter on the next frame so the slide-in transition runs; reset when the menu closes.
     const frame = requestAnimationFrame(() => setMenuEntered(true));
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      setMenuEntered(false);
+    };
   }, [mobileOpen]);
 
   useEffect(() => {

@@ -357,18 +357,16 @@ function PostForm({
   onRemove?: () => Promise<void>;
 }) {
   const initial = draftFrom(post);
-  const [draft, setDraft] = useState(initial);
+  const [rawDraft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
-  useEffect(() => {
-    if (!isNew) return;
-    const first = categories?.items[0]?.id;
-    if (!first) return;
-    setDraft((current) => (current.categoryId ? current : { ...current, categoryId: first }));
-  }, [categories, isNew]);
+  // A new post defaults to the first category until the editor picks one.
+  const firstCategory = isNew ? categories?.items[0]?.id : undefined;
+  const draft =
+    firstCategory && !rawDraft.categoryId ? { ...rawDraft, categoryId: firstCategory } : rawDraft;
 
   async function save() {
     if (saving) return;

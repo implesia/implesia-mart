@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 
 import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
 
@@ -23,17 +23,11 @@ export function FormCloseGuard({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const baselineRef = useRef(baseline);
-  const valueRef = useRef(value);
-  const onCloseRef = useRef(onClose);
-  baselineRef.current = baseline;
-  valueRef.current = value;
-  onCloseRef.current = onClose;
   const [confirming, setConfirming] = useState(false);
 
   function requestClose() {
-    if (sameFormSnapshot(baselineRef.current, valueRef.current)) {
-      onCloseRef.current();
+    if (sameFormSnapshot(baseline, value)) {
+      onClose();
       return;
     }
     setConfirming(true);
@@ -58,7 +52,7 @@ export function FormCloseGuard({
           onStay={() => setConfirming(false)}
           onDiscard={() => {
             setConfirming(false);
-            onCloseRef.current();
+            onClose();
           }}
         />
       ) : null}

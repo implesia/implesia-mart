@@ -8,6 +8,14 @@ import {
   mediaUrl,
   sitePath,
 } from "@/lib/mart-api/products";
+import {
+  DEFAULT_HERO_SETTINGS,
+  mapHeroSettings,
+  type ApiBannerSettings,
+  type HeroCarouselSettings,
+} from "@/lib/mart-api/hero-settings";
+
+export { DEFAULT_HERO_SETTINGS, mapHeroSettings, type HeroCarouselSettings };
 
 export type HeroSlideInput = {
   eyebrow: string;
@@ -174,6 +182,20 @@ export async function moveHeroSlide(id: string, direction: "earlier" | "later") 
 
 const API = process.env.NEXT_PUBLIC_MART_API_URL ?? "http://127.0.0.1:8001";
 
+/** Same request as listPublicHeroSlides (deduplicated by Next), read for the settings. */
+export async function getPublicHeroSettings(): Promise<HeroCarouselSettings> {
+  try {
+    const response = await fetch(`${API}/api/v1/home/banner`, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60 },
+    });
+    if (!response.ok) return DEFAULT_HERO_SETTINGS;
+    return mapHeroSettings((await response.json()) as ApiBannerSettings);
+  } catch {
+    return DEFAULT_HERO_SETTINGS;
+  }
+}
+
 export async function listPublicHeroSlides(): Promise<HeroSlide[] | null> {
   try {
     const response = await fetch(`${API}/api/v1/home/banner`, {
@@ -199,6 +221,77 @@ export async function listPublicHeroSlides(): Promise<HeroSlide[] | null> {
   } catch {
     return null;
   }
+}
+
+/** Banner settings exactly as stored, for the admin editor (no storefront fallbacks). */
+export type BannerSettingsInput = {
+  brandName: string;
+  trustLine: string;
+  ariaLabel: string;
+  previousLabel: string;
+  nextLabel: string;
+  slideLabel: string;
+  autoplayDelayMs: number;
+  transitionSpeedMs: number;
+  pauseOnHover: boolean;
+  loop: boolean;
+  keyboardEnabled: boolean;
+  disableOnInteraction: boolean;
+  crossFade: boolean;
+};
+
+type ApiBannerRead = Required<ApiBannerSettings> & { slide_label: string };
+
+function toBannerSettings(body: ApiBannerRead): BannerSettingsInput {
+  return {
+    brandName: body.brand_name,
+    trustLine: body.trust_line,
+    ariaLabel: body.aria_label,
+    previousLabel: body.previous_label,
+    nextLabel: body.next_label,
+    slideLabel: body.slide_label,
+    autoplayDelayMs: body.autoplay_delay_ms,
+    transitionSpeedMs: body.transition_speed_ms,
+    pauseOnHover: body.pause_on_hover,
+    loop: body.loop,
+    keyboardEnabled: body.keyboard_enabled,
+    disableOnInteraction: body.disable_on_interaction,
+    crossFade: body.cross_fade,
+  };
+}
+
+export async function getBannerSettings(): Promise<BannerSettingsInput> {
+  const response = await authorizedFetch("/api/v1/admin/home/banner");
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Could not load banner settings."));
+  }
+  return toBannerSettings((await response.json()) as ApiBannerRead);
+}
+
+export async function updateBannerSettings(input: BannerSettingsInput): Promise<BannerSettingsInput> {
+  const response = await authorizedFetch("/api/v1/admin/home/banner", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      brand_name: input.brandName.trim(),
+      trust_line: input.trustLine.trim(),
+      aria_label: input.ariaLabel.trim(),
+      previous_label: input.previousLabel.trim(),
+      next_label: input.nextLabel.trim(),
+      slide_label: input.slideLabel.trim(),
+      autoplay_delay_ms: input.autoplayDelayMs,
+      transition_speed_ms: input.transitionSpeedMs,
+      pause_on_hover: input.pauseOnHover,
+      loop: input.loop,
+      keyboard_enabled: input.keyboardEnabled,
+      disable_on_interaction: input.disableOnInteraction,
+      cross_fade: input.crossFade,
+    }),
+  });
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Could not save banner settings."));
+  }
+  return toBannerSettings((await response.json()) as ApiBannerRead);
 }
 
 async function readError(response: Response, fallback: string) {
