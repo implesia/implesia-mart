@@ -16,6 +16,7 @@ import {
   type SustainabilityQualityBadge,
   type SustainabilityQualityStep,
 } from "@/lib/mart-api/sustainability-quality";
+import { optionalImageErrors } from "@/lib/mart-api/about-single-image-rules";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -26,7 +27,7 @@ import {
   FieldLabel,
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
-import { ImageField } from "../../../_components/image-field";
+import { SingleImageField } from "../../about/_components/single-image-field";
 import {
   IconButton,
   IconPicker,
@@ -208,7 +209,7 @@ export function SustainabilityQualityEditor() {
               No quality content yet
             </p>
             <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-              Add the heading, cover photo, check steps, and badges.
+              Add the heading, photo, check steps, and badges.
             </p>
           </div>
         ) : (
@@ -243,7 +244,7 @@ function QualityPreview({ quality }: { quality: SustainabilityQuality }) {
           />
         ) : (
           <span className="grid size-full place-items-center px-2 text-center text-xs text-neutral-500">
-            Photo
+            No photo
           </span>
         )}
       </div>
@@ -331,6 +332,7 @@ function QualityFormModal({
   const [baseline] = useState(initial);
   const [titleError, setTitleError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [stepError, setStepError] = useState("");
   const [badgeError, setBadgeError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -340,7 +342,8 @@ function QualityFormModal({
   async function save() {
     if (saving || uploading > 0) return;
     const nextTitleError = draft.title.trim() ? "" : "Title is required.";
-    const nextPhotoError = draft.image.src ? "" : "Cover photo is required.";
+    // The photo is optional; alt text is only required when a photo is present.
+    const nextPhotoError = optionalImageErrors(draft.image).alt;
     const nextStepError = draft.steps.some((step) => !step.text.trim())
       ? "Write each step, or remove the empty one."
       : "";
@@ -364,11 +367,12 @@ function QualityFormModal({
     }
     setSaving(true);
     setPhotoError("");
+    setSaveError("");
     try {
       await onSave(draft);
     } catch (caught) {
       setSaving(false);
-      setPhotoError(
+      setSaveError(
         caught instanceof Error
           ? caught.message
           : "Could not save the quality section.",
@@ -435,7 +439,7 @@ function QualityFormModal({
               Content
             </h3>
             <p className="mt-1 text-sm text-neutral-500">
-              The words beside the cover photo.
+              The words beside the photo.
             </p>
             <div className="mt-3 grid gap-3">
               <div>
@@ -490,49 +494,36 @@ function QualityFormModal({
               id={`${formId}-photo`}
               className="text-sm font-semibold text-neutral-950"
             >
-              Cover photo
+              Photo
             </h3>
             <p className="mt-1 text-sm text-neutral-500">
-              This photo sits on the left of the section.
+              Optional. Shown on the left of the section; without a photo the
+              section uses a text-only layout.
             </p>
             <div className="mt-3">
-              <ImageField
-                variant="thumb"
-                label=""
-                value={draft.image.src}
-                confirmRemove
+              <SingleImageField
+                id={`${formId}-photo-field`}
+                optional
+                value={{ id: "photo", ...draft.image }}
+                altError={photoError}
                 onBusy={(busy) =>
                   setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
                 }
-                onChange={(src) => {
-                  setDraft({ ...draft, image: { ...draft.image, src } });
+                onChange={(image) => {
+                  setDraft((current) => ({
+                    ...current,
+                    image: { src: image?.src ?? "", alt: image?.alt ?? "" },
+                  }));
                   setPhotoError("");
                 }}
               />
             </div>
-            {photoError ? (
-              <div className="mt-3">
-                <FieldError message={photoError} />
-              </div>
-            ) : null}
-            <label className="mt-3 block">
-              <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Description
-              </span>
-              <input
-                value={draft.image.alt}
-                placeholder="What this photo shows"
-                aria-label="Cover photo description"
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    image: { ...draft.image, alt: event.target.value },
-                  })
-                }
-                className={adminFieldClass}
-              />
-            </label>
           </section>
+          {saveError ? (
+            <div role="alert">
+              <FieldError message={saveError} />
+            </div>
+          ) : null}
 
           <section
             className="border-t border-neutral-100 pt-5"

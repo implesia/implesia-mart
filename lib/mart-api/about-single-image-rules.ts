@@ -19,3 +19,8 @@ export function singleImageErrors(image: { src: string; alt: string } | null) {
     alt: image?.alt.trim() ? "" : MISSING_ALT,
   };
 }
+
+/** Sustainability photos are optional: only a present photo needs alt text. */
+export function optionalImageErrors(image: { src: string; alt: string } | null) {
+  return { alt: image?.src.trim() && !image.alt.trim() ? MISSING_ALT : "" };
+}

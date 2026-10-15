@@ -167,8 +167,8 @@ export const PAGE_CMS: CmsPage[] = [
         id: "hero",
         label: "Hero",
         icon: "imagesmode",
-        description: "Opening copy and images.",
-        fields: ["eyebrow", "title", "subtitle", "cta", "images"],
+        description: "Opening copy and an optional photo.",
+        fields: ["eyebrow", "title", "subtitle", "cta", "image"],
       },
       {
         id: "impact",
@@ -182,7 +182,7 @@ export const PAGE_CMS: CmsPage[] = [
         label: "Point of view",
         icon: "menu_book",
         description: "Why quality is a responsibility.",
-        fields: ["eyebrow", "title", "body", "quote", "images"],
+        fields: ["eyebrow", "title", "body", "quote", "image"],
       },
       {
         id: "commitment",

@@ -9,8 +9,8 @@ import {
   getSustainabilityOrigin,
   saveSustainabilityOrigin,
   type SustainabilityOrigin,
-  type SustainabilityOriginImage,
 } from "@/lib/mart-api/sustainability-origin";
+import { optionalImageErrors } from "@/lib/mart-api/about-single-image-rules";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -21,9 +21,8 @@ import {
   FieldLabel,
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
-import { ImageField, MultiImageUpload } from "../../../_components/image-field";
+import { SingleImageField } from "../../about/_components/single-image-field";
 import {
-  IconButton,
   replaceSearch,
   SustainHeader,
   useSustainNav,
@@ -34,7 +33,8 @@ type OriginDraft = {
   title: string;
   body: string;
   quote: string;
-  images: SustainabilityOriginImage[];
+  /** Optional single photo; src "" means none. */
+  image: { src: string; alt: string };
 };
 
 function draftFrom(origin: SustainabilityOrigin): OriginDraft {
@@ -43,15 +43,8 @@ function draftFrom(origin: SustainabilityOrigin): OriginDraft {
     title: origin.title,
     body: origin.body,
     quote: origin.quote,
-    images: origin.images.map((image) => ({
-      ...image,
-      isActive: image.isActive !== false,
-    })),
+    image: { src: origin.image?.src ?? "", alt: origin.image?.alt ?? "" },
   };
-}
-
-function newImageId(index: number) {
-  return `origin-photo-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export function SustainabilityOriginEditor() {
@@ -68,7 +61,7 @@ export function SustainabilityOriginEditor() {
     (!origin.title.trim() &&
       !origin.body.trim() &&
       !origin.quote.trim() &&
-      origin.images.length === 0);
+      !origin.image);
 
   useEffect(() => {
     let active = true;
@@ -113,12 +106,9 @@ export function SustainabilityOriginEditor() {
       title: draft.title.trim(),
       body: draft.body.trim(),
       quote: draft.quote.trim(),
-      images: draft.images.map((image) => ({
-        id: image.id,
-        src: image.src,
-        alt: image.alt.trim(),
-        isActive: image.isActive !== false,
-      })),
+      image: draft.image.src
+        ? { id: "photo", src: draft.image.src, alt: draft.image.alt.trim() }
+        : null,
     });
     setOrigin(saved);
     setNotice("Saved.");
@@ -178,8 +168,8 @@ export function SustainabilityOriginEditor() {
             Point of view
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Shown on the sustainability page. Words on the left, photos on the
-            right, two in each row.
+            Shown on the sustainability page. Words on the left, an optional
+            photo on the right.
           </p>
         </div>
         {empty ? (
@@ -188,7 +178,7 @@ export function SustainabilityOriginEditor() {
               No point of view yet
             </p>
             <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-              Add the heading, the quote, and the photos shown beside them.
+              Add the heading, the quote, and the optional photo beside them.
             </p>
           </div>
         ) : (
@@ -228,40 +218,20 @@ function OriginPreview({ origin }: { origin: SustainabilityOrigin }) {
           </p>
         ) : null}
       </div>
-      {origin.images.length === 0 ? (
-        <p className="grid min-h-40 place-items-center rounded-2xl bg-white text-sm text-neutral-500 ring-1 ring-neutral-200">
-          No photos yet
-        </p>
+      {origin.image ? (
+        <div className="relative aspect-4/3 overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200">
+          <Image
+            src={origin.image.src}
+            alt=""
+            fill
+            sizes="360px"
+            className="object-cover"
+          />
+        </div>
       ) : (
-        <ul className="grid grid-cols-2 gap-2">
-          {origin.images.map((image, index) => {
-            const hidden = image.isActive === false;
-            return (
-              <li key={image.id} className={cn(hidden && "opacity-50")}>
-                <div className="relative aspect-square overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200">
-                  {image.src ? (
-                    <Image
-                      src={image.src}
-                      alt=""
-                      fill
-                      sizes="180px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="grid size-full place-items-center text-xs text-neutral-500">
-                      Photo {index + 1}
-                    </span>
-                  )}
-                  {hidden ? (
-                    <span className="absolute top-2 left-2 rounded-full bg-neutral-950/80 px-2 py-0.5 text-[11px] font-semibold text-white">
-                      Hidden
-                    </span>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <p className="grid min-h-40 place-items-center rounded-2xl bg-white text-sm text-neutral-500 ring-1 ring-neutral-200">
+          No photo — text-only layout
+        </p>
       )}
     </div>
   );
@@ -281,6 +251,7 @@ function OriginFormModal({
   const [baseline] = useState(initial);
   const [titleError, setTitleError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
   const formId = useId();
@@ -291,43 +262,21 @@ function OriginFormModal({
       setTitleError("Title is required.");
       return;
     }
-    if (draft.images.length > 12) {
-      setPhotoError("You can add up to 12 photos");
-      return;
-    }
-    if (draft.images.some((image) => !image.src)) {
-      setPhotoError("Add an image, or remove the empty photo.");
-      return;
-    }
+    const altError = optionalImageErrors(draft.image).alt;
+    setPhotoError(altError);
+    setSaveError("");
+    if (altError) return;
     setSaving(true);
-    setPhotoError("");
     try {
       await onSave(draft);
     } catch (caught) {
       setSaving(false);
-      setPhotoError(
+      setSaveError(
         caught instanceof Error
           ? caught.message
           : "Could not save the point of view.",
       );
     }
-  }
-
-  function updateImages(images: SustainabilityOriginImage[]) {
-    setDraft((current) => ({ ...current, images }));
-    setPhotoError("");
-  }
-
-  function moveImage(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    setDraft((current) => {
-      if (target < 0 || target >= current.images.length) return current;
-      const images = [...current.images];
-      const [item] = images.splice(index, 1);
-      if (!item) return current;
-      images.splice(target, 0, item);
-      return { ...current, images };
-    });
   }
 
   return (
@@ -342,7 +291,7 @@ function OriginFormModal({
               Edit point of view
             </h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Update the heading, quote, and photos for this section.
+              Update the heading, quote, and photo for this section.
             </p>
           </div>
           <button
@@ -445,167 +394,36 @@ function OriginFormModal({
               id={`${formId}-photos`}
               className="text-sm font-semibold text-neutral-950"
             >
-              Photos
+              Photo
             </h3>
             <p className="mt-1 text-sm text-neutral-500">
-              Drop or pick several images at once. They appear beside the text,
-              two in each row, in this order. Hide a photo to keep it here
-              without showing it on the website.
+              Optional. One photo beside the text; without it the section uses a
+              text-only layout.
             </p>
-            <div className="mt-3">
-              <MultiImageUpload
-                inputId={`${formId}-upload`}
+            <div className="mt-3 max-w-md">
+              <SingleImageField
+                id={`${formId}-photo`}
+                optional
+                value={{ id: "photo", ...draft.image }}
+                altError={photoError}
                 onBusy={(busy) =>
                   setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
                 }
-                onUploaded={(srcs) => {
+                onChange={(image) => {
                   setDraft((current) => ({
                     ...current,
-                    images: [
-                      ...current.images,
-                      ...srcs.map((src, index) => ({
-                        id: newImageId(index),
-                        src,
-                        alt: "",
-                        isActive: true,
-                      })),
-                    ],
+                    image: { src: image?.src ?? "", alt: image?.alt ?? "" },
                   }));
                   setPhotoError("");
                 }}
               />
             </div>
-            {photoError ? (
-              <div className="mt-3">
-                <FieldError message={photoError} />
-              </div>
-            ) : null}
-            {draft.images.length === 0 ? (
-              <p className="mt-3 text-sm text-neutral-500">No photos yet.</p>
-            ) : (
-              <ul className="mt-3 space-y-3">
-                {draft.images.map((image, index) => (
-                  <li
-                    key={image.id}
-                    className="rounded-2xl bg-admin-canvas p-3"
-                  >
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-neutral-950">
-                        Photo {index + 1}
-                      </p>
-                      <div className="flex items-center">
-                        <IconButton
-                          label={`Move photo ${index + 1} earlier`}
-                          icon="arrow_upward"
-                          disabled={index === 0}
-                          onClick={() => moveImage(index, -1)}
-                        />
-                        <IconButton
-                          label={`Move photo ${index + 1} later`}
-                          icon="arrow_downward"
-                          disabled={index === draft.images.length - 1}
-                          onClick={() => moveImage(index, 1)}
-                        />
-                        <IconButton
-                          label={`Remove photo ${index + 1}`}
-                          icon="delete"
-                          danger
-                          onClick={() =>
-                            updateImages(
-                              draft.images.filter(
-                                (item) => item.id !== image.id,
-                              ),
-                            )
-                          }
-                        />
-                      </div>
-                    </div>
-                    <ImageField
-                      compact
-                      variant="thumb"
-                      label=""
-                      value={image.src}
-                      confirmRemove
-                      onBusy={(busy) =>
-                        setUploading((count) =>
-                          Math.max(0, count + (busy ? 1 : -1)),
-                        )
-                      }
-                      onChange={(src) =>
-                        updateImages(
-                          draft.images.map((item) =>
-                            item.id === image.id ? { ...item, src } : item,
-                          ),
-                        )
-                      }
-                    />
-                    <label className="mt-3 block">
-                      <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                        Description
-                      </span>
-                      <input
-                        value={image.alt}
-                        placeholder="What this photo shows"
-                        aria-label={`Description for photo ${index + 1}`}
-                        onChange={(event) =>
-                          updateImages(
-                            draft.images.map((item) =>
-                              item.id === image.id
-                                ? { ...item, alt: event.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                        className={adminFieldClass}
-                      />
-                    </label>
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="text-sm text-neutral-600">
-                        {image.isActive !== false
-                          ? "Visible on the website"
-                          : "Hidden from the website"}
-                      </span>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={image.isActive !== false}
-                        aria-label={
-                          image.isActive !== false
-                            ? `Hide photo ${index + 1}`
-                            : `Show photo ${index + 1}`
-                        }
-                        onClick={() =>
-                          updateImages(
-                            draft.images.map((item) =>
-                              item.id === image.id
-                                ? {
-                                    ...item,
-                                    isActive: item.isActive === false,
-                                  }
-                                : item,
-                            ),
-                          )
-                        }
-                        className={cn(
-                          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                          image.isActive !== false
-                            ? "bg-primary"
-                            : "bg-neutral-300",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "absolute top-0.5 size-5 rounded-full bg-white transition-all",
-                            image.isActive !== false ? "left-5" : "left-0.5",
-                          )}
-                        />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
           </section>
+          {saveError ? (
+            <div role="alert">
+              <FieldError message={saveError} />
+            </div>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
           <button

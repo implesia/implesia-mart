@@ -24,6 +24,7 @@ export type SustainabilityQualityBadge = {
 export type SustainabilityQuality = {
   title: string;
   body: string;
+  /** src "" when the section has no photo. */
   image: { src: string; alt: string };
   steps: SustainabilityQualityStep[];
   badges: SustainabilityQualityBadge[];
@@ -39,7 +40,8 @@ type ApiBadge = {
 type ApiQuality = {
   title: string;
   body: string;
-  image: { src: string; alt: string };
+  image?: { src: string; alt: string } | null;
+  images?: { src: string; alt: string }[];
   steps?: ApiStep[];
   badges?: ApiBadge[];
 };
@@ -88,7 +90,10 @@ function toQuality(body: ApiQuality): SustainabilityQuality {
   return {
     title: body.title,
     body: body.body,
-    image: { src: mediaUrl(body.image.src), alt: body.image.alt },
+    // The photo is optional: src "" means the section has none.
+    image: body.image?.src
+      ? { src: mediaUrl(body.image.src), alt: body.image.alt }
+      : { src: "", alt: "" },
     steps: (body.steps ?? []).map((step) => ({
       id: step.id,
       text: step.text,
@@ -110,10 +115,12 @@ async function toForm(quality: SustainabilityQuality) {
     JSON.stringify({
       title: quality.title,
       body: quality.body,
-      image: {
-        alt: quality.image.alt,
-        src: isLocalImage(quality.image.src) ? "" : sitePath(quality.image.src),
-      },
+      image: quality.image.src.trim()
+        ? {
+            alt: quality.image.alt.trim(),
+            src: isLocalImage(quality.image.src) ? "" : sitePath(quality.image.src),
+          }
+        : null,
       steps: quality.steps.map((step) => ({
         text: step.text,
         is_active: step.isActive,

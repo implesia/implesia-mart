@@ -16,6 +16,7 @@ export type SustainabilityDurabilityBullet = {
 export type SustainabilityDurability = {
   title: string;
   body: string;
+  /** src "" when the section has no photo. */
   image: { src: string; alt: string };
   bullets: SustainabilityDurabilityBullet[];
 };
@@ -24,7 +25,8 @@ type ApiBullet = { id: string; text: string; is_active?: boolean };
 type ApiDurability = {
   title: string;
   body: string;
-  image: { src: string; alt: string };
+  image?: { src: string; alt: string } | null;
+  images?: { src: string; alt: string }[];
   bullets?: ApiBullet[];
 };
 
@@ -50,7 +52,10 @@ function toDurability(body: ApiDurability): SustainabilityDurability {
   return {
     title: body.title,
     body: body.body,
-    image: { src: mediaUrl(body.image.src), alt: body.image.alt },
+    // The photo is optional: src "" means the section has none.
+    image: body.image?.src
+      ? { src: mediaUrl(body.image.src), alt: body.image.alt }
+      : { src: "", alt: "" },
     bullets: (body.bullets ?? []).map((bullet) => ({
       id: bullet.id,
       text: bullet.text,
@@ -66,10 +71,12 @@ async function toForm(durability: SustainabilityDurability) {
     JSON.stringify({
       title: durability.title,
       body: durability.body,
-      image: {
-        alt: durability.image.alt,
-        src: isLocalImage(durability.image.src) ? "" : sitePath(durability.image.src),
-      },
+      image: durability.image.src.trim()
+        ? {
+            alt: durability.image.alt.trim(),
+            src: isLocalImage(durability.image.src) ? "" : sitePath(durability.image.src),
+          }
+        : null,
       bullets: durability.bullets.map((bullet) => ({
         text: bullet.text,
         is_active: bullet.isActive,

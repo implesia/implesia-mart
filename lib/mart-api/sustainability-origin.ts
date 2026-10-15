@@ -1,25 +1,22 @@
 import {
+  appendSingleImage,
+  readSingleImage,
+  type SingleImage,
+} from "@/lib/mart-api/about-single-image";
+import {
   MartApiError,
   authorizedFetch,
-  fileFromSrc,
-  isLocalImage,
-  mediaUrl,
-  sitePath,
 } from "@/lib/mart-api/products";
 
-export type SustainabilityOriginImage = {
-  id: string;
-  src: string;
-  alt: string;
-  isActive: boolean;
-};
+export type SustainabilityOriginImage = SingleImage;
 
 export type SustainabilityOrigin = {
   eyebrow: string;
   title: string;
   body: string;
   quote: string;
-  images: SustainabilityOriginImage[];
+  /** Optional single photo; null renders the text-only layout. */
+  image: SustainabilityOriginImage | null;
 };
 
 type ApiImage = {
@@ -34,31 +31,22 @@ type ApiOrigin = {
   title: string;
   body: string;
   quote: string;
+  image?: ApiImage | null;
   images?: ApiImage[];
 };
 
 const LAMP = "/images/products/lamp/lamp-2.jpg";
-const FROCK = "/images/products/baby-products/baby-frock-with-baby.jpeg";
 
 export const FALLBACK_SUSTAINABILITY_ORIGIN: SustainabilityOrigin = {
   eyebrow: "আমাদের দৃষ্টিভঙ্গি",
   title: "কোয়ালিটি এখন বিলাসিতা নয়, দায়িত্ব",
   body: "ইমপ্লেসিয়া মার্ট শুরু হয়েছিল একটা সহজ প্রশ্ন থেকে — কেন ভালো প্রোডাক্ট মানেই বেশি ঝুঁকি হবে? প্রতিটি গ্যাজেট অর্ডারের আগে নিজেরা টেস্ট করি, আর প্রতিটি ড্রেস হাতে বানিয়ে চেক করে পাঠাই — যাতে প্রথমবারেই সঠিক জিনিস হাতে পান। কম রিটার্ন, কম বর্জ্য।",
   quote: "কোয়ালিটি একটি অভ্যাস, একবারের কাজ নয়।",
-  images: [
-    {
-      id: "origin-1",
-      src: LAMP,
-      alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা প্রোডাক্ট",
-      isActive: true,
-    },
-    {
-      id: "origin-2",
-      src: FROCK,
-      alt: "হাতে তৈরি বেবি পার্টি ফ্রক",
-      isActive: true,
-    },
-  ],
+  image: {
+    id: "origin-1",
+    src: LAMP,
+    alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা প্রোডাক্ট",
+  },
 };
 
 function toOrigin(body: ApiOrigin): SustainabilityOrigin {
@@ -67,38 +55,26 @@ function toOrigin(body: ApiOrigin): SustainabilityOrigin {
     title: body.title,
     body: body.body,
     quote: body.quote,
-    images: (body.images ?? []).map((image) => ({
-      id: image.id,
-      src: mediaUrl(image.src),
-      alt: image.alt,
-      isActive: image.is_active !== false,
-    })),
+    image: readSingleImage({
+      image: body.image,
+      images: body.images?.filter((item) => item.is_active !== false),
+    }),
   };
 }
 
 async function toForm(origin: SustainabilityOrigin) {
   const body = new FormData();
-  body.set(
-    "payload",
-    JSON.stringify({
+  await appendSingleImage(
+    body,
+    {
       eyebrow: origin.eyebrow,
       title: origin.title,
       body: origin.body,
       quote: origin.quote,
-      images: origin.images.map((image) => ({
-        alt: image.alt,
-        src: isLocalImage(image.src) ? "" : sitePath(image.src),
-        is_active: image.isActive,
-      })),
-    }),
+    },
+    origin.image,
+    "sustainability-origin",
   );
-  for (const [index, image] of origin.images.entries()) {
-    if (!isLocalImage(image.src)) continue;
-    body.set(
-      `image_${index}`,
-      await fileFromSrc(image.src, `origin-${index + 1}`),
-    );
-  }
   return body;
 }
 

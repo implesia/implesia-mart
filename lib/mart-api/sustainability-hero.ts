@@ -1,17 +1,14 @@
 import {
+  appendSingleImage,
+  readSingleImage,
+  type SingleImage,
+} from "@/lib/mart-api/about-single-image";
+import {
   MartApiError,
   authorizedFetch,
-  fileFromSrc,
-  isLocalImage,
-  mediaUrl,
-  sitePath,
 } from "@/lib/mart-api/products";
 
-export type SustainabilityHeroImage = {
-  id: string;
-  src: string;
-  alt: string;
-};
+export type SustainabilityHeroImage = SingleImage;
 
 export type SustainabilityHero = {
   eyebrow: string;
@@ -21,7 +18,8 @@ export type SustainabilityHero = {
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
-  images: SustainabilityHeroImage[];
+  /** Optional single photo; null renders the text-only hero. */
+  image: SustainabilityHeroImage | null;
 };
 
 type ApiImage = {
@@ -39,11 +37,12 @@ type ApiHero = {
   primary_href: string;
   secondary_label: string;
   secondary_href: string;
-  images: ApiImage[];
+  image?: ApiImage | null;
+  /** Legacy 0/1-item mirror (older APIs sent two photos). */
+  images?: ApiImage[];
 };
 
 const LEFT = "/images/products/lamp/lamp-1.jpg";
-const RIGHT = "/images/products/baby-products/wedding-dress.jpeg";
 
 export const FALLBACK_SUSTAINABILITY_HERO: SustainabilityHero = {
   eyebrow: "সাসটেইনেবিলিটি",
@@ -54,10 +53,7 @@ export const FALLBACK_SUSTAINABILITY_HERO: SustainabilityHero = {
   primaryHref: "/products",
   secondaryLabel: "আমাদের সম্পর্কে",
   secondaryHref: "/about-us",
-  images: [
-    { id: "hero-1", src: LEFT, alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা গ্যাজেট" },
-    { id: "hero-2", src: RIGHT, alt: "হাতে তৈরি গর্জিয়াস উইমেন্স গাউন" },
-  ],
+  image: { id: "hero-1", src: LEFT, alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা গ্যাজেট" },
 };
 
 function toHero(body: ApiHero): SustainabilityHero {
@@ -69,11 +65,7 @@ function toHero(body: ApiHero): SustainabilityHero {
     primaryHref: body.primary_href,
     secondaryLabel: body.secondary_label,
     secondaryHref: body.secondary_href,
-    images: body.images.map((image) => ({
-      id: image.id,
-      src: mediaUrl(image.src),
-      alt: image.alt,
-    })),
+    image: readSingleImage(body),
   };
 }
 
@@ -86,11 +78,10 @@ export async function getSustainabilityHero(): Promise<SustainabilityHero> {
 }
 
 export async function saveSustainabilityHero(hero: SustainabilityHero): Promise<SustainabilityHero> {
-  const images = hero.images.slice(0, 2);
   const body = new FormData();
-  body.set(
-    "payload",
-    JSON.stringify({
+  await appendSingleImage(
+    body,
+    {
       eyebrow: hero.eyebrow,
       title: hero.title,
       subtitle: hero.subtitle,
@@ -98,16 +89,10 @@ export async function saveSustainabilityHero(hero: SustainabilityHero): Promise<
       primary_href: hero.primaryHref,
       secondary_label: hero.secondaryLabel,
       secondary_href: hero.secondaryHref,
-      images: images.map((image) => ({
-        alt: image.alt,
-        src: isLocalImage(image.src) ? "" : sitePath(image.src),
-      })),
-    }),
+    },
+    hero.image,
+    "sustainability-hero",
   );
-  for (const [index, image] of images.entries()) {
-    if (!isLocalImage(image.src)) continue;
-    body.set(`image_${index}`, await fileFromSrc(image.src, `hero-${index + 1}`));
-  }
   const response = await authorizedFetch("/api/v1/admin/pages/sustainability/hero", {
     method: "PUT",
     body,

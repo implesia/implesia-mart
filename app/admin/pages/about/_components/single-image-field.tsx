@@ -8,8 +8,9 @@ import { adminFieldClass, FieldError, FieldLabel } from "../../../_components/ad
 import { ImageField } from "../../../_components/image-field";
 
 /**
- * The one required photo of an About section: upload, replace or remove, plus
- * required alt text. There is deliberately no "add another photo" control.
+ * The one photo of a CMS section: upload, replace or remove, plus alt text. About
+ * sections require it; `optional` sections (sustainability) may have none, and then
+ * only need alt text when a photo is present. There is no "add another photo" control.
  */
 export function SingleImageField({
   id,
@@ -18,6 +19,7 @@ export function SingleImageField({
   photoError,
   altError,
   onBusy,
+  optional = false,
 }: {
   id: string;
   value: SingleImage | null;
@@ -25,6 +27,7 @@ export function SingleImageField({
   photoError?: string;
   altError?: string;
   onBusy: (busy: boolean) => void;
+  optional?: boolean;
 }) {
   const image = value ?? { id: "photo", src: "", alt: "" };
   const root = useRef<HTMLDivElement>(null);
@@ -41,7 +44,7 @@ export function SingleImageField({
     <div ref={root} className="space-y-3">
       <div>
         <ImageField
-          label="Photo (required)"
+          label={optional ? "Photo (optional)" : "Photo (required)"}
           value={image.src}
           confirmRemove
           onBusy={onBusy}
@@ -52,11 +55,13 @@ export function SingleImageField({
         </div>
       </div>
       <div>
-        <FieldLabel htmlFor={`${id}-alt`}>Photo description (required)</FieldLabel>
+        <FieldLabel htmlFor={`${id}-alt`}>
+          {optional ? "Photo description (required with a photo)" : "Photo description (required)"}
+        </FieldLabel>
         <input
           id={`${id}-alt`}
           value={image.alt}
-          required
+          required={!optional || Boolean(image.src)}
           aria-invalid={altError ? true : undefined}
           aria-describedby={altError ? `${id}-alt-error` : undefined}
           placeholder="What this photo shows, for screen readers"

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   MISSING_ALT,
   MISSING_PHOTO,
+  optionalImageErrors,
   pickSingleImage,
   singleImageErrors,
 } from "@/lib/mart-api/about-single-image-rules";
@@ -23,4 +24,16 @@ test("singleImageErrors mirrors backend required photo and alt", () => {
   assert.deepEqual(singleImageErrors({ src: "x.jpg", alt: "  " }), { photo: "", alt: MISSING_ALT });
   assert.deepEqual(singleImageErrors({ src: "", alt: "ok" }), { photo: MISSING_PHOTO, alt: "" });
   assert.deepEqual(singleImageErrors({ src: "x.jpg", alt: "ok" }), { photo: "", alt: "" });
+});
+
+test("optionalImageErrors: sustainability photo is optional, alt only with a photo", () => {
+  assert.deepEqual(optionalImageErrors(null), { alt: "" });
+  assert.deepEqual(optionalImageErrors({ src: "", alt: "" }), { alt: "" });
+  assert.deepEqual(optionalImageErrors({ src: "", alt: "orphan" }), { alt: "" });
+  assert.deepEqual(optionalImageErrors({ src: "x.jpg", alt: " " }), { alt: MISSING_ALT });
+  assert.deepEqual(optionalImageErrors({ src: "x.jpg", alt: "ok" }), { alt: "" });
+});
+
+test("pickSingleImage treats the quality/durability empty-src object as no photo", () => {
+  assert.equal(pickSingleImage({ image: { id: "", src: "", alt: "" }, images: [] }), null);
 });

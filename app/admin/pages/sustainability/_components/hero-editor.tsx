@@ -11,6 +11,7 @@ import {
   type SustainabilityHero,
 } from "@/lib/mart-api/sustainability-hero";
 import { MartApiError } from "@/lib/mart-api/products";
+import { optionalImageErrors } from "@/lib/mart-api/about-single-image-rules";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -21,7 +22,7 @@ import {
   FieldLabel,
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
-import { ImageField } from "../../../_components/image-field";
+import { SingleImageField } from "../../about/_components/single-image-field";
 import { replaceSearch, SustainHeader, useSustainNav } from "./sustain-shared";
 
 type SustainHero = {
@@ -30,8 +31,8 @@ type SustainHero = {
   subtitle: string;
   primaryCta: { label: string; href: string };
   secondaryCta: { label: string; href: string };
-  primaryImage: { src: string; alt: string };
-  secondaryImage: { src: string; alt: string };
+  /** Optional single photo; src "" means none. */
+  image: { src: string; alt: string };
 };
 
 type HeroDraft = {
@@ -42,8 +43,8 @@ type HeroDraft = {
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
-  primaryImage: { src: string; alt: string };
-  secondaryImage: { src: string; alt: string };
+  /** Optional single photo; src "" means none. */
+  image: { src: string; alt: string };
 };
 
 function viewFromApi(hero: SustainabilityHero): SustainHero {
@@ -53,14 +54,7 @@ function viewFromApi(hero: SustainabilityHero): SustainHero {
     subtitle: hero.subtitle,
     primaryCta: { label: hero.primaryLabel, href: hero.primaryHref },
     secondaryCta: { label: hero.secondaryLabel, href: hero.secondaryHref },
-    primaryImage: {
-      src: hero.images[0]?.src ?? "",
-      alt: hero.images[0]?.alt ?? "",
-    },
-    secondaryImage: {
-      src: hero.images[1]?.src ?? "",
-      alt: hero.images[1]?.alt ?? "",
-    },
+    image: { src: hero.image?.src ?? "", alt: hero.image?.alt ?? "" },
   };
 }
 
@@ -73,8 +67,7 @@ function draftFromHero(hero: SustainHero): HeroDraft {
     primaryHref: hero.primaryCta.href,
     secondaryLabel: hero.secondaryCta.label,
     secondaryHref: hero.secondaryCta.href,
-    primaryImage: { ...hero.primaryImage },
-    secondaryImage: { ...hero.secondaryImage },
+    image: { ...hero.image },
   };
 }
 
@@ -133,11 +126,9 @@ export function SustainabilityHeroEditor() {
       primaryHref: draft.primaryHref.trim(),
       secondaryLabel: draft.secondaryLabel.trim(),
       secondaryHref: draft.secondaryHref.trim(),
-      images: [draft.primaryImage, draft.secondaryImage].map((image, index) => ({
-        id: `photo-${index + 1}`,
-        src: image.src,
-        alt: image.alt.trim(),
-      })),
+      image: draft.image.src
+        ? { id: "photo", src: draft.image.src, alt: draft.image.alt.trim() }
+        : null,
     });
     setHero(viewFromApi(next));
     setNotice("Saved.");
@@ -196,8 +187,7 @@ export function SustainabilityHeroEditor() {
               Hero content
             </h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Shown at the top of the sustainability page. Words on the left,
-              two photos on the right.
+              Shown at the top of the sustainability page. Words on the left, an optional photo beside them.
             </p>
           </div>
           <button
@@ -218,7 +208,7 @@ export function SustainabilityHeroEditor() {
               No hero content yet
             </p>
             <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-              Add the heading, buttons, and photos for the sustainability
+              Add the heading, buttons, and photo for the sustainability
               banner.
             </p>
             <button
@@ -247,11 +237,6 @@ export function SustainabilityHeroEditor() {
 }
 
 function HeroPreview({ hero }: { hero: SustainHero }) {
-  const photos = [
-    { key: "primary", image: hero.primaryImage, label: "Left photo" },
-    { key: "secondary", image: hero.secondaryImage, label: "Right photo" },
-  ];
-
   return (
     <div className="grid overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
       <div className="px-5 py-6 sm:px-7 sm:py-7">
@@ -278,27 +263,24 @@ function HeroPreview({ hero }: { hero: SustainHero }) {
           ) : null}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 p-4 sm:p-5">
-        {photos.map((photo) => (
+      <div className="p-4 sm:p-5">
           <div
-            key={photo.key}
-            className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10"
+            className="relative aspect-[4/3] max-w-xs overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10"
           >
-            {photo.image.src ? (
+            {hero.image.src ? (
               <Image
-                src={photo.image.src}
-                alt={photo.image.alt}
+                src={hero.image.src}
+                alt={hero.image.alt}
                 fill
                 sizes="180px"
                 className="object-cover"
               />
             ) : (
               <span className="grid size-full place-items-center px-2 text-center text-xs text-white/60">
-                {photo.label}
+                No photo — text-only layout
               </span>
             )}
           </div>
-        ))}
       </div>
     </div>
   );
@@ -318,6 +300,7 @@ function HeroFormModal({
   const [baseline] = useState(initial);
   const [titleError, setTitleError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
   const formId = useId();
@@ -328,18 +311,20 @@ function HeroFormModal({
       setTitleError("Title is required.");
       return;
     }
-    if (!draft.primaryImage.src || !draft.secondaryImage.src) {
-      setPhotoError("Both banner photos are required.");
+    const altError = optionalImageErrors(draft.image).alt;
+    if (altError) {
+      setPhotoError(altError);
       return;
     }
     setSaving(true);
     setTitleError("");
     setPhotoError("");
+    setSaveError("");
     try {
       await onSave(draft);
     } catch (error) {
       setSaving(false);
-      setPhotoError(
+      setSaveError(
         error instanceof MartApiError
           ? error.message
           : "Could not save the sustainability hero.",
@@ -518,86 +503,40 @@ function HeroFormModal({
             className="border-t border-neutral-100 pt-5"
             aria-labelledby={`${formId}-photos`}
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3
-                  id={`${formId}-photos`}
-                  className="text-sm font-semibold text-neutral-950"
-                >
-                  Photos
-                </h3>
-                <p className="mt-1 text-sm text-neutral-500">
-                  These photos sit on the right of the banner. The first is on
-                  the left, the second on the right.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setDraft({
-                    ...draft,
-                    primaryImage: draft.secondaryImage,
-                    secondaryImage: draft.primaryImage,
-                  })
+            <h3
+              id={`${formId}-photos`}
+              className="text-sm font-semibold text-neutral-950"
+            >
+              Photo
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              Optional. One photo beside the banner text; without it the banner
+              uses a centred text-only layout.
+            </p>
+            <div className="mt-3 max-w-md">
+              <SingleImageField
+                id={`${formId}-photo`}
+                optional
+                value={{ id: "photo", ...draft.image }}
+                altError={photoError}
+                onBusy={(busy) =>
+                  setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
                 }
-                className={adminButtonClass.quiet}
-              >
-                Swap sides
-              </button>
-            </div>
-            {photoError ? (
-              <div className="mt-3">
-                <FieldError message={photoError} />
-              </div>
-            ) : null}
-            <div className="mt-3 grid gap-4 lg:grid-cols-2">
-              {(
-                [
-                  ["primaryImage", "Left photo"],
-                  ["secondaryImage", "Right photo"],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key} className="space-y-3">
-                  <p className="text-sm font-medium text-neutral-950">
-                    {label}
-                  </p>
-                  <ImageField
-                    label="Hero image"
-                    value={draft[key].src}
-                    onBusy={(busy) =>
-                      setUploading((count) =>
-                        Math.max(0, count + (busy ? 1 : -1)),
-                      )
-                    }
-                    onChange={(src) => {
-                      setDraft({
-                        ...draft,
-                        [key]: { ...draft[key], src },
-                      });
-                      setPhotoError("");
-                    }}
-                  />
-                  <div>
-                    <FieldLabel htmlFor={`${formId}-${key}-alt`}>
-                      Image description
-                    </FieldLabel>
-                    <input
-                      id={`${formId}-${key}-alt`}
-                      value={draft[key].alt}
-                      placeholder="What this photo shows"
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          [key]: { ...draft[key], alt: event.target.value },
-                        })
-                      }
-                      className={adminFieldClass}
-                    />
-                  </div>
-                </div>
-              ))}
+                onChange={(image) => {
+                  setDraft((current) => ({
+                    ...current,
+                    image: { src: image?.src ?? "", alt: image?.alt ?? "" },
+                  }));
+                  setPhotoError("");
+                }}
+              />
             </div>
           </section>
+          {saveError ? (
+            <div role="alert">
+              <FieldError message={saveError} />
+            </div>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
           <button

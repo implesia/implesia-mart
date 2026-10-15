@@ -12,6 +12,7 @@ import {
   type SustainabilityDurability,
   type SustainabilityDurabilityBullet,
 } from "@/lib/mart-api/sustainability-durability";
+import { optionalImageErrors } from "@/lib/mart-api/about-single-image-rules";
 import { cn } from "@/lib/utils";
 
 import { AdminFormModal } from "../../../_components/admin-form-modal";
@@ -22,7 +23,7 @@ import {
   FieldLabel,
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
-import { ImageField } from "../../../_components/image-field";
+import { SingleImageField } from "../../about/_components/single-image-field";
 import {
   IconButton,
   replaceSearch,
@@ -187,7 +188,7 @@ export function SustainabilityDurabilityEditor() {
               No content yet
             </p>
             <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-              Add the heading, the points, and the cover photo.
+              Add the heading, the points, and the photo.
             </p>
           </div>
         ) : (
@@ -226,7 +227,7 @@ function DurabilityPreview({
           />
         ) : (
           <span className="grid size-full place-items-center px-2 text-center text-xs text-neutral-500">
-            Photo
+            No photo
           </span>
         )}
       </div>
@@ -287,6 +288,7 @@ function DurabilityFormModal({
   const [baseline] = useState(initial);
   const [titleError, setTitleError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [bulletError, setBulletError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -295,7 +297,8 @@ function DurabilityFormModal({
   async function save() {
     if (saving || uploading > 0) return;
     const nextTitleError = draft.title.trim() ? "" : "Title is required.";
-    const nextPhotoError = draft.image.src ? "" : "Cover photo is required.";
+    // The photo is optional; alt text is only required when a photo is present.
+    const nextPhotoError = optionalImageErrors(draft.image).alt;
     const nextBulletError = draft.bullets.some((bullet) => !bullet.text.trim())
       ? "Write each point, or remove the empty one."
       : "";
@@ -309,11 +312,12 @@ function DurabilityFormModal({
     if (nextTitleError || nextPhotoError || nextBulletError) return;
     setSaving(true);
     setPhotoError("");
+    setSaveError("");
     try {
       await onSave(draft);
     } catch (caught) {
       setSaving(false);
-      setPhotoError(
+      setSaveError(
         caught instanceof Error
           ? caught.message
           : "Could not save the durability section.",
@@ -345,7 +349,7 @@ function DurabilityFormModal({
               Edit built to last
             </h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Update the heading, points, and cover photo for this section.
+              Update the heading, points, and photo for this section.
             </p>
           </div>
           <button
@@ -423,49 +427,36 @@ function DurabilityFormModal({
               id={`${formId}-photo`}
               className="text-sm font-semibold text-neutral-950"
             >
-              Cover photo
+              Photo
             </h3>
             <p className="mt-1 text-sm text-neutral-500">
-              This photo sits on the right of the section.
+              Optional. Shown on the right of the section; without a photo the
+              section uses a text-only layout.
             </p>
             <div className="mt-3">
-              <ImageField
-                variant="thumb"
-                label=""
-                value={draft.image.src}
-                confirmRemove
+              <SingleImageField
+                id={`${formId}-photo-field`}
+                optional
+                value={{ id: "photo", ...draft.image }}
+                altError={photoError}
                 onBusy={(busy) =>
                   setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
                 }
-                onChange={(src) => {
-                  setDraft({ ...draft, image: { ...draft.image, src } });
+                onChange={(image) => {
+                  setDraft((current) => ({
+                    ...current,
+                    image: { src: image?.src ?? "", alt: image?.alt ?? "" },
+                  }));
                   setPhotoError("");
                 }}
               />
             </div>
-            {photoError ? (
-              <div className="mt-3">
-                <FieldError message={photoError} />
-              </div>
-            ) : null}
-            <label className="mt-3 block">
-              <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Description
-              </span>
-              <input
-                value={draft.image.alt}
-                placeholder="What this photo shows"
-                aria-label="Cover photo description"
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    image: { ...draft.image, alt: event.target.value },
-                  })
-                }
-                className={adminFieldClass}
-              />
-            </label>
           </section>
+          {saveError ? (
+            <div role="alert">
+              <FieldError message={saveError} />
+            </div>
+          ) : null}
 
           <section
             className="border-t border-neutral-100 pt-5"
