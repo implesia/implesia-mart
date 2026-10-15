@@ -203,11 +203,11 @@ export default function Footer({ details }: { details: ContactDetails | null }) 
         </div>
 
         {/* Bottom bar */}
-        <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row sm:py-7">
+        <div className="flex flex-col items-center justify-between gap-4 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:flex-row sm:pt-7 sm:pb-[max(1.75rem,env(safe-area-inset-bottom))]">
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
             <SiteLogo
               tone="onDark"
-              className="h-8 w-[8.5rem] sm:h-9 sm:w-[9.5rem]"
+              className="h-8 w-36 sm:h-9 sm:w-[10.125rem]"
             />
             <span className="hidden h-4 w-px bg-white/15 sm:block" aria-hidden />
             <p className="text-center text-xs text-white/75 sm:text-left sm:text-sm">
@@ -215,17 +215,17 @@ export default function Footer({ details }: { details: ContactDetails | null }) 
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/75">
-            <Link href="/privacy-policy" className="transition-colors hover:text-white">
+          <div className="flex flex-wrap items-center justify-center gap-x-1 text-sm text-white/75 sm:gap-x-2 sm:text-xs">
+            <Link href="/privacy-policy" className="inline-flex min-h-11 items-center rounded-md px-2 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-white">
               গোপনীয়তা
             </Link>
-            <Link href="/shipping-returns" className="transition-colors hover:text-white">
+            <Link href="/shipping-returns" className="inline-flex min-h-11 items-center rounded-md px-2 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-white">
               শিপিং
             </Link>
-            <Link href="/order-status" className="transition-colors hover:text-white">
+            <Link href="/order-status" className="inline-flex min-h-11 items-center rounded-md px-2 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-white">
               আমার অর্ডার
             </Link>
-            <Link href="/faqs" className="transition-colors hover:text-white">
+            <Link href="/faqs" className="inline-flex min-h-11 items-center rounded-md px-2 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-white">
               প্রশ্নোত্তর
             </Link>
           </div>
