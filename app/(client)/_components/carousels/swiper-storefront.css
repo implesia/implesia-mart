@@ -15,3 +15,25 @@
 .swiper:not(.swiper-initialized) .swiper-slide:not(:first-child) {
   display: none !important;
 }
+
+/*
+  Cross-fade: both slides are visible mid-transition. Images blend fine, but two titles on top of
+  each other read as ghosted text, so the outgoing copy drops out at once and the incoming copy
+  fades in after a short delay.
+*/
+.banner-swiper.swiper-fade .swiper-slide .hero-copy {
+  opacity: 0;
+  transition: opacity 0s;
+}
+
+.banner-swiper.swiper-fade .swiper-slide-active .hero-copy,
+.banner-swiper:not(.swiper-initialized) .swiper-slide:first-child .hero-copy {
+  opacity: 1;
+  transition: opacity 320ms ease-out 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-swiper.swiper-fade .swiper-slide-active .hero-copy {
+    transition: none;
+  }
+}

@@ -146,7 +146,7 @@ function HeroCarousel({
             onSlideChange={(swiper) => {
               setActiveIndex(swiper.realIndex);
             }}
-            className="banner-swiper h-[260px] overflow-hidden rounded-3xl shadow-[0_12px_40px_rgba(7,24,32,0.12)] ring-1 ring-black/5 sm:h-[340px] lg:h-[24rem]"
+            className="banner-swiper h-[28.5rem] overflow-hidden rounded-2xl shadow-[0_12px_40px_rgba(7,24,32,0.12)] ring-1 ring-black/5 min-[400px]:h-[30rem] sm:h-[340px] sm:rounded-3xl lg:h-[24rem]"
           >
             {slides.map((slide, index) => (
               <SwiperSlide key={slide.id}>
@@ -160,32 +160,35 @@ function HeroCarousel({
                     aria-hidden
                     className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
                   />
-                  <div className="relative grid h-full grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-                    <div className="min-w-0 px-4 pt-5 pb-10 sm:px-8 sm:pt-7 sm:pb-10 lg:px-10">
-                      <p className="mb-3 inline-flex max-w-full items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium tracking-wide text-[#b7efe8] ring-1 ring-white/15 sm:text-xs">
+                  {/* Phones: image on top (full image, larger), copy below. sm+: copy left, image right. */}
+                  <div className="relative flex h-full flex-col sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-center xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+                    {/* hero-copy: outgoing slide's copy is hidden instantly during the cross-fade (see
+                        swiper-storefront.css) so two titles never ghost over each other. */}
+                    <div className="hero-copy order-2 flex min-w-0 flex-1 flex-col px-4 pt-3 pb-16 sm:order-none sm:block sm:flex-none sm:px-8 sm:pt-7 sm:pb-10 lg:px-10">
+                      <p className="mb-2 inline-flex w-fit max-w-full items-center truncate rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium sm:mb-3 tracking-wide text-[#b7efe8] ring-1 ring-white/15 sm:text-xs">
                         {slide.eyebrow}
                       </p>
                       {index === activeIndex ? (
-                        <h2 className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.3rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
+                        <h2 className="line-clamp-2 text-[1.3rem] leading-[1.3] font-bold tracking-tight text-white min-[400px]:text-[1.45rem] sm:line-clamp-3 sm:max-w-[16ch] sm:leading-[1.2] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
                           {slide.title}
                         </h2>
                       ) : (
-                        <p className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.3rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
+                        <p className="line-clamp-2 text-[1.3rem] leading-[1.3] font-bold tracking-tight text-white min-[400px]:text-[1.45rem] sm:line-clamp-3 sm:max-w-[16ch] sm:leading-[1.2] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
                           {slide.title}
                         </p>
                       )}
                       <p className="mt-2 hidden max-w-[34ch] text-sm leading-relaxed text-white/70 sm:line-clamp-2 sm:block">
                         {slide.description}
                       </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:mt-4">
+                      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-3 sm:mt-4 sm:pt-0">
                         <Link
                           href={slide.primaryCta.href}
-                          className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-primary px-3.5 text-[13px] font-semibold text-on-primary transition-colors hover:bg-primary/80 sm:h-10 sm:px-5 sm:text-sm"
+                          className="inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                         >
                           {slide.primaryCta.label}
                         </Link>
                         {slide.priceLabel ? (
-                          <span className="whitespace-nowrap text-sm font-semibold text-white/90 sm:text-base">
+                          <span className="whitespace-nowrap text-base font-semibold text-white/90">
                             {slide.priceLabel}
                           </span>
                         ) : null}
@@ -194,14 +197,14 @@ function HeroCarousel({
                     {/* Image column: wide frame that fills the column; object-contain keeps the whole
                         CMS image visible for any aspect ratio, a blurred copy fills the letterbox. Bottom
                         padding reserves room for the arrows so they never sit on the image. */}
-                    <div className="flex h-full min-w-0 items-stretch py-3 pr-3 pb-12 pl-1 sm:py-5 sm:pr-5 sm:pb-14 sm:pl-2 lg:pr-6">
+                    <div className="order-1 flex h-[52%] min-w-0 shrink-0 items-stretch px-3 pt-3 sm:order-none sm:h-full sm:py-5 sm:pr-5 sm:pb-14 sm:pl-2 lg:pr-6">
                       <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/95 shadow-[0_18px_44px_rgba(0,0,0,0.32)] ring-1 ring-white/20 sm:rounded-[1.4rem]">
                         <Image
                           src={slide.imageSrc}
                           alt=""
                           aria-hidden
                           fill
-                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 45vw, 480px"
+                          sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 480px"
                           className="scale-110 object-cover opacity-40 blur-2xl"
                         />
                         <Image
@@ -209,7 +212,7 @@ function HeroCarousel({
                           alt={slide.imageAlt}
                           fill
                           priority={index === 0}
-                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 45vw, 480px"
+                          sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 480px"
                           className="object-contain p-2 sm:p-3"
                         />
                       </div>
@@ -221,13 +224,13 @@ function HeroCarousel({
           </Swiper>
 
           {slides.length > 1 ? (
-            <div className="absolute right-3 bottom-2.5 z-10 flex items-center gap-1.5 sm:right-5">
+            <div className="absolute right-3 bottom-3 z-10 flex items-center gap-2 sm:right-5 sm:bottom-2.5 sm:gap-1.5">
               <button
                 type="button"
                 aria-label={settings.previousLabel}
                 title={settings.previousLabel}
                 onClick={() => swiperRef.current?.slidePrev()}
-                className="grid size-8 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 transition-colors hover:bg-black/65 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="grid size-11 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 transition-colors hover:bg-black/65 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 <span aria-hidden className="text-lg leading-none">‹</span>
               </button>
@@ -236,14 +239,14 @@ function HeroCarousel({
                 aria-label={settings.nextLabel}
                 title={settings.nextLabel}
                 onClick={() => swiperRef.current?.slideNext()}
-                className="grid size-8 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 transition-colors hover:bg-black/65 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="grid size-11 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 transition-colors hover:bg-black/65 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 <span aria-hidden className="text-lg leading-none">›</span>
               </button>
             </div>
           ) : null}
 
-          <div className="pointer-events-auto absolute bottom-3 left-3.5 z-10 flex items-center gap-1.5 sm:left-7 lg:left-8">
+          <div className="pointer-events-auto absolute bottom-[0.875rem] left-2 z-10 flex items-center sm:bottom-2 sm:left-5 lg:left-6">
             {slides.map((slide, index) => (
               <button
                 key={slide.id}
@@ -255,13 +258,18 @@ function HeroCarousel({
                     ? swiperRef.current?.slideToLoop(index)
                     : swiperRef.current?.slideTo(index)
                 }
-                className={cn(
-                  "h-1.5 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-                  activeIndex === index
-                    ? "w-5 bg-white"
-                    : "w-1.5 bg-white/45 hover:bg-white/70",
-                )}
-              />
+                className="group grid h-10 min-w-6 place-items-center rounded-full px-1 focus-visible:outline-2 focus-visible:outline-white"
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "block h-1.5 rounded-full transition-all",
+                    activeIndex === index
+                      ? "w-5 bg-white"
+                      : "w-1.5 bg-white/45 group-hover:bg-white/70",
+                  )}
+                />
+              </button>
             ))}
           </div>
         </div>
