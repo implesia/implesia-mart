@@ -1,59 +1,39 @@
 import type { AboutSteps } from "@/lib/mart-api/about-steps";
-import { stepIcon } from "@/lib/mart-api/about-steps";
-import { cn } from "@/lib/utils";
 
-import { Container } from "../../_components/common/container";
-import { MaterialIcon } from "../../_components/common/material-icon";
+import { AboutSection, SectionHeader } from "./about-ui";
 
-export function HowItWorks({
-  steps,
-  className,
-}: {
-  steps: AboutSteps;
-  className?: string;
-}) {
+export function HowItWorks({ steps }: { steps: AboutSteps }) {
   const items = steps.items.filter(
-    (item) => item.isActive && item.step.trim() && item.title.trim() && item.description.trim(),
+    (item) => item.isActive && item.title.trim() && item.description.trim(),
   );
-  if (!steps.kicker && !steps.title && !steps.subtitle && !items.length) return null;
+  if (!items.length) return null;
 
   return (
-    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto mb-5 max-w-2xl text-center sm:mb-6">
-          {steps.kicker ? (
-            <p className="mb-2 text-xs font-semibold tracking-wide text-primary-ink uppercase">
-              {steps.kicker}
-            </p>
-          ) : null}
-          {steps.title ? (
-            <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
-              {steps.title}
-            </h2>
-          ) : null}
-          {steps.subtitle ? (
-            <p className="text-sm leading-relaxed text-neutral-600">{steps.subtitle}</p>
-          ) : null}
-        </div>
-
-        {items.length ? (
-          <ol className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex flex-col rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5"
-              >
-                <span className="mb-2 text-lg font-bold text-neutral-500">{item.step}</span>
-                <span className="mb-2.5 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <MaterialIcon name={stepIcon(item.icon)} className="text-[18px]" />
-                </span>
-                <h3 className="mb-1 text-sm font-semibold text-neutral-950">{item.title}</h3>
-                <p className="text-[13px] leading-relaxed text-neutral-600">{item.description}</p>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-      </Container>
-    </section>
+    <AboutSection labelledBy="about-steps-heading">
+      <SectionHeader
+        id="about-steps-heading"
+        kicker={steps.kicker}
+        title={steps.title}
+        subtitle={steps.subtitle}
+      />
+      <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+        {items.map((item, index) => (
+          <li key={item.id} className="rounded-2xl bg-white p-6 ring-1 ring-neutral-200/80">
+            {/* CMS step label (e.g. ০১) is shown; falls back to position. */}
+            <span
+              aria-hidden
+              className="flex size-11 items-center justify-center rounded-full bg-neutral-950 text-base font-bold text-white tabular-nums"
+            >
+              {item.step.trim() || index + 1}
+            </span>
+            <h3 className="mt-5 text-lg leading-snug font-semibold text-neutral-950">
+              <span className="sr-only">ধাপ {index + 1}: </span>
+              {item.title}
+            </h3>
+            <p className="mt-1.5 text-[15px] leading-[1.7] text-neutral-600">{item.description}</p>
+          </li>
+        ))}
+      </ol>
+    </AboutSection>
   );
 }

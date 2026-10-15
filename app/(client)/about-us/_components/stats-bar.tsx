@@ -1,46 +1,27 @@
 import type { AboutStat } from "@/lib/mart-api/about-stats";
-import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 
-export function StatsBar({
-  stats,
-  className,
-}: {
-  stats: AboutStat[];
-  className?: string;
-}) {
-  // Respect the admin "active" toggle and skip blank stats.
-  const visible = stats.filter((stat) => stat.isActive && (stat.value.trim() || stat.label.trim()));
+export function StatsBar({ stats }: { stats: AboutStat[] }) {
+  const visible = stats.filter(
+    (stat) => stat.isActive && (stat.value.trim() || stat.label.trim()),
+  );
   if (visible.length === 0) return null;
   return (
-    <section
-      className={cn("w-full bg-[#f5f6f8] pb-6 sm:pb-8", className)}
-      aria-label="স্টোর প্রতিশ্রুতি"
-    >
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <ul className="grid grid-cols-2 divide-x divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:grid-cols-4 lg:divide-y-0">
+    <section className="w-full bg-[#f5f6f8] pb-12 sm:pb-16 lg:pb-20" aria-label="এক নজরে">
+      <Container className="px-4 sm:px-6 lg:px-8">
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-neutral-200 ring-1 ring-neutral-200 lg:grid-cols-4">
           {visible.map((stat) => (
-            <li
-              key={stat.id}
-              className="flex flex-col items-center justify-center gap-1 px-3 py-3.5 text-center sm:flex-row sm:gap-2.5 sm:px-4 sm:py-4 sm:text-left"
-            >
-              <MaterialIcon
-                name={stat.icon}
-                className="text-[18px] text-primary-ink sm:text-[20px]"
-              />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold tabular-nums text-neutral-950 sm:text-[15px]">
-                  {stat.value}
-                </p>
-                <p className="text-xs leading-snug text-neutral-600">
-                  {stat.label}
-                </p>
-              </div>
-            </li>
+            <div key={stat.id} className="flex flex-col items-start gap-1 bg-white px-5 py-5 sm:px-6">
+              <MaterialIcon name={stat.icon} className="mb-1 text-[22px] text-primary-ink" />
+              <dt className="order-last text-sm leading-snug text-neutral-600">{stat.label}</dt>
+              <dd className="text-2xl font-bold tabular-nums text-neutral-950 sm:text-[1.75rem]">
+                {stat.value}
+              </dd>
+            </div>
           ))}
-        </ul>
+        </dl>
       </Container>
     </section>
   );

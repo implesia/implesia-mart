@@ -1,126 +1,53 @@
 import Image from "next/image";
-import Link from "next/link";
-import type { ReactNode } from "react";
 
 import type { AboutHero as AboutHeroContent } from "@/lib/mart-api/about-hero";
-import { isExternalHref } from "@/lib/mart-mock/about-sections";
-import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
-import { MaterialIcon } from "../../_components/common/material-icon";
+import { CtaLink, CtaRow, Kicker, firstImage } from "./about-ui";
 
-export function AboutHero({
-  hero,
-  className,
-}: {
-  hero: AboutHeroContent;
-  className?: string;
-}) {
-  // Only real images: empty CMS slots used to render blank dark tiles.
-  const heroImages = hero.images.filter((image) => image.src).slice(0, 2);
+export function AboutHero({ hero }: { hero: AboutHeroContent }) {
+  const image = firstImage(hero.images);
+  const primary = hero.primaryLabel.trim();
+  const secondary = hero.secondaryLabel.trim();
 
   return (
-    <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div
-          className={cn(
-            "relative w-full overflow-hidden rounded-2xl",
-            "grid grid-cols-1 lg:grid-cols-12",
-            "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
-          )}
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
-          />
-
-          <div className="relative z-10 flex flex-col justify-center px-4 py-6 sm:px-7 sm:py-8 lg:col-span-7 lg:px-8 lg:py-10">
-            {hero.eyebrow.trim() ? (
-              <p className="mb-1.5 text-xs font-semibold tracking-wide text-[#8ed4c1]">
-                {hero.eyebrow}
-              </p>
-            ) : null}
-
-            <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-white sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
+    <section className="w-full bg-[#f5f6f8] pt-2 pb-12 sm:pb-16 lg:pb-20">
+      <Container className="px-4 sm:px-6 lg:px-8">
+        <div className="grid items-center gap-8 md:grid-cols-2 lg:gap-14">
+          <div className="max-w-[36rem]">
+            {hero.eyebrow.trim() ? <Kicker>{hero.eyebrow}</Kicker> : null}
+            <h1 className="text-[1.75rem] leading-[1.3] font-bold tracking-tight text-neutral-950 sm:text-4xl lg:text-[2.75rem]">
               {hero.title}
             </h1>
-
-            <p className="mb-5 max-w-xl text-sm leading-relaxed text-white/70 sm:mb-6 sm:text-base">
-              {hero.subtitle}
-            </p>
-
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-              {hero.primaryLabel.trim() ? (
-              <AboutCta
-                href={hero.primaryHref}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-              >
-                {hero.primaryLabel}
-                <MaterialIcon name="arrow_forward" className="text-[18px]" />
-              </AboutCta>
-              ) : null}
-              {hero.secondaryLabel.trim() ? (
-              <AboutCta
-                href={hero.secondaryHref}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-              >
-                {hero.secondaryLabel}
-              </AboutCta>
-              ) : null}
-            </div>
-          </div>
-
-          {heroImages.length ? (
-          <div className="relative grid grid-cols-2 gap-2 p-4 sm:gap-3 sm:p-6 lg:col-span-5 lg:p-7">
-            {heroImages.map((image, index) => (
-              <div
-                key={image.id}
-                className="relative aspect-4/5 overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 lg:aspect-square"
-              >
-                {image.src ? (
-                  <Image
-                    src={image.src}
-                    alt={image.alt}
-                    fill
-                    priority={index === 0}
-                    sizes="(max-width: 1024px) 45vw, 22vw"
-                    className="object-cover object-top"
-                  />
+            {hero.subtitle.trim() ? (
+              <p className="mt-4 text-base leading-[1.7] text-neutral-600 sm:text-lg">
+                {hero.subtitle}
+              </p>
+            ) : null}
+            {primary || secondary ? (
+              <CtaRow>
+                {primary ? <CtaLink href={hero.primaryHref} label={primary} /> : null}
+                {secondary ? (
+                  <CtaLink href={hero.secondaryHref} label={secondary} tone="outline" />
                 ) : null}
-              </div>
-            ))}
+              </CtaRow>
+            ) : null}
           </div>
+
+          {image ? (
+            <div className="relative aspect-4/3 overflow-hidden rounded-3xl bg-white ring-1 ring-neutral-200/80 md:aspect-4/5 lg:aspect-square">
+              <Image
+                src={image.src}
+                alt={image.alt}
+                fill
+                priority
+                sizes="(max-width: 768px) 92vw, 46vw"
+                className="object-cover"
+              />
+            </div>
           ) : null}
         </div>
       </Container>
     </section>
-  );
-}
-
-function AboutCta({
-  href,
-  className,
-  children,
-}: {
-  href: string;
-  className: string;
-  children: ReactNode;
-}) {
-  if (isExternalHref(href)) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-      >
-        {children}
-      </a>
-    );
-  }
-  return (
-    <Link href={href || "/"} className={className}>
-      {children}
-    </Link>
   );
 }

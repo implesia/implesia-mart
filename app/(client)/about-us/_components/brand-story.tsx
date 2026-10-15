@@ -1,112 +1,59 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import type { AboutStory } from "@/lib/mart-api/about-stories";
 import { cn } from "@/lib/utils";
 
-import { Container } from "../../_components/common/container";
-import { MaterialIcon } from "../../_components/common/material-icon";
+import { AboutSection, CtaLink, Prose, SectionHeader, firstImage } from "./about-ui";
 
-export function BrandStory({
-  stories,
-  className,
-}: {
-  stories: AboutStory[];
-  className?: string;
-}) {
+export function BrandStory({ stories }: { stories: AboutStory[] }) {
   const visible = stories.filter((story) => story.isActive);
   if (!visible.length) return null;
-
   return (
-    <div className={className}>
-      {visible.map((story) => (
-        <StoryBlock key={story.id} story={story} />
+    <>
+      {visible.map((story, index) => (
+        <StoryBlock key={story.id} story={story} flip={index % 2 === 1} />
       ))}
-    </div>
+    </>
   );
 }
 
-function isExternalHref(href: string) {
-  return /^https?:\/\//.test(href);
-}
-
-function StoryBlock({ story }: { story: AboutStory }) {
+function StoryBlock({ story, flip }: { story: AboutStory; flip: boolean }) {
   const paragraphs = story.paragraphs.filter((item) => item.text.trim());
-  const images = story.images.filter((item) => item.src);
-  const buttonLabel = story.cta.label.trim();
-  const buttonHref = story.cta.href.trim();
+  const image = firstImage(story.images);
+  const label = story.cta.label.trim();
+  const href = story.cta.href.trim();
+  const headingId = `about-story-${story.id}`;
 
   return (
-    <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div
-          className={cn(
-            "grid grid-cols-1 items-center gap-6 lg:gap-10",
-            images.length > 0 && "lg:grid-cols-2",
-          )}
-        >
-          <div className="space-y-3.5 sm:space-y-4">
-            {story.kicker ? (
-              <p className="text-xs font-semibold tracking-wide text-primary-ink uppercase">
-                {story.kicker}
-              </p>
-            ) : null}
-            {story.title ? (
-              <h2 className="text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
-                {story.title}
-              </h2>
-            ) : null}
-            {paragraphs.length ? (
-              <div className="space-y-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
-                {paragraphs.map((paragraph) => (
-                  <p key={paragraph.id}>{paragraph.text}</p>
-                ))}
-              </div>
-            ) : null}
-            {buttonLabel && buttonHref ? (
-              <div className="pt-1">
-                {isExternalHref(buttonHref) ? (
-                  <a
-                    href={buttonHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-                  >
-                    {buttonLabel}
-                    <MaterialIcon name="arrow_forward" className="text-[18px]" />
-                  </a>
-                ) : (
-                  <Link
-                    href={buttonHref}
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-                  >
-                    {buttonLabel}
-                    <MaterialIcon name="arrow_forward" className="text-[18px]" />
-                  </Link>
-                )}
-              </div>
-            ) : null}
-          </div>
-          {images.length ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-              {images.map((image) => (
-                <div
-                  key={image.id}
-                  className="relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white"
-                >
-                  <Image
-                    src={image.src}
-                    alt={image.alt}
-                    fill
-                    sizes="(max-width: 1024px) 45vw, 24vw"
-                    className="object-cover"
-                  />
-                </div>
+    <AboutSection tone="white" labelledBy={story.title ? headingId : undefined}>
+      <div className={cn("grid items-center gap-8 lg:gap-16", image && "md:grid-cols-2")}>
+        <div className={cn(flip && image && "md:order-2")}>
+          <SectionHeader id={headingId} kicker={story.kicker} title={story.title} />
+          {paragraphs.length ? (
+            <Prose className="mt-5">
+              {paragraphs.map((paragraph) => (
+                <p key={paragraph.id}>{paragraph.text}</p>
               ))}
+            </Prose>
+          ) : null}
+          {label && href ? (
+            <div className="mt-8">
+              <CtaLink href={href} label={label} />
             </div>
           ) : null}
         </div>
-      </Container>
-    </section>
+        {image ? (
+          <div className="relative aspect-4/3 overflow-hidden rounded-3xl bg-neutral-100 md:aspect-square lg:aspect-[4/3]">
+            <Image
+              src={image.src}
+              alt={image.alt}
+              fill
+              sizes="(max-width: 768px) 92vw, 46vw"
+              className="object-cover"
+            />
+          </div>
+        ) : null}
+      </div>
+    </AboutSection>
   );
 }

@@ -55,10 +55,10 @@ export default async function AboutUsPage() {
       <AboutHero hero={hero ?? FALLBACK_ABOUT_HERO} />
       <StatsBar stats={stats ?? FALLBACK_ABOUT_STATS} />
       <BrandStory stories={stories ?? FALLBACK_ABOUT_STORIES} />
-      <CustomDresses dresses={dresses ?? FALLBACK_ABOUT_DRESSES} />
       <MissionVision cards={mission ?? FALLBACK_ABOUT_MISSION} />
       <TrustBadges values={values ?? FALLBACK_ABOUT_VALUES} />
       <HowItWorks steps={steps ?? FALLBACK_ABOUT_STEPS} />
+      <CustomDresses dresses={dresses ?? FALLBACK_ABOUT_DRESSES} />
       <ShopCta cta={cta ?? FALLBACK_ABOUT_CTA} />
     </main>
   );

@@ -1,56 +1,36 @@
 import type { AboutValues } from "@/lib/mart-api/about-values";
 import { valueIcon } from "@/lib/mart-api/about-values";
-import { cn } from "@/lib/utils";
 
-import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { AboutSection, SectionHeader, iconBadge } from "./about-ui";
 
-export function TrustBadges({
-  values,
-  className,
-}: {
-  values: AboutValues;
-  className?: string;
-}) {
-  const items = values.items.filter((item) => item.isActive && item.title.trim() && item.description.trim());
-  if (!values.kicker && !values.title && !values.subtitle && !items.length) return null;
+export function TrustBadges({ values }: { values: AboutValues }) {
+  const items = values.items.filter(
+    (item) => item.isActive && item.title.trim() && item.description.trim(),
+  );
+  if (!items.length) return null;
 
   return (
-    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto mb-5 max-w-2xl text-center sm:mb-6">
-          {values.kicker ? (
-            <p className="mb-2 text-xs font-semibold tracking-wide text-primary-ink uppercase">
-              {values.kicker}
-            </p>
-          ) : null}
-          {values.title ? (
-            <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
-              {values.title}
-            </h2>
-          ) : null}
-          {values.subtitle ? (
-            <p className="text-sm leading-relaxed text-neutral-600">{values.subtitle}</p>
-          ) : null}
-        </div>
-
-        {items.length ? (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-2xl border border-neutral-200/90 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5"
-              >
-                <span className="mx-auto mb-2.5 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <MaterialIcon name={valueIcon(item.icon)} filled className="text-[20px]" />
-                </span>
-                <h3 className="mb-1 text-sm font-semibold text-neutral-950">{item.title}</h3>
-                <p className="text-[13px] leading-relaxed text-neutral-600">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </Container>
-    </section>
+    <AboutSection tone="white" labelledBy="about-values-heading">
+      <SectionHeader
+        id="about-values-heading"
+        kicker={values.kicker}
+        title={values.title}
+        subtitle={values.subtitle}
+      />
+      <ul className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+        {items.map((item) => (
+          <li key={item.id} className="flex gap-4 lg:flex-col">
+            <span className={iconBadge}>
+              <MaterialIcon name={valueIcon(item.icon)} className="text-[22px]" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-lg leading-snug font-semibold text-neutral-950">{item.title}</h3>
+              <p className="mt-1.5 text-[15px] leading-[1.7] text-neutral-600">{item.description}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </AboutSection>
   );
 }
