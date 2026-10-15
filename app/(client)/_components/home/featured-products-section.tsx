@@ -26,23 +26,23 @@ export function FeaturedProductsSection({
     >
       <Container className="px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl border border-neutral-200/90 bg-white px-3 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-5 sm:py-5 dark:border-white/10 dark:bg-[#121816]">
-          <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5">
+          <div className="mb-2 flex items-center justify-between gap-3 sm:mb-4">
             <h2
               id="featured-products-heading"
-              className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl"
+              className="text-lg leading-snug font-semibold tracking-tight text-neutral-950 sm:text-xl"
             >
               {section.heading}
             </h2>
             <Link
               href={section.viewAllHref || "/products"}
-              className="inline-flex shrink-0 items-center gap-0.5 text-sm text-neutral-500 transition-colors hover:text-neutral-950"
+              className="-mr-1 inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-md px-1 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-primary"
             >
               {section.viewAllLabel}
               <MaterialIcon name="chevron_right" className="text-[18px]" />
             </Link>
           </div>
 
-          <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <ul className="grid grid-cols-2 gap-2.5 min-[400px]:gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             {featuredProducts.map((product) => (
               <li key={product.id} className="min-w-0">
                 <ProductCard product={product} />

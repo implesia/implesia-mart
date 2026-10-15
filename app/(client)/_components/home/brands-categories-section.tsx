@@ -38,7 +38,7 @@ function ViewAll({ href }: { href: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex shrink-0 items-center gap-0.5 text-sm text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
+      className="-mr-1 inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-md px-1 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-primary dark:text-white/60 dark:hover:text-white"
     >
       সব দেখুন
       <MaterialIcon name="chevron_right" className="text-[18px]" />
@@ -97,13 +97,13 @@ function CategoryProductRow({
 }) {
   return (
     <article className="rounded-2xl border border-neutral-200/90 bg-white px-3 py-4 sm:px-5 sm:py-5">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h3 className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl">
+      <div className="mb-2 flex items-center justify-between gap-4 sm:mb-4">
+        <h3 className="text-lg leading-snug font-semibold tracking-tight text-neutral-950 sm:text-xl">
           {heading}
         </h3>
         <ViewAll href={href} />
       </div>
-      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-2.5 min-[400px]:gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
         {items.map((product) => (
           <li key={product.id} className="min-w-0">
             <ProductCard product={product} />

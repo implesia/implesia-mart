@@ -86,7 +86,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     >
       <Link
         href={`/products/${product.slug}`}
-        className="relative block aspect-4/5 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+        className="relative block aspect-square overflow-hidden sm:aspect-4/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
         aria-label={`${product.title} দেখুন`}
       >
         <div
@@ -107,7 +107,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               "transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02]",
               (isComingSoon || isSoldOut) && "opacity-55 grayscale-[40%]",
             )}
-            sizes="(max-width: 359px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
           />
         ) : null}
 
@@ -152,9 +152,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-1.5 p-2 sm:gap-2 sm:p-3 md:p-3.5">
+      <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3 md:p-3.5">
         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
-          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary sm:px-2 sm:text-[10px] md:text-[11px]">
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary md:text-[11px]">
             {categoryLabels[product.categoryId]}
           </span>
           {isFashion ? (
@@ -170,11 +170,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
         <div className="min-w-0">
           <Link href={`/products/${product.slug}`} className="block">
-            <h3 className="line-clamp-2 text-[13px] font-semibold leading-snug text-on-surface transition-colors group-hover:text-primary sm:text-sm md:text-[15px]">
+            <h3 className="line-clamp-2 min-h-[2.9em] text-sm leading-[1.45] font-semibold text-on-surface transition-colors group-hover:text-primary md:text-[15px]">
               {product.title}
             </h3>
           </Link>
-          <p className="mt-0.5 line-clamp-1 text-[11px] leading-relaxed text-on-surface-variant sm:mt-1 sm:text-xs">
+          <p className="mt-0.5 line-clamp-1 text-xs leading-relaxed text-on-surface-variant sm:mt-1">
             {product.subtitle}
           </p>
         </div>
@@ -191,7 +191,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               {formatPrice(product.price)}
             </span>
             {product.compareAtPrice && !isComingSoon ? (
-              <span className="text-[11px] tabular-nums text-on-surface-variant line-through sm:text-xs">
+              <span className="text-xs tabular-nums text-on-surface-variant line-through">
                 <span className="sr-only">আগের দাম </span>
                 {formatPrice(product.compareAtPrice)}
               </span>
@@ -235,7 +235,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                   : `${product.title} কার্টে যোগ করুন`
               }
               className={cn(
-                "h-11 w-full rounded-lg text-xs font-semibold shadow-sm sm:rounded-xl sm:text-sm",
+                "h-11 w-full rounded-lg text-sm font-semibold shadow-sm sm:rounded-xl",
                 "motion-reduce:transition-none transition-transform duration-200 ease-out active:scale-[0.99]",
                 justAdded && "bg-primary/90",
               )}
