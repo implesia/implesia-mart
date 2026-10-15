@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -168,3 +169,93 @@ export function sectionImage<T extends { src: string }>(image: T | null | undefi
 
 export const iconBadge =
   "flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-ink";
+
+/** Highlights the last two words of a CMS title (only when it has 4+ words). */
+export function splitTitle(title: string) {
+  const words = title.trim().split(/\s+/);
+  if (words.length < 4) return { lead: title.trim(), tail: "" };
+  return { lead: words.slice(0, -2).join(" "), tail: words.slice(-2).join(" ") };
+}
+
+/** CMS title with its last two words in brand ink. */
+export function HighlightTitle({ title, onDark = false }: { title: string; onDark?: boolean }) {
+  const { lead, tail } = splitTitle(title);
+  return (
+    <>
+      {lead}
+      {tail ? (
+        <>
+          {" "}
+          <span className={onDark ? "text-[#8ed4c1]" : "text-primary-ink"}>{tail}</span>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+/** Soft brand glow + faint dot grid behind a hero. Decorative only. */
+export function HeroBackdrop() {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60rem_30rem_at_85%_10%,rgba(20,184,166,0.16),transparent_60%),radial-gradient(40rem_24rem_at_0%_100%,rgba(20,184,166,0.10),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f5f6f8_100%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(rgba(15,23,42,0.07)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(180deg,black,transparent_70%)]"
+      />
+    </>
+  );
+}
+
+export function EyebrowPill({ children }: { children: ReactNode }) {
+  return (
+    <p className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-1.5 text-[13px] font-semibold text-primary-ink shadow-sm ring-1 ring-primary/25">
+      <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+      {children}
+    </p>
+  );
+}
+
+/**
+ * A single CMS photo in a white frame with a soft shadow and a tilted brand
+ * shape behind it. Fixed aspect ratio, so no layout shift.
+ */
+export function FramedPhoto({
+  src,
+  alt,
+  sizes,
+  priority = false,
+  tilt = "right",
+  aspect = "aspect-[4/3] lg:aspect-[5/4]",
+  className,
+  children,
+}: {
+  src: string;
+  alt: string;
+  sizes: string;
+  priority?: boolean;
+  tilt?: "left" | "right";
+  aspect?: string;
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={cn("relative mx-auto w-full max-w-[30rem] md:max-w-none", className)}>
+      <div
+        aria-hidden
+        className={cn(
+          "absolute -inset-3 -z-10 rounded-[2rem] bg-gradient-to-br from-primary/25 via-primary/10 to-transparent sm:-inset-4",
+          tilt === "right" ? "rotate-3" : "-rotate-3",
+        )}
+      />
+      <div className="rounded-[1.75rem] bg-white p-2 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35)] ring-1 ring-neutral-200/80">
+        <div className={cn("relative overflow-hidden rounded-[1.25rem] bg-neutral-100", aspect)}>
+          <Image src={src} alt={alt} fill priority={priority} sizes={sizes} className="object-cover" />
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
