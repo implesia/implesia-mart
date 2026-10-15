@@ -1,17 +1,14 @@
 import {
+  appendSingleImage,
+  readSingleImage,
+  type SingleImage,
+} from "@/lib/mart-api/about-single-image";
+import {
   MartApiError,
   authorizedFetch,
-  fileFromSrc,
-  isLocalImage,
-  mediaUrl,
-  sitePath,
 } from "@/lib/mart-api/products";
 
-export type AboutHeroImage = {
-  id: string;
-  src: string;
-  alt: string;
-};
+export type AboutHeroImage = SingleImage;
 
 export type AboutHero = {
   eyebrow: string;
@@ -21,7 +18,8 @@ export type AboutHero = {
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
-  images: AboutHeroImage[];
+  /** The one hero photo (null until the admin adds one). */
+  image: AboutHeroImage | null;
 };
 
 type ApiImage = {
@@ -39,11 +37,12 @@ type ApiHero = {
   primary_href: string;
   secondary_label: string;
   secondary_href: string;
-  images: ApiImage[];
+  image?: ApiImage | null;
+  /** Legacy 0/1-item mirror kept by the API for older clients. */
+  images?: ApiImage[];
 };
 
 const LEFT = "/images/products/lamp/lamp-1.jpg";
-const RIGHT = "/images/products/baby-products/wedding-dress.jpeg";
 
 export const FALLBACK_ABOUT_HERO: AboutHero = {
   eyebrow: "আমাদের সম্পর্কে",
@@ -54,10 +53,7 @@ export const FALLBACK_ABOUT_HERO: AboutHero = {
   primaryHref: "/products",
   secondaryLabel: "যোগাযোগ",
   secondaryHref: "/contact-us",
-  images: [
-    { id: "hero-1", src: LEFT, alt: "সানসেট ল্যাম্প — ইমপ্লেসিয়া মার্টের ট্রেন্ডিং গ্যাজেট" },
-    { id: "hero-2", src: RIGHT, alt: "হাতে তৈরি গর্জিয়াস উইমেন্স গাউন" },
-  ],
+  image: { id: "hero-1", src: LEFT, alt: "সানসেট ল্যাম্প — ইমপ্লেসিয়া মার্টের ট্রেন্ডিং গ্যাজেট" },
 };
 
 function toHero(body: ApiHero): AboutHero {
@@ -69,11 +65,7 @@ function toHero(body: ApiHero): AboutHero {
     primaryHref: body.primary_href,
     secondaryLabel: body.secondary_label,
     secondaryHref: body.secondary_href,
-    images: body.images.map((image) => ({
-      id: image.id,
-      src: mediaUrl(image.src),
-      alt: image.alt,
-    })),
+    image: readSingleImage(body),
   };
 }
 
@@ -86,11 +78,10 @@ export async function getAboutHero(): Promise<AboutHero> {
 }
 
 export async function saveAboutHero(hero: AboutHero): Promise<AboutHero> {
-  const images = hero.images.slice(0, 2);
   const body = new FormData();
-  body.set(
-    "payload",
-    JSON.stringify({
+  await appendSingleImage(
+    body,
+    {
       eyebrow: hero.eyebrow,
       title: hero.title,
       subtitle: hero.subtitle,
@@ -98,16 +89,10 @@ export async function saveAboutHero(hero: AboutHero): Promise<AboutHero> {
       primary_href: hero.primaryHref,
       secondary_label: hero.secondaryLabel,
       secondary_href: hero.secondaryHref,
-      images: images.map((image) => ({
-        alt: image.alt,
-        src: isLocalImage(image.src) ? "" : sitePath(image.src),
-      })),
-    }),
+    },
+    hero.image,
+    "hero-photo",
   );
-  for (const [index, image] of images.entries()) {
-    if (!isLocalImage(image.src)) continue;
-    body.set(`image_${index}`, await fileFromSrc(image.src, `hero-${index + 1}`));
-  }
   const response = await authorizedFetch("/api/v1/admin/pages/about/hero", {
     method: "PUT",
     body,

@@ -3,7 +3,7 @@ import Image from "next/image";
 import type { AboutStory } from "@/lib/mart-api/about-stories";
 import { cn } from "@/lib/utils";
 
-import { AboutSection, CtaLink, Prose, SectionHeader, firstImage } from "./about-ui";
+import { AboutSection, CtaLink, Prose, SectionHeader, sectionImage } from "./about-ui";
 
 export function BrandStory({ stories }: { stories: AboutStory[] }) {
   const visible = stories.filter((story) => story.isActive);
@@ -19,7 +19,7 @@ export function BrandStory({ stories }: { stories: AboutStory[] }) {
 
 function StoryBlock({ story, flip }: { story: AboutStory; flip: boolean }) {
   const paragraphs = story.paragraphs.filter((item) => item.text.trim());
-  const image = firstImage(story.images);
+  const image = sectionImage(story.image);
   const label = story.cta.label.trim();
   const href = story.cta.href.trim();
   const headingId = `about-story-${story.id}`;

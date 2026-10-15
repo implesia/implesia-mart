@@ -1,10 +1,11 @@
 import {
+  appendSingleImage,
+  readSingleImage,
+  type SingleImage,
+} from "@/lib/mart-api/about-single-image";
+import {
   MartApiError,
   authorizedFetch,
-  fileFromSrc,
-  isLocalImage,
-  mediaUrl,
-  sitePath,
 } from "@/lib/mart-api/products";
 
 export type AboutStoryParagraph = {
@@ -12,11 +13,7 @@ export type AboutStoryParagraph = {
   text: string;
 };
 
-export type AboutStoryImage = {
-  id: string;
-  src: string;
-  alt: string;
-};
+export type AboutStoryImage = SingleImage;
 
 export type AboutStory = {
   id: string;
@@ -24,7 +21,8 @@ export type AboutStory = {
   title: string;
   paragraphs: AboutStoryParagraph[];
   cta: { label: string; href: string };
-  images: AboutStoryImage[];
+  /** The one photo beside the story. */
+  image: AboutStoryImage | null;
   isActive: boolean;
 };
 
@@ -38,11 +36,11 @@ type ApiStory = {
   cta_label: string;
   cta_href: string;
   is_active?: boolean;
-  images: ApiImage[];
+  image?: ApiImage | null;
+  images?: ApiImage[];
 };
 
 const LAMP = "/images/products/lamp/lamp-2.jpg";
-const FROCK = "/images/products/baby-products/baby-frock-with-baby.jpeg";
 
 export const FALLBACK_ABOUT_STORIES: AboutStory[] = [
   {
@@ -64,10 +62,7 @@ export const FALLBACK_ABOUT_STORIES: AboutStory[] = [
       },
     ],
     cta: { label: "সব প্রোডাক্ট", href: "/products" },
-    images: [
-      { id: "story-image-1", src: LAMP, alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা গ্যাজেট" },
-      { id: "story-image-2", src: FROCK, alt: "হাতে তৈরি বেবি পার্টি ফ্রক" },
-    ],
+    image: { id: "story-image-1", src: LAMP, alt: "সানসেট ল্যাম্প — কোয়ালিটি চেক করা গ্যাজেট" },
     isActive: true,
   },
 ];
@@ -79,7 +74,7 @@ export function blankAboutStory(): AboutStory {
     title: "",
     paragraphs: [{ id: "paragraph-1", text: "" }],
     cta: { label: "", href: "" },
-    images: [],
+    image: null,
     isActive: true,
   };
 }
@@ -91,21 +86,16 @@ function toStory(body: ApiStory): AboutStory {
     title: body.title,
     paragraphs: body.paragraphs.map((item) => ({ id: item.id, text: item.text })),
     cta: { label: body.cta_label, href: body.cta_href },
-    images: body.images.map((image) => ({
-      id: image.id,
-      src: mediaUrl(image.src),
-      alt: image.alt,
-    })),
+    image: readSingleImage(body),
     isActive: body.is_active !== false,
   };
 }
 
 async function toForm(story: AboutStory) {
-  const images = story.images.filter((image) => image.src.trim());
   const body = new FormData();
-  body.set(
-    "payload",
-    JSON.stringify({
+  await appendSingleImage(
+    body,
+    {
       kicker: story.kicker,
       title: story.title,
       paragraphs: story.paragraphs
@@ -114,16 +104,10 @@ async function toForm(story: AboutStory) {
       cta_label: story.cta.label,
       cta_href: story.cta.href,
       is_active: story.isActive,
-      images: images.map((image) => ({
-        alt: image.alt,
-        src: isLocalImage(image.src) ? "" : sitePath(image.src),
-      })),
-    }),
+    },
+    story.image,
+    "story-photo",
   );
-  for (const [index, image] of images.entries()) {
-    if (!isLocalImage(image.src)) continue;
-    body.set(`image_${index}`, await fileFromSrc(image.src, `story-${index + 1}`));
-  }
   return body;
 }
 

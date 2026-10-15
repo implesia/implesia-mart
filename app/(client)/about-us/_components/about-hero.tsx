@@ -3,10 +3,10 @@ import Image from "next/image";
 import type { AboutHero as AboutHeroContent } from "@/lib/mart-api/about-hero";
 
 import { Container } from "../../_components/common/container";
-import { CtaLink, CtaRow, Kicker, firstImage } from "./about-ui";
+import { CtaLink, CtaRow, Kicker, sectionImage } from "./about-ui";
 
 export function AboutHero({ hero }: { hero: AboutHeroContent }) {
-  const image = firstImage(hero.images);
+  const image = sectionImage(hero.image);
   const primary = hero.primaryLabel.trim();
   const secondary = hero.secondaryLabel.trim();
 

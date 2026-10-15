@@ -162,8 +162,8 @@ export function CtaRow({ children, center = false }: { children: ReactNode; cent
 }
 
 /** Storefront shows a single image per section: the first CMS image that has a src. */
-export function firstImage<T extends { src: string }>(images: T[]): T | undefined {
-  return images.find((image) => image.src?.trim());
+export function sectionImage<T extends { src: string }>(image: T | null | undefined): T | undefined {
+  return image?.src?.trim() ? image : undefined;
 }
 
 export const iconBadge =

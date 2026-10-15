@@ -100,8 +100,8 @@ export const PAGE_CMS: CmsPage[] = [
         label: "Hero",
         icon: "imagesmode",
         description:
-          "The banner at the top of the about page. Words on the left, two photos on the right.",
-        fields: ["eyebrow", "title", "subtitle", "cta", "images"],
+          "The banner at the top of the about page. Words on the left, one photo beside them.",
+        fields: ["eyebrow", "title", "subtitle", "cta", "image"],
       },
       {
         id: "stats",
@@ -115,14 +115,14 @@ export const PAGE_CMS: CmsPage[] = [
         label: "Story",
         icon: "menu_book",
         description: "Why Implesia Mart started.",
-        fields: ["kicker", "title", "paragraphs", "cta", "images"],
+        fields: ["kicker", "title", "paragraphs", "cta", "image"],
       },
       {
         id: "custom-dresses",
         label: "Custom dresses",
         icon: "checkroom",
-        description: "Dress block and gallery.",
-        fields: ["title", "subtitle", "features", "gallery", "cta"],
+        description: "Dress block with one photo.",
+        fields: ["title", "subtitle", "features", "image", "cta"],
       },
       {
         id: "mission",

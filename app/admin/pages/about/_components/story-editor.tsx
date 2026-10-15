@@ -15,6 +15,7 @@ import {
   updateAboutStory,
   type AboutStory,
 } from "@/lib/mart-api/about-stories";
+import { singleImageErrors } from "@/lib/mart-api/about-single-image";
 import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
@@ -30,8 +31,8 @@ import {
   VisibilityBadge,
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
-import { ImageField, MultiImageUpload } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
+import { SingleImageField } from "./single-image-field";
 
 export function AboutStoryEditor() {
   const params = useSearchParams();
@@ -251,7 +252,7 @@ export function AboutStoryEditor() {
               No stories yet
             </p>
             <p className="mx-auto mt-1 max-w-sm text-sm text-neutral-500">
-              Add a story with its writing, button, and photos.
+              Add a story with its writing, button, and photo.
             </p>
             <button
               type="button"
@@ -267,7 +268,7 @@ export function AboutStoryEditor() {
             {items.map((story, index) => {
               const excerpt =
                 story.paragraphs.find((item) => item.text.trim())?.text ?? "";
-              const photos = story.images.filter((image) => image.src);
+              const photos = story.image?.src ? [story.image] : [];
               return (
                 <li
                   key={story.id}
@@ -309,7 +310,7 @@ export function AboutStoryEditor() {
                               No button
                             </span>
                           )}
-                          {photos.slice(0, 3).map((image) => (
+                          {photos.map((image) => (
                             <span
                               key={image.id}
                               className="relative size-8 overflow-hidden rounded-lg bg-neutral-100"
@@ -418,12 +419,21 @@ function StoryForm({
   const [story, setStory] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
   const [baseline] = useState(story);
   const [error, setError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [altError, setAltError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
   async function save() {
     if (saving || uploading > 0) return;
+    const imageErrors = singleImageErrors(story.image);
+    setPhotoError(imageErrors.photo);
+    setAltError(imageErrors.alt);
+    if (imageErrors.photo || imageErrors.alt) {
+      setError("");
+      return;
+    }
     if (
       !story.title.trim() &&
       !story.paragraphs.some((item) => item.text.trim())
@@ -457,7 +467,7 @@ function StoryForm({
           </h2>
           <p className="mt-1 text-sm text-neutral-500">
             {creating
-              ? "Write the story, button, and photos together."
+              ? "Write the story, button, and photo together."
               : "Update this story."}
           </p>
         </div>
@@ -627,101 +637,31 @@ function StoryForm({
           className="border-t border-neutral-100 pt-5"
           aria-labelledby={`${formId}-images`}
         >
-          <div>
-            <h3
-              id={`${formId}-images`}
-              className="text-sm font-semibold text-neutral-950"
-            >
-              Images
-            </h3>
-            <p className="mt-1 text-sm text-neutral-500">
-              Optional photos beside the story. Pick or drop several images at
-              once. Two fit in each row on the about page.
-            </p>
-          </div>
+          <h3
+            id={`${formId}-images`}
+            className="text-sm font-semibold text-neutral-950"
+          >
+            Photo
+          </h3>
+          <p className="mt-1 text-sm text-neutral-500">
+            One photo sits beside the story. Use Replace to change it.
+          </p>
           <div className="mt-3">
-            <MultiImageUpload
-              inputId={`${formId}-upload`}
+            <SingleImageField
+              id={`${formId}-photo`}
+              value={story.image}
+              photoError={photoError}
+              altError={altError}
               onBusy={(busy) =>
                 setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
               }
-              onUploaded={(srcs) =>
-                setStory((current) => ({
-                  ...current,
-                  images: [
-                    ...current.images,
-                    ...srcs.map((src, index) => ({
-                      id: `image-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 6)}`,
-                      src,
-                      alt: "",
-                    })),
-                  ],
-                }))
-              }
+              onChange={(image) => {
+                setStory((current) => ({ ...current, image }));
+                setPhotoError("");
+                setAltError("");
+              }}
             />
           </div>
-          {story.images.length === 0 ? (
-            <p className="mt-3 text-sm text-neutral-500">No photos yet.</p>
-          ) : null}
-          <ul className={cn("space-y-3", story.images.length > 0 && "mt-3")}>
-            {story.images.map((image, index) => (
-              <li key={image.id} className="rounded-xl bg-[#f5f6f8] p-3">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-neutral-500">
-                    Image {index + 1}
-                  </span>
-                  <IconButton
-                    label={`Remove image ${index + 1}`}
-                    icon="close"
-                    onClick={() =>
-                      setStory({
-                        ...story,
-                        images: story.images.filter(
-                          (item) => item.id !== image.id,
-                        ),
-                      })
-                    }
-                  />
-                </div>
-                <ImageField
-                  compact
-                  label=""
-                  value={image.src}
-                  confirmRemove
-                  onBusy={(busy) =>
-                    setUploading((count) =>
-                      Math.max(0, count + (busy ? 1 : -1)),
-                    )
-                  }
-                  onChange={(src) =>
-                    setStory({
-                      ...story,
-                      images: replace(story.images, image.id, { src }),
-                    })
-                  }
-                />
-                <label className="mt-2 block">
-                  <span className="mb-1 block text-xs font-medium text-neutral-600">
-                    Description
-                  </span>
-                  <input
-                    value={image.alt}
-                    placeholder="What the picture shows"
-                    aria-label={`Description for image ${index + 1}`}
-                    onChange={(event) =>
-                      setStory({
-                        ...story,
-                        images: replace(story.images, image.id, {
-                          alt: event.target.value,
-                        }),
-                      })
-                    }
-                    className={adminFieldClass}
-                  />
-                </label>
-              </li>
-            ))}
-          </ul>
         </section>
 
         {error ? <FieldError message={error} /> : null}
@@ -773,9 +713,9 @@ function cleanStory(story: AboutStory): AboutStory {
       .map((item) => ({ ...item, text: item.text.trim() }))
       .filter((item) => item.text),
     cta: { label: story.cta.label.trim(), href: story.cta.href.trim() },
-    images: story.images
-      .map((item) => ({ ...item, src: item.src.trim(), alt: item.alt.trim() }))
-      .filter((item) => item.src),
+    image: story.image?.src.trim()
+      ? { ...story.image, src: story.image.src.trim(), alt: story.image.alt.trim() }
+      : null,
   };
 }
 

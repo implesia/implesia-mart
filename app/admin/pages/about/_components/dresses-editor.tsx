@@ -15,6 +15,7 @@ import {
   updateAboutDress,
   type AboutDress,
 } from "@/lib/mart-api/about-dresses";
+import { singleImageErrors } from "@/lib/mart-api/about-single-image";
 import { MartApiError } from "@/lib/mart-api/products";
 import { isContentActive } from "@/lib/mart-mock/visibility";
 import { cn } from "@/lib/utils";
@@ -30,8 +31,8 @@ import {
   VisibilityBadge,
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
-import { ImageField, MultiImageUpload } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
+import { SingleImageField } from "./single-image-field";
 
 const ICONS: { name: string; label: string }[] = [
   { name: "design_services", label: "Design" },
@@ -283,7 +284,7 @@ export function AboutDressesEditor() {
         ) : (
           <ol>
             {items.map((dress, index) => {
-              const photos = dress.gallery.filter((image) => image.src);
+              const photos = dress.image?.src ? [dress.image] : [];
               return (
                 <li
                   key={dress.id}
@@ -330,7 +331,7 @@ export function AboutDressesEditor() {
                               {dress.secondaryCta.label}
                             </span>
                           ) : null}
-                          {photos.slice(0, 4).map((image) => (
+                          {photos.map((image) => (
                             <span
                               key={image.id}
                               className="relative size-8 overflow-hidden rounded-lg bg-neutral-100"
@@ -439,12 +440,21 @@ function DressForm({
   const [dress, setDress] = useState(() => ({ ...initial, isActive: initial.isActive !== false }));
   const [baseline] = useState(dress);
   const [error, setError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [altError, setAltError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
   async function save() {
     if (saving || uploading > 0) return;
+    const imageErrors = singleImageErrors(dress.image);
+    setPhotoError(imageErrors.photo);
+    setAltError(imageErrors.alt);
+    if (imageErrors.photo || imageErrors.alt) {
+      setError("");
+      return;
+    }
     const hasText = Boolean(
       dress.title.trim() ||
       dress.subtitle.trim() ||
@@ -782,101 +792,31 @@ function DressForm({
           className="border-t border-neutral-100 pt-5"
           aria-labelledby={`${formId}-images`}
         >
-          <div>
-            <h3
-              id={`${formId}-images`}
-              className="text-sm font-semibold text-neutral-950"
-            >
-              Images
-            </h3>
-            <p className="mt-1 text-sm text-neutral-500">
-              Optional photos on the left of this block. Pick or drop several
-              images at once.
-            </p>
-          </div>
+          <h3
+            id={`${formId}-images`}
+            className="text-sm font-semibold text-neutral-950"
+          >
+            Photo
+          </h3>
+          <p className="mt-1 text-sm text-neutral-500">
+            One photo sits on the left of this block. Use Replace to change it.
+          </p>
           <div className="mt-3">
-            <MultiImageUpload
-              inputId={`${formId}-upload`}
+            <SingleImageField
+              id={`${formId}-photo`}
+              value={dress.image}
+              photoError={photoError}
+              altError={altError}
               onBusy={(busy) =>
                 setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
               }
-              onUploaded={(srcs) =>
-                setDress((current) => ({
-                  ...current,
-                  gallery: [
-                    ...current.gallery,
-                    ...srcs.map((src, index) => ({
-                      id: `image-${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 6)}`,
-                      src,
-                      alt: "",
-                    })),
-                  ],
-                }))
-              }
+              onChange={(image) => {
+                setDress((current) => ({ ...current, image }));
+                setPhotoError("");
+                setAltError("");
+              }}
             />
           </div>
-          {dress.gallery.length === 0 ? (
-            <p className="mt-3 text-sm text-neutral-500">No photos yet.</p>
-          ) : null}
-          <ul className={cn("space-y-3", dress.gallery.length > 0 && "mt-3")}>
-            {dress.gallery.map((image, index) => (
-              <li key={image.id} className="rounded-xl bg-[#f5f6f8] p-3">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-neutral-500">
-                    Image {index + 1}
-                  </span>
-                  <IconButton
-                    label={`Remove image ${index + 1}`}
-                    icon="close"
-                    onClick={() =>
-                      setDress({
-                        ...dress,
-                        gallery: dress.gallery.filter(
-                          (item) => item.id !== image.id,
-                        ),
-                      })
-                    }
-                  />
-                </div>
-                <ImageField
-                  compact
-                  label=""
-                  value={image.src}
-                  confirmRemove
-                  onBusy={(busy) =>
-                    setUploading((count) =>
-                      Math.max(0, count + (busy ? 1 : -1)),
-                    )
-                  }
-                  onChange={(src) =>
-                    setDress((current) => ({
-                      ...current,
-                      gallery: replace(current.gallery, image.id, { src }),
-                    }))
-                  }
-                />
-                <label className="mt-2 block">
-                  <span className="mb-1 block text-xs font-medium text-neutral-600">
-                    Description
-                  </span>
-                  <input
-                    value={image.alt}
-                    placeholder="What the picture shows"
-                    aria-label={`Description for image ${index + 1}`}
-                    onChange={(event) =>
-                      setDress({
-                        ...dress,
-                        gallery: replace(dress.gallery, image.id, {
-                          alt: event.target.value,
-                        }),
-                      })
-                    }
-                    className={adminFieldClass}
-                  />
-                </label>
-              </li>
-            ))}
-          </ul>
         </section>
 
         {error ? <FieldError message={error} /> : null}
@@ -940,9 +880,9 @@ function cleanDress(dress: AboutDress): AboutDress {
       label: dress.secondaryCta.label.trim(),
       href: dress.secondaryCta.href.trim(),
     },
-    gallery: dress.gallery
-      .map((item) => ({ ...item, src: item.src.trim(), alt: item.alt.trim() }))
-      .filter((item) => item.src),
+    image: dress.image?.src.trim()
+      ? { ...dress.image, src: dress.image.src.trim(), alt: dress.image.alt.trim() }
+      : null,
   };
 }
 

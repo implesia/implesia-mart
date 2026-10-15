@@ -1,11 +1,12 @@
 import { getWhatsAppHref } from "@/app/(client)/_data/contact/contact";
 import {
+  appendSingleImage,
+  readSingleImage,
+  type SingleImage,
+} from "@/lib/mart-api/about-single-image";
+import {
   MartApiError,
   authorizedFetch,
-  fileFromSrc,
-  isLocalImage,
-  mediaUrl,
-  sitePath,
 } from "@/lib/mart-api/products";
 
 export const DRESS_ICONS = [
@@ -27,11 +28,7 @@ export type AboutDressFeature = {
   description: string;
 };
 
-export type AboutDressImage = {
-  id: string;
-  src: string;
-  alt: string;
-};
+export type AboutDressImage = SingleImage;
 
 export type AboutDress = {
   id: string;
@@ -41,7 +38,8 @@ export type AboutDress = {
   features: AboutDressFeature[];
   primaryCta: { label: string; href: string };
   secondaryCta: { label: string; href: string };
-  gallery: AboutDressImage[];
+  /** The one photo on the block (was a gallery before backend 0071). */
+  image: AboutDressImage | null;
   isActive: boolean;
 };
 
@@ -58,7 +56,8 @@ type ApiDress = {
   secondary_label: string;
   secondary_href: string;
   is_active?: boolean;
-  images: ApiImage[];
+  image?: ApiImage | null;
+  images?: ApiImage[];
 };
 
 const ICONS = new Set<string>(DRESS_ICONS);
@@ -105,38 +104,11 @@ export const FALLBACK_ABOUT_DRESSES: AboutDress[] = [
       href: getWhatsAppHref("হ্যালো, আমি একটি কাস্টম ডিজাইনের ড্রেস অর্ডার করতে চাই।"),
     },
     secondaryCta: { label: "গর্জিয়াস ড্রেস", href: "/products?category=fashion" },
-    gallery: [
-      {
-        id: "dress-image-1",
-        src: "/images/products/baby-products/baby-frock-with-baby.jpeg",
-        alt: "হাতে তৈরি বেবি পার্টি ড্রেস — সরাসরি ব্যবহারের ছবি",
-      },
-      {
-        id: "dress-image-2",
-        src: "/images/products/baby-products/wedding-dress.jpeg",
-        alt: "নারীদের জন্য হাতে তৈরি গর্জিয়াস গাউন",
-      },
-      {
-        id: "dress-image-3",
-        src: "/images/products/baby-products/baby-ground-frog-more.jpeg",
-        alt: "পছন্দের কালারে কাস্টম তৈরি বেবি ড্রেস",
-      },
-      {
-        id: "dress-image-4",
-        src: "/images/products/baby-products/baby-ground-frog-3.jpeg",
-        alt: "হাতে তৈরি বেবি পার্টি ড্রেস — বো ডিটেইল",
-      },
-      {
-        id: "dress-image-5",
-        src: "/images/products/baby-products/3-quater-ground-frog2.jpeg",
-        alt: "হাতে তৈরি নিত্যদিনের ড্রেস",
-      },
-      {
-        id: "dress-image-6",
-        src: "/images/products/baby-products/baby-jama-pant.jpeg",
-        alt: "বাচ্চাদের জন্য হাতে তৈরি কম্ফোর্টেবল সেট",
-      },
-    ],
+    image: {
+      id: "dress-image-1",
+      src: "/images/products/baby-products/baby-frock-with-baby.jpeg",
+      alt: "হাতে তৈরি বেবি পার্টি ড্রেস — সরাসরি ব্যবহারের ছবি",
+    },
     isActive: true,
   },
 ];
@@ -150,7 +122,7 @@ export function blankAboutDress(): AboutDress {
     features: [{ id: "feature-1", icon: "design_services", title: "", description: "" }],
     primaryCta: { label: "", href: "" },
     secondaryCta: { label: "", href: "" },
-    gallery: [],
+    image: null,
     isActive: true,
   };
 }
@@ -169,21 +141,16 @@ function toDress(body: ApiDress): AboutDress {
     })),
     primaryCta: { label: body.primary_label, href: body.primary_href },
     secondaryCta: { label: body.secondary_label, href: body.secondary_href },
-    gallery: body.images.map((image) => ({
-      id: image.id,
-      src: mediaUrl(image.src),
-      alt: image.alt,
-    })),
+    image: readSingleImage(body),
     isActive: body.is_active !== false,
   };
 }
 
 async function toForm(dress: AboutDress) {
-  const images = dress.gallery.filter((image) => image.src.trim());
   const body = new FormData();
-  body.set(
-    "payload",
-    JSON.stringify({
+  await appendSingleImage(
+    body,
+    {
       kicker: dress.kicker,
       title: dress.title,
       subtitle: dress.subtitle,
@@ -199,16 +166,10 @@ async function toForm(dress: AboutDress) {
       secondary_label: dress.secondaryCta.label,
       secondary_href: dress.secondaryCta.href,
       is_active: dress.isActive,
-      images: images.map((image) => ({
-        alt: image.alt,
-        src: isLocalImage(image.src) ? "" : sitePath(image.src),
-      })),
-    }),
+    },
+    dress.image,
+    "dress-photo",
   );
-  for (const [index, image] of images.entries()) {
-    if (!isLocalImage(image.src)) continue;
-    body.set(`image_${index}`, await fileFromSrc(image.src, `dress-${index + 1}`));
-  }
   return body;
 }
 

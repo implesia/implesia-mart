@@ -5,7 +5,7 @@ import { dressIcon } from "@/lib/mart-api/about-dresses";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import { AboutSection, CtaLink, CtaRow, SectionHeader, firstImage } from "./about-ui";
+import { AboutSection, CtaLink, CtaRow, SectionHeader, sectionImage } from "./about-ui";
 
 export function CustomDresses({ dresses }: { dresses: AboutDress[] }) {
   const visible = dresses.filter((dress) => dress.isActive);
@@ -20,8 +20,7 @@ export function CustomDresses({ dresses }: { dresses: AboutDress[] }) {
 }
 
 function DressBlock({ dress }: { dress: AboutDress }) {
-  // Admin can keep a full gallery; the storefront shows only the first image.
-  const image = firstImage(dress.gallery);
+  const image = sectionImage(dress.image);
   const features = dress.features.filter((feature) => feature.title.trim());
   const first = dress.primaryCta.label.trim() && dress.primaryCta.href.trim() ? dress.primaryCta : null;
   const second =

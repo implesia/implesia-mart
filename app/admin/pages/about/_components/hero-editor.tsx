@@ -10,8 +10,8 @@ import {
   getAboutHero,
   saveAboutHero,
   type AboutHero,
-  type AboutHeroImage,
 } from "@/lib/mart-api/about-hero";
+import { singleImageErrors } from "@/lib/mart-api/about-single-image";
 import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
@@ -24,10 +24,8 @@ import {
   FieldLabel,
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
-import { ImageField } from "../../../_components/image-field";
 import { findCmsPage } from "../../../_config/cms";
-
-const PHOTO_LIMIT = 2;
+import { SingleImageField } from "./single-image-field";
 
 type HeroDraft = {
   eyebrow: string;
@@ -37,16 +35,8 @@ type HeroDraft = {
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
-  images: AboutHeroImage[];
+  image: AboutHero["image"];
 };
-
-function blankAboutImage(): AboutHeroImage {
-  return {
-    id: `photo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-    src: "",
-    alt: "",
-  };
-}
 
 function draftFromHero(hero: AboutHero): HeroDraft {
   return {
@@ -57,14 +47,8 @@ function draftFromHero(hero: AboutHero): HeroDraft {
     primaryHref: hero.primaryHref,
     secondaryLabel: hero.secondaryLabel,
     secondaryHref: hero.secondaryHref,
-    images: hero.images.map((image) => ({ ...image })),
+    image: hero.image ? { ...hero.image } : null,
   };
-}
-
-function slotLabel(index: number) {
-  if (index === 0) return "Left photo";
-  if (index === 1) return "Right photo";
-  return "Photo";
 }
 
 export function AboutHeroEditor() {
@@ -78,7 +62,6 @@ export function AboutHeroEditor() {
   const focusEdit = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
   const page = findCmsPage("about");
-  const photos = hero?.images.slice(0, PHOTO_LIMIT) ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -122,9 +105,9 @@ export function AboutHeroEditor() {
       primaryHref: draft.primaryHref.trim(),
       secondaryLabel: draft.secondaryLabel.trim(),
       secondaryHref: draft.secondaryHref.trim(),
-      images: draft.images
-        .filter((image) => image.src)
-        .map((image) => ({ ...image, alt: image.alt.trim() })),
+      image: draft.image?.src
+        ? { ...draft.image, alt: draft.image.alt.trim() }
+        : null,
     });
     setHero(next);
     setNotice("Saved.");
@@ -231,8 +214,8 @@ export function AboutHeroEditor() {
               Hero content
             </h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Shown at the top of the about page. Words on the left, up to two
-              photos on the right.
+              Shown at the top of the about page. Words on the left, one
+              photo beside them.
             </p>
           </div>
           <button
@@ -243,7 +226,7 @@ export function AboutHeroEditor() {
             Edit
           </button>
         </div>
-        {hero.title.trim() || hero.subtitle.trim() || photos.length > 0 ? (
+        {hero.title.trim() || hero.subtitle.trim() || hero.image?.src ? (
           <div className="p-4 sm:p-5">
             <HeroPreview hero={hero} />
           </div>
@@ -253,7 +236,7 @@ export function AboutHeroEditor() {
               No hero content yet
             </p>
             <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-              Add the heading, buttons, and photos for the about page banner.
+              Add the heading, buttons, and photo for the about page banner.
             </p>
             <button
               type="button"
@@ -281,7 +264,7 @@ export function AboutHeroEditor() {
 }
 
 function HeroPreview({ hero }: { hero: AboutHero }) {
-  const photos = hero.images.slice(0, PHOTO_LIMIT);
+  const photo = hero.image;
 
   return (
     <div className="grid overflow-hidden rounded-2xl bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
@@ -309,30 +292,24 @@ function HeroPreview({ hero }: { hero: AboutHero }) {
           ) : null}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 p-4 sm:p-5">
-        {[0, 1].map((index) => {
-          const photo = photos[index];
-          return (
+      <div className="p-4 sm:p-5">
             <div
-              key={photo?.id ?? `empty-${index}`}
-              className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10"
+              className="relative aspect-[4/3] max-w-xs overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10"
             >
               {photo?.src ? (
                 <Image
                   src={photo.src}
                   alt={photo.alt}
                   fill
-                  sizes="180px"
+                  sizes="320px"
                   className="object-cover"
                 />
               ) : (
                 <span className="grid size-full place-items-center px-2 text-center text-xs text-white/60">
-                  {slotLabel(index)}
+                  Photo
                 </span>
               )}
             </div>
-          );
-        })}
       </div>
     </div>
   );
@@ -352,38 +329,26 @@ function HeroFormModal({
   const [baseline] = useState(initial);
   const [titleError, setTitleError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [altError, setAltError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
   const formId = useId();
 
-  function updateImage(id: string, patch: Partial<AboutHeroImage>) {
-    setDraft((current) => ({
-      ...current,
-      images: current.images.map((image) =>
-        image.id === id ? { ...image, ...patch } : image,
-      ),
-    }));
-    setPhotoError("");
-  }
-
   async function save() {
     if (saving || uploading > 0) return;
-    if (!draft.title.trim()) {
-      setTitleError("Title is required.");
-      return;
-    }
-    if (draft.images.some((image) => !image.src)) {
-      setPhotoError("Add an image, or remove the empty photo.");
-      return;
-    }
+    const imageErrors = singleImageErrors(draft.image);
+    setTitleError(draft.title.trim() ? "" : "Title is required.");
+    setPhotoError(imageErrors.photo);
+    setAltError(imageErrors.alt);
+    setSaveError("");
+    if (!draft.title.trim() || imageErrors.photo || imageErrors.alt) return;
     setSaving(true);
-    setTitleError("");
-    setPhotoError("");
     try {
       await onSave(draft);
     } catch (error) {
       setSaving(false);
-      setPhotoError(error instanceof MartApiError ? error.message : "Could not save the about hero.");
+      setSaveError(error instanceof MartApiError ? error.message : "Could not save the about hero.");
     }
   }
 
@@ -559,115 +524,36 @@ function HeroFormModal({
             className="border-t border-neutral-100 pt-5"
             aria-labelledby={`${formId}-photos`}
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3
-                  id={`${formId}-photos`}
-                  className="text-sm font-semibold text-neutral-950"
-                >
-                  Photos
-                </h3>
-                <p className="mt-1 text-sm text-neutral-500">
-                  These photos sit on the right of the banner. The first is on
-                  the left, the second on the right.
-                </p>
-              </div>
-              {draft.images.length >= 2 ? null : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDraft({
-                      ...draft,
-                      images: [...draft.images, blankAboutImage()],
-                    })
-                  }
-                  className={adminButtonClass.secondary}
-                >
-                  <MaterialIcon name="add" className="text-[18px]" />
-                  Add photo
-                </button>
-              )}
+            <h3
+              id={`${formId}-photos`}
+              className="text-sm font-semibold text-neutral-950"
+            >
+              Photo
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              One photo sits beside the banner text. Use Replace to change it.
+            </p>
+            <div className="mt-3 max-w-md">
+              <SingleImageField
+                id={`${formId}-photo`}
+                value={draft.image}
+                photoError={photoError}
+                altError={altError}
+                onBusy={(busy) =>
+                  setUploading((count) => Math.max(0, count + (busy ? 1 : -1)))
+                }
+                onChange={(image) => {
+                  setDraft((current) => ({ ...current, image }));
+                  setPhotoError("");
+                  setAltError("");
+                }}
+              />
             </div>
-            {photoError ? (
-              <div className="mt-3">
-                <FieldError message={photoError} />
+            {saveError ? (
+              <div className="mt-3" role="alert">
+                <FieldError message={saveError} />
               </div>
             ) : null}
-            {draft.images.length === 0 ? (
-              <p className="mt-3 text-sm text-neutral-500">No photos yet.</p>
-            ) : (
-              <div className="mt-3 grid gap-4 lg:grid-cols-2">
-                {draft.images.map((image, index) => (
-                  <div key={image.id} className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-neutral-950">
-                        {slotLabel(index)}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        {draft.images.length === 2 && index === 0 ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDraft({
-                                ...draft,
-                                images: [
-                                  draft.images[1],
-                                  draft.images[0],
-                                ].filter((item): item is AboutHeroImage =>
-                                  Boolean(item),
-                                ),
-                              })
-                            }
-                            className={adminButtonClass.quiet}
-                          >
-                            Swap sides
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDraft({
-                              ...draft,
-                              images: draft.images.filter(
-                                (item) => item.id !== image.id,
-                              ),
-                            })
-                          }
-                          className="inline-flex h-10 items-center rounded-full px-3 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                    <ImageField
-                      label="Hero image"
-                      value={image.src}
-                      confirmRemove
-                      onBusy={(busy) =>
-                        setUploading((count) =>
-                          Math.max(0, count + (busy ? 1 : -1)),
-                        )
-                      }
-                      onChange={(src) => updateImage(image.id, { src })}
-                    />
-                    <div>
-                      <FieldLabel htmlFor={`${formId}-alt-${image.id}`}>
-                        Image description
-                      </FieldLabel>
-                      <input
-                        id={`${formId}-alt-${image.id}`}
-                        value={image.alt}
-                        placeholder="What this photo shows"
-                        onChange={(event) =>
-                          updateImage(image.id, { alt: event.target.value })
-                        }
-                        className={adminFieldClass}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </section>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
