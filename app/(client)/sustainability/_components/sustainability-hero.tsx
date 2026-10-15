@@ -1,94 +1,96 @@
-import Image from "next/image";
-import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { SustainabilityHero as Hero } from "@/lib/mart-api/sustainability-hero";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
+import {
+  CtaLink,
+  EyebrowPill,
+  FramedPhoto,
+  HeroBackdrop,
+  HighlightTitle,
+  sectionImage,
+} from "../../about-us/_components/about-ui";
 
+/**
+ * Same language as the About hero: brand glow, eyebrow pill, highlighted h1 and a
+ * framed photo. With no CMS photo it switches to a centred text-only layout.
+ */
 export function SustainabilityHero({
   hero,
-  className,
+  breadcrumb,
 }: {
   hero: Hero;
-  className?: string;
+  breadcrumb?: ReactNode;
 }) {
-
-  const heroImages = hero.images.filter((image) => image?.src).slice(0, 2);
+  const image = sectionImage(hero.image);
+  const primary = hero.primaryLabel.trim();
+  const secondary = hero.secondaryLabel.trim();
+  const centered = !image;
 
   return (
-    <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
+    <section
+      aria-labelledby="sustain-hero-title"
+      className="relative isolate w-full overflow-hidden bg-[#f5f6f8]"
+    >
+      <HeroBackdrop />
+      <Container className="px-4 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 lg:px-8 lg:pb-20">
+        {breadcrumb}
         <div
           className={cn(
-            "relative w-full overflow-hidden rounded-2xl",
-            "grid grid-cols-1 lg:grid-cols-12",
-            "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
+            "mt-5 grid items-center gap-10 sm:mt-6 lg:mt-8 lg:gap-14",
+            !centered && "md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
           )}
         >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
-          />
-
-          <div className="relative z-10 flex flex-col justify-center px-4 py-6 sm:px-7 sm:py-8 lg:col-span-7 lg:px-8 lg:py-10">
-            {hero.eyebrow.trim() ? (
-              <p className="mb-1.5 text-xs font-semibold tracking-wide text-[#8ed4c1]">
-                {hero.eyebrow}
+          <div className={cn(centered ? "mx-auto max-w-[44rem] text-center" : "max-w-[38rem]")}>
+            {hero.eyebrow.trim() ? <EyebrowPill>{hero.eyebrow}</EyebrowPill> : null}
+            <h1
+              id="sustain-hero-title"
+              className="mt-4 text-[2rem] leading-[1.25] font-bold tracking-tight text-neutral-950 sm:text-[2.5rem] lg:text-[3.25rem] lg:leading-[1.15]"
+            >
+              <HighlightTitle title={hero.title} />
+            </h1>
+            {hero.subtitle.trim() ? (
+              <p
+                className={cn(
+                  "mt-4 text-base leading-[1.75] text-neutral-600 sm:text-lg",
+                  centered ? "mx-auto max-w-[38rem]" : "max-w-[34rem]",
+                )}
+              >
+                {hero.subtitle}
               </p>
             ) : null}
-
-            <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-white sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
-              {hero.title}
-            </h1>
-
-            <p className="mb-5 max-w-xl text-sm leading-relaxed text-white/70 sm:mb-6 sm:text-base">
-              {hero.subtitle}
-            </p>
-
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-              {hero.primaryLabel.trim() ? (
-                <Link
-                  href={hero.primaryHref || "/"}
-                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-                >
-                  {hero.primaryLabel}
-                  <MaterialIcon name="arrow_forward" className="text-[18px]" />
-                </Link>
-              ) : null}
-              {hero.secondaryLabel.trim() ? (
-                <Link
-                  href={hero.secondaryHref || "/"}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-                >
-                  {hero.secondaryLabel}
-                </Link>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Only real images: empty CMS slots used to render blank dark tiles. */}
-          {heroImages.length ? (
-          <div className="relative grid grid-cols-2 gap-2 p-4 sm:gap-3 sm:p-6 lg:col-span-5 lg:p-7">
-            {heroImages.map((image, index) => (
+            {primary || secondary ? (
               <div
-                key={image.id ?? index}
-                className="relative aspect-4/5 overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 lg:aspect-square"
+                className={cn(
+                  "mt-7 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap",
+                  centered && "min-[420px]:justify-center",
+                )}
               >
-                {image.src ? (
-                  <Image
-                    src={image.src}
-                    alt={image.alt}
-                    fill
-                    priority={index === 0}
-                    sizes="(max-width: 1024px) 45vw, 22vw"
-                    className="object-cover object-top"
-                  />
+                {primary ? (
+                  <CtaLink href={hero.primaryHref} label={primary} className="shadow-lg shadow-primary/25" />
+                ) : null}
+                {secondary ? (
+                  <CtaLink href={hero.secondaryHref} label={secondary} tone="outline" className="bg-white" />
                 ) : null}
               </div>
-            ))}
+            ) : null}
           </div>
+
+          {image ? (
+            <FramedPhoto src={image.src} alt={image.alt} priority sizes="(max-width: 768px) 92vw, 42vw">
+              <div className="absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_12px_30px_-12px_rgba(15,23,42,0.35)] ring-1 ring-neutral-200/80 sm:left-6">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary-ink">
+                  <MaterialIcon name="eco" className="text-[22px]" />
+                </span>
+                <span className="leading-tight">
+                  <span className="block text-sm font-bold text-neutral-950">কম রিটার্ন, কম বর্জ্য</span>
+                  <span className="block text-xs text-neutral-600">যাচাই করে পাঠানো প্রোডাক্ট</span>
+                </span>
+              </div>
+            </FramedPhoto>
           ) : null}
         </div>
       </Container>

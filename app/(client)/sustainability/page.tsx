@@ -29,7 +29,6 @@ import {
   listPublicSustainabilityCta,
 } from "@/lib/mart-api/sustainability-cta";
 
-import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { SustainabilityCommitment } from "./_components/sustainability-commitment";
 import { SustainabilityCta } from "./_components/sustainability-cta";
@@ -61,14 +60,14 @@ export default async function SustainabilityPage() {
     ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="w-full pt-3 sm:pt-4 lg:pt-5">
+      <SustainabilityHero
+        hero={hero ?? FALLBACK_SUSTAINABILITY_HERO}
+        breadcrumb={
           <ProductBreadcrumbs
             items={[{ label: "হোম", href: "/" }, { label: "সাসটেইনেবিলিটি" }]}
           />
-        </div>
-      </Container>
-      <SustainabilityHero hero={hero ?? FALLBACK_SUSTAINABILITY_HERO} />
+        }
+      />
       <SustainabilityImpact impact={impact ?? FALLBACK_SUSTAINABILITY_IMPACT} />
       <SustainabilityOrigin origin={origin ?? FALLBACK_SUSTAINABILITY_ORIGIN} />
       <SustainabilityCommitment

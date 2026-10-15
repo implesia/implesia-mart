@@ -1,80 +1,81 @@
-import Image from "next/image";
-
-import {
-  qualityIcon,
-  type SustainabilityQuality,
-} from "@/lib/mart-api/sustainability-quality";
+import { qualityIcon, type SustainabilityQuality } from "@/lib/mart-api/sustainability-quality";
 import { cn } from "@/lib/utils";
 
-import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { AboutSection, FramedPhoto, sectionImage } from "../../about-us/_components/about-ui";
 
-export function SustainabilityQuality({
-  quality,
-  className,
-}: {
-  quality: SustainabilityQuality;
-  className?: string;
-}) {
-  const steps = quality.steps.filter((step) => step.isActive);
-  const badges = quality.badges.filter((badge) => badge.isActive);
+/** Quality checks as a numbered timeline beside a framed photo; text-only grid when none. */
+export function SustainabilityQuality({ quality }: { quality: SustainabilityQuality }) {
+  const steps = quality.steps.filter((step) => step.isActive && step.text.trim());
+  const badges = quality.badges.filter((badge) => badge.isActive && badge.label.trim());
+  const image = sectionImage(quality.image);
+  if (!quality.title.trim() && !quality.body.trim() && !steps.length && !image) return null;
+
   return (
-    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-10">
-          {quality.image.src ? (
-          <div className="relative order-2 aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-[5/4] lg:order-1 lg:aspect-4/5">
-              <Image
-                src={quality.image.src}
-                alt={quality.image.alt}
-                fill
-                sizes="(max-width: 1024px) 92vw, 42vw"
-                className="object-cover"
-              />
-          </div>
-          ) : null}
-
-          <div className="order-1 lg:order-2">
-            {quality.title.trim() ? (
-              <h2 className="text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
-                {quality.title}
-              </h2>
-            ) : null}
+    <AboutSection tone="white" labelledBy="sustain-quality-heading">
+      <div
+        className={cn(
+          "grid items-center gap-12 lg:gap-16",
+          image && "md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
+        )}
+      >
+        <div className={cn(!image && "mx-auto max-w-[56rem]")}>
+          <header className={cn(!image && "mx-auto max-w-[40rem] text-center")}>
+            <h2
+              id="sustain-quality-heading"
+              className="text-2xl leading-[1.35] font-bold tracking-tight text-neutral-950 sm:text-[1.75rem] lg:text-3xl"
+            >
+              {quality.title}
+            </h2>
             {quality.body.trim() ? (
-              <p className="mt-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
-                {quality.body}
-              </p>
+              <p className="mt-4 text-base leading-[1.8] text-neutral-700">{quality.body}</p>
             ) : null}
-
-            {steps.length ? (
-            <ol className="mt-5 space-y-3">
+          </header>
+          {steps.length ? (
+            <ol className={cn("mt-8", image ? "relative space-y-5" : "grid gap-4 sm:grid-cols-2")}>
+              {image ? (
+                <span aria-hidden className="absolute top-2 bottom-2 left-[17px] w-px bg-primary/25" />
+              ) : null}
               {steps.map((step, index) => (
-                <li key={step.id} className="flex items-start gap-3">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary-ink">
-                    {index + 1}
+                <li
+                  key={step.id}
+                  className={cn(
+                    "relative flex items-start gap-4",
+                    !image && "rounded-2xl bg-[#f5f6f8] p-5",
+                  )}
+                >
+                  <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary ring-4 ring-white">
+                    {(index + 1).toLocaleString("bn-BD")}
                   </span>
-                  <p className="pt-0.5 text-sm leading-relaxed text-neutral-700">{step.text}</p>
+                  <p className="pt-1.5 text-base leading-[1.7] text-neutral-800">{step.text}</p>
                 </li>
               ))}
             </ol>
-            ) : null}
-
-            {badges.length ? (
-            <div className="mt-5 flex flex-wrap gap-2">
+          ) : null}
+          {badges.length ? (
+            <ul className={cn("mt-8 flex flex-wrap gap-2.5", !image && "justify-center")}>
               {badges.map((badge) => (
-                <span
+                <li
                   key={badge.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#f0faf8] px-4 text-sm font-medium text-neutral-800 ring-1 ring-primary/20"
                 >
-                  <MaterialIcon name={qualityIcon(badge.icon)} className="text-[16px] text-primary-ink" />
+                  <MaterialIcon name={qualityIcon(badge.icon)} className="text-[18px] text-primary-ink" />
                   {badge.label}
-                </span>
+                </li>
               ))}
-            </div>
-            ) : null}
-          </div>
+            </ul>
+          ) : null}
         </div>
-      </Container>
-    </section>
+        {image ? (
+          <FramedPhoto
+            src={image.src}
+            alt={image.alt}
+            aspect="aspect-[4/3] lg:aspect-[5/4]"
+            sizes="(max-width: 768px) 92vw, 40vw"
+            className="md:ml-auto md:max-w-[34rem]"
+          />
+        ) : null}
+      </div>
+    </AboutSection>
   );
 }
