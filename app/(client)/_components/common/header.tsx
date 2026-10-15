@@ -113,9 +113,12 @@ export default function Header({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50" inert={mobileOpen}>
+      <header
+        className="fixed inset-x-0 top-0 z-50 pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]"
+        inert={mobileOpen}
+      >
         <div className="border-b border-neutral-200 bg-white text-neutral-800">
-          <Container className="flex items-end gap-3 px-4 py-2 sm:gap-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-end lg:gap-6 lg:px-8 lg:py-3">
+          <Container className="flex items-center gap-3 px-4 py-1.5 sm:items-end sm:gap-4 sm:py-2 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-end lg:gap-6 lg:px-8 lg:py-3">
             <div className="flex min-w-0 shrink-0 flex-col gap-1">
               {phoneChannel ? (
                 <a
@@ -129,7 +132,7 @@ export default function Header({
               <SiteLogo
                 priority
                 tone="light"
-                className="h-9 w-[7.5rem] sm:h-10 sm:w-36 lg:h-10 lg:w-40"
+                className="h-9 w-[8.875rem] sm:h-10 sm:w-[9.875rem] lg:h-10 lg:w-[9.875rem]"
                 onClick={() => setMenuPath(null)}
               />
             </div>
@@ -179,7 +182,7 @@ export default function Header({
 
                 <button
                   type="button"
-                  className="inline-flex size-9 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 lg:hidden"
+                  className="-mr-1.5 inline-flex size-11 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 lg:hidden"
                   aria-label={mobileOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
                   aria-expanded={mobileOpen}
                   aria-controls={mobileOpen ? menuId : undefined}
@@ -204,7 +207,7 @@ export default function Header({
             <div className="relative shrink-0" ref={categoriesRef}>
               <button
                 type="button"
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100"
+                className="inline-flex h-10 items-center gap-1.5 rounded-md bg-white px-2.5 text-sm sm:gap-2 sm:px-3 font-semibold text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100"
                 aria-label="ক্যাটাগরি"
                 aria-expanded={categoriesOpen}
                 aria-haspopup="true"
@@ -255,7 +258,7 @@ export default function Header({
             </div>
 
             <nav
-              className="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto sm:gap-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="flex min-w-0 flex-1 snap-x snap-mandatory scroll-px-1 items-center gap-1 overflow-x-auto overscroll-x-contain [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] sm:gap-3 lg:[mask-image:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               aria-label="প্রধান নেভিগেশন"
             >
               {headerNav.map((item) => {
@@ -265,7 +268,7 @@ export default function Header({
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "shrink-0 text-sm font-medium whitespace-nowrap transition-colors",
+                      "inline-flex h-11 shrink-0 snap-start items-center rounded-md px-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white last:mr-6 lg:last:mr-0",
                       active ? "text-white" : "text-white/75 hover:text-white",
                     )}
                     aria-current={active ? "page" : undefined}
@@ -279,7 +282,8 @@ export default function Header({
         </div>
       </header>
 
-      <div aria-hidden className="h-[6.75rem] sm:h-[8.5rem] lg:h-[9.25rem]" />
+      {/* Matches the fixed header height per breakpoint (measured) so nothing jumps or gaps. */}
+      <div aria-hidden className="h-[105px] sm:h-[109px] lg:h-[145px]" />
 
       {mobileOpen ? (
       <div

@@ -27,7 +27,7 @@ export function CartTrigger({
       <button
         type="button"
         className={cn(
-          "flex items-center gap-2.5 rounded-md py-0.5 pr-1 text-neutral-800 transition-colors hover:bg-neutral-100 hover:text-neutral-950",
+          "flex min-h-11 min-w-11 items-center justify-center gap-2.5 rounded-md py-0.5 sm:pr-1 text-neutral-800 transition-colors hover:bg-neutral-100 hover:text-neutral-950",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950",
           className,
         )}
