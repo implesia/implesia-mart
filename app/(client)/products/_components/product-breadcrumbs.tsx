@@ -10,15 +10,24 @@ type BreadcrumbItem = { label: string; href?: string };
 
 export function ProductBreadcrumbs({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav className="mb-2.5 flex flex-wrap items-center gap-1 text-xs text-neutral-500 sm:mb-3 sm:gap-1.5 lg:mb-3.5">
+    <nav
+      aria-label="ব্রেডক্রাম্ব"
+      className="mb-1 flex flex-wrap items-center gap-1 text-[13px] text-neutral-600 sm:mb-2 sm:gap-1.5 lg:mb-2.5"
+    >
       {items.map((item, idx) => {
         const isLast = idx === items.length - 1;
         const content = item.href ? (
-          <Link href={item.href} className="transition-colors hover:text-primary">
+          <Link
+            href={item.href}
+            className="-mx-1 inline-flex min-h-11 items-center rounded px-1 transition-colors hover:text-primary-ink focus-visible:outline-2 focus-visible:outline-primary"
+          >
             {item.label}
           </Link>
         ) : (
-          <span className={cn("font-semibold", isLast && "text-neutral-950")}>
+          <span
+            className={cn("font-semibold", isLast && "text-neutral-950")}
+            aria-current={isLast ? "page" : undefined}
+          >
             {item.label}
           </span>
         );
