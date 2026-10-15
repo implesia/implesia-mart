@@ -271,6 +271,12 @@ body:has(.force-light) {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/*
+  Layered so Tailwind utilities on <MaterialIcon> (e.g. `hidden sm:inline`, `text-[18px]`) win.
+  Unlayered, this rule beat every utility: `hidden` icons still rendered (stray chevron next to
+  the header cart on phones) and per-icon sizes were ignored.
+*/
+@layer components {
 .material-symbols-outlined {
   font-family: var(--font-material-symbols), sans-serif;
   font-weight: normal;
@@ -286,6 +292,16 @@ body:has(.force-light) {
   font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+}
+
+/*
+  vinext's next/image shim puts `object-fit: cover` inline on every `fill` image, which overrides the
+  `object-contain` class (logos rendered cropped — "Implesia M" — and hero/product images were cut).
+  Restore the class intent for fill images; `cover` stays the default.
+*/
+img.object-contain {
+  object-fit: contain !important;
 }
 
 .material-symbols-outlined::before {

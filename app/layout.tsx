@@ -78,6 +78,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Lets env(safe-area-inset-*) resolve on notched phones; header/footer pad for it.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f7faf7" },
     { media: "(prefers-color-scheme: dark)", color: "#061110" },
