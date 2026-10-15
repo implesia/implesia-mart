@@ -13,27 +13,29 @@ export function CategoryRail({ section }: { section: CategorySection }) {
 
   return (
     <aside
-      className="flex h-full flex-col rounded-3xl border border-neutral-200/90 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-4 dark:border-white/10 dark:bg-[#121816]"
+      className="flex h-full flex-col rounded-2xl border border-neutral-200/90 bg-white px-3 pt-2 pb-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:rounded-3xl sm:p-4 dark:border-white/10 dark:bg-[#121816]"
       aria-labelledby="home-categories-heading"
     >
-      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+      <div className="mb-1 flex items-center justify-between gap-3 px-1 sm:mb-3">
         <h2
           id="home-categories-heading"
-          className="text-sm font-semibold tracking-tight text-neutral-950 sm:text-base dark:text-white"
+          className="text-base font-semibold tracking-tight text-neutral-950 dark:text-white"
         >
           {section.heading}
         </h2>
         <Link
           href="/products"
-          className="text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
+          className="-mr-1 inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-md px-1 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-primary dark:text-white/60 dark:hover:text-white"
         >
           সব দেখুন
+          <MaterialIcon name="chevron_right" className="text-[18px]" />
         </Link>
       </div>
 
-      <ul className="flex gap-4 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
+      {/* Phones/tablets: compact snap rail; ~4.5 tiles visible at 360px so further items read as scrollable. */}
+      <ul className="-mx-3 flex snap-x snap-mandatory scroll-px-3 gap-2 overflow-x-auto overscroll-x-contain px-3 pt-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:-mx-4 sm:scroll-px-4 sm:gap-3 sm:px-4 lg:hidden [&::-webkit-scrollbar]:hidden">
         {tiles.map((tile) => (
-          <li key={tile.id} className="w-24 shrink-0">
+          <li key={tile.id} className="w-[4.5rem] shrink-0 snap-start sm:w-20">
             <CategoryCircle tile={tile} />
           </li>
         ))}
@@ -72,10 +74,10 @@ function CategoryCircle({ tile }: { tile: CategoryTile }) {
   return (
     <Link
       href={tile.href || "/products"}
-      className="group flex flex-col items-center gap-2 focus-visible:outline-none"
+      className="group flex min-h-11 flex-col items-center gap-1.5 rounded-xl py-1 focus-visible:outline-2 focus-visible:outline-primary"
     >
-      <CategoryThumb src={tile.imageSrc} size="size-20" />
-      <span className="line-clamp-2 text-center text-xs font-semibold tracking-tight text-neutral-950 transition-colors group-hover:text-primary dark:text-white">
+      <CategoryThumb src={tile.imageSrc} size="size-16 sm:size-[4.5rem]" />
+      <span className="line-clamp-2 text-center text-xs leading-snug font-semibold tracking-tight text-neutral-950 transition-colors group-hover:text-primary dark:text-white">
         {tile.label}
       </span>
     </Link>
