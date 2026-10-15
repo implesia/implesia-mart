@@ -9,7 +9,6 @@ import { FALLBACK_ABOUT_VALUES, listPublicAboutValues } from "@/lib/mart-api/abo
 import { FALLBACK_ABOUT_STEPS, listPublicAboutSteps } from "@/lib/mart-api/about-steps";
 import { FALLBACK_ABOUT_CTA, listPublicAboutCta } from "@/lib/mart-api/about-cta";
 
-import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { AboutHero } from "./_components/about-hero";
 import { BrandStory } from "./_components/brand-story";
@@ -42,17 +41,17 @@ export default async function AboutUsPage() {
   ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
-      <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="w-full pt-3 sm:pt-4 lg:pt-5">
+      <AboutHero
+        hero={hero ?? FALLBACK_ABOUT_HERO}
+        breadcrumb={
           <ProductBreadcrumbs
             items={[
               { label: "হোম", href: "/" },
               { label: "আমাদের সম্পর্কে" },
             ]}
           />
-        </div>
-      </Container>
-      <AboutHero hero={hero ?? FALLBACK_ABOUT_HERO} />
+        }
+      />
       <StatsBar stats={stats ?? FALLBACK_ABOUT_STATS} />
       <BrandStory stories={stories ?? FALLBACK_ABOUT_STORIES} />
       <MissionVision cards={mission ?? FALLBACK_ABOUT_MISSION} />
