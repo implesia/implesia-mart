@@ -1,3 +1,4 @@
+import { FALLBACK_CONTACT_FAQ, fillContactFaq } from "@/lib/mart-api/contact-fallback";
 import { MartApiError, authorizedFetch } from "@/lib/mart-api/products";
 
 export type ContactFaqItem = {
@@ -88,12 +89,12 @@ export async function listPublicContactFaq(): Promise<ContactFaq | null> {
       headers: { Accept: "application/json" },
       next: { revalidate: 60 },
     });
-    if (!response.ok) return null;
+    if (!response.ok) return FALLBACK_CONTACT_FAQ;
     const body = (await response.json()) as ApiFaq;
     if (!body.title.trim()) return toFaq({ ...body, title: "" }, false);
-    return toFaq(body, true);
+    return fillContactFaq(toFaq(body, true));
   } catch {
-    return null;
+    return FALLBACK_CONTACT_FAQ;
   }
 }
 

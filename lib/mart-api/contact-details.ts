@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import { FALLBACK_CONTACT_DETAILS } from "@/lib/mart-api/contact-fallback";
+import { FALLBACK_CONTACT_DETAILS, fillContactDetails } from "@/lib/mart-api/contact-fallback";
 import { MartApiError, authorizedFetch } from "@/lib/mart-api/products";
 
 export { FALLBACK_CONTACT_DETAILS };
@@ -151,7 +151,7 @@ export const listPublicContactDetails = cache(async (): Promise<ContactDetails> 
     if (!response.ok) return FALLBACK_CONTACT_DETAILS;
     const body = (await response.json()) as ApiDetails;
     if (!body.title.trim()) return toDetails({ ...body, title: "" }, false);
-    return toDetails(body, true);
+    return fillContactDetails(toDetails(body, true));
   } catch {
     return FALLBACK_CONTACT_DETAILS;
   }

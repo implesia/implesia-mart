@@ -1,3 +1,4 @@
+import { FALLBACK_CONTACT_FORM, fillContactForm } from "@/lib/mart-api/contact-fallback";
 import { MartApiError, authorizedFetch } from "@/lib/mart-api/products";
 
 export type ContactFormField = {
@@ -98,14 +99,14 @@ export async function listPublicContactForm(): Promise<ContactForm | null> {
       headers: { Accept: "application/json" },
       next: { revalidate: 60 },
     });
-    if (!response.ok) return null;
+    if (!response.ok) return FALLBACK_CONTACT_FORM;
     const body = (await response.json()) as ApiForm;
     if (!body.title.trim()) {
       return toForm({ ...body, title: "" }, false);
     }
-    return toForm(body, true);
+    return fillContactForm(toForm(body, true));
   } catch {
-    return null;
+    return FALLBACK_CONTACT_FORM;
   }
 }
 

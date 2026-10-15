@@ -1,3 +1,4 @@
+import { FALLBACK_CONTACT_SUPPORT, fillContactSupport } from "@/lib/mart-api/contact-fallback";
 import { MartApiError, authorizedFetch } from "@/lib/mart-api/products";
 
 export type ContactSupportHour = {
@@ -117,12 +118,12 @@ export async function listPublicContactSupport(): Promise<ContactSupport | null>
       headers: { Accept: "application/json" },
       next: { revalidate: 60 },
     });
-    if (!response.ok) return null;
+    if (!response.ok) return FALLBACK_CONTACT_SUPPORT;
     const body = (await response.json()) as ApiSupport;
     if (!body.title.trim()) return toSupport({ ...body, title: "" }, false);
-    return toSupport(body, true);
+    return fillContactSupport(toSupport(body, true));
   } catch {
-    return null;
+    return FALLBACK_CONTACT_SUPPORT;
   }
 }
 
