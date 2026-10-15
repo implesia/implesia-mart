@@ -21,7 +21,8 @@ export function SustainabilityDurability({
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            "relative grid grid-cols-1 overflow-hidden rounded-2xl lg:grid-cols-2",
+            "relative grid grid-cols-1 overflow-hidden rounded-2xl",
+            durability.image.src && "lg:grid-cols-2",
             "bg-[linear-gradient(100deg,#071820_0%,#070c14_46%,#05060a_100%)]",
           )}
         >
@@ -43,7 +44,7 @@ export function SustainabilityDurability({
                 <li key={bullet.id} className="flex items-start gap-2.5 text-sm text-white/85">
                   <MaterialIcon
                     name="check_circle"
-                    className="mt-0.5 shrink-0 text-[18px] text-primary"
+                    className="mt-0.5 shrink-0 text-[18px] text-[#8ed4c1]"
                   />
                   <span>{bullet.text}</span>
                 </li>
@@ -51,17 +52,17 @@ export function SustainabilityDurability({
             </ul>
           </div>
 
-          <div className="relative aspect-[4/3] min-h-[220px] lg:aspect-auto lg:min-h-0">
-            {durability.image.src ? (
+          {durability.image.src ? (
+          <div className="relative aspect-4/5 sm:aspect-[4/3] lg:aspect-auto lg:min-h-0">
               <Image
                 src={durability.image.src}
                 alt={durability.image.alt}
                 fill
                 sizes="(max-width: 1024px) 92vw, 46vw"
-                className="object-cover"
+                className="object-cover object-top"
               />
-            ) : null}
           </div>
+          ) : null}
         </div>
       </Container>
     </section>

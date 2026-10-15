@@ -12,14 +12,24 @@ export function SustainabilityOrigin({
   origin: SustainabilityOrigin;
   className?: string;
 }) {
+  const images = origin.images.filter((image) => image.isActive && image.src);
+  if (!origin.title.trim() && !origin.body.trim() && !images.length) return null;
+
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-10">
+        <div
+          className={cn(
+            "grid grid-cols-1 items-center gap-6 lg:gap-10",
+            images.length > 0 && "lg:grid-cols-2",
+          )}
+        >
           <div className="space-y-3.5 sm:space-y-4">
-            <p className="text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">
-              {origin.eyebrow}
-            </p>
+            {origin.eyebrow.trim() ? (
+              <p className="text-xs font-semibold tracking-wide text-primary-ink uppercase">
+                {origin.eyebrow}
+              </p>
+            ) : null}
 
             <h2 className="text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
               {origin.title}
@@ -36,11 +46,12 @@ export function SustainabilityOrigin({
             ) : null}
           </div>
 
+          {images.length ? (
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            {origin.images.map((image) => (
+            {images.map((image) => (
               <div
                 key={image.id}
-                className="relative aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-4/5"
+                className="relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white"
               >
                 <Image
                   src={image.src}
@@ -52,6 +63,7 @@ export function SustainabilityOrigin({
               </div>
             ))}
           </div>
+          ) : null}
         </div>
       </Container>
     </section>

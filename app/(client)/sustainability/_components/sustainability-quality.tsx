@@ -22,8 +22,8 @@ export function SustainabilityQuality({
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-10">
-          <div className="order-2 lg:order-1 relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-[5/4] lg:aspect-4/5">
-            {quality.image.src ? (
+          {quality.image.src ? (
+          <div className="relative order-2 aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-[5/4] lg:order-1 lg:aspect-4/5">
               <Image
                 src={quality.image.src}
                 alt={quality.image.alt}
@@ -31,8 +31,8 @@ export function SustainabilityQuality({
                 sizes="(max-width: 1024px) 92vw, 42vw"
                 className="object-cover"
               />
-            ) : null}
           </div>
+          ) : null}
 
           <div className="order-1 lg:order-2">
             {quality.title.trim() ? (
@@ -46,28 +46,32 @@ export function SustainabilityQuality({
               </p>
             ) : null}
 
+            {steps.length ? (
             <ol className="mt-5 space-y-3">
               {steps.map((step, index) => (
                 <li key={step.id} className="flex items-start gap-3">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary-ink">
                     {index + 1}
                   </span>
                   <p className="pt-0.5 text-sm leading-relaxed text-neutral-700">{step.text}</p>
                 </li>
               ))}
             </ol>
+            ) : null}
 
+            {badges.length ? (
             <div className="mt-5 flex flex-wrap gap-2">
               {badges.map((badge) => (
                 <span
                   key={badge.id}
                   className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"
                 >
-                  <MaterialIcon name={qualityIcon(badge.icon)} className="text-[16px] text-primary" />
+                  <MaterialIcon name={qualityIcon(badge.icon)} className="text-[16px] text-primary-ink" />
                   {badge.label}
                 </span>
               ))}
             </div>
+            ) : null}
           </div>
         </div>
       </Container>

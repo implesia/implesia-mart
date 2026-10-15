@@ -14,23 +14,33 @@ export function SustainabilityCommitment({
   commitment: SustainabilityCommitment;
   className?: string;
 }) {
+  // Public page must respect the admin "active" toggle and skip blank cards.
+  const items = commitment.items.filter(
+    (item) => item.isActive && (item.title.trim() || item.description.trim()),
+  );
+  if (!items.length && !commitment.title.trim()) return null;
+
   return (
     <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-5 max-w-2xl text-center sm:mb-6">
-          <p className="mb-2 text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">
-            {commitment.kicker}
-          </p>
+          {commitment.kicker.trim() ? (
+            <p className="mb-2 text-xs font-semibold tracking-wide text-primary-ink uppercase">
+              {commitment.kicker}
+            </p>
+          ) : null}
           <h2 className="mb-2 text-xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-2xl">
             {commitment.title}
           </h2>
-          <p className="text-sm leading-relaxed text-neutral-600">
-            {commitment.subtitle}
-          </p>
+          {commitment.subtitle.trim() ? (
+            <p className="text-sm leading-relaxed text-neutral-600">
+              {commitment.subtitle}
+            </p>
+          ) : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {commitment.items.map((item) => (
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {items.map((item) => (
             <div
               key={item.id}
               className="rounded-2xl border border-neutral-200/90 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5"
@@ -45,7 +55,7 @@ export function SustainabilityCommitment({
               <h3 className="mb-1 text-sm font-semibold text-neutral-950">
                 {item.title}
               </h3>
-              <p className="text-xs leading-relaxed text-neutral-600">
+              <p className="text-[13px] leading-relaxed text-neutral-600">
                 {item.description}
               </p>
             </div>
