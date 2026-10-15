@@ -146,7 +146,7 @@ function HeroCarousel({
             onSlideChange={(swiper) => {
               setActiveIndex(swiper.realIndex);
             }}
-            className="banner-swiper h-[268px] overflow-hidden rounded-3xl shadow-[0_12px_40px_rgba(7,24,32,0.12)] ring-1 ring-black/5 sm:h-[320px] lg:h-[23rem]"
+            className="banner-swiper h-[260px] overflow-hidden rounded-3xl shadow-[0_12px_40px_rgba(7,24,32,0.12)] ring-1 ring-black/5 sm:h-[340px] lg:h-[24rem]"
           >
             {slides.map((slide, index) => (
               <SwiperSlide key={slide.id}>
@@ -160,17 +160,17 @@ function HeroCarousel({
                     aria-hidden
                     className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(circle_at_60%_50%,rgba(43,192,181,0.22),transparent_62%)]"
                   />
-                  <div className="relative grid h-full grid-cols-[minmax(0,1.45fr)_minmax(0,0.7fr)] items-center sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                  <div className="relative grid h-full grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
                     <div className="min-w-0 px-4 pt-5 pb-10 sm:px-8 sm:pt-7 sm:pb-10 lg:px-10">
                       <p className="mb-3 inline-flex max-w-full items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium tracking-wide text-[#b7efe8] ring-1 ring-white/15 sm:text-xs">
                         {slide.eyebrow}
                       </p>
                       {index === activeIndex ? (
-                        <h2 className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.35rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
+                        <h2 className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.3rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
                           {slide.title}
                         </h2>
                       ) : (
-                        <p className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.35rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
+                        <p className="text-[1.2rem] leading-[1.2] font-bold tracking-tight text-white min-[380px]:text-[1.3rem] sm:max-w-[16ch] sm:text-3xl lg:text-[2rem] xl:text-[2.15rem]">
                           {slide.title}
                         </p>
                       )}
@@ -191,15 +191,26 @@ function HeroCarousel({
                         ) : null}
                       </div>
                     </div>
-                    <div className="flex h-full min-w-0 items-center justify-center px-2 sm:px-5 lg:pr-8">
-                      <div className="relative aspect-[4/5] h-[72%] max-h-72 w-full max-w-[13.5rem] overflow-hidden rounded-[1.6rem] bg-[#f6f7f8] shadow-[0_18px_44px_rgba(0,0,0,0.32)] ring-1 ring-white/25 sm:h-[78%] sm:max-w-[15rem]">
+                    {/* Image column: wide frame that fills the column; object-contain keeps the whole
+                        CMS image visible for any aspect ratio, a blurred copy fills the letterbox. Bottom
+                        padding reserves room for the arrows so they never sit on the image. */}
+                    <div className="flex h-full min-w-0 items-stretch py-3 pr-3 pb-12 pl-1 sm:py-5 sm:pr-5 sm:pb-14 sm:pl-2 lg:pr-6">
+                      <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/95 shadow-[0_18px_44px_rgba(0,0,0,0.32)] ring-1 ring-white/20 sm:rounded-[1.4rem]">
+                        <Image
+                          src={slide.imageSrc}
+                          alt=""
+                          aria-hidden
+                          fill
+                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 45vw, 480px"
+                          className="scale-110 object-cover opacity-40 blur-2xl"
+                        />
                         <Image
                           src={slide.imageSrc}
                           alt={slide.imageAlt}
                           fill
                           priority={index === 0}
-                          sizes="(max-width: 640px) 42vw, 240px"
-                          className="object-contain p-2"
+                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 45vw, 480px"
+                          className="object-contain p-2 sm:p-3"
                         />
                       </div>
                     </div>
