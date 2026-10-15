@@ -20,7 +20,7 @@ Bangla storefront for trending gadgets and handmade dresses. Prices are in BDT. 
 - [Base UI](https://base-ui.com) + [shadcn](https://ui.shadcn.com)-style components
 - [Framer Motion](https://motion.dev) — animations
 - [Swiper](https://swiperjs.com) — carousels
-- The release build is `npm run build`, then `npm run start`. That is the only deploy path.
+- `npm run build` (Next.js) is checked in CI. Production on Cloudflare Workers (Workers Builds) runs `npm run build:vinext` and `npm run deploy:vinext`; keep those scripts.
 
 > The Next.js version in this repo may include breaking changes from upstream. Check `node_modules/next/dist/docs/` before writing new code.
 
