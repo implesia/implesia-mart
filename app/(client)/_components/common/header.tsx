@@ -26,7 +26,6 @@ import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
 import { SiteLogo } from "./site-logo";
-import { ThemeToggle } from "./theme-toggle";
 
 const SITE_NAME = "Implesia Mart";
 
@@ -168,7 +167,6 @@ export default function Header({
                 বাংলা
               </span>
               <div className="flex items-center gap-1 sm:gap-2 lg:gap-2.5">
-                <ThemeToggle className="hidden size-9 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950 lg:inline-flex [&_.material-symbols-outlined]:text-[22px]" />
 
                 <Link
                   href="/order-status"
@@ -389,7 +387,7 @@ export default function Header({
               })}
             </nav>
 
-            <div className="mt-auto grid grid-cols-2 gap-2 pt-6">
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-6 pb-2">
               <CartTrigger
                 variant="button"
                 onNavigate={() => setMenuPath(null)}
@@ -405,10 +403,6 @@ export default function Header({
                 />
                 আমার অর্ডার
               </Link>
-            </div>
-
-            <div className="mt-2 pb-2">
-              <ThemeToggle className="h-11 w-full justify-center rounded-full border border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-100 dark:border-white/15 dark:bg-transparent dark:text-white [&_.material-symbols-outlined]:text-[20px]" />
             </div>
           </div>
         </aside>

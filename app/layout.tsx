@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 
-import { ThemeProvider } from "./(client)/_providers/theme-provider";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_KEYWORDS,
@@ -80,10 +79,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   // Lets env(safe-area-inset-*) resolve on notched phones; header/footer pad for it.
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7faf7" },
-    { media: "(prefers-color-scheme: dark)", color: "#061110" },
-  ],
+  // Light theme only: no dark mode, regardless of OS preference.
+  themeColor: "#f7faf7",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -95,17 +93,10 @@ export default function RootLayout({
     <html
       lang="bn"
       className={`${inter.variable} ${materialSymbols.variable} h-full antialiased`}
-      suppressHydrationWarning
+      style={{ colorScheme: "light" }}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='implesia.theme';var t=localStorage.getItem(k)||'system';var s=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var r=(t==='system'?s:t);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(r);document.documentElement.style.colorScheme=r;}catch(e){}})();`,
-          }}
-        />
-      </head>
       <body className="flex min-h-full flex-col font-sans">
-        <ThemeProvider>{children}</ThemeProvider>
+        {children}
       </body>
     </html>
   );
