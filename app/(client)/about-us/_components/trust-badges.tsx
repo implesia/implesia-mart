@@ -12,7 +12,7 @@ export function TrustBadges({
   values: AboutValues;
   className?: string;
 }) {
-  const items = values.items.filter((item) => item.title.trim() && item.description.trim());
+  const items = values.items.filter((item) => item.isActive && item.title.trim() && item.description.trim());
   if (!values.kicker && !values.title && !values.subtitle && !items.length) return null;
 
   return (
@@ -20,7 +20,7 @@ export function TrustBadges({
       <Container className="w-full px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-5 max-w-2xl text-center sm:mb-6">
           {values.kicker ? (
-            <p className="mb-2 text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">
+            <p className="mb-2 text-xs font-semibold tracking-wide text-primary-ink uppercase">
               {values.kicker}
             </p>
           ) : null}
@@ -45,7 +45,7 @@ export function TrustBadges({
                   <MaterialIcon name={valueIcon(item.icon)} filled className="text-[20px]" />
                 </span>
                 <h3 className="mb-1 text-sm font-semibold text-neutral-950">{item.title}</h3>
-                <p className="text-xs leading-relaxed text-neutral-600">{item.description}</p>
+                <p className="text-[13px] leading-relaxed text-neutral-600">{item.description}</p>
               </div>
             ))}
           </div>

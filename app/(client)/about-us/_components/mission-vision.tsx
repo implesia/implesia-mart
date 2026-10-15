@@ -12,12 +12,19 @@ export function MissionVision({
   cards: AboutMissionCard[];
   className?: string;
 }) {
-  const visible = cards.filter((card) => card.title.trim() && card.description.trim());
+  const visible = cards.filter((card) => card.isActive && card.title.trim() && card.description.trim());
   if (!visible.length) return null;
 
   return (
-    <section className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}>
+    <section
+      className={cn("w-full bg-[#f5f6f8] py-6 sm:py-8", className)}
+      aria-labelledby="about-mission-heading"
+    >
       <Container className="w-full px-4 sm:px-6 lg:px-8">
+        {/* Cards are h3; without a section h2 they read as sub-points of the dresses section. */}
+        <h2 id="about-mission-heading" className="sr-only">
+          আমাদের ভিশন ও মিশন
+        </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {visible.map((card, index) => (
             <div
@@ -32,7 +39,7 @@ export function MissionVision({
               <span
                 className={cn(
                   "mb-3 flex size-10 items-center justify-center rounded-xl",
-                  index === 0 ? "bg-primary/10 text-primary" : "bg-white/10 text-primary",
+                  index === 0 ? "bg-primary/10 text-primary-ink" : "bg-white/10 text-[#8ed4c1]",
                 )}
               >
                 <MaterialIcon name={missionIcon(card.icon)} filled className="text-[22px]" />

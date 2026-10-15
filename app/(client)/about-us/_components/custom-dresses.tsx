@@ -15,11 +15,12 @@ export function CustomDresses({
   dresses: AboutDress[];
   className?: string;
 }) {
-  if (!dresses.length) return null;
+  const visible = dresses.filter((dress) => dress.isActive);
+  if (!visible.length) return null;
 
   return (
     <div className={className}>
-      {dresses.map((dress) => (
+      {visible.map((dress) => (
         <DressBlock key={dress.id} dress={dress} />
       ))}
     </div>
@@ -46,17 +47,22 @@ function DressBlock({ dress }: { dress: AboutDress }) {
           )}
         >
           {images.length ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:col-span-7">
+            <div
+              className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:col-span-7 [&::-webkit-scrollbar]:hidden"
+              aria-label={dress.title ? `${dress.title} — ছবি` : "ড্রেসের ছবি"}
+              role="region"
+              tabIndex={0}
+            >
               {images.map((image) => (
                 <div
                   key={image.id}
-                  className="group relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white"
+                  className="group relative aspect-4/5 w-[62%] shrink-0 snap-start overflow-hidden rounded-2xl border border-neutral-200/90 bg-white min-[480px]:w-[42%] sm:w-auto"
                 >
                   <Image
                     src={image.src}
                     alt={image.alt}
                     fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw"
+                    sizes="(max-width: 640px) 62vw, (max-width: 1024px) 33vw, 22vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
@@ -66,7 +72,7 @@ function DressBlock({ dress }: { dress: AboutDress }) {
 
           <div className={images.length ? "lg:col-span-5" : undefined}>
             {dress.kicker ? (
-              <p className="text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">
+              <p className="text-xs font-semibold tracking-wide text-primary-ink uppercase">
                 {dress.kicker}
               </p>
             ) : null}
@@ -85,7 +91,7 @@ function DressBlock({ dress }: { dress: AboutDress }) {
               <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                 {features.map((feature) => (
                   <div key={feature.id} className="flex items-start gap-2.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary-ink">
                       <MaterialIcon name={dressIcon(feature.icon)} className="text-[16px]" />
                     </span>
                     <div className="min-w-0">
@@ -93,7 +99,7 @@ function DressBlock({ dress }: { dress: AboutDress }) {
                         <h3 className="text-sm font-semibold text-neutral-950">{feature.title}</h3>
                       ) : null}
                       {feature.description ? (
-                        <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">
+                        <p className="mt-0.5 text-[13px] leading-relaxed text-neutral-600">
                           {feature.description}
                         </p>
                       ) : null}
@@ -139,8 +145,8 @@ function DressLink({
 }) {
   const className =
     tone === "primary"
-      ? "inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
-      : "inline-flex h-10 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-950 transition-colors hover:border-neutral-400";
+      ? "inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+      : "inline-flex h-11 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-950 transition-colors hover:border-neutral-400";
 
   if (isExternalHref(link.href)) {
     return (

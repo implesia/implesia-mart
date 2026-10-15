@@ -14,11 +14,12 @@ export function BrandStory({
   stories: AboutStory[];
   className?: string;
 }) {
-  if (!stories.length) return null;
+  const visible = stories.filter((story) => story.isActive);
+  if (!visible.length) return null;
 
   return (
     <div className={className}>
-      {stories.map((story) => (
+      {visible.map((story) => (
         <StoryBlock key={story.id} story={story} />
       ))}
     </div>
@@ -46,7 +47,7 @@ function StoryBlock({ story }: { story: AboutStory }) {
         >
           <div className="space-y-3.5 sm:space-y-4">
             {story.kicker ? (
-              <p className="text-[11px] font-medium tracking-wide text-primary uppercase sm:text-xs">
+              <p className="text-xs font-semibold tracking-wide text-primary-ink uppercase">
                 {story.kicker}
               </p>
             ) : null}
@@ -69,7 +70,7 @@ function StoryBlock({ story }: { story: AboutStory }) {
                     href={buttonHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
                   >
                     {buttonLabel}
                     <MaterialIcon name="arrow_forward" className="text-[18px]" />
@@ -77,7 +78,7 @@ function StoryBlock({ story }: { story: AboutStory }) {
                 ) : (
                   <Link
                     href={buttonHref}
-                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
+                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
                   >
                     {buttonLabel}
                     <MaterialIcon name="arrow_forward" className="text-[18px]" />
@@ -91,7 +92,7 @@ function StoryBlock({ story }: { story: AboutStory }) {
               {images.map((image) => (
                 <div
                   key={image.id}
-                  className="relative aspect-square overflow-hidden rounded-2xl border border-neutral-200/90 bg-white sm:aspect-4/5"
+                  className="relative aspect-4/5 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white"
                 >
                   <Image
                     src={image.src}

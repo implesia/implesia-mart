@@ -16,6 +16,8 @@ export function AboutHero({
   hero: AboutHeroContent;
   className?: string;
 }) {
+  // Only real images: empty CMS slots used to render blank dark tiles.
+  const heroImages = hero.images.filter((image) => image.src).slice(0, 2);
 
   return (
     <section className={cn("w-full bg-[#f5f6f8] pb-5 sm:pb-6", className)}>
@@ -33,9 +35,11 @@ export function AboutHero({
           />
 
           <div className="relative z-10 flex flex-col justify-center px-4 py-6 sm:px-7 sm:py-8 lg:col-span-7 lg:px-8 lg:py-10">
-            <p className="mb-1.5 text-[11px] font-medium tracking-wide text-primary sm:text-xs">
-              {hero.eyebrow}
-            </p>
+            {hero.eyebrow.trim() ? (
+              <p className="mb-1.5 text-xs font-semibold tracking-wide text-[#8ed4c1]">
+                {hero.eyebrow}
+              </p>
+            ) : null}
 
             <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-white sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
               {hero.title}
@@ -49,7 +53,7 @@ export function AboutHero({
               {hero.primaryLabel.trim() ? (
               <AboutCta
                 href={hero.primaryHref}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80 sm:h-10"
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
               >
                 {hero.primaryLabel}
                 <MaterialIcon name="arrow_forward" className="text-[18px]" />
@@ -58,7 +62,7 @@ export function AboutHero({
               {hero.secondaryLabel.trim() ? (
               <AboutCta
                 href={hero.secondaryHref}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
                 {hero.secondaryLabel}
               </AboutCta>
@@ -66,11 +70,12 @@ export function AboutHero({
             </div>
           </div>
 
+          {heroImages.length ? (
           <div className="relative grid grid-cols-2 gap-2 p-4 sm:gap-3 sm:p-6 lg:col-span-5 lg:p-7">
-            {hero.images.slice(0, 2).map((image, index) => (
+            {heroImages.map((image, index) => (
               <div
                 key={image.id}
-                className="relative aspect-square overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10"
+                className="relative aspect-4/5 overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 lg:aspect-square"
               >
                 {image.src ? (
                   <Image
@@ -79,12 +84,13 @@ export function AboutHero({
                     fill
                     priority={index === 0}
                     sizes="(max-width: 1024px) 45vw, 22vw"
-                    className="object-cover"
+                    className="object-cover object-top"
                   />
                 ) : null}
               </div>
             ))}
           </div>
+          ) : null}
         </div>
       </Container>
     </section>
