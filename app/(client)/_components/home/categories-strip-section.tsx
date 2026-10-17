@@ -27,7 +27,7 @@ export function CategoryRail({ section }: { section: CategorySection }) {
           href="/products"
           className="-mr-1 inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-md px-1 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-primary dark:text-white/60 dark:hover:text-white"
         >
-          সব দেখুন
+          View All
           <MaterialIcon name="chevron_right" className="text-[18px]" />
         </Link>
       </div>

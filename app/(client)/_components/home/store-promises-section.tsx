@@ -61,13 +61,13 @@ function AccessoryRail({ items }: { items: Product[] }) {
           id="accessory-rail-heading"
           className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl dark:text-white"
         >
-          ট্রেন্ডিং গ্যাজেট
+          Trending Gadgets
         </h2>
         <Link
           href={productsHref({ category: "gadgets" })}
           className="inline-flex shrink-0 items-center gap-0.5 text-[13px] text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
         >
-          সব দেখুন
+          View All
           <MaterialIcon name="chevron_right" className="text-[16px]" />
         </Link>
       </div>

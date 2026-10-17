@@ -117,7 +117,7 @@ function FilterBody({
             <MaterialIcon name="category" className="text-[16px]" />
           </span>
           <span className="text-xs font-semibold tracking-wider text-on-surface uppercase">
-            ক্যাটাগরি
+            Categories
           </span>
         </div>
         <div className="space-y-1">

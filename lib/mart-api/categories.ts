@@ -41,11 +41,11 @@ type ApiSection = {
 };
 
 export const FALLBACK_CATEGORIES: CategorySection = {
-  heading: "ক্যাটাগরি",
+  heading: "Categories",
   tiles: [
     {
       id: "gadgets",
-      label: "ট্রেন্ডিং গ্যাজেট",
+      label: "Trending Gadgets",
       href: "/products?category=gadgets",
       imageSrc: "/images/products/lamp/lamp-5.jpg",
       isActive: true,

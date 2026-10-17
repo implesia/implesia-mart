@@ -27,7 +27,7 @@ import { ProductsGrid } from "./products-grid";
 import { ProductsToolbar } from "./products-toolbar";
 
 const VIEW_LABEL: Record<CatalogView, string> = {
-  featured: "ফিচার্ড প্রোডাক্ট",
+  featured: "Featured Products",
   latest: "সর্বশেষ প্রোডাক্ট",
   new: "নতুন আগমন",
 };

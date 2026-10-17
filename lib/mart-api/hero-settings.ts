@@ -21,7 +21,7 @@ export const DEFAULT_HERO_SETTINGS: HeroCarouselSettings = {
   previousLabel: "আগের স্লাইড",
   nextLabel: "পরের স্লাইড",
   crossFade: true,
-  ariaLabel: "ফিচার্ড প্রোডাক্ট",
+  ariaLabel: "Featured Products",
   slideLabel: "স্লাইড",
   autoplayDelayMs: 5500,
   transitionSpeedMs: 700,

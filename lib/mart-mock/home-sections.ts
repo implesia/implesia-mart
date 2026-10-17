@@ -158,7 +158,7 @@ export function seedHomeSections(): HomeSections {
       { id: "returns", icon: "assignment_return", label: "৩ দিন ইজি রিটার্ন", href: "/shipping-returns" },
     ],
     categories: {
-      heading: "ক্যাটাগরি",
+      heading: "Categories",
       tiles: [
         {
           id: "gadgets",
@@ -175,8 +175,8 @@ export function seedHomeSections(): HomeSections {
       ],
     },
     featured: {
-      heading: "ফিচার্ড প্রোডাক্ট",
-      viewAllLabel: "সব দেখুন",
+      heading: "Featured Products",
+      viewAllLabel: "View All",
       viewAllHref: productsHref({ view: "featured" }),
       slugs: featuredSlugs,
     },

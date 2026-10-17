@@ -175,7 +175,7 @@ export function readCatalogQuery(raw: {
 export function catalogTitle(search: CatalogSearch) {
   if (search.q) return "খোঁজার ফল";
   if (search.category) return categoryLabels[search.category];
-  if (search.view === "featured") return "ফিচার্ড প্রোডাক্ট";
+  if (search.view === "featured") return "Featured Products";
   if (search.view === "latest") return "সর্বশেষ প্রোডাক্ট";
   if (search.view === "new") return "নতুন আগমন";
   return "সব প্রোডাক্ট";

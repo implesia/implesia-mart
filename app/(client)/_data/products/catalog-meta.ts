@@ -19,7 +19,7 @@ export type Product = {
 };
 
 export const categoryLabels: Record<ProductCategoryId, string> = {
-  gadgets: "ট্রেন্ডিং গ্যাজেট",
+  gadgets: "Trending Gadgets",
   fashion: "গর্জিয়াস ড্রেস",
 };
 

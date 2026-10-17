@@ -206,7 +206,7 @@ export default function Header({
               <button
                 type="button"
                 className="inline-flex h-10 items-center gap-1.5 rounded-md bg-white px-2.5 text-sm sm:gap-2 sm:px-3 font-semibold text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100"
-                aria-label="ক্যাটাগরি"
+                aria-label="Categories"
                 aria-expanded={categoriesOpen}
                 aria-haspopup="true"
                 onClick={() => {
@@ -216,7 +216,7 @@ export default function Header({
                 }}
               >
                 <MaterialIcon name="apps" className="text-[18px]" />
-                <span className="hidden min-[360px]:inline">ক্যাটাগরি</span>
+                <span className="hidden min-[360px]:inline">Categories</span>
                 <MaterialIcon
                   name="expand_more"
                   className={cn(
@@ -250,7 +250,7 @@ export default function Header({
                   className="block border-t border-neutral-100 px-3.5 py-2.5 text-sm font-semibold hover:bg-neutral-100 dark:border-white/10 dark:hover:bg-white/10"
                   onClick={() => setCategoriesPath(null)}
                 >
-                  সব দেখুন
+                  View All
                 </Link>
               </div>
             </div>

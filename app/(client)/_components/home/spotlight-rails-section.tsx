@@ -19,7 +19,7 @@ const rails: {
 }[] = [
   {
     id: "lights",
-    title: "ট্রেন্ডিং গ্যাজেট",
+    title: "Trending Gadgets",
     href: productsHref({ category: "gadgets" }),
     slugs: [
       "sunset-rainbow-projection-lamp",
@@ -67,7 +67,7 @@ function RailCard({
           href={href}
           className="inline-flex shrink-0 items-center gap-0.5 text-[13px] text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
         >
-          সব দেখুন
+          View All
           <MaterialIcon name="chevron_right" className="text-[16px]" />
         </Link>
       </div>

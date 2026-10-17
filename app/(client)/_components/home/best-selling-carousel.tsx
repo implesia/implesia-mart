@@ -53,7 +53,7 @@ export function BestSellingCarousel() {
             href="/products"
             className="mr-1 hidden text-sm font-semibold text-primary transition-colors hover:underline sm:inline-flex sm:items-center sm:gap-1"
           >
-            সব দেখুন
+            View All
             <MaterialIcon name="arrow_forward" className="text-[16px]" />
           </Link>
           <Button

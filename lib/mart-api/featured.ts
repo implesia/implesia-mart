@@ -69,8 +69,8 @@ export function fallbackFeatured(products: Product[]): FeaturedPublic {
   const flagged = products.filter((product) => product.featured);
   const picks = (flagged.length > 0 ? flagged : products).slice(0, 4);
   return {
-    heading: "ফিচার্ড প্রোডাক্ট",
-    viewAllLabel: "সব দেখুন",
+    heading: "Featured Products",
+    viewAllLabel: "View All",
     viewAllHref: "/products?view=featured",
     productIds: picks.map((product) => product.id),
   };

@@ -13,7 +13,7 @@ import { SiteLogo } from "./site-logo";
 
 const shopLinks = [
   { href: productsHref(), label: "সব প্রোডাক্ট" },
-  { href: productsHref({ category: "gadgets" }), label: "ট্রেন্ডিং গ্যাজেট" },
+  { href: productsHref({ category: "gadgets" }), label: "Trending Gadgets" },
   { href: productsHref({ category: "fashion" }), label: "গর্জিয়াস ড্রেস" },
   { href: "/blogs", label: "গাইড ও ব্লগ" },
 ] as const;
@@ -57,7 +57,7 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h2 className="mb-4 text-[11px] font-semibold tracking-[0.16em] text-white uppercase">
+      <h2 className="mb-4 text-sm font-semibold tracking-[0.12em] text-white uppercase sm:text-base">
         {title}
       </h2>
       <ul className="space-y-3">
@@ -164,10 +164,10 @@ export default function Footer({ details }: { details: ContactDetails | null }) 
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-7 lg:gap-6 xl:gap-10">
-            <FooterColumn title="শপ" links={shopLinks} />
-            <FooterColumn title="কোম্পানি" links={companyLinks} />
+            <FooterColumn title="Shop" links={shopLinks} />
+            <FooterColumn title="Company" links={companyLinks} />
             <div className="col-span-2 sm:col-span-1">
-              <FooterColumn title="সাপোর্ট" links={supportLinks} />
+              <FooterColumn title="Support" links={supportLinks} />
             </div>
           </div>
         </div>

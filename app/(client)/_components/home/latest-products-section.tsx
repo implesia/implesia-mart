@@ -51,7 +51,7 @@ export function LatestProductsSection() {
                 href={productsHref({ view: "latest" })}
                 className="inline-flex shrink-0 items-center gap-0.5 text-sm text-neutral-500 transition-colors hover:text-neutral-950 dark:text-white/60 dark:hover:text-white"
               >
-                সব দেখুন
+                View All
                 <MaterialIcon name="chevron_right" className="text-[18px]" />
               </Link>
             </div>

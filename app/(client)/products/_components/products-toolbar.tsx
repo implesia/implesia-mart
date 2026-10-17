@@ -115,7 +115,7 @@ export function ProductsToolbar({
       <div className="-mx-3 overflow-x-auto px-3 [-ms-overflow-style:none] [scrollbar-width:none] min-[400px]:-mx-4 min-[400px]:px-4 sm:mx-0 sm:overflow-visible sm:px-0 lg:hidden [&::-webkit-scrollbar]:hidden">
         <div
           role="group"
-          aria-label="ক্যাটাগরি"
+          aria-label="Categories"
           className="flex w-max gap-1.5 sm:w-auto sm:flex-wrap sm:gap-2"
         >
           <button
