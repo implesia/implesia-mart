@@ -85,7 +85,7 @@ function FilterBody({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5 [&>section+section]:border-t [&>section+section]:border-neutral-200 [&>section+section]:pt-5">
       {showHeading ? (
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -113,7 +113,7 @@ function FilterBody({
 
       <section>
         <div className="mb-2 flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="flex size-5 items-center justify-center text-primary">
             <MaterialIcon name="category" className="text-[16px]" />
           </span>
           <span className="text-xs font-semibold tracking-wider text-on-surface uppercase">
@@ -126,9 +126,9 @@ function FilterBody({
             onClick={() => onCategorySelect("all")}
             aria-pressed={allCategoriesSelected}
             className={cn(
-              "flex min-h-11 w-full items-center rounded-xl px-3 py-2 text-left text-sm transition-colors",
+              "flex min-h-11 w-full items-center rounded-lg px-2 py-2 text-left text-sm transition-colors",
               allCategoriesSelected
-                ? "bg-primary/8 font-medium text-on-surface ring-1 ring-primary/20"
+                ? "font-semibold text-primary"
                 : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
             )}
           >
@@ -146,9 +146,9 @@ function FilterBody({
                 onClick={() => onCategorySelect(option.id)}
                 aria-pressed={active}
                 className={cn(
-                  "flex min-h-11 w-full items-center rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                  "flex min-h-11 w-full items-center rounded-lg px-2 py-2 text-left text-sm transition-colors",
                   active
-                    ? "bg-primary/8 font-medium text-on-surface ring-1 ring-primary/20"
+                    ? "font-semibold text-primary"
                     : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
                 )}
               >
@@ -166,14 +166,14 @@ function FilterBody({
 
       <section>
         <div className="mb-2 flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="flex size-5 items-center justify-center text-primary">
             <MaterialIcon name="payments" className="text-[16px]" />
           </span>
           <span className="text-xs font-semibold tracking-wider text-on-surface uppercase">
             দামের রেঞ্জ
           </span>
         </div>
-        <div className="rounded-xl bg-surface-container-low/80 px-3 pt-5 pb-3">
+        <div className="px-1 pt-4 pb-1">
           <Slider
             value={draft}
             min={PRICE_FILTER_MIN}
@@ -253,7 +253,7 @@ function FilterBody({
 
       <section>
         <div className="mb-2 flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="flex size-5 items-center justify-center text-primary">
             <MaterialIcon name="inventory_2" className="text-[16px]" />
           </span>
           <span className="text-xs font-semibold tracking-wider text-on-surface uppercase">
@@ -267,10 +267,7 @@ function FilterBody({
               <label
                 key={option.id}
                 className={cn(
-                  "group flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 transition-colors",
-                  checked
-                    ? "bg-primary/8 ring-1 ring-primary/20"
-                    : "hover:bg-surface-container-low",
+                  "group flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors",
                 )}
               >
                 <Checkbox
@@ -307,8 +304,7 @@ export function ProductsFilters({
     <aside
       className={cn(
         "custom-scrollbar sticky top-[7rem] z-20 hidden h-fit max-h-[calc(100dvh-7.5rem)] w-52 shrink-0 self-start overflow-y-auto sm:top-[8.75rem] sm:max-h-[calc(100dvh-9.25rem)] lg:top-[9.5rem] lg:block lg:max-h-[calc(100dvh-10rem)] xl:w-56",
-        "rounded-2xl border border-outline-variant/35 bg-surface-container-lowest p-3.5 xl:p-4",
-        "shadow-[0_8px_30px_rgba(6,47,44,0.04)] dark:border-white/10 dark:bg-surface-container dark:shadow-none",
+        "border-r border-neutral-200 py-1 pr-4 xl:pr-5",
         className,
       )}
     >

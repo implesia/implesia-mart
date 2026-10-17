@@ -144,7 +144,7 @@ export function ProductsCatalog({
   };
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-0 lg:flex-row lg:items-start lg:gap-3.5 xl:gap-4">
+    <div className="flex w-full min-w-0 flex-col gap-0 lg:flex-row lg:items-start lg:gap-6 xl:gap-8">
       {/* h1 before the filter sidebar's h2; the toolbar shows the same title visually. */}
       <h1 className="sr-only">{title}</h1>
       <ProductsFilters {...filterControls} />
@@ -297,7 +297,7 @@ export function ProductsCatalog({
             ) : null}
           </>
         ) : unfiltered ? (
-          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-white px-4 py-10 text-center sm:px-6">
+          <div className="border-t border-neutral-200 px-4 py-12 text-center sm:px-6">
             <h2 className="text-base font-semibold text-on-surface sm:text-lg">
               এখন কোনো প্রোডাক্ট নেই
             </h2>
@@ -312,7 +312,7 @@ export function ProductsCatalog({
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-white px-4 py-10 text-center sm:px-6">
+          <div className="border-t border-neutral-200 px-4 py-12 text-center sm:px-6">
             <h2 className="text-base font-semibold text-on-surface sm:text-lg">
               কোনো পণ্য পাওয়া যায়নি
             </h2>

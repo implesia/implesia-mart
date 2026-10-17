@@ -96,8 +96,8 @@ function CategoryProductRow({
   items: Product[];
 }) {
   return (
-    <article className="rounded-2xl border border-neutral-200/90 bg-white px-3 py-4 sm:px-5 sm:py-5">
-      <div className="mb-2 flex items-center justify-between gap-4 sm:mb-4">
+    <article>
+      <div className="mb-3 flex items-center justify-between gap-4 sm:mb-4">
         <h3 className="text-lg leading-snug font-semibold tracking-tight text-neutral-950 sm:text-xl">
           {heading}
         </h3>
@@ -134,10 +134,10 @@ export function CategoryShowcaseSection({
 
   return (
     <section
-      className="bg-[#f5f6f8] pb-5 sm:pb-6 dark:bg-background"
+      className="bg-[#f5f6f8] pb-6 sm:pb-8 dark:bg-background"
       aria-label="ক্যাটাগরি অনুযায়ী প্রোডাক্ট"
     >
-      <Container className="space-y-4 px-4 sm:px-6 lg:px-8">
+      <Container className="space-y-8 px-4 sm:space-y-10 sm:px-6 lg:px-8">
         {rows.map((row) => (
           <CategoryProductRow key={row.key} heading={row.heading} href={row.href} items={row.items} />
         ))}

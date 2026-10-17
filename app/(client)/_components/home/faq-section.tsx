@@ -41,16 +41,16 @@ function FaqColumn({
           <AccordionItem
             key={value}
             value={value}
-            className="rounded-2xl border border-neutral-200/90 bg-white px-4 not-last:border-b sm:px-5 dark:border-white/10 dark:bg-[#121816] dark:not-last:border-b"
+            className="border-b border-neutral-200"
           >
             <AccordionTrigger className="gap-3 py-4 text-left text-sm font-semibold leading-snug text-neutral-950 hover:no-underline sm:py-[1.125rem] sm:text-[15px] dark:text-white">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-700 dark:bg-white/8 dark:text-white/80">
+              <span className="flex size-9 shrink-0 items-center justify-center text-primary">
                 <MaterialIcon name={icon} className="text-[18px]" />
               </span>
               <span className="min-w-0 flex-1">{block.question}</span>
             </AccordionTrigger>
             <AccordionContent className="pb-4 text-sm leading-relaxed text-neutral-600 sm:pb-5 sm:text-[15px] dark:text-white/70">
-              <p className="border-t border-neutral-200/80 pt-3 dark:border-white/10">
+              <p className="pl-12">
                 {block.answer}
               </p>
             </AccordionContent>

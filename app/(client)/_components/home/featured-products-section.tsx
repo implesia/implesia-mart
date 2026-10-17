@@ -25,8 +25,8 @@ export function FeaturedProductsSection({
       aria-labelledby="featured-products-heading"
     >
       <Container className="px-4 sm:px-6 lg:px-8">
-        <div className="rounded-2xl border border-neutral-200/90 bg-white px-3 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-5 sm:py-5 dark:border-white/10 dark:bg-[#121816]">
-          <div className="mb-2 flex items-center justify-between gap-3 sm:mb-4">
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
             <h2
               id="featured-products-heading"
               className="text-lg leading-snug font-semibold tracking-tight text-neutral-950 sm:text-xl"
