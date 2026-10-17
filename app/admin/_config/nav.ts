@@ -7,6 +7,8 @@ export type AdminNavItem = {
   exact?: boolean;
   aliases?: string[];
   children?: AdminNavItem[];
+  /** Live count shown next to the label (cheap /counts call). */
+  badge?: "inquiries";
 };
 
 export type AdminNavGroup = {
@@ -35,6 +37,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin", label: "Overview", icon: "dashboard", exact: true },
       { href: "/admin/orders", label: "Orders", icon: "receipt_long" },
+      { href: "/admin/inquiries", label: "Inquiries", icon: "forum", badge: "inquiries" },
       { href: "/admin/products", label: "Products", icon: "inventory_2" },
       { href: "/admin/cart", label: "Cart", icon: "shopping_cart" },
       { href: "/admin/delivery", label: "Delivery charges", icon: "local_shipping" },

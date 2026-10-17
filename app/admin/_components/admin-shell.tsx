@@ -8,6 +8,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { logoutMart } from "@/lib/mart-api/products";
+import { INQUIRIES_CHANGED, getInquiryCounts } from "@/lib/mart-api/inquiries";
 import {
   clearSession,
   dropStoredTokens,
@@ -85,6 +86,41 @@ function writeCollapsed(collapsed: boolean) {
   window.dispatchEvent(new Event(SIDEBAR_EVENT));
 }
 
+/** Count of new inquiries; refreshed on focus, every minute and after an admin change. */
+function InquiryBadge({ collapsed }: { collapsed: boolean }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      void getInquiryCounts().then((counts) => {
+        if (alive && counts) setCount(counts.new);
+      });
+    load();
+    const id = window.setInterval(load, 60_000);
+    window.addEventListener(INQUIRIES_CHANGED, load);
+    window.addEventListener("focus", load);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+      window.removeEventListener(INQUIRIES_CHANGED, load);
+      window.removeEventListener("focus", load);
+    };
+  }, []);
+  if (!count) return null;
+  const label = count > 99 ? "99+" : String(count);
+  return (
+    <span
+      aria-label={`${count} new`}
+      className={cn(
+        "rounded-full bg-amber-500 text-[11px] font-bold text-white tabular-nums",
+        collapsed ? "absolute top-1 right-1 min-w-4 px-1 leading-4" : "ml-auto min-w-5 px-1.5 text-center leading-5",
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 function NavLink({
   item,
   pathname,
@@ -107,7 +143,7 @@ function NavLink({
       title={item.label}
       onClick={onNavigate}
       className={cn(
-        "flex items-center rounded-xl text-sm font-medium transition-colors",
+        "relative flex items-center rounded-xl text-sm font-medium transition-colors",
         collapsed ? "justify-center px-0 py-2.5" : "gap-2.5 px-3 py-2",
         nested && !collapsed && "py-1.5 text-[13px]",
         active
@@ -122,6 +158,7 @@ function NavLink({
       <span className={cn("truncate", collapsed && "sr-only")}>
         {item.label}
       </span>
+      {item.badge === "inquiries" ? <InquiryBadge collapsed={collapsed} /> : null}
     </Link>
   );
 }
