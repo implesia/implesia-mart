@@ -126,7 +126,7 @@ export async function listPublicPrivacyRights(): Promise<PrivacyRights | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/privacy/rights`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const block = toRights((await response.json()) as ApiRights, false);

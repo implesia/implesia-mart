@@ -87,7 +87,7 @@ export async function listPublicContactFaq(): Promise<ContactFaq | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/contact/faq`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return FALLBACK_CONTACT_FAQ;
     const body = (await response.json()) as ApiFaq;

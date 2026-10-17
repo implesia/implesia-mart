@@ -14,7 +14,9 @@ import { JsonLd } from "../../_components/common/json-ld";
 import { CatalogUnavailable } from "../_components/catalog-unavailable";
 import { ProductsCatalog } from "../_components/products-catalog";
 
-export const revalidate = 60;
+// Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
+// kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
+export const dynamic = "force-dynamic";
 
 const DESCRIPTION =
   "ট্রেন্ডিং গ্যাজেট থেকে হাতে তৈরি গর্জিয়াস ড্রেস — ইমপ্লেসিয়া মার্টের সব প্রোডাক্ট এক জায়গায়, ক্যাশ অন ডেলিভারিতে সারাদেশে ডেলিভারি সহ।";

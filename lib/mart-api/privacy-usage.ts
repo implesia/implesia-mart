@@ -132,7 +132,7 @@ export async function listPublicPrivacyUsage(): Promise<PrivacyUsage | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/privacy/usage`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const block = toUsage((await response.json()) as ApiUsage, false);

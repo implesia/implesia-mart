@@ -109,7 +109,7 @@ export async function listPublicSustainabilityHero(): Promise<SustainabilityHero
   try {
     const response = await fetch(`${API}/api/v1/pages/sustainability/hero`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     return toHero((await response.json()) as ApiHero);

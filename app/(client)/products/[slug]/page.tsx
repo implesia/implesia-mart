@@ -7,7 +7,9 @@ import { absoluteUrl, SITE_NAME } from "@/lib/seo";
 import { JsonLd } from "../../_components/common/json-ld";
 import { ProductDetailLayout } from "../_components/product-detail-view";
 
-export const revalidate = 60;
+// Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
+// kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

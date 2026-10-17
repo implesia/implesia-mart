@@ -68,7 +68,7 @@ export async function listPublicPrivacyHero(): Promise<PrivacyHero | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/privacy/hero`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const hero = toHero((await response.json()) as ApiHero, true);

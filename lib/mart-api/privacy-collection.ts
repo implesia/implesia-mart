@@ -93,7 +93,7 @@ export async function listPublicPrivacyCollection(): Promise<PrivacyCollection |
   try {
     const response = await fetch(`${API}/api/v1/pages/privacy/collection`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const block = toCollection((await response.json()) as ApiCollection, false);

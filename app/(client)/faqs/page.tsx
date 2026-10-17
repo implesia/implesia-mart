@@ -13,7 +13,9 @@ import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { FaqsView } from "./_components/faqs-view";
 
-export const revalidate = 60;
+// Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
+// kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "প্রশ্নোত্তর",

@@ -72,7 +72,7 @@ export async function listPublicBlogCta(): Promise<BlogCta | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/blogs/cta`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const cta = toCta((await response.json()) as ApiCta, true);

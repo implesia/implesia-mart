@@ -174,7 +174,7 @@ export async function listPublicSustainabilityQuality(): Promise<SustainabilityQ
   try {
     const response = await fetch(`${API}/api/v1/pages/sustainability/quality`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     return toQuality((await response.json()) as ApiQuality);

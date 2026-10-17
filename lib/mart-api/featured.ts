@@ -192,7 +192,7 @@ export async function listPublicFeatured(): Promise<FeaturedPublic | null> {
   try {
     const response = await fetch(`${API}/api/v1/home/featured`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const body = (await response.json()) as ApiPublic;

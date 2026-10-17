@@ -108,7 +108,7 @@ export async function listPublicFaqItems(): Promise<FaqItem[]> {
   try {
     const response = await fetch(`${API}/api/v1/pages/faqs/items`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return [];
     return toItems((await response.json()) as ApiItems, false);

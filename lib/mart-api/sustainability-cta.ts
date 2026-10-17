@@ -81,7 +81,7 @@ export async function listPublicSustainabilityCta(): Promise<SustainabilityCta |
   try {
     const response = await fetch(`${API}/api/v1/pages/sustainability/cta`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     return toCta((await response.json()) as ApiCta);

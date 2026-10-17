@@ -12,7 +12,9 @@ import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs"
 import { BlogsGrid } from "./_components/blogs-grid";
 import { BlogsHero } from "./_components/blogs-hero";
 
-export const revalidate = 60;
+// Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
+// kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
+export const dynamic = "force-dynamic";
 
 const TITLE = "ব্লগ";
 const DESCRIPTION =

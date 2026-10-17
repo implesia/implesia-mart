@@ -98,7 +98,7 @@ export async function listPublicContactHero(): Promise<ContactHero | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/contact/hero`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const body = (await response.json()) as ApiHero;

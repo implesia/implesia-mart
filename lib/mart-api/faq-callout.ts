@@ -56,7 +56,7 @@ export async function listPublicFaqCallout(): Promise<FaqCallout | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/faqs/callout`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const callout = toCallout((await response.json()) as ApiCallout, true);

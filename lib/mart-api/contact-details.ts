@@ -146,7 +146,7 @@ export const listPublicContactDetails = cache(async (): Promise<ContactDetails> 
   try {
     const response = await fetch(`${API}/api/v1/pages/contact/details`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return FALLBACK_CONTACT_DETAILS;
     const body = (await response.json()) as ApiDetails;

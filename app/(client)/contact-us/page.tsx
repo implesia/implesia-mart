@@ -19,7 +19,9 @@ import { OpenBadge } from "./_components/contact-open-badge";
 import { ContactSupport } from "./_components/contact-support";
 import { ContactToaster } from "./_components/contact-toast";
 
-export const revalidate = 60;
+// Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
+// kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "যোগাযোগ",

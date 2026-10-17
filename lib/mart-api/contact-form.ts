@@ -97,7 +97,7 @@ export async function listPublicContactForm(): Promise<ContactForm | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/contact/form`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return FALLBACK_CONTACT_FORM;
     const body = (await response.json()) as ApiForm;

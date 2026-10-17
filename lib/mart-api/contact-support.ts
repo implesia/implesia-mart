@@ -116,7 +116,7 @@ export async function listPublicContactSupport(): Promise<ContactSupport | null>
   try {
     const response = await fetch(`${API}/api/v1/pages/contact/support`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return FALLBACK_CONTACT_SUPPORT;
     const body = (await response.json()) as ApiSupport;

@@ -274,7 +274,7 @@ async function fetchCatalog(path: string): Promise<CatalogFetch> {
   try {
     const response = await fetch(`${API}${path}`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     const kind = catalogResponseKind(response.status);
     if (kind === "missing") return { kind: "missing" };
@@ -293,7 +293,7 @@ async function readJson(path: string): Promise<unknown | null> {
   try {
     const response = await fetch(`${API}${path}`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     return await response.json();

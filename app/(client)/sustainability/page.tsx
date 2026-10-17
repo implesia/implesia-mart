@@ -38,7 +38,9 @@ import { SustainabilityImpact } from "./_components/sustainability-impact";
 import { SustainabilityOrigin } from "./_components/sustainability-origin";
 import { SustainabilityQuality } from "./_components/sustainability-quality";
 
-export const revalidate = 60;
+// Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
+// kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "সাসটেইনেবিলিটি",

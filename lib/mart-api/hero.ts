@@ -187,7 +187,7 @@ export async function getPublicHeroSettings(): Promise<HeroCarouselSettings> {
   try {
     const response = await fetch(`${API}/api/v1/home/banner`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return DEFAULT_HERO_SETTINGS;
     return mapHeroSettings((await response.json()) as ApiBannerSettings);
@@ -200,7 +200,7 @@ export async function listPublicHeroSlides(): Promise<HeroSlide[] | null> {
   try {
     const response = await fetch(`${API}/api/v1/home/banner`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const body = (await response.json()) as { slides?: ApiSlide[] };

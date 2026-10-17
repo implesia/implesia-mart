@@ -233,7 +233,7 @@ export async function listPublicSustainabilityCommitment(): Promise<Sustainabili
       `${API}/api/v1/pages/sustainability/commitment`,
       {
         headers: { Accept: "application/json" },
-        next: { revalidate: 60 },
+        cache: "no-store",
       },
     );
     if (!response.ok) return null;

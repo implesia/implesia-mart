@@ -105,7 +105,7 @@ export async function listPublicFaqCategories(): Promise<FaqCategories | null> {
   try {
     const response = await fetch(`${API}/api/v1/pages/faqs/categories`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
     const categories = toCategories((await response.json()) as ApiCategories, true);
