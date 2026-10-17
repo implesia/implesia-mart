@@ -6,6 +6,7 @@ import {
   mediaUrl,
   sitePath,
 } from "@/lib/mart-api/products";
+import { parentIdField } from "@/lib/mart-api/category-tree";
 
 export type CategoryTile = {
   id: string;
@@ -89,13 +90,13 @@ function toSection(body: ApiSection): CategorySection {
   return { heading: body.heading, tiles: body.tiles.map(toTile) };
 }
 
-async function tileForm(draft: CategoryDraft) {
+async function tileForm(draft: CategoryDraft, previousParentId: string | null = null) {
   const local = isLocalImage(draft.imageSrc);
   const body = new FormData();
   body.set(
     "payload",
     JSON.stringify({
-      parent_id: draft.parentId,
+      ...parentIdField(draft.parentId, previousParentId),
       label: draft.label,
       href: draft.href,
       image_src: local ? "" : sitePath(draft.imageSrc),
@@ -137,10 +138,14 @@ export async function createCategoryTile(draft: CategoryDraft): Promise<Category
   return toTile((await response.json()) as ApiTile);
 }
 
-export async function updateCategoryTile(id: string, draft: CategoryDraft): Promise<CategoryTile> {
+export async function updateCategoryTile(
+  id: string,
+  draft: CategoryDraft,
+  previousParentId: string | null = null,
+): Promise<CategoryTile> {
   const response = await authorizedFetch(`/api/v1/admin/home/categories/tiles/${id}`, {
     method: "PATCH",
-    body: await tileForm(draft),
+    body: await tileForm(draft, previousParentId),
   });
   if (!response.ok) {
     throw new MartApiError(await readError(response, "Could not save the category."));

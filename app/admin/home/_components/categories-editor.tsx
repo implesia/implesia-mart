@@ -152,7 +152,9 @@ export function CategoryTiles() {
         setSavedId(created.id);
         focusId.current = created.id;
       } else if (selected) {
-        const updated = await updateCategoryTile(selected, nextDraft);
+        const previousParentId =
+          section.tiles.find((entry) => entry.id === selected)?.parentId ?? null;
+        const updated = await updateCategoryTile(selected, nextDraft, previousParentId);
         setSection({
           ...section,
           tiles: section.tiles.map((entry) => (entry.id === selected ? updated : entry)),

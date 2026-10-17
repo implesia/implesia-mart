@@ -90,3 +90,11 @@ test("moving among siblings returns a depth-first order", () => {
   assert.deepEqual(moveAmongSiblings(tiles, "b", -1), ["b", "a", "a1", "a2"]);
   assert.equal(moveAmongSiblings(tiles, "a1", -1), null);
 });
+
+test("parent_id is omitted unless set or being cleared (old backends forbid extra fields)", async () => {
+  const { parentIdField } = await import("@/lib/mart-api/category-tree");
+  assert.deepEqual(parentIdField(null), {});
+  assert.deepEqual(parentIdField(null, null), {});
+  assert.deepEqual(parentIdField("p1"), { parent_id: "p1" });
+  assert.deepEqual(parentIdField(null, "p0"), { parent_id: null });
+});

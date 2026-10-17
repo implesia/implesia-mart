@@ -124,3 +124,17 @@ export function moveAmongSiblings<T extends CategoryTreeInput>(
   if (!swap(tree)) return null;
   return flattenCategoryTree(tree).map((node) => node.item.id);
 }
+
+/**
+ * Admin writes reject unknown fields. parent_id is only sent when it carries information
+ * (a parent is set, or an existing parent is being cleared), so a backend without category
+ * nesting keeps accepting ordinary top-level saves.
+ */
+export function parentIdField(
+  parentId: string | null,
+  previousParentId: string | null = null,
+): { parent_id?: string | null } {
+  if (parentId) return { parent_id: parentId };
+  if (previousParentId) return { parent_id: null };
+  return {};
+}
