@@ -29,19 +29,15 @@ test("phone accepts Bengali digits, +88 and dashes; rejects bad numbers", () => 
   assert.equal(normalizePhone("12345"), null);
 });
 
-test("validation reports every invalid field and nothing for a good message", () => {
-  const bad = validateContact({ name: " ", phone: "123", subject: "", message: "short" });
-  assert.deepEqual(bad, {
-    name: CONTACT_ERRORS.name,
-    phone: CONTACT_ERRORS.phone,
-    subject: CONTACT_ERRORS.subject,
-    message: CONTACT_ERRORS.message,
-  });
-  assert.deepEqual(
-    validateContact({ name: "রহিম", phone: "01712345678", subject: "অর্ডার", message: "আমার অর্ডারটি কোথায়?" }),
-    {},
+test("every field is optional, but phone or message is needed and filled fields must be valid", () => {
+  assert.deepEqual(validateContact({ name: "", phone: "", subject: "", message: "" }), { message: CONTACT_ERRORS.empty });
+  assert.deepEqual(validateContact({ name: "", phone: "01712345678", subject: "", message: "" }), {});
+  assert.deepEqual(validateContact({ name: "", phone: "", subject: "", message: "প্রশ্ন" }), {});
+  assert.deepEqual(validateContact({ name: "", phone: "123", subject: "", message: "x" }), { phone: CONTACT_ERRORS.phone });
+  assert.equal(
+    validateContact({ name: "n".repeat(81), phone: "", subject: "", message: "x".repeat(1001) }).message,
+    CONTACT_ERRORS.messageLong,
   );
-  assert.equal(validateContact({ name: "ab", phone: "01712345678", subject: "x", message: "x".repeat(1001) }).message, CONTACT_ERRORS.messageLong);
 });
 
 test("WhatsApp hand-off keeps the CMS number and encodes the composed message", () => {

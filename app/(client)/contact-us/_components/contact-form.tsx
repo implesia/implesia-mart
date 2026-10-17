@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import {
   LIMITS,
   composeWhatsAppMessage,
+  normalizePhone,
   validateContact,
   validateField,
   whatsAppChatHref,
@@ -12,6 +13,12 @@ import {
   type ContactValues,
 } from "@/lib/contact/contact-rules";
 import { type ContactForm as Form } from "@/lib/mart-api/contact-form";
+import {
+  InquirySubmitError,
+  SUBMIT_ERRORS,
+  newIdempotencyKey,
+  submitInquiry,
+} from "@/lib/mart-api/inquiry-public";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -20,7 +27,7 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 export const CONTACT_TOPICS = ["অর্ডার স্ট্যাটাস", "ডেলিভারি", "রিটার্ন ও এক্সচেঞ্জ", "প্রোডাক্ট তথ্য", "পেমেন্ট"] as const;
 
 const EMPTY: ContactValues = { name: "", phone: "", subject: "", message: "" };
-type Phase = "idle" | "sending" | "sent" | "blocked" | "unavailable";
+type Phase = "idle" | "sending" | "sent" | "error";
 
 const inputCls = cn(
   "block w-full rounded-xl border bg-white px-4 text-base text-neutral-950 placeholder:text-neutral-500",
@@ -48,7 +55,7 @@ function Field({
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
         <label htmlFor={inputId} className="text-sm font-semibold text-neutral-800">
           {label}
-          <span aria-hidden className="ml-0.5 text-red-600">*</span>
+          <span className="ml-1 text-xs font-normal text-neutral-500">(ঐচ্ছিক)</span>
         </label>
         {hint}
       </div>
@@ -64,9 +71,10 @@ function Field({
 }
 
 /**
- * Validates inline, then hands the message to WhatsApp (the CMS number from the
- * hero). There is no backend inbox, so nothing is stored on our side. A filled
- * honeypot is treated as sent without opening anything.
+ * Every field is optional (phone or message is enough). The message is stored
+ * through POST /api/v1/inquiries; WhatsApp is offered afterwards as a follow-up.
+ * One idempotency key per message makes a retry or double click store it once;
+ * on a failure the visitor's text stays in the form.
  */
 export function ContactForm({ form, whatsappHref, className }: { form: Form | null; whatsappHref: string; className?: string }) {
   const uid = useId();
@@ -77,6 +85,13 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
   const [status, setStatus] = useState("");
   const [chatHref, setChatHref] = useState("");
   const honeypot = useRef<HTMLInputElement>(null);
+  const startedAt = useRef(0);
+  const attemptKey = useRef<string | null>(null);
+  const inFlight = useRef(false);
+
+  useEffect(() => {
+    startedAt.current = Date.now();
+  }, []);
   const formRef = useRef<HTMLFormElement>(null);
   const doneRef = useRef<HTMLHeadingElement>(null);
   const focusAfterRender = useRef<"name" | "done" | null>(null);
@@ -109,43 +124,52 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
     if (next === "sent") focusAfterRender.current = "done";
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (phase === "sending") return;
+    if (inFlight.current) return; // double click / Enter spam
     const found = validateContact(values);
     setErrors(found);
     setTouched({ name: true, phone: true, subject: true, message: true });
     const invalid = (Object.keys(found) as (keyof ContactValues)[]).filter((k) => found[k]);
     if (invalid.length) {
+      setPhase("idle");
       setStatus(`${invalid.length.toLocaleString("bn-BD")}টি ঘর ঠিক করুন।`);
       formRef.current?.querySelector<HTMLElement>(`#${CSS.escape(id(invalid[0]))}`)?.focus();
       return;
     }
-    if (honeypot.current?.value) {
-      finish("sent", "মেসেজ পাঠানো হয়েছে।");
-      return;
-    }
-    const href = whatsAppChatHref(whatsappHref, composeWhatsAppMessage(values));
-    if (!href) {
-      finish("unavailable", "এই মুহূর্তে হোয়াটসঅ্যাপ নাম্বার পাওয়া যাচ্ছে না। কল বা ইমেইল করুন।");
-      return;
-    }
-    setChatHref(href);
+    inFlight.current = true;
+    attemptKey.current ??= newIdempotencyKey();
     setPhase("sending");
-    setStatus("হোয়াটসঅ্যাপ খোলা হচ্ছে…");
-    // Must open inside the click; "noopener" would make window.open return null.
-    const win = window.open(href, "_blank");
-    if (win) win.opener = null;
-    setTimeout(
-      () =>
-        win
-          ? finish("sent", "হোয়াটসঅ্যাপে আপনার মেসেজ তৈরি — সেখানে Send চাপুন।")
-          : finish("blocked", "নতুন ট্যাব খোলা যায়নি। নিচের বোতাম চেপে হোয়াটসঅ্যাপ খুলুন।"),
-      500,
-    );
+    setStatus("মেসেজ পাঠানো হচ্ছে…");
+    try {
+      await submitInquiry(
+        {
+          type: "contact",
+          name: values.name,
+          phone: normalizePhone(values.phone) ?? values.phone,
+          subject: values.subject,
+          message: values.message,
+          meta: { page_path: "/contact-us", ...(CONTACT_TOPICS.some((t) => t === values.subject.trim()) ? { topic: values.subject.trim() } : {}) },
+          website: honeypot.current?.value ?? "",
+          elapsedMs: startedAt.current ? Date.now() - startedAt.current : undefined,
+        },
+        attemptKey.current,
+      );
+      attemptKey.current = null;
+      setChatHref(whatsAppChatHref(whatsappHref, composeWhatsAppMessage(values)));
+      finish("sent", "আপনার মেসেজ আমরা পেয়েছি। আমাদের টিম দেখে যোগাযোগ করবে।");
+    } catch (reason) {
+      // Keep the text and the same key: a retry of this message is stored once.
+      finish("error", reason instanceof InquirySubmitError ? reason.message : SUBMIT_ERRORS.server);
+    } finally {
+      inFlight.current = false;
+    }
   }
 
   function reset() {
+    attemptKey.current = null;
+    startedAt.current = Date.now();
+    setChatHref("");
     setValues(EMPTY);
     setErrors({});
     setTouched({});
@@ -193,14 +217,15 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
             <MaterialIcon name="check" className="text-[30px]" />
           </span>
           <h3 ref={doneRef} tabIndex={-1} className="mt-4 text-lg font-bold text-neutral-950 outline-none">
-            ধন্যবাদ, {values.name.trim() || "আপনার মেসেজ"} তৈরি!
+            ধন্যবাদ{values.name.trim() ? `, ${values.name.trim()}` : ""}! মেসেজ পাঠানো হয়েছে।
           </h3>
           <p className="mx-auto mt-2 max-w-[40ch] text-[15px] leading-relaxed text-neutral-700">{status}</p>
           <div className="mt-5 flex flex-col justify-center gap-3 min-[420px]:flex-row">
             {chatHref ? (
               <a href={chatHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-full bg-[#25D366] px-5 text-[15px] font-semibold text-neutral-950 hover:bg-[#20bd5a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink">
-                আবার খুলুন
+                হোয়াটসঅ্যাপে ফলো-আপ করুন
                 <MaterialIcon name="open_in_new" className="text-[18px]" />
+                <span className="sr-only"> (নতুন ট্যাবে খুলবে)</span>
               </a>
             ) : null}
             <button type="button" onClick={reset} className="inline-flex min-h-12 items-center justify-center rounded-full border border-neutral-300 bg-white px-5 text-[15px] font-semibold text-neutral-950 hover:border-neutral-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink">
@@ -209,14 +234,14 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
           </div>
         </div>
       ) : (
-        <form ref={formRef} onSubmit={submit} noValidate className="mt-6 space-y-5">
+        <form ref={formRef} onSubmit={(e) => void submit(e)} noValidate className="mt-6 space-y-5">
+          <p className="text-sm text-neutral-600">সব ঘর ঐচ্ছিক — ফোন নাম্বার বা মেসেজ, অন্তত একটি দিন।</p>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field {...fieldProps("name")}>
               <input
                 id={id("name")}
                 name="name"
                 autoComplete="name"
-                required
                 maxLength={LIMITS.name}
                 value={values.name}
                 onChange={(e) => set("name", e.target.value)}
@@ -234,7 +259,6 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
-                required
                 value={values.phone}
                 onChange={(e) => set("phone", e.target.value)}
                 onBlur={() => blur("phone")}
@@ -280,7 +304,6 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
             <input
               id={id("subject")}
               name="subject"
-              required
               maxLength={LIMITS.subject}
               value={values.subject}
               onChange={(e) => set("subject", e.target.value)}
@@ -307,7 +330,6 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
             <textarea
               id={id("message")}
               name="message"
-              required
               rows={5}
               value={values.message}
               onChange={(e) => set("message", e.target.value)}
@@ -325,18 +347,10 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
             <input ref={honeypot} id={id("website")} name="website" type="text" tabIndex={-1} autoComplete="off" />
           </div>
 
-          {phase === "blocked" || phase === "unavailable" ? (
-            <div className="flex flex-col gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200 sm:flex-row sm:items-center sm:justify-between">
-              <p className="flex items-start gap-2 font-medium">
-                <MaterialIcon name="warning" className="mt-0.5 text-[18px]" />
-                {status}
-              </p>
-              {phase === "blocked" && chatHref ? (
-                <a href={chatHref} target="_blank" rel="noopener noreferrer" onClick={() => finish("sent", "হোয়াটসঅ্যাপে আপনার মেসেজ তৈরি — সেখানে Send চাপুন।")} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#25D366] px-4 font-semibold text-neutral-950">
-                  হোয়াটসঅ্যাপ খুলুন
-                  <MaterialIcon name="open_in_new" className="text-[16px]" />
-                </a>
-              ) : null}
+          {phase === "error" ? (
+            <div role="alert" className="flex items-start gap-2 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-900 ring-1 ring-red-200">
+              <MaterialIcon name="wifi_off" className="mt-0.5 text-[18px]" />
+              <span>{status}</span>
             </div>
           ) : null}
 
@@ -360,7 +374,7 @@ export function ContactForm({ form, whatsappHref, className }: { form: Form | nu
             {phase === "sending" ? (
               <>
                 <span aria-hidden className="size-4 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin" />
-                খোলা হচ্ছে…
+                পাঠানো হচ্ছে…
               </>
             ) : (
               <>

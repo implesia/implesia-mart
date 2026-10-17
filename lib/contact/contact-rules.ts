@@ -18,38 +18,31 @@ export function normalizePhone(value: string) {
   return match ? match[1] : null;
 }
 
-export const LIMITS = { name: 80, subject: 120, message: 1000, messageMin: 10 } as const;
+export const LIMITS = { name: 80, subject: 120, message: 1000 } as const;
 
 export type ContactValues = { name: string; phone: string; subject: string; message: string };
 export type ContactErrors = Partial<Record<keyof ContactValues, string>>;
 
 export const CONTACT_ERRORS = {
-  name: "আপনার নাম লিখুন (কমপক্ষে ২ অক্ষর)।",
   nameLong: `নাম ${LIMITS.name} অক্ষরের মধ্যে লিখুন।`,
-  phone: "সঠিক মোবাইল নাম্বার দিন, যেমন ০১৭XXXXXXXX।",
-  subject: "বিষয় লিখুন বা উপরের একটি টপিক বেছে নিন।",
+  phone: "সঠিক মোবাইল নাম্বার দিন, যেমন ০১৭XXXXXXXX — অথবা ঘরটি খালি রাখুন।",
   subjectLong: `বিষয় ${LIMITS.subject} অক্ষরের মধ্যে লিখুন।`,
-  message: `মেসেজ কমপক্ষে ${LIMITS.messageMin} অক্ষরের হতে হবে।`,
   messageLong: `মেসেজ ${LIMITS.message} অক্ষরের মধ্যে লিখুন।`,
+  empty: "ফোন নাম্বার বা মেসেজ — অন্তত একটি লিখুন, যাতে আমরা উত্তর দিতে পারি।",
 } as const;
 
+/** Every field is optional; a filled field must be valid. */
 export function validateField(field: keyof ContactValues, raw: string): string | undefined {
   const value = raw.trim();
   switch (field) {
     case "name":
-      if (value.length < 2) return CONTACT_ERRORS.name;
-      if (value.length > LIMITS.name) return CONTACT_ERRORS.nameLong;
-      return undefined;
+      return value.length > LIMITS.name ? CONTACT_ERRORS.nameLong : undefined;
     case "phone":
-      return normalizePhone(value) ? undefined : CONTACT_ERRORS.phone;
+      return value && !normalizePhone(value) ? CONTACT_ERRORS.phone : undefined;
     case "subject":
-      if (!value) return CONTACT_ERRORS.subject;
-      if (value.length > LIMITS.subject) return CONTACT_ERRORS.subjectLong;
-      return undefined;
+      return value.length > LIMITS.subject ? CONTACT_ERRORS.subjectLong : undefined;
     case "message":
-      if (value.length < LIMITS.messageMin) return CONTACT_ERRORS.message;
-      if (value.length > LIMITS.message) return CONTACT_ERRORS.messageLong;
-      return undefined;
+      return value.length > LIMITS.message ? CONTACT_ERRORS.messageLong : undefined;
   }
 }
 
@@ -59,6 +52,8 @@ export function validateContact(values: ContactValues): ContactErrors {
     const error = validateField(field, values[field]);
     if (error) errors[field] = error;
   }
+  // Nothing to reply to: flag the message box (the phone box may be valid-but-empty).
+  if (!values.phone.trim() && !values.message.trim()) errors.message = CONTACT_ERRORS.empty;
   return errors;
 }
 
