@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -18,6 +18,12 @@ import {
   type CategorySection,
   type CategoryTile,
 } from "@/lib/mart-api/categories";
+import {
+  buildCategoryTree,
+  flattenCategoryTree,
+  moveAmongSiblings,
+  selfAndDescendantIds,
+} from "@/lib/mart-api/category-tree";
 import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 import { isContentActive } from "@/lib/mart-mock/visibility";
@@ -59,7 +65,12 @@ export function CategoryTiles() {
   const [resolved, setResolved] = useState<string | null>(null);
   const focusId = useRef<string | null>(null);
   const labelId = useId();
-  const tiles = section?.tiles ?? [];
+  const tiles = useMemo(() => section?.tiles ?? [], [section]);
+  // Admin list and parent picker follow the tree (hidden tiles included), depth-first.
+  const treeRows = useMemo(
+    () => flattenCategoryTree(buildCategoryTree(tiles, { includeHidden: true })),
+    [tiles],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -174,15 +185,10 @@ export function CategoryTiles() {
   async function move(id: string, direction: -1 | 1) {
     if (!section) return;
     setLoadError("");
-    const index = section.tiles.findIndex((tile) => tile.id === id);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= section.tiles.length) return;
-    const next = [...section.tiles];
-    const [tile] = next.splice(index, 1);
-    if (!tile) return;
-    next.splice(target, 0, tile);
+    const order = moveAmongSiblings(section.tiles, id, direction);
+    if (!order) return;
     try {
-      setSection(await reorderCategoryTiles(next.map((entry) => entry.id)));
+      setSection(await reorderCategoryTiles(order));
     } catch (error) {
       setLoadError(
         error instanceof MartApiError ? error.message : "Could not reorder the categories.",
@@ -196,18 +202,32 @@ export function CategoryTiles() {
       setOverId(null);
       return;
     }
-    const next = [...section.tiles];
-    const from = next.findIndex((tile) => tile.id === dragId);
-    const to = next.findIndex((tile) => tile.id === targetId);
+    const dragged = section.tiles.find((tile) => tile.id === dragId);
+    const target = section.tiles.find((tile) => tile.id === targetId);
     setDragId(null);
     setOverId(null);
     setLoadError("");
-    if (from < 0 || to < 0) return;
-    const [tile] = next.splice(from, 1);
-    if (!tile) return;
-    next.splice(to, 0, tile);
+    if (!dragged || !target) return;
+    if ((dragged.parentId ?? null) !== (target.parentId ?? null)) {
+      setLoadError("Drag within the same parent. Change the parent in Edit to move a category.");
+      return;
+    }
+    // Reorder the siblings, then send the whole tree depth-first.
+    const siblings = section.tiles.filter(
+      (tile) => (tile.parentId ?? null) === (dragged.parentId ?? null),
+    );
+    const from = siblings.findIndex((tile) => tile.id === dragged.id);
+    const to = siblings.findIndex((tile) => tile.id === target.id);
+    siblings.splice(to, 0, ...siblings.splice(from, 1));
+    const rank = new Map(siblings.map((tile, index) => [tile.id, index]));
+    const reordered = [...section.tiles].sort(
+      (a, b) => (rank.get(a.id) ?? -1) - (rank.get(b.id) ?? -1),
+    );
+    const order = flattenCategoryTree(buildCategoryTree(reordered, { includeHidden: true })).map(
+      (node) => node.item.id,
+    );
     try {
-      setSection(await reorderCategoryTiles(next.map((entry) => entry.id)));
+      setSection(await reorderCategoryTiles(order));
     } catch (error) {
       setLoadError(
         error instanceof MartApiError ? error.message : "Could not reorder the categories.",
@@ -227,7 +247,13 @@ export function CategoryTiles() {
   }
 
   const missing = Boolean(selected && selected !== "new" && resolved === selected && !draft);
-  const visible = tiles.filter(isContentActive);
+  const visibleTree = buildCategoryTree(tiles);
+  const visible = visibleTree.map((node) => node.item);
+  const childCount = new Map(visibleTree.map((node) => [node.item.id, node.children.length]));
+  const parentOptions = treeRows.filter(
+    (row) => !(selected && selected !== "new" && selfAndDescendantIds(tiles, selected).has(row.item.id)),
+  );
+  const labelOf = new Map(tiles.map((tile) => [tile.id, tile.label || "Untitled category"]));
 
   return (
     <div className="min-w-0 space-y-4">
@@ -269,7 +295,8 @@ export function CategoryTiles() {
             Storefront preview
           </h2>
           <p className="mt-0.5 text-sm text-neutral-500">
-            Shown on the home page, in this order. Hidden categories stay off the home page.
+            Top-level categories as shown on the home page, in this order. Subcategories open from
+            them in the hero menu. Hidden categories (and everything under them) stay off the home page.
           </p>
         </div>
         <div className="px-4 py-4 sm:px-5">
@@ -321,6 +348,11 @@ export function CategoryTiles() {
                       <span aria-hidden className="absolute inset-0 bg-linear-to-t from-black/75 via-black/25 to-black/10" />
                       <span className="relative z-10 mt-auto px-3 py-3 text-sm font-semibold text-white sm:px-5 sm:py-5 sm:text-2xl">
                         {tile.label || "Untitled category"}
+                        {childCount.get(tile.id) ? (
+                          <span className="mt-0.5 block text-xs font-medium text-white/80 sm:text-sm">
+                            {childCount.get(tile.id)} subcategor{childCount.get(tile.id) === 1 ? "y" : "ies"}
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   </li>
@@ -339,7 +371,12 @@ export function CategoryTiles() {
             </h2>
           </div>
           <ol>
-            {tiles.map((tile, index) => (
+            {treeRows.map(({ item: tile, depth }, index) => {
+              const siblings = tiles.filter(
+                (entry) => (entry.parentId ?? null) === (tile.parentId ?? null),
+              );
+              const siblingIndex = siblings.findIndex((entry) => entry.id === tile.id);
+              return (
               <li
                 key={tile.id}
                 onDragOver={(event) => {
@@ -358,7 +395,10 @@ export function CategoryTiles() {
                   dragId === tile.id && "opacity-60",
                 )}
               >
-                <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:px-4">
+                <div
+                  className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:px-4"
+                  style={{ paddingLeft: `calc(${depth} * 1.5rem + 0.75rem)` }}
+                >
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     <button
                       type="button"
@@ -398,19 +438,24 @@ export function CategoryTiles() {
                           <span className="truncate text-sm font-semibold text-neutral-950">{tile.label || "Untitled category"}</span>
                           <VisibilityBadge active={isContentActive(tile)} />
                         </span>
-                        <span className="block truncate text-xs text-neutral-500">{tile.href || "/products"}</span>
+                        <span className="block truncate text-xs text-neutral-500">
+                          {depth > 0 && tile.parentId ? `in ${labelOf.get(tile.parentId)} · ` : ""}
+                          {tile.href || "/products"}
+                        </span>
                       </span>
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
-                    <IconButton label="Move earlier" icon="arrow_upward" disabled={index === 0} onClick={() => void move(tile.id, -1)} />
-                    <IconButton label="Move later" icon="arrow_downward" disabled={index === tiles.length - 1} onClick={() => void move(tile.id, 1)} />
+                    <IconButton label="Move earlier" icon="arrow_upward" disabled={siblingIndex <= 0} onClick={() => void move(tile.id, -1)} />
+                    <IconButton label="Move later" icon="arrow_downward" disabled={siblingIndex === siblings.length - 1} onClick={() => void move(tile.id, 1)} />
                     <button type="button" onClick={() => setEdit(tile.id)} className={adminButtonClass.quiet}>
                       Edit
                     </button>
                     {confirmId === tile.id ? (
                       <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                        Remove from the home page?
+                        {tiles.some((entry) => entry.parentId === tile.id)
+                          ? "Remove? Its subcategories move up one level."
+                          : "Remove from the home page?"}
                         <button type="button" onClick={() => void remove(tile.id)} className="font-semibold underline">
                           Yes
                         </button>
@@ -424,7 +469,8 @@ export function CategoryTiles() {
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ol>
         </section>
       ) : null}
@@ -493,6 +539,26 @@ export function CategoryTiles() {
                 ) : null}
               </div>
               <div>
+                <FieldLabel htmlFor={`${labelId}-parent`}>Parent category</FieldLabel>
+                <select
+                  id={`${labelId}-parent`}
+                  value={draft.parentId ?? ""}
+                  onChange={(event) => setDraft({ ...draft, parentId: event.target.value || null })}
+                  className={adminFieldClass}
+                >
+                  <option value="">None (top level)</option>
+                  {parentOptions.map(({ item, depth }) => (
+                    <option key={item.id} value={item.id}>
+                      {`${"\u00a0\u00a0".repeat(depth)}${depth > 0 ? "└ " : ""}${item.label || "Untitled category"}${isContentActive(item) ? "" : " (hidden)"}`}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs text-neutral-500">
+                  Nest this category under another one. A category cannot move under itself or its own
+                  subcategories.
+                </p>
+              </div>
+              <div>
                 <FieldLabel htmlFor={`${labelId}-href`}>Link</FieldLabel>
                 <input
                   id={`${labelId}-href`}
@@ -529,6 +595,7 @@ export function CategoryTiles() {
 
 function draftFrom(tile: CategoryTile): CategoryDraft {
   return {
+    parentId: tile.parentId ?? null,
     label: tile.label,
     imageSrc: tile.imageSrc,
     href: tile.href,

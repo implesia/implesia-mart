@@ -9,6 +9,8 @@ import {
 
 export type CategoryTile = {
   id: string;
+  /** Parent tile id; null or missing means a top-level category. */
+  parentId: string | null;
   label: string;
   href: string;
   imageSrc: string;
@@ -16,6 +18,7 @@ export type CategoryTile = {
 };
 
 export type CategoryDraft = {
+  parentId: string | null;
   label: string;
   href: string;
   imageSrc: string;
@@ -29,6 +32,7 @@ export type CategorySection = {
 
 type ApiTile = {
   id: string;
+  parent_id?: string | null;
   label: string;
   href: string;
   image_src: string;
@@ -45,6 +49,7 @@ export const FALLBACK_CATEGORIES: CategorySection = {
   tiles: [
     {
       id: "gadgets",
+      parentId: null,
       label: "Trending Gadgets",
       href: "/products?category=gadgets",
       imageSrc: "/images/products/lamp/lamp-5.jpg",
@@ -52,6 +57,7 @@ export const FALLBACK_CATEGORIES: CategorySection = {
     },
     {
       id: "fashion",
+      parentId: null,
       label: "গর্জিয়াস ড্রেস",
       href: "/products?category=fashion",
       imageSrc: "/images/products/baby-products/wedding-dress.jpeg",
@@ -61,7 +67,7 @@ export const FALLBACK_CATEGORIES: CategorySection = {
 };
 
 export function blankCategoryDraft(): CategoryDraft {
-  return { label: "", href: "/products", imageSrc: "", isActive: true };
+  return { parentId: null, label: "", href: "/products", imageSrc: "", isActive: true };
 }
 
 export function categoryImage(src: string) {
@@ -71,6 +77,7 @@ export function categoryImage(src: string) {
 function toTile(body: ApiTile): CategoryTile {
   return {
     id: body.id,
+    parentId: body.parent_id ?? null,
     label: body.label,
     href: body.href,
     imageSrc: body.image_src,
@@ -88,6 +95,7 @@ async function tileForm(draft: CategoryDraft) {
   body.set(
     "payload",
     JSON.stringify({
+      parent_id: draft.parentId,
       label: draft.label,
       href: draft.href,
       image_src: local ? "" : sitePath(draft.imageSrc),
