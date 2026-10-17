@@ -6,6 +6,8 @@ export type FaqItem = {
   question: string;
   answer: string;
   isActive: boolean;
+  /** Optional follow-up link; only the bundled copy sets it. */
+  link?: { label: string; href: string };
 };
 
 type ApiItem = {
