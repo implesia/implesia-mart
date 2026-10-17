@@ -10,6 +10,8 @@ import type { Swiper as SwiperInstance } from "swiper/types";
 import { Autoplay, EffectFade, Keyboard } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
+const HERO_FALLBACK_IMAGE = "/images/hero/bannerHero.png";
+
 import type { CategorySection } from "@/lib/mart-api/categories";
 import { DEFAULT_HERO_SETTINGS, type HeroCarouselSettings } from "@/lib/mart-api/hero";
 import { isContentActive } from "@/lib/mart-mock/visibility";
@@ -111,6 +113,10 @@ function HeroCarousel({
   settings: HeroCarouselSettings;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  // Slide ids whose CMS image failed to load; they fall back to the bundled hero image.
+  const [brokenSlideIds, setBrokenSlideIds] = useState<ReadonlySet<string>>(() => new Set());
+  const markSlideImageBroken = (id: string) =>
+    setBrokenSlideIds((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
   const swiperRef = useRef<SwiperInstance | null>(null);
   const loop = settings.loop && slides.length > 1;
 
@@ -200,7 +206,8 @@ function HeroCarousel({
                     <div className="order-1 flex h-[52%] min-w-0 shrink-0 items-stretch px-3 pt-3 sm:order-none sm:h-full sm:py-5 sm:pr-5 sm:pb-14 sm:pl-2 lg:pr-6">
                       <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/95 shadow-[0_18px_44px_rgba(0,0,0,0.32)] ring-1 ring-white/20 sm:rounded-[1.4rem]">
                         <Image
-                          src={slide.imageSrc}
+                          src={brokenSlideIds.has(String(slide.id)) ? HERO_FALLBACK_IMAGE : slide.imageSrc}
+                          onError={() => markSlideImageBroken(String(slide.id))}
                           alt=""
                           aria-hidden
                           fill
@@ -208,7 +215,8 @@ function HeroCarousel({
                           className="scale-110 object-cover opacity-40 blur-2xl"
                         />
                         <Image
-                          src={slide.imageSrc}
+                          src={brokenSlideIds.has(String(slide.id)) ? HERO_FALLBACK_IMAGE : slide.imageSrc}
+                          onError={() => markSlideImageBroken(String(slide.id))}
                           alt={slide.imageAlt}
                           fill
                           priority={index === 0}
