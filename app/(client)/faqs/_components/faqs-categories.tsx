@@ -36,6 +36,8 @@ export function FaqsCategories({
           <p className="mb-2.5 text-sm font-semibold text-neutral-950">{categories.title}</p>
         ) : null}
         <div
+          role="group"
+          aria-label={categories.navLabel.trim() || categories.title.trim() || "Categories"}
           className={cn(
             "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1",
             "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
@@ -47,15 +49,16 @@ export function FaqsCategories({
               <button
                 key={option.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => onChange(option.id)}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
+                  "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                   active
                     ? "border-primary bg-primary text-on-primary"
                     : "border-neutral-200/90 bg-white text-neutral-600 hover:border-primary/40 hover:text-neutral-950",
                 )}
               >
-                <MaterialIcon name={option.icon} className="text-[16px]" />
+                <MaterialIcon name={option.icon} className="text-[18px]" />
                 {option.label}
               </button>
             );
@@ -82,9 +85,10 @@ export function FaqsCategories({
               <button
                 key={option.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => onChange(option.id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-primary",
                   active
                     ? "bg-primary/10 font-semibold text-primary"
                     : "font-medium text-neutral-600 hover:bg-[#f5f6f8] hover:text-neutral-950",

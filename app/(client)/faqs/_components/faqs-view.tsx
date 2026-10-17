@@ -16,7 +16,7 @@ import { JsonLd } from "../../_components/common/json-ld";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { FaqsCategories } from "./faqs-categories";
 import { FaqsHelpCta } from "./faqs-help-cta";
-import { FaqsList } from "./faqs-list";
+import { FaqsEmpty, FaqsList } from "./faqs-list";
 
 export function FaqsView({
   hero,
@@ -59,6 +59,21 @@ export function FaqsView({
       );
     });
   }, [questions, selected, normalizedQuery]);
+
+  // "All" without a search: show the questions under their category headings.
+  const groups =
+    showCategories && selected === "all" && !normalizedQuery
+      ? categoryItems
+          .map((category) => ({
+            category,
+            items: filtered.filter((item) => item.categoryId === category.id),
+          }))
+          .filter((group) => group.items.length > 0)
+      : [];
+  const grouped = groups.length > 0;
+  const ungrouped = grouped
+    ? filtered.filter((item) => !categoryItems.some((category) => category.id === item.categoryId))
+    : [];
 
   const categoryTitle =
     selected === "all"
@@ -110,23 +125,25 @@ export function FaqsView({
                     {hero.subtitle}
                   </p>
                 ) : null}
-                <div className="relative mx-auto max-w-xl">
+                <div role="search" className="relative mx-auto max-w-xl">
                   <MaterialIcon
                     name="search"
                     className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[20px] text-neutral-400"
                   />
                   <Input
+                    type="search"
+                    enterKeyHint="search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder={hero.placeholder}
-                    className="h-11 rounded-full border-0 bg-white pl-11 text-sm text-neutral-950 shadow-none placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-primary/40"
+                    className="h-12 rounded-full border-0 bg-white pr-12 pl-11 text-base [&::-webkit-search-cancel-button]:hidden text-neutral-950 shadow-none placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-primary/40"
                     aria-label={hero.searchLabel.trim() || "Search"}
                   />
                   {query.trim() ? (
                     <button
                       type="button"
                       onClick={() => setQuery("")}
-                      className="absolute top-1/2 right-3 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-neutral-400 hover:bg-[#f5f6f8]"
+                      className="absolute top-1/2 right-2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-neutral-500 hover:bg-[#f5f6f8] focus-visible:outline-2 focus-visible:outline-primary"
                       aria-label={hero.clearLabel.trim() || "Clear search"}
                     >
                       <MaterialIcon name="close" className="text-[18px]" />
@@ -146,7 +163,11 @@ export function FaqsView({
                           setActiveCategory("all");
                           setQuery(tag.label);
                         }}
-                        className="rounded-full border border-white/20 px-2.5 py-1 text-[11px] text-white/85 transition-colors hover:bg-white/10 sm:px-3 sm:text-xs"
+                        aria-pressed={query.trim() === tag.label}
+                        className={cn(
+                          "min-h-9 rounded-full border px-3 py-1.5 text-xs text-white/90 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                          query.trim() === tag.label ? "border-primary bg-primary/20" : "border-white/25",
+                        )}
                       >
                         {tag.label}
                       </button>
@@ -179,7 +200,7 @@ export function FaqsView({
                       {categoryTitle}
                     </h2>
                   ) : null}
-                  <p className="mt-1 text-sm text-neutral-600">
+                  <p className="mt-1 text-sm text-neutral-600" aria-live="polite">
                     {`${filtered.length}${listing.countSuffix}`}
                     {normalizedQuery ? ` · “${query.trim()}”` : null}
                   </p>
@@ -204,7 +225,35 @@ export function FaqsView({
                 </div>
               ) : null}
 
-              <FaqsList items={filtered} listing={listing} />
+              {grouped ? (
+                <div className="flex flex-col gap-8">
+                  {groups.map((group, index) => (
+                    <section key={group.category.id} aria-labelledby={`faq-group-${group.category.id}`}>
+                      <h2
+                        id={`faq-group-${group.category.id}`}
+                        className="mb-3 flex items-center gap-2 text-base font-semibold text-neutral-950 sm:text-lg"
+                      >
+                        <span
+                          aria-hidden
+                          className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary-ink"
+                        >
+                          <MaterialIcon name={group.category.icon || "help_outline"} className="text-[18px]" />
+                        </span>
+                        {group.category.label}
+                        <span className="text-sm font-normal text-neutral-500">
+                          ({group.items.length.toLocaleString("bn-BD")})
+                        </span>
+                      </h2>
+                      <FaqsList items={group.items} listing={listing} openFirst={index === 0} />
+                    </section>
+                  ))}
+                  {ungrouped.length ? <FaqsList items={ungrouped} listing={listing} openFirst={false} /> : null}
+                </div>
+              ) : filtered.length ? (
+                <FaqsList items={filtered} listing={listing} />
+              ) : (
+                <FaqsEmpty listing={listing} />
+              )}
               <FaqsHelpCta help={help} />
             </div>
           </div>
