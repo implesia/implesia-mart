@@ -6,6 +6,7 @@ import type { OrderStatus } from "@/lib/mart-mock/store";
 
 export type QuoteLine = {
   productId: string;
+  variantId: string | null;
   cartItemId: string | null;
   title: string;
   slug: string;
@@ -31,6 +32,8 @@ export type OrderQuote = {
 export type MartOrderItem = {
   id: string;
   productId: string | null;
+  variantId: string | null;
+  sku: string;
   title: string;
   slug: string;
   imageSrc: string;
@@ -86,6 +89,7 @@ export type OrderDirectory = {
 
 type ApiQuoteLine = {
   product_id: string;
+  variant_id?: string | null;
   cart_item_id: string | null;
   title: string;
   slug: string;
@@ -111,6 +115,8 @@ type ApiQuote = {
 type ApiOrderItem = {
   id: string;
   product_id: string | null;
+  variant_id?: string | null;
+  sku?: string;
   title: string;
   slug: string;
   image_src: string;
@@ -157,6 +163,7 @@ function mapQuote(body: ApiQuote): OrderQuote {
   return {
     items: body.items.map((item) => ({
       productId: item.product_id,
+      variantId: item.variant_id ?? null,
       cartItemId: item.cart_item_id,
       title: item.title,
       slug: item.slug,
@@ -203,6 +210,8 @@ function mapOrder(body: ApiOrder): MartOrder {
     items: body.items.map((item) => ({
       id: item.id,
       productId: item.product_id,
+      variantId: item.variant_id ?? null,
+      sku: item.sku ?? "",
       title: item.title,
       slug: item.slug,
       imageSrc: mediaUrl(item.image_src),

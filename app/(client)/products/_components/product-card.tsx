@@ -188,6 +188,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             ) : null}
             <span className="text-base font-bold tabular-nums text-primary-ink sm:text-lg md:text-xl">
               <span className="sr-only">বর্তমান দাম </span>
+              {product.hasVariants ? (
+                <span className="mr-1 text-[11px] font-medium text-on-surface-variant">
+                  শুরু
+                </span>
+              ) : null}
               {formatPrice(product.price)}
             </span>
             {product.compareAtPrice && !isComingSoon ? (
@@ -198,7 +203,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             ) : null}
           </div>
 
-          {isComingSoon ? (
+          {isComingSoon || (product.hasVariants && !isSoldOut) ? (
             <Link
               href={`/products/${product.slug}`}
               className={cn(
@@ -208,8 +213,14 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 "dark:border-white/12",
               )}
             >
-              <span className="sm:hidden">বিস্তারিত</span>
-              <span className="hidden sm:inline">বিস্তারিত দেখুন</span>
+              <span className="sm:hidden">
+                {product.hasVariants && !isComingSoon ? "অপশন" : "বিস্তারিত"}
+              </span>
+              <span className="hidden sm:inline">
+                {product.hasVariants && !isComingSoon
+                  ? "অপশন বেছে নিন"
+                  : "বিস্তারিত দেখুন"}
+              </span>
               <MaterialIcon
                 name="arrow_forward"
                 className="text-[14px] sm:text-[16px]"

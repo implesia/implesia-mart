@@ -117,6 +117,7 @@ type ApiCard = {
   badge: ProductBadge | null;
   status: ProductStatus;
   featured: boolean;
+  has_variants?: boolean;
 };
 
 function media(src: string) {
@@ -172,6 +173,7 @@ function mapCard(item: ApiCard): Product {
     categorySlug: item.category_slug || item.category,
     categoryName: item.category_name || undefined,
     featured: item.featured,
+    hasVariants: item.has_variants === true,
   };
 }
 
@@ -230,6 +232,9 @@ function mapDetail(
     whatsInBox: item.package_items,
     howToUse: item.how_to_use,
     faqs: item.faqs,
+    variants: item.variants,
+    minPerOrder: item.min_per_order,
+    maxPerOrder: item.max_per_order,
     purchaseOptions: (item.options ?? [])
       .filter((group) => group.values.length > 0)
       .map((group) => ({
@@ -268,7 +273,8 @@ function mapDetail(
         id: mapped.id,
         slug: mapped.slug,
         title: mapped.title,
-        priceLabel: money(mapped.price),
+        priceLabel: `${mapped.hasVariants ? "শুরু " : ""}${money(mapped.price)}`,
+        hasVariants: mapped.hasVariants,
         imageSrc: mapped.imageSrc,
         imageAlt: mapped.imageAlt,
         status: mapped.status,
@@ -331,6 +337,7 @@ function toProduct(card: PublicCatalogCard): Product {
     categorySlug: card.categorySlug,
     categoryName: card.categoryName || undefined,
     featured: card.featured,
+    hasVariants: card.hasVariants,
   };
 }
 

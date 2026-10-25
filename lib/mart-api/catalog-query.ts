@@ -53,6 +53,7 @@ export type PublicCatalogCard = {
   badge?: ProductBadge;
   status: ProductStatus;
   featured: boolean;
+  hasVariants: boolean;
 };
 
 export type InterpretedCatalog = {
@@ -285,6 +286,7 @@ function readCard(value: unknown): PublicCatalogCard | null {
     badge: BADGES.has(badge as ProductBadge) ? (badge as ProductBadge) : undefined,
     status: status as ProductStatus,
     featured: record.featured === true,
+    hasVariants: record.has_variants === true,
   };
 }
 

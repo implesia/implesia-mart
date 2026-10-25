@@ -21,6 +21,7 @@ type CheckoutViewProps = {
   seedSlug?: string;
   seedQty?: number;
   seedProductId?: string;
+  seedVariantId?: string;
 };
 
 const pagePad =
@@ -30,6 +31,7 @@ export function CheckoutView({
   seedSlug,
   seedQty,
   seedProductId,
+  seedVariantId,
 }: CheckoutViewProps) {
   const { hydrated, items } = useCart();
 
@@ -59,6 +61,7 @@ export function CheckoutView({
       seedSlug={seedSlug}
       seedQty={seedQty}
       seedProductId={seedProductId}
+      seedVariantId={seedVariantId}
     >
       <CheckoutReadyView productHref={productHref} />
     </CheckoutFormProvider>

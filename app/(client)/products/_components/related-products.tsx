@@ -25,6 +25,7 @@ type RelatedProduct = {
   imageSrc: string;
   imageAlt: string;
   status?: "available" | "sold-out" | "coming-soon";
+  hasVariants?: boolean;
 };
 
 export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
@@ -126,7 +127,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                     <span className="absolute top-3 left-3 rounded-full bg-on-surface/80 px-2.5 py-1 text-[9px] tracking-widest text-white uppercase sm:top-4 sm:left-4 sm:px-3 sm:text-[10px]">
                       {isSoldOut ? "শেষ" : "কামিং সুন"}
                     </span>
-                  ) : (
+                  ) : p.hasVariants ? null : (
                     <Button
                       type="button"
                       size="icon"

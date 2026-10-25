@@ -31,6 +31,8 @@ export type Product = {
   /** Root to leaf, only on product detail. */
   categoryPath?: ProductCategoryCrumb[];
   featured?: boolean;
+  /** True when price and stock are per variant; `price` is then the lowest buyable price. */
+  hasVariants?: boolean;
 };
 
 /** Fallback names for the seeded roots; the API's category name wins when present. */

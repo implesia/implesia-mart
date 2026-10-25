@@ -1,4 +1,5 @@
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
+import { readVariants, type ProductVariant } from "@/lib/mart-api/variants";
 
 const PRODUCT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
@@ -52,10 +53,12 @@ export function galleryControlName(
 export function directCheckoutHref(
   product: { slug: string; id: string },
   quantity: number,
+  variantId?: string | null,
 ) {
   const params = new URLSearchParams();
   params.set("product", product.slug);
   if (isCatalogProductId(product.id)) params.set("id", product.id);
+  if (variantId && isCatalogProductId(variantId)) params.set("variant", variantId);
   params.set("qty", String(purchaseQuantity(quantity)));
   return `/checkout?${params.toString()}`;
 }
@@ -92,6 +95,7 @@ export type StoreDetailPayload = {
   badge: "New" | "Best Seller" | "Limited" | null;
   status: "available" | "sold-out" | "coming-soon";
   featured: boolean;
+  has_variants: boolean;
   tagline: string;
   description: string;
   stock_label: string;
@@ -109,6 +113,9 @@ export type StoreDetailPayload = {
   quality_image_alt: string;
   specs: { label: string; value: string; group: string }[];
   faqs: { question: string; answer: string }[];
+  variants: ProductVariant[];
+  min_per_order: number;
+  max_per_order: number | null;
   options: {
     id: string;
     name: string;
@@ -131,6 +138,7 @@ export type StoreDetailPayload = {
     badge: "New" | "Best Seller" | "Limited" | null;
     status: "available" | "sold-out" | "coming-soon";
     featured: boolean;
+    has_variants: boolean;
   }[];
 };
 
@@ -178,6 +186,7 @@ function readCard(value: unknown) {
       : null,
     status: status as "available" | "sold-out" | "coming-soon",
     featured: record.featured === true,
+    has_variants: record.has_variants === true,
   };
 }
 
@@ -272,5 +281,14 @@ export function normalizeProductDetail(
     faqs,
     options,
     related,
+    variants: card.has_variants ? readVariants(record.variants) : [],
+    min_per_order: orderLimit(record.min_per_order, 1),
+    max_per_order: orderLimit(record.max_per_order, null),
   };
+}
+
+function orderLimit<T extends number | null>(value: unknown, fallback: T): number | T {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 5
+    ? value
+    : fallback;
 }
