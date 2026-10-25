@@ -11,10 +11,7 @@ import { Container } from "./_components/common/container";
 import { JsonLd } from "./_components/common/json-ld";
 import { loadStoreCatalog } from "@/lib/mart-api/catalog";
 import { getPublicHeroSettings, listPublicHeroSlides } from "@/lib/mart-api/hero";
-import {
-  FALLBACK_CATEGORIES,
-  listPublicCategories,
-} from "@/lib/mart-api/categories";
+import { listPublicCategories } from "@/lib/mart-api/categories";
 import { FALLBACK_FAQ, listPublicFaq } from "@/lib/mart-api/faq";
 import {
   FALLBACK_NEWSLETTER,
@@ -109,7 +106,7 @@ export default async function HomePage() {
         <HeroSection
           slides={hero ?? []}
           settings={heroSettings}
-          categories={categories ?? FALLBACK_CATEGORIES}
+          categories={categories}
         />
         <HomeTrustStrip items={trust ?? FALLBACK_TRUST} />
         {featuredSection ? (

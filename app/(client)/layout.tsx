@@ -12,6 +12,7 @@ import {
   listPublicContactDetails,
   type ContactDetails,
 } from "@/lib/mart-api/contact-details";
+import { listPublicCategoryTree } from "@/lib/mart-api/categories";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 const websiteJsonLd = {
@@ -58,11 +59,17 @@ function organizationJsonLd(details: ContactDetails) {
 }
 
 async function ContactHeader() {
-  const details = await listPublicContactDetails();
+  const [details, tree] = await Promise.all([
+    listPublicContactDetails(),
+    listPublicCategoryTree(),
+  ]);
+  const categories = (tree ?? [])
+    .filter((item) => item.parentId === null)
+    .map((item) => ({ slug: item.slug, label: item.label }));
   return (
     <>
       <JsonLd data={organizationJsonLd(details)} />
-      <Header details={details} />
+      <Header details={details} categories={categories} />
     </>
   );
 }

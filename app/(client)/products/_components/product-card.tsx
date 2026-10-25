@@ -11,7 +11,7 @@ import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
-  categoryLabels,
+  categoryLabel,
   type Product,
   type ProductBadge,
 } from "../../_data/products/catalog-meta";
@@ -155,7 +155,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3 md:p-3.5">
         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary md:text-[11px]">
-            {categoryLabels[product.categoryId]}
+            {categoryLabel(product.categorySlug ?? product.categoryId, product.categoryName)}
           </span>
           {isFashion ? (
             <span className="hidden rounded-full bg-warm-gold/15 px-1.5 py-0.5 text-[9px] font-semibold text-on-surface sm:inline-flex sm:px-2 sm:text-[10px] md:text-[11px]">

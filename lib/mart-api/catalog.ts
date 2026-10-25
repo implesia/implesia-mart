@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import { categoryLabels } from "@/app/(client)/_data/products/catalog-meta";
+import { categoryLabel } from "@/app/(client)/_data/products/catalog-meta";
 import type {
   ProductDetail,
   ProductSpecGroupId,
@@ -107,6 +107,8 @@ type ApiCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
+  category_slug?: string;
+  category_name?: string;
   price: number;
   compare_at_price: number | null;
   unit_label: string;
@@ -167,6 +169,8 @@ function mapCard(item: ApiCard): Product {
     badge: item.badge ?? undefined,
     status: item.status,
     categoryId: item.category,
+    categorySlug: item.category_slug || item.category,
+    categoryName: item.category_name || undefined,
     featured: item.featured,
   };
 }
@@ -203,12 +207,20 @@ function mapDetail(
     ...card,
     breadcrumbs: [
       { label: "হোম", href: "/" },
-      {
-        label: categoryLabels[item.category],
-        href: `/products?category=${item.category}`,
-      },
+      ...(item.category_path.length > 0
+        ? item.category_path.map((crumb) => ({
+            label: crumb.name,
+            href: `/products?category=${crumb.slug}`,
+          }))
+        : [
+            {
+              label: categoryLabel(item.category, item.category_name),
+              href: `/products?category=${item.category}`,
+            },
+          ]),
       { label: item.title },
     ],
+    categoryPath: item.category_path,
     gallery: gallery.filter((image) => image.src),
     tagline: item.tagline,
     stockLabel: item.stock_label,
@@ -316,6 +328,8 @@ function toProduct(card: PublicCatalogCard): Product {
     badge: card.badge,
     status: card.status,
     categoryId: card.category,
+    categorySlug: card.categorySlug,
+    categoryName: card.categoryName || undefined,
     featured: card.featured,
   };
 }
@@ -402,7 +416,7 @@ export const queryStoreCatalog = cache(
       const page = paginateMatches(matches, search.page, CATALOG_PAGE_SIZE);
       const counts = emptyCatalogCounts();
       for (const product of matches) {
-        counts.categoryCounts[product.categoryId] += 1;
+        counts.categoryCounts[product.categoryId] = (counts.categoryCounts[product.categoryId] ?? 0) + 1;
         counts.availabilityCounts[product.status] += 1;
       }
       return {

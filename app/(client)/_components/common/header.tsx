@@ -21,7 +21,6 @@ import {
 } from "@/lib/mart-api/contact-details";
 
 import { headerNav } from "../../_data/common/site-nav";
-import { productFilters } from "../../_data/products/catalog-meta";
 import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
@@ -49,10 +48,15 @@ function submitSearch(
   go(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
 }
 
+export type HeaderCategory = { slug: string; label: string };
+
 export default function Header({
   details,
+  categories = [],
 }: {
   details: ContactDetails | null;
+  /** Top-level categories from the API (never a hardcoded list). */
+  categories?: HeaderCategory[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -233,10 +237,10 @@ export default function Header({
                 )}
                 role="menu"
               >
-                {productFilters.categories.map((category) => (
+                {categories.map((category) => (
                   <Link
-                    key={category.id}
-                    href={`/products?category=${category.id}`}
+                    key={category.slug}
+                    href={`/products?category=${category.slug}`}
                     role="menuitem"
                     className="block px-3.5 py-2.5 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-white/10"
                     onClick={() => setCategoriesPath(null)}

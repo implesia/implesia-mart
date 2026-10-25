@@ -7,11 +7,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { CategoryTile } from "@/lib/mart-api/categories";
+import { categoryChips } from "@/lib/mart-api/category-tree";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
-  categoryLabels,
   productFilters,
   type ProductCategoryId,
 } from "../../_data/products/catalog-meta";
@@ -24,7 +25,8 @@ type ProductsToolbarProps = {
   totalLabel: string;
   sort: SortId;
   onSortChange: (sort: SortId) => void;
-  categories: ProductCategoryId[];
+  categoryTree: CategoryTile[];
+  activeCategory?: ProductCategoryId;
   onCategorySelect: (id: ProductCategoryId | "all") => void;
   onOpenMobileFilters: () => void;
   filtersOpen: boolean;
@@ -36,13 +38,14 @@ export function ProductsToolbar({
   totalLabel,
   sort,
   onSortChange,
-  categories,
+  categoryTree,
+  activeCategory,
   onCategorySelect,
   onOpenMobileFilters,
   filtersOpen,
 }: ProductsToolbarProps) {
-  const allSelected =
-    (categories?.length ?? 0) === productFilters.categories.length;
+  const allSelected = !activeCategory;
+  const chips = categoryChips(categoryTree, activeCategory);
 
   return (
     <div className={cn("mb-2 space-y-2 sm:mb-2.5", className)}>
@@ -131,16 +134,13 @@ export function ProductsToolbar({
           >
             সব
           </button>
-          {productFilters.categories.map((option) => {
-            const active =
-              !allSelected &&
-              (categories?.length ?? 0) === 1 &&
-              categories?.[0] === option.id;
+          {chips.map((option) => {
+            const active = option.slug === activeCategory;
             return (
               <button
                 key={option.id}
                 type="button"
-                onClick={() => onCategorySelect(option.id)}
+                onClick={() => onCategorySelect(option.slug)}
                 aria-pressed={active}
                 className={cn(
                   "inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 text-sm font-semibold transition-colors",
@@ -149,7 +149,7 @@ export function ProductsToolbar({
                     : "bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/35 hover:text-on-surface dark:bg-surface-container dark:ring-white/10",
                 )}
               >
-                {categoryLabels[option.id]}
+                {option.label}
               </button>
             );
           })}

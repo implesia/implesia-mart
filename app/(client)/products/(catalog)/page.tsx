@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { queryStoreCatalog } from "@/lib/mart-api/catalog";
+import { listPublicCategoryTree } from "@/lib/mart-api/categories";
+import { categoryTrail } from "@/lib/mart-api/category-tree";
 import {
   catalogHref,
   catalogTitle,
@@ -21,19 +23,27 @@ export const dynamic = "force-dynamic";
 const DESCRIPTION =
   "ট্রেন্ডিং গ্যাজেট থেকে হাতে তৈরি গর্জিয়াস ড্রেস — ইমপ্লেসিয়া মার্টের সব প্রোডাক্ট এক জায়গায়, ক্যাশ অন ডেলিভারিতে সারাদেশে ডেলিভারি সহ।";
 
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
-    {
-      "@type": "ListItem",
-      position: 2,
-      name: "সব প্রোডাক্ট",
-      item: absoluteUrl("/products"),
-    },
-  ],
-};
+function breadcrumbJsonLd(trail: { slug: string; label: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "সব প্রোডাক্ট",
+        item: absoluteUrl("/products"),
+      },
+      ...trail.map((crumb, index) => ({
+        "@type": "ListItem",
+        position: index + 3,
+        name: crumb.label,
+        item: absoluteUrl(`/products?category=${crumb.slug}`),
+      })),
+    ],
+  };
+}
 
 type ProductsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -43,23 +53,39 @@ export async function generateMetadata({
   searchParams,
 }: ProductsPageProps): Promise<Metadata> {
   const search = readCatalogSearch((await searchParams) ?? {});
-  const title = catalogTitle(search);
+  const tree = search.category ? await listPublicCategoryTree() : null;
+  const current = search.category
+    ? tree?.find((item) => item.slug === search.category)
+    : undefined;
+  const title = current?.label ?? catalogTitle(search);
+  const description = current?.metaDescription || current?.description || DESCRIPTION;
+  const canonical = current ? `/products?category=${current.slug}` : "/products";
 
   return {
-    title,
-    description: DESCRIPTION,
-    alternates: { canonical: "/products" },
+    title: current?.metaTitle || title,
+    description,
+    alternates: { canonical },
     openGraph: {
-      url: "/products",
-      title,
-      description: DESCRIPTION,
+      url: canonical,
+      title: current?.metaTitle || title,
+      description,
     },
   };
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const search = readCatalogSearch((await searchParams) ?? {});
-  const result = await queryStoreCatalog(search);
+  const [result, categoryTree] = await Promise.all([
+    queryStoreCatalog(search),
+    listPublicCategoryTree(),
+  ]);
+  // The tree only lists visible categories, so an unknown or hidden slug is a 404. When the
+  // tree itself could not be loaded we fall back to the plain listing instead of guessing.
+  if (search.category && categoryTree && !categoryTree.some((item) => item.slug === search.category)) {
+    notFound();
+  }
+  const trail = search.category && categoryTree ? categoryTrail(categoryTree, search.category) : [];
+  const title = trail[trail.length - 1]?.label ?? catalogTitle(search);
   if (!result.unavailable && result.pages > 0 && search.page > result.pages) {
     redirect(catalogHref({ ...search, page: result.pages }));
   }
@@ -80,7 +106,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   return (
     <main className="force-light w-full overflow-x-clip bg-[#f5f6f8] text-neutral-950">
-      <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={breadcrumbJsonLd(trail)} />
       {itemListJsonLd ? <JsonLd data={itemListJsonLd} /> : null}
       <Container className="w-full px-3 min-[400px]:px-4 sm:px-6 lg:px-8">
         <div className="w-full pt-3 pb-6 sm:pt-4 sm:pb-8">
@@ -89,12 +115,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           ) : (
             <ProductsCatalog
               search={search}
-              title={catalogTitle(search)}
+              title={title}
               products={result.products}
               total={result.total}
               page={result.page}
               pages={result.pages}
-              categoryCounts={result.categoryCounts}
+              categoryTree={categoryTree ?? []}
               availabilityCounts={result.availabilityCounts}
               searchTruncated={result.searchTruncated}
             />

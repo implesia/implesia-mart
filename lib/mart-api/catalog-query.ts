@@ -1,5 +1,6 @@
 import {
-  categoryLabels,
+  categoryLabel,
+  isCategorySlug,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   type CatalogView,
@@ -17,7 +18,6 @@ export const CATALOG_SEARCH_PAGE_SIZE = 48;
 /** Public list has no text-search parameter, so a query scans a bounded number of pages. */
 export const CATALOG_SEARCH_SCAN_PAGES = 4;
 
-const CATEGORIES = new Set<ProductCategoryId>(["gadgets", "fashion"]);
 const STATUSES: readonly ProductStatus[] = ["available", "sold-out", "coming-soon"];
 const STATUS_SET = new Set<ProductStatus>(STATUSES);
 const SORTS = new Set<ProductSortId>(["popularity", "price-asc", "price-desc", "newest"]);
@@ -43,6 +43,8 @@ export type PublicCatalogCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
+  categorySlug: string;
+  categoryName: string;
   price: number;
   compareAtPrice?: number;
   unitLabel?: string;
@@ -114,9 +116,7 @@ export function readCatalogSearch(raw: RawParams): CatalogSearch {
   const categoryRaw = firstParam(raw.category)?.trim();
   const viewRaw = firstParam(raw.view)?.trim();
   const sortRaw = firstParam(raw.sort)?.trim();
-  const category = categoryRaw && CATEGORIES.has(categoryRaw as ProductCategoryId)
-    ? (categoryRaw as ProductCategoryId)
-    : undefined;
+  const category = isCategorySlug(categoryRaw) ? categoryRaw : undefined;
   const view = viewRaw && VIEWS.has(viewRaw as CatalogView) ? (viewRaw as CatalogView) : undefined;
   const explicitSort = sortRaw && SORTS.has(sortRaw as ProductSortId)
     ? (sortRaw as ProductSortId)
@@ -174,7 +174,7 @@ export function readCatalogQuery(raw: {
 
 export function catalogTitle(search: CatalogSearch) {
   if (search.q) return "খোঁজার ফল";
-  if (search.category) return categoryLabels[search.category];
+  if (search.category) return categoryLabel(search.category);
   if (search.view === "featured") return "Featured Products";
   if (search.view === "latest") return "সর্বশেষ প্রোডাক্ট";
   if (search.view === "new") return "নতুন আগমন";
@@ -262,7 +262,7 @@ function readCard(value: unknown): PublicCatalogCard | null {
   if (record.published === false) return null;
   const category = record.category;
   const status = record.status;
-  if (!CATEGORIES.has(category as ProductCategoryId)) return null;
+  if (!isCategorySlug(category)) return null;
   if (!STATUS_SET.has(status as ProductStatus)) return null;
   const badge = record.badge;
   const compare = record.compare_at_price;
@@ -271,7 +271,9 @@ function readCard(value: unknown): PublicCatalogCard | null {
     slug,
     title: title.trim(),
     subtitle: typeof record.subtitle === "string" ? record.subtitle : "",
-    category: category as ProductCategoryId,
+    category,
+    categorySlug: typeof record.category_slug === "string" && record.category_slug ? record.category_slug : category,
+    categoryName: typeof record.category_name === "string" ? record.category_name : "",
     price,
     compareAtPrice:
       typeof compare === "number" && Number.isFinite(compare) && compare > price
@@ -306,10 +308,9 @@ export function interpretPublicCatalog(body: unknown): InterpretedCatalog | null
     total,
     page,
     pages,
-    categoryCounts: {
-      gadgets: countFrom(categories?.gadgets),
-      fashion: countFrom(categories?.fashion),
-    },
+    categoryCounts: Object.fromEntries(
+      Object.entries(categories ?? {}).map(([key, value]) => [key, countFrom(value)]),
+    ),
     availabilityCounts: {
       available: countFrom(availability?.available),
       "sold-out": countFrom(availability?.sold_out),
@@ -320,7 +321,7 @@ export function interpretPublicCatalog(body: unknown): InterpretedCatalog | null
 
 export function emptyCatalogCounts() {
   return {
-    categoryCounts: { gadgets: 0, fashion: 0 } satisfies Record<ProductCategoryId, number>,
+    categoryCounts: {} as Record<ProductCategoryId, number>,
     availabilityCounts: {
       available: 0,
       "sold-out": 0,

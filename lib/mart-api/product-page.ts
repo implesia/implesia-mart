@@ -2,7 +2,7 @@ import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 
 const PRODUCT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
-const CATEGORIES = new Set(["gadgets", "fashion"]);
+const CATEGORY_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STATUSES = new Set(["available", "sold-out", "coming-soon"]);
 
 /** Matches the public cart cap. The server still rejects an illegal quantity. */
@@ -80,7 +80,10 @@ export type StoreDetailPayload = {
   slug: string;
   title: string;
   subtitle: string;
-  category: "gadgets" | "fashion";
+  category: string;
+  category_slug: string;
+  category_name: string;
+  category_path: { slug: string; name: string }[];
   price: number;
   compare_at_price: number | null;
   unit_label: string;
@@ -117,7 +120,9 @@ export type StoreDetailPayload = {
     slug: string;
     title: string;
     subtitle: string;
-    category: "gadgets" | "fashion";
+    category: string;
+    category_slug: string;
+    category_name: string;
     price: number;
     compare_at_price: number | null;
     unit_label: string;
@@ -143,7 +148,12 @@ function readCard(value: unknown) {
   if (!isCatalogProductId(id) || !isProductSlug(slug) || !title) return null;
   if (typeof price !== "number" || !Number.isFinite(price) || price < 0)
     return null;
-  if (!CATEGORIES.has(String(category)) || !STATUSES.has(String(status)))
+  if (
+    typeof category !== "string" ||
+    category.length > 80 ||
+    !CATEGORY_SLUG.test(category) ||
+    !STATUSES.has(String(status))
+  )
     return null;
   const badge = record.badge;
   const compare = record.compare_at_price;
@@ -152,7 +162,9 @@ function readCard(value: unknown) {
     slug,
     title,
     subtitle: text(record, "subtitle"),
-    category: category as "gadgets" | "fashion",
+    category,
+    category_slug: text(record, "category_slug") || category,
+    category_name: text(record, "category_name"),
     price,
     compare_at_price:
       typeof compare === "number" && Number.isFinite(compare) && compare > price
@@ -233,6 +245,14 @@ export function normalizeProductDetail(
 
   return {
     ...card,
+    category_path: Array.isArray(record.category_path)
+      ? record.category_path.flatMap((item) => {
+          const crumb = asRecord(item);
+          const slug = crumb ? text(crumb, "slug") : "";
+          const name = crumb ? text(crumb, "name") : "";
+          return slug && name && CATEGORY_SLUG.test(slug) ? [{ slug, name }] : [];
+        })
+      : [],
     tagline: text(record, "tagline"),
     description: text(record, "description"),
     stock_label: text(record, "stock_label"),
