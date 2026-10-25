@@ -21,6 +21,7 @@ import {
 } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
+import { productPath } from "@/lib/mart-api/product-url";
 
 export function CartDrawer() {
   const {
@@ -104,7 +105,7 @@ export function CartDrawer() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <Link
-                          href={`/products/${item.slug}`}
+                          href={productPath({ id: item.id, slug: item.slug })}
                           onClick={closeCart}
                           className="line-clamp-2 font-label-md text-on-surface transition-colors hover:text-primary"
                         >

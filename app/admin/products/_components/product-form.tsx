@@ -62,6 +62,7 @@ import {
 import { CategoryCascade } from "./category-cascade";
 import { ProductOptionsFields } from "./product-options-fields";
 import { ProductVariantsFields } from "./product-variants-fields";
+import { productPath } from "@/lib/mart-api/product-url";
 
 const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
   { value: "", label: "None" },
@@ -514,7 +515,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             <span className="text-xs font-medium text-primary">Featured</span>
           ) : null}
           <Link
-            href={`/products/${product.slug}`}
+            href={productPath(product)}
             target="_blank"
             className="text-xs font-semibold text-primary hover:underline"
           >

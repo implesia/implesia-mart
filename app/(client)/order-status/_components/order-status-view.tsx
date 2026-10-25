@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Container } from "../../_components/common/container";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { formatCartMoney } from "../../_lib/cart-shared";
+import { productPath } from "@/lib/mart-api/product-url";
 
 const fieldClass =
   "h-11 rounded-xl border-neutral-200 bg-[#f5f6f8] px-3.5 text-sm shadow-none focus-visible:border-primary focus-visible:ring-primary/30";
@@ -431,7 +432,7 @@ function OrderCard({
             ) : null}
             <div className="min-w-0 flex-1">
               <Link
-                href={`/products/${item.slug}`}
+                href={productPath({ id: item.productId, slug: item.slug })}
                 className="line-clamp-2 text-sm font-medium text-neutral-950"
               >
                 {item.title}

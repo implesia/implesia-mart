@@ -460,23 +460,39 @@ export const listStoreProducts = cache(async (): Promise<Product[]> => {
   return (await loadStoreCatalog()).products;
 });
 
+async function loadStoreProduct(path: string): Promise<ProductDetail | null> {
+  // One lookup; the API answers 404 for missing, unpublished and hidden-category alike.
+  const result = await fetchCatalog(path);
+  if (result.kind === "missing") return null;
+  if (result.kind === "down") throw new CatalogUnavailableError();
+  const detail = normalizeProductDetail(result.body);
+  if (!detail) {
+    console.error("Product detail response was not usable");
+    throw new CatalogUnavailableError();
+  }
+  if (!catalogProductId(detail.id)) return null;
+  return mapDetail(detail, await getStoreDeliveryRates());
+}
+
+/** Legacy slug lookup. The page redirects to the canonical id URL. */
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
     const safeSlug = normalizeProductSlug(slug);
     if (!safeSlug) return null;
-    // One lookup by slug; the API answers 404 for missing and unpublished alike.
-    const result = await fetchCatalog(
+    const product = await loadStoreProduct(
       `/api/v1/products/by-slug/${encodeURIComponent(safeSlug)}`,
     );
-    if (result.kind === "missing") return null;
-    if (result.kind === "down") throw new CatalogUnavailableError();
-    const detail = normalizeProductDetail(result.body);
-    if (!detail) {
-      console.error("Product detail response was not usable");
-      throw new CatalogUnavailableError();
-    }
-    if (detail.slug !== safeSlug || !catalogProductId(detail.id)) return null;
-    return mapDetail(detail, await getStoreDeliveryRates());
+    return product && product.slug === safeSlug ? product : null;
+  },
+);
+
+/** Canonical lookup by the stable product id (UUID). */
+export const getStoreProductById = cache(
+  async (id: string): Promise<ProductDetail | null> => {
+    if (!isCatalogProductId(id)) return null;
+    const lower = id.toLowerCase();
+    const product = await loadStoreProduct(`/api/v1/products/${lower}`);
+    return product && product.id.toLowerCase() === lower ? product : null;
   },
 );
 

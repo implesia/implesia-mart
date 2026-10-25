@@ -345,6 +345,8 @@ export async function getOrder(orderId: string) {
 export type PublicOrderItem = {
   title: string;
   slug: string;
+  /** Null once the product is deleted. */
+  productId: string | null;
   imageSrc: string;
   unitPrice: number;
   quantity: number;
@@ -371,6 +373,7 @@ export type PublicOrder = {
 type ApiPublicOrderItem = {
   title: string;
   slug: string;
+  product_id?: string | null;
   image_src: string;
   unit_price: number;
   quantity: number;
@@ -411,6 +414,7 @@ function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
     items: body.items.map((item) => ({
       title: item.title,
       slug: item.slug,
+      productId: item.product_id ?? null,
       imageSrc: mediaUrl(item.image_src),
       unitPrice: item.unit_price,
       quantity: item.quantity,

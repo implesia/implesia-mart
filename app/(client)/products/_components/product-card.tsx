@@ -16,6 +16,7 @@ import {
   type ProductBadge,
 } from "../../_data/products/catalog-meta";
 import { useCart } from "../../_providers/cart-provider";
+import { productPath } from "@/lib/mart-api/product-url";
 
 type ProductCardProps = {
   product: Product;
@@ -85,7 +86,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       )}
     >
       <Link
-        href={`/products/${product.slug}`}
+        href={productPath(product)}
         className="relative block aspect-square overflow-hidden sm:aspect-4/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
         aria-label={`${product.title} দেখুন`}
       >
@@ -169,7 +170,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         </div>
 
         <div className="min-w-0">
-          <Link href={`/products/${product.slug}`} className="block">
+          <Link href={productPath(product)} className="block">
             <h3 className="line-clamp-2 min-h-[2.9em] text-sm leading-[1.45] font-semibold text-on-surface transition-colors group-hover:text-primary md:text-[15px]">
               {product.title}
             </h3>
@@ -205,7 +206,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
           {isComingSoon || (product.hasVariants && !isSoldOut) ? (
             <Link
-              href={`/products/${product.slug}`}
+              href={productPath(product)}
               className={cn(
                 "inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg text-xs font-semibold sm:gap-1.5 sm:rounded-xl sm:text-sm",
                 "border border-outline-variant/40 text-primary",

@@ -12,6 +12,7 @@ import {
 } from "../../_data/products/products";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
+import { productPath } from "@/lib/mart-api/product-url";
 
 function productBySlug(slug: string) {
   const product = products.find((item) => item.slug === slug);
@@ -103,7 +104,7 @@ function RankCard({
           return (
             <li key={product.id}>
               <Link
-                href={`/products/${product.slug}`}
+                href={productPath(product)}
                 className="group flex items-center gap-3"
               >
                 <span className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-surface-container-low">

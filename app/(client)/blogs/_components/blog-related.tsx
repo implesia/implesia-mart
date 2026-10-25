@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { products } from "../../_data/products/products";
 import { BlogCard } from "./blog-card";
+import { productPath } from "@/lib/mart-api/product-url";
 
 function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
@@ -46,7 +47,7 @@ export function BlogRelatedProducts({
           return (
             <Link
               key={product.slug}
-              href={`/products/${product.slug}`}
+              href={productPath(product)}
               className={cn(
                 "group flex items-center gap-3 rounded-xl border border-neutral-200/90 p-2.5 sm:p-3",
                 "transition-colors hover:border-primary/40",

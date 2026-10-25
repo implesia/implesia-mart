@@ -27,6 +27,7 @@ import { mediaUrl, publicFetch } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../common/material-icon";
+import { productPath } from "@/lib/mart-api/product-url";
 
 type Node = CategoryNode<CategoryTile>;
 /** One open flyout: the node whose children it lists and the row it is anchored to. */
@@ -559,7 +560,7 @@ function ProductPanel({
       {state.data.products.map((product) => (
         <li key={product.id} role="none" data-panel-state="ready">
           <Link
-            href={`/products/${encodeURIComponent(product.slug)}`}
+            href={productPath(product)}
             role="menuitem"
             onKeyDown={onKeyDown}
             data-panel-product=""

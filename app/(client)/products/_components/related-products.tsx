@@ -16,6 +16,7 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 import { catalogProductId } from "@/lib/mart-api/catalog";
 
 import { useCart } from "../../_providers/cart-provider";
+import { productPath } from "@/lib/mart-api/product-url";
 
 type RelatedProduct = {
   id: string;
@@ -111,7 +112,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
 
           return (
             <SwiperSlide key={p.id} className="!h-auto">
-              <Link href={`/products/${p.slug}`} className="group block h-full">
+              <Link href={productPath(p)} className="group block h-full">
                 <div className="relative mb-3 aspect-3/4 overflow-hidden rounded-xl bg-surface-container-low shadow-sm transition-all duration-500 group-hover:shadow-xl sm:mb-4 sm:rounded-2xl">
                   <Image
                     src={p.imageSrc}

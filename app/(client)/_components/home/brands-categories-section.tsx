@@ -13,6 +13,7 @@ import {
 } from "../../_data/products/products";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
+import { productPath } from "@/lib/mart-api/product-url";
 
 function productBySlug(slug: string) {
   const product = products.find((item) => item.slug === slug);
@@ -66,7 +67,7 @@ export function BrandsSection() {
           {brandProducts.map((product) => (
             <li key={product.id} className="shrink-0">
               <Link
-                href={`/products/${product.slug}`}
+                href={productPath(product)}
                 aria-label={product.title}
                 className="relative block size-14 overflow-hidden rounded-full border border-neutral-200 bg-white shadow-sm transition-transform hover:scale-105 sm:size-16 dark:border-white/15 dark:bg-[#121816]"
               >

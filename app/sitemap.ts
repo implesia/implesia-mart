@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { listPublicBlogPosts } from "@/lib/mart-api/blog-posts";
 import { listStoreProducts } from "@/lib/mart-api/catalog";
 import { absoluteUrl } from "@/lib/seo";
+import { productPath } from "@/lib/mart-api/product-url";
 
 const STATIC_ROUTES: {
   path: string;
@@ -32,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const productEntries: MetadataRoute.Sitemap = products.map((product) => ({
-    url: absoluteUrl(`/products/${product.slug}`),
+    url: absoluteUrl(productPath(product)),
     lastModified: now,
     changeFrequency: "weekly",
     priority: 0.8,

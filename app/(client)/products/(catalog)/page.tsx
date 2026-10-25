@@ -15,6 +15,7 @@ import { Container } from "../../_components/common/container";
 import { JsonLd } from "../../_components/common/json-ld";
 import { CatalogUnavailable } from "../_components/catalog-unavailable";
 import { ProductsCatalog } from "../_components/products-catalog";
+import { productPath } from "@/lib/mart-api/product-url";
 
 // Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
@@ -99,7 +100,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         itemListElement: result.products.map((product, index) => ({
           "@type": "ListItem",
           position: index + 1,
-          url: absoluteUrl(`/products/${product.slug}`),
+          url: absoluteUrl(productPath(product)),
           name: product.title,
         })),
       };
