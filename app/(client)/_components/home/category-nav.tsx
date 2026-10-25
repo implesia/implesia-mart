@@ -646,16 +646,33 @@ function Flyout({
   }, [anchor]);
 
   useLayoutEffect(() => {
-    place();
+    // The flyout is hidden until it has been placed, and a hidden element cannot take focus, so
+    // the keyboard hand-off (Arrow Right) happens only once the flyout is visible.
+    let wantsFocus = focusFirstRef.current === level + 1;
+    let frame = 0;
+    let attempts = 0;
+    const settle = () => {
+      place();
+      const el = ref.current;
+      if (!wantsFocus || !el) return;
+      const target = menuItems(el.querySelector("[role='menu']"))[0];
+      target?.focus();
+      if (!target || document.activeElement === target) {
+        wantsFocus = false;
+        if (focusFirstRef.current === level + 1) focusFirstRef.current = null;
+      } else if (attempts++ < 10) {
+        // Focus is refused until the browser has laid the freshly mounted flyout out.
+        frame = window.requestAnimationFrame(settle);
+      }
+    };
+    settle();
     const el = ref.current;
-    if (el && focusFirstRef.current === level + 1) {
-      focusFirstRef.current = null;
-      menuItems(el.querySelector("[role='menu']"))[0]?.focus();
-    }
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(place);
-    observer.observe(el);
-    return () => observer.disconnect();
+    const observer = el && typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
+    if (el) observer?.observe(el);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
   }, [place, focusFirstRef, level]);
 
   const setRef = useCallback(
