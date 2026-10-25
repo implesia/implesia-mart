@@ -70,7 +70,7 @@ export function fallbackShowcase(products: Product[]): ShowcasePublic {
   return {
     rows: (["gadgets", "fashion"] as const).map((key) => ({
       key,
-      heading: categoryLabels[key],
+      heading: categoryLabels[key] ?? key,
       href: `/products?category=${key}`,
       productIds: products
         .filter((product) => product.categoryId === key)

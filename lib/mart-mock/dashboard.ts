@@ -1,3 +1,4 @@
+import { categoryLabel } from "@/app/(client)/_data/products/catalog-meta";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 
 import {
@@ -93,10 +94,10 @@ type Metric = {
 
 type Window = { from: Date; to: Date };
 
-const CATEGORY_LABEL: Record<ProductCategoryId, string> = {
-  gadgets: "Trending gadgets",
-  fashion: "Gorgeous dresses",
-};
+/** The dashboard groups by root category; the name comes from the product's own category path. */
+function rootCategoryLabel(product: AdminProduct) {
+  return categoryLabel(product.categoryId, product.categoryPath?.[0]?.name);
+}
 
 const AREAS: { name: string; keys: string[] }[] = [
   { name: "Dhaka", keys: ["ঢাকা", "dhaka"] },
@@ -330,7 +331,7 @@ function bestSellers(orders: MockOrder[], products: AdminProduct[]): DashboardSe
         slug: item.slug,
         title: product?.title || item.title,
         imageSrc: product?.imageSrc || item.imageSrc,
-        category: product ? CATEGORY_LABEL[product.categoryId] : "Uncategorized",
+        category: product ? (product.categoryName || rootCategoryLabel(product)) : "Uncategorized",
         units: 0,
         revenue: 0,
         stockLabel: stockLabel(product),
@@ -377,7 +378,7 @@ function categories(orders: MockOrder[], products: AdminProduct[]): DashboardCat
       if (!product) continue;
       const current = rows.get(product.categoryId) ?? {
         id: product.categoryId,
-        label: CATEGORY_LABEL[product.categoryId],
+        label: rootCategoryLabel(product),
         revenue: 0,
         units: 0,
         share: 0,
