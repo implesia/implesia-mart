@@ -87,7 +87,7 @@ test("a malformed catalog body is not a product list", () => {
 
 test("invalid query params fall back safely", () => {
   const search = readCatalogSearch({
-    category: "unknown",
+    category: "Not A Slug!",
     sort: "<script>",
     view: "nope",
     page: "0",
@@ -105,6 +105,13 @@ test("invalid query params fall back safely", () => {
   assert.equal(search.maxPrice, 1000);
   assert.equal(search.q, "lamp");
   assert.equal(isUnfilteredCatalog(search), false);
+});
+
+test("any well-formed category slug is kept, so new categories need no code change", () => {
+  assert.equal(readCatalogSearch({ category: "bed-heaters" }).category, "bed-heaters");
+  assert.equal(readCatalogSearch({ category: "gadgets" }).category, "gadgets");
+  assert.equal(readCatalogSearch({ category: "a/b" }).category, undefined);
+  assert.equal(readCatalogSearch({ category: "" }).category, undefined);
 });
 
 test("the default catalog query is shareable without extra params", () => {

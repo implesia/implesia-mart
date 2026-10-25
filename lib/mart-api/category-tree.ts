@@ -312,3 +312,46 @@ export function categoryTrail<T extends CategoryTreeInput & { slug: string }>(
   }
   return trail;
 }
+
+export type CascadeLevel<T> = {
+  /** Parent whose children this select lists; null for the first (top-level) select. */
+  parentId: string | null;
+  options: T[];
+  /** The option chosen at this level ("" when none). */
+  value: string;
+};
+
+/**
+ * Parent > child > grandchild selects for a product form. One level per node on the path to
+ * `selectedId`, plus one more level when the selected node has children (so the editor can
+ * go deeper, or stop: a product may sit at any level).
+ */
+export function cascadeLevels<T extends CategoryTreeInput>(
+  items: readonly T[],
+  selectedId: string | null | undefined,
+): CascadeLevel<T>[] {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const path: T[] = [];
+  const seen = new Set<string>();
+  let cursor = selectedId ? byId.get(selectedId) : undefined;
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    path.unshift(cursor);
+    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+  }
+  const childrenOf = (parentId: string | null) =>
+    items.filter((item) => (item.parentId ?? null) === parentId);
+  const levels: CascadeLevel<T>[] = [
+    { parentId: null, options: childrenOf(null), value: path[0]?.id ?? "" },
+  ];
+  path.forEach((node, index) => {
+    const options = childrenOf(node.id);
+    if (options.length > 0) levels.push({ parentId: node.id, options, value: path[index + 1]?.id ?? "" });
+  });
+  return levels;
+}
+
+/** New selection after a select changes: picking nothing falls back to that level's parent. */
+export function cascadeSelect(parentId: string | null, value: string): string {
+  return value || parentId || "";
+}
