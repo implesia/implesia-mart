@@ -14,6 +14,7 @@ import { priceView } from "@/lib/mart-api/variants";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { activePicks, rememberBuySelection } from "./purchase-selection";
+import { ProductWhatsAppButton } from "./product-whatsapp-button";
 import { usePurchaseQuantity } from "./use-purchase-quantity";
 import { useSelectedVariant } from "./use-selected-variant";
 
@@ -130,25 +131,44 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
         )}
 
         {isSoldOut ? (
-          <Button
-            type="button"
-            disabled
-            className="h-11 flex-1 rounded-full text-sm sm:h-12"
-          >
-            শেষ
-          </Button>
+          <>
+            <ProductWhatsAppButton
+              product={product}
+              layout="icon"
+              className="hidden min-[420px]:inline-flex"
+            />
+            <Button
+              type="button"
+              disabled
+              className="h-11 flex-1 rounded-full text-sm sm:h-12"
+            >
+              শেষ
+            </Button>
+          </>
         ) : isComingSoon ? (
-          <Link
-            href="/contact-us"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "h-11 flex-1 rounded-full text-sm shadow-lg sm:h-12",
-            )}
-          >
-            মেসেজ করুন
-          </Link>
+          <>
+            <ProductWhatsAppButton
+              product={product}
+              layout="icon"
+              className="hidden min-[420px]:inline-flex"
+            />
+            <Link
+              href="/contact-us"
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                "h-11 flex-1 rounded-full text-sm shadow-lg sm:h-12",
+              )}
+            >
+              মেসেজ করুন
+            </Link>
+          </>
         ) : (
           <>
+            <ProductWhatsAppButton
+              product={product}
+              layout="icon"
+              className="hidden min-[420px]:inline-flex"
+            />
             <Button
               type="button"
               variant="outline"

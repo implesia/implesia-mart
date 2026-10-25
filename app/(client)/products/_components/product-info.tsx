@@ -24,6 +24,7 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { setBuyQuantity } from "./buy-quantity-store";
 import { ProductPurchaseOptions } from "./product-purchase-options";
+import { ProductWhatsAppButton } from "./product-whatsapp-button";
 import {
   activePicks,
   defaultPicks,
@@ -226,6 +227,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           <p className="mt-2 text-sm text-on-surface-variant sm:text-base">
             এই প্রোডাক্টটি এখন শেষ। কার্টে যোগ করা যাবে না।
           </p>
+          <ProductWhatsAppButton product={product} layout="full" className="mt-4" />
         </div>
       ) : isComingSoon ? (
         <div className="mb-6 rounded-2xl border border-dashed border-[#0b5e56]/40 bg-[#2BC0B5]/10 p-4 sm:mb-8 sm:p-6">
@@ -243,6 +245,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           >
             মেসেজ করে জানুন
           </Link>
+          <ProductWhatsAppButton product={product} layout="full" className="mt-3" />
         </div>
       ) : (
         <>
@@ -323,6 +326,11 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
               {pending === "buy" ? "চেকআউটে যাচ্ছে…" : "অর্ডার করুন"}
             </Button>
           </div>
+          <ProductWhatsAppButton
+            product={product}
+            layout="full"
+            className="mb-2 mt-3 lg:mt-0"
+          />
         </>
       )}
 
