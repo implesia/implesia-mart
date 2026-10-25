@@ -377,7 +377,7 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
               <ProductPanel
                 tile={node.item}
                 onKeyDown={(event) =>
-                  onRowKeyDown(level + 1, { item: node.item, children: [] }, event)
+                  onRowKeyDown(level + 1, { item: node.item, depth: node.depth, children: [] }, event)
                 }
               />
             )}
@@ -385,7 +385,7 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
               <ViewAllLink
                 tile={node.item}
                 onKeyDown={(event) =>
-                  onRowKeyDown(level + 1, { item: node.item, children: [] }, event)
+                  onRowKeyDown(level + 1, { item: node.item, depth: node.depth, children: [] }, event)
                 }
               />
             </li>
@@ -517,7 +517,7 @@ function ProductPanel({
 
   if (state.status === "loading") {
     return (
-      <li role="none" aria-busy="true" data-panel-state="loading" className="space-y-2 px-1.5 py-1">
+      <li role="none" data-panel-state="loading" className="space-y-2 px-1.5 py-1">
         <span className="sr-only" role="status">
           Loading products
         </span>
