@@ -6,6 +6,7 @@ import {
   type ProductStorefrontContent,
 } from "@/lib/mart-mock/product-content";
 import type { ProductCategoryCrumb } from "@/app/(client)/_data/products/catalog-meta";
+import type { AdminVariant } from "@/lib/mart-api/admin-variants";
 import {
   FEATURED_PRODUCT_SLUGS,
   products,
@@ -95,6 +96,11 @@ export type AdminProduct = {
   published: boolean;
   custom: boolean;
   content: ProductStorefrontContent;
+  /** Order limits per cart line (API products). Absent = 1 and no maximum. */
+  minOrderQuantity?: number;
+  maxOrderQuantity?: number | null;
+  /** Variants (API products). Absent or empty = a plain product. */
+  variants?: AdminVariant[];
 };
 
 export type ProductDraft = Omit<AdminProduct, "slug" | "custom">;
