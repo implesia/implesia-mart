@@ -5,6 +5,7 @@ import {
   seedProductContent,
   type ProductStorefrontContent,
 } from "@/lib/mart-mock/product-content";
+import type { ProductCategoryCrumb } from "@/app/(client)/_data/products/catalog-meta";
 import {
   FEATURED_PRODUCT_SLUGS,
   products,
@@ -78,7 +79,12 @@ export type AdminProduct = {
   slug: string;
   title: string;
   subtitle: string;
+  /** Slug of the top-level category (legacy `gadgets`/`fashion` value). */
   categoryId: ProductCategoryId;
+  /** The category node the product is assigned to (API products only). */
+  categoryRefId?: string;
+  categoryName?: string;
+  categoryPath?: ProductCategoryCrumb[];
   price: number;
   compareAtPrice: number | null;
   quantity: number | null;

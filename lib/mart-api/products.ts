@@ -179,7 +179,8 @@ function productFields(draft: ProductDraft, sendMainFile: boolean) {
   return {
     title: draft.title,
     subtitle: draft.subtitle,
-    category: draft.categoryId,
+    // The assigned category node; the API derives the legacy root slug from it.
+    ...(draft.categoryRefId ? { category_id: draft.categoryRefId } : { category: draft.categoryId }),
     price: draft.price,
     compare_at_price: draft.compareAtPrice,
     quantity: draft.quantity,
@@ -359,6 +360,10 @@ type ApiCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
+  category_id?: string;
+  category_slug?: string;
+  category_name?: string;
+  category_path?: { id?: string; slug: string; name: string }[];
   price: number;
   compare_at_price: number | null;
   quantity: number | null;
@@ -377,7 +382,7 @@ type ApiList = {
   page_size: number;
   pages: number;
   metrics: { total: number; live: number; hidden: number; sold_out: number };
-  category_counts: { all: number; gadgets: number; fashion: number };
+  category_counts: Record<string, number>;
 };
 
 export type ProductListQuery = {
@@ -398,7 +403,7 @@ export type ProductListResult = {
   page: number;
   pages: number;
   metrics: { total: number; live: number; hidden: number; soldOut: number };
-  categoryCounts: { all: number; gadgets: number; fashion: number };
+  categoryCounts: Record<string, number>;
 };
 
 function specGroup(value: string | undefined): ProductSpecGroupId {
@@ -470,6 +475,9 @@ function cardToProduct(item: ApiCard): AdminProduct {
     title: item.title,
     subtitle: item.subtitle,
     categoryId: item.category,
+    categoryRefId: item.category_id,
+    categoryName: item.category_name,
+    categoryPath: (item.category_path ?? []).map(({ slug, name }) => ({ slug, name })),
     price: item.price,
     compareAtPrice: item.compare_at_price,
     quantity: item.quantity,

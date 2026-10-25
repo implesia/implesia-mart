@@ -35,7 +35,6 @@ import {
 } from "@/lib/mart-mock/store";
 
 import {
-  ADMIN_CATEGORY_LABEL,
   ADMIN_STOCK_STATUS_LABEL,
   adminButtonClass,
   adminFieldClass,
@@ -52,6 +51,7 @@ import {
   ProductDetailFields,
   ProductGalleryFields,
 } from "./product-content-fields";
+import { CategoryCascade } from "./category-cascade";
 import { ProductOptionsFields } from "./product-options-fields";
 
 const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
@@ -78,6 +78,8 @@ type FormState = {
   title: string;
   subtitle: string;
   categoryId: ProductCategoryId;
+  categoryRefId: string;
+  categoryTrail: string;
   price: string;
   compareAtPrice: string;
   quantity: string;
@@ -89,7 +91,7 @@ type FormState = {
   content: ProductStorefrontContent;
 };
 
-type FieldKey = "title" | "price" | "compareAtPrice" | "quantity";
+type FieldKey = "category" | "title" | "price" | "compareAtPrice" | "quantity";
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
 const SIDEBAR_KEY = "implesia.admin.sidebar.collapsed";
@@ -115,7 +117,9 @@ function toForm(product?: AdminProduct): FormState {
     return {
       title: "",
       subtitle: "",
-      categoryId: "gadgets",
+      categoryId: "",
+      categoryRefId: "",
+      categoryTrail: "",
       price: "",
       compareAtPrice: "",
       quantity: "",
@@ -131,6 +135,8 @@ function toForm(product?: AdminProduct): FormState {
     title: product.title,
     subtitle: product.subtitle,
     categoryId: product.categoryId,
+    categoryRefId: product.categoryRefId ?? "",
+    categoryTrail: product.categoryPath?.map((node) => node.name).join(" › ") ?? "",
     price: String(product.price),
     compareAtPrice:
       product.compareAtPrice == null ? "" : String(product.compareAtPrice),
@@ -147,6 +153,7 @@ function toForm(product?: AdminProduct): FormState {
 function validate(form: FormState): FieldErrors {
   const errors: FieldErrors = {};
   if (!form.title.trim()) errors.title = "Product name is required.";
+  if (!form.categoryRefId) errors.category = "Choose a category.";
 
   const price = Number(form.price);
   if (!form.price.trim() || !Number.isFinite(price) || price < 0) {
@@ -177,6 +184,7 @@ function validate(form: FormState): FieldErrors {
 
 function firstErrorSection(errors: FieldErrors): SectionId | null {
   if (errors.title) return "product-information";
+  if (errors.category) return "product-organization";
   if (errors.price || errors.compareAtPrice) return "product-pricing";
   if (errors.quantity) return "product-inventory";
   return null;
@@ -200,7 +208,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
 
   const issues = validate(form);
   const errors = showErrors ? issues : {};
-  const dirty = JSON.stringify(form) !== JSON.stringify(baseline);
+  const dirty =
+    JSON.stringify({ ...form, categoryTrail: "" }) !==
+    JSON.stringify({ ...baseline, categoryTrail: "" });
   const priceNumber = Number(form.price);
   const priceReady =
     form.price.trim() !== "" &&
@@ -340,6 +350,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       title: form.title.trim(),
       subtitle: form.subtitle.trim(),
       categoryId: form.categoryId,
+      categoryRefId: form.categoryRefId,
       price,
       compareAtPrice,
       quantity,
@@ -827,31 +838,28 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           <FormSection
             id="product-organization"
             title="Organization"
-            description="Category is required and already selected. Badge is optional."
+            description="Category is required. Badge is optional."
           >
-            <fieldset>
-              <legend className="mb-1.5 text-sm font-medium text-neutral-700">
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-neutral-700">
                 Category <RequiredMark />
-              </legend>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {(["gadgets", "fashion"] as const).map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-pressed={form.categoryId === id}
-                    onClick={() => setField("categoryId", id)}
-                    className={cn(
-                      "h-11 rounded-xl px-3 text-sm font-medium ring-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      form.categoryId === id
-                        ? "bg-primary/10 text-[#0b3d39] ring-primary/30"
-                        : "bg-[#f5f6f8] text-neutral-700 ring-transparent hover:bg-neutral-100",
-                    )}
-                  >
-                    {ADMIN_CATEGORY_LABEL[id]}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
+              </p>
+              <CategoryCascade
+                value={form.categoryRefId}
+                error={errors.category}
+                onChange={(id, trail) => {
+                  setForm((current) =>
+                    current.categoryRefId === id && current.categoryTrail === trail
+                      ? current
+                      : { ...current, categoryRefId: id, categoryTrail: trail },
+                  );
+                }}
+              />
+              <p className="mt-1.5 text-xs text-neutral-500">
+                Pick a category, then a subcategory if there is one. The product shows up under every
+                level above the one you choose.
+              </p>
+            </div>
             <div className="mt-4">
               <p className="mb-1.5 text-sm font-medium text-neutral-700">
                 Badge
@@ -919,7 +927,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 </p>
               ) : null}
               <p className="text-xs text-neutral-500">
-                {ADMIN_CATEGORY_LABEL[form.categoryId]}
+                {form.categoryTrail || "No category yet"}
               </p>
               <p className="flex items-baseline gap-2">
                 <span className="text-lg font-semibold text-neutral-950 tabular-nums">
