@@ -64,13 +64,13 @@ export function CmsHub({ page }: { page: CmsPage }) {
       </p>
 
       <label className="relative block">
-        <MaterialIcon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-400" />
+        <MaterialIcon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500" />
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search pages or sections"
           aria-label="Search pages or sections"
-          className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-10 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-primary focus:ring-3 focus:ring-primary/25"
+          className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-10 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-3 focus:ring-primary/25"
         />
         {query ? (
           <button
@@ -100,7 +100,7 @@ export function CmsHub({ page }: { page: CmsPage }) {
               if (pages.length === 0) return null;
               return (
                 <div key={group.title}>
-                  <p className="px-3 pb-1 text-xs font-medium tracking-wide text-neutral-400 uppercase">{group.title}</p>
+                  <p className="px-3 pb-1 text-xs font-medium tracking-wide text-neutral-500 uppercase">{group.title}</p>
                   <ul className="space-y-1">
                     {pages.map((item) => (
                       <li key={item.id}>
@@ -128,7 +128,7 @@ export function CmsHub({ page }: { page: CmsPage }) {
                   {page.label}
                 </h2>
                 <p className="mt-0.5 text-sm leading-relaxed text-neutral-500">{page.description}</p>
-                <p className="mt-1 text-xs text-neutral-400">
+                <p className="mt-1 text-xs text-neutral-500">
                   {countLabel(page.sections.length, "section", "sections")} · listed in page order
                 </p>
               </div>
@@ -149,14 +149,14 @@ export function CmsHub({ page }: { page: CmsPage }) {
                       href={`${page.href}/${section.id}`}
                       className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 sm:px-5"
                     >
-                      <span className="w-6 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{position}</span>
+                      <span className="w-6 shrink-0 text-right text-xs text-neutral-500 tabular-nums">{position}</span>
                       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-admin-subtle text-neutral-700">
                         <MaterialIcon name={section.icon} className="text-[22px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-semibold text-neutral-950">{section.label}</span>
                         <span className="mt-0.5 block text-sm leading-relaxed text-neutral-500">{section.description}</span>
-                        <span className="mt-1 block truncate font-mono text-[11px] text-neutral-400">{cmsApiPath(page, section)}</span>
+                        <span className="mt-1 block truncate font-mono text-[11px] text-neutral-500">{cmsApiPath(page, section)}</span>
                       </span>
                       <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-primary">
                         Edit
@@ -184,10 +184,10 @@ function PageLink({ item, active }: { item: CmsPage; active: boolean }) {
         active ? "bg-white font-semibold text-neutral-950 ring-1 ring-neutral-200" : "text-neutral-600 hover:bg-white/80 hover:text-neutral-950",
       )}
     >
-      <MaterialIcon name={item.icon} className={cn("text-[20px]", active ? "text-primary" : "text-neutral-400")} />
+      <MaterialIcon name={item.icon} className={cn("text-[20px]", active ? "text-primary" : "text-neutral-500")} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm">{item.label}</span>
-        <span className={cn("block text-xs font-normal", active ? "text-neutral-500" : "text-neutral-400")}>
+        <span className={cn("block text-xs font-normal", active ? "text-neutral-500" : "text-neutral-500")}>
           {countLabel(item.sections.length, "section", "sections")}
         </span>
       </span>
@@ -206,7 +206,7 @@ function PageChip({ item, active }: { item: CmsPage; active: boolean }) {
       )}
     >
       {item.label}
-      <span className={cn("text-xs tabular-nums", active ? "text-white/70" : "text-neutral-400")}>{item.sections.length}</span>
+      <span className={cn("text-xs tabular-nums", active ? "text-white/70" : "text-neutral-500")}>{item.sections.length}</span>
     </Link>
   );
 }

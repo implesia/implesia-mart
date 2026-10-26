@@ -9,7 +9,7 @@ export function CheckoutPageHeader({ productHref }: { productHref?: string }) {
       {productHref ? (
         <Link
           href={productHref}
-          className="inline-flex items-center gap-1.5 text-xs text-neutral-600 transition-colors hover:text-primary sm:text-sm"
+          className="inline-flex min-h-6 items-center gap-1.5 text-xs text-neutral-600 transition-colors hover:text-primary sm:text-sm"
         >
           <MaterialIcon name="arrow_back" className="text-[18px]" />
           {checkoutCopy.backToProduct}

@@ -209,7 +209,7 @@ function InquiriesView() {
         <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:px-5">
           <label className="relative block min-w-0">
             <span className="sr-only">Search inquiries</span>
-            <MaterialIcon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-400" />
+            <MaterialIcon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500" />
             <input
               type="search"
               value={query}
@@ -487,7 +487,7 @@ function InquiryDrawer({
             ).map(([label, value]) => (
               <div key={label} className="contents">
                 <dt className="text-neutral-500">{label}</dt>
-                <dd className="break-words text-neutral-950">{value || <span className="text-neutral-400">Not given</span>}</dd>
+                <dd className="break-words text-neutral-950">{value || <span className="text-neutral-500">Not given</span>}</dd>
               </div>
             ))}
           </dl>

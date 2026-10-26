@@ -134,7 +134,7 @@ function Results({ results, q, page }: { results: SearchResults; q: string; page
             <h2 id="search-products" className="text-base font-semibold">
               প্রোডাক্ট ({products.total.toLocaleString("en-US")})
             </h2>
-            <Link href={filtered} className="text-sm font-semibold text-primary underline">
+            <Link href={filtered} className="inline-flex min-h-6 items-center text-sm font-semibold text-primary underline">
               ফিল্টারসহ দেখুন
             </Link>
           </div>

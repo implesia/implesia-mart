@@ -105,7 +105,7 @@ export function FaqSection({ section }: { section: FaqPublic }) {
         <div className="mt-8">
           <Link
             href={section.moreHref || "/faqs"}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-950 transition-colors hover:text-neutral-600 dark:text-white dark:hover:text-white/70"
+            className="inline-flex min-h-6 items-center gap-1.5 text-sm font-semibold text-neutral-950 transition-colors hover:text-neutral-600 dark:text-white dark:hover:text-white/70"
           >
             {section.moreLabel}
             <MaterialIcon name="arrow_forward" className="text-[18px]" />

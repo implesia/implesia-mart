@@ -303,14 +303,14 @@ function ProductsView() {
             <label className="relative block min-w-0 flex-1">
               <MaterialIcon
                 name="search"
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-400"
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500"
               />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Name, category, or product id"
                 aria-label="Search products"
-                className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-10 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-primary focus:ring-3 focus:ring-primary/25"
+                className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-10 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-3 focus:ring-primary/25"
               />
               {query ? (
                 <button
@@ -774,7 +774,7 @@ function ProductRow({
       <td
         className={cn(
           pinned,
-          "px-2 py-3 text-right text-xs tabular-nums text-neutral-400 xl:left-0 xl:px-4",
+          "px-2 py-3 text-right text-xs tabular-nums text-neutral-500 xl:left-0 xl:px-4",
         )}
       >
         {index}
@@ -799,7 +799,7 @@ function ProductRow({
               {product.subtitle}
             </span>
             <span className="mt-0.5 flex min-w-0 items-center gap-2">
-              <span className="truncate text-xs text-neutral-400">
+              <span className="truncate text-xs text-neutral-500">
                 {product.slug}
               </span>
               {product.featured ? (
@@ -857,7 +857,7 @@ function ProductCard({
             <span className="truncate font-semibold text-neutral-950">
               {product.title}
             </span>
-            <span className="shrink-0 text-xs tabular-nums text-neutral-400">
+            <span className="shrink-0 text-xs tabular-nums text-neutral-500">
               #{index}
             </span>
           </span>
@@ -888,7 +888,7 @@ function QuantityCell({ product }: { product: AdminProduct }) {
     return (
       <span className="block text-right">
         <span
-          className="block font-semibold tabular-nums text-neutral-400"
+          className="block font-semibold tabular-nums text-neutral-500"
           aria-hidden
         >
           —
@@ -989,7 +989,7 @@ function PublishSwitch({
       <span
         className={cn(
           "text-xs font-medium",
-          product.published ? "text-neutral-800" : "text-neutral-400",
+          product.published ? "text-neutral-800" : "text-neutral-500",
         )}
       >
         {product.published ? "Live" : "Hidden"}
@@ -1002,7 +1002,7 @@ function ProductThumb({ product }: { product: AdminProduct }) {
   const [failed, setFailed] = useState(false);
   if (!product.imageSrc || failed) {
     return (
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-400 xl:size-12">
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-500 xl:size-12">
         <MaterialIcon name="image" className="text-[20px]" />
       </span>
     );
@@ -1032,7 +1032,7 @@ function PriceStack({ product }: { product: AdminProduct }) {
         {formatTaka(product.price)}
       </span>
       {compare != null ? (
-        <span className="block text-xs text-neutral-400 line-through tabular-nums">
+        <span className="block text-xs text-neutral-500 line-through tabular-nums">
           {formatTaka(compare)}
         </span>
       ) : null}

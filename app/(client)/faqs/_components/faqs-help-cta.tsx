@@ -43,12 +43,12 @@ export function FaqsHelpCta({
             {help.email.trim() || help.phone.trim() ? (
               <div className="mt-3 flex flex-col gap-1 text-xs text-white/55 sm:text-sm">
                 {help.email.trim() ? (
-                  <a href={`mailto:${help.email.trim()}`} className="hover:text-white">
+                  <a href={`mailto:${help.email.trim()}`} className="inline-flex min-h-6 items-center hover:text-white">
                     {help.email}
                   </a>
                 ) : null}
                 {help.phone.trim() ? (
-                  <a href={`tel:${phoneHref}`} className="hover:text-white">
+                  <a href={`tel:${phoneHref}`} className="inline-flex min-h-6 items-center hover:text-white">
                     {help.phone}
                   </a>
                 ) : null}

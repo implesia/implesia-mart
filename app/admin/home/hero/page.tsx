@@ -151,14 +151,14 @@ function HeroSlidesView() {
           <label className="relative block w-full sm:w-72">
             <MaterialIcon
               name="search"
-              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-neutral-400"
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-neutral-500"
             />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search title or price"
               aria-label="Search slides"
-              className="h-10 w-full rounded-full border border-neutral-200 bg-[#f5f6f8] pr-3 pl-9 text-sm text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-primary focus:bg-white focus:ring-3 focus:ring-primary/25"
+              className="h-10 w-full rounded-full border border-neutral-200 bg-[#f5f6f8] pr-3 pl-9 text-sm text-neutral-950 outline-none placeholder:text-neutral-500 focus:border-primary focus:bg-white focus:ring-3 focus:ring-primary/25"
             />
           </label>
         </div>
@@ -216,7 +216,7 @@ function FilterPill({
       )}
     >
       {label}
-      <span className={cn("text-xs tabular-nums", active ? "text-primary" : "text-neutral-400")}>{count}</span>
+      <span className={cn("text-xs tabular-nums", active ? "text-primary" : "text-neutral-500")}>{count}</span>
     </Link>
   );
 }
@@ -248,7 +248,7 @@ function SlideRow({
     <li className="border-t border-neutral-100 first:border-t-0">
       <div className="flex flex-col gap-3 px-4 py-4 sm:px-5 lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-          <span className="w-6 shrink-0 text-center text-sm font-semibold tabular-nums text-neutral-400">
+          <span className="w-6 shrink-0 text-center text-sm font-semibold tabular-nums text-neutral-500">
             {position}
           </span>
           <Link

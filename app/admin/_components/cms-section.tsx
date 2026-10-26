@@ -40,7 +40,7 @@ export function CmsSectionPage({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <AdminCard>
-          <p className="text-xs font-semibold tracking-[0.14em] text-neutral-400 uppercase">
+          <p className="text-xs font-semibold tracking-[0.14em] text-neutral-500 uppercase">
             Section API
           </p>
           <p className="mt-2 font-mono text-sm font-semibold text-neutral-950">
@@ -51,7 +51,7 @@ export function CmsSectionPage({
           </p>
         </AdminCard>
         <AdminCard>
-          <p className="text-xs font-semibold tracking-[0.14em] text-neutral-400 uppercase">
+          <p className="text-xs font-semibold tracking-[0.14em] text-neutral-500 uppercase">
             Fields
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">

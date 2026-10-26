@@ -159,7 +159,7 @@ export default function AdminDeliveryPage() {
             className={cn(
               "inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium",
               !dirty || invalid || saving || stored == null
-                ? "bg-neutral-100 text-neutral-400"
+                ? "bg-neutral-100 text-neutral-500"
                 : "bg-neutral-950 text-white hover:bg-black",
             )}
           >
@@ -301,7 +301,7 @@ function ZoneCard({
         </button>
       </div>
       <label htmlFor={id} className="relative mt-4 block">
-        <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-lg font-semibold text-neutral-400">
+        <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-lg font-semibold text-neutral-500">
           ৳
         </span>
         <input

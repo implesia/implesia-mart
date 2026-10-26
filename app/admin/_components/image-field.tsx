@@ -113,7 +113,7 @@ export function MultiImageUpload({
       >
         <MaterialIcon
           name="add_photo_alternate"
-          className="text-[28px] text-neutral-400"
+          className="text-[28px] text-neutral-500"
         />
         <p className="text-sm text-neutral-600">
           {uploading

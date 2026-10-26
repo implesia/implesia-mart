@@ -60,7 +60,7 @@ export function HomeCmsHeader({
           </div>
         }
       />
-      {autosave ? <p className="-mt-3 mb-4 text-xs text-neutral-400">Changes save as you edit.</p> : null}
+      {autosave ? <p className="-mt-3 mb-4 text-xs text-neutral-500">Changes save as you edit.</p> : null}
     </div>
   );
 }

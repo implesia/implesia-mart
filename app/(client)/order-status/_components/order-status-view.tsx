@@ -427,6 +427,8 @@ function OrderCard({
               <img
                 src={item.imageSrc}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="size-12 shrink-0 rounded-xl bg-[#f5f6f8] object-cover"
               />
             ) : null}

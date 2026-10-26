@@ -379,7 +379,7 @@ export function TrustBenefits() {
                         setDragId(null);
                         setOverId(null);
                       }}
-                      className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
                       <MaterialIcon
                         name="drag_indicator"
@@ -392,7 +392,7 @@ export function TrustBenefits() {
                       onClick={() => setEdit(item.id)}
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                      <span className="w-5 shrink-0 text-right text-xs text-neutral-500 tabular-nums">
                         {index + 1}
                       </span>
                       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-admin-subtle text-primary">

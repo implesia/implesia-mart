@@ -1047,13 +1047,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   className="object-contain p-4"
                 />
               ) : (
-                <div className="grid h-full place-items-center text-sm text-neutral-400">
+                <div className="grid h-full place-items-center text-sm text-neutral-500">
                   No image yet
                 </div>
               )}
             </div>
             <div className="space-y-2 px-4 py-3">
-              <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
+              <p className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
                 Catalog preview
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -1080,7 +1080,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   {priceReady ? formatTaka(priceNumber) : "৳—"}
                 </span>
                 {discount != null ? (
-                  <span className="text-sm text-neutral-400 line-through tabular-nums">
+                  <span className="text-sm text-neutral-500 line-through tabular-nums">
                     {formatTaka(compareNumber)}
                   </span>
                 ) : null}
@@ -1261,16 +1261,16 @@ function CheckRow({
         name={done ? "check_circle" : "radio_button_unchecked"}
         className={cn(
           "text-[18px]",
-          done ? "text-emerald-700" : "text-neutral-400",
+          done ? "text-emerald-700" : "text-neutral-500",
         )}
       />
       <span className={done ? "text-neutral-800" : "text-neutral-600"}>
         {label}
       </span>
       {optional ? (
-        <span className="text-xs text-neutral-400">Optional</span>
+        <span className="text-xs text-neutral-500">Optional</span>
       ) : (
-        <span className="text-xs text-neutral-400">Required</span>
+        <span className="text-xs text-neutral-500">Required</span>
       )}
     </li>
   );

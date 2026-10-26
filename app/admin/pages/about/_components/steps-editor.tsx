@@ -506,7 +506,7 @@ export function AboutStepsEditor() {
                         setDragId(null);
                         setOverId(null);
                       }}
-                      className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
                       <MaterialIcon
                         name="drag_indicator"

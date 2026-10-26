@@ -1,3 +1,5 @@
+import { unstable_rethrow } from "next/navigation";
+
 import {
   DEFAULT_FOOTER,
   type FooterAdmin,
@@ -97,7 +99,10 @@ export async function listPublicFooter(): Promise<FooterConfig> {
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok) return DEFAULT_FOOTER;
+    if (!response.ok) {
+      console.warn(`[footer] public footer request failed with ${response.status}; showing the built-in footer`);
+      return DEFAULT_FOOTER;
+    }
     const config = toConfig((await response.json()) as ApiFooter);
     return {
       ...config,
@@ -105,7 +110,10 @@ export async function listPublicFooter(): Promise<FooterConfig> {
       brandName: config.brandName || DEFAULT_FOOTER.brandName,
       copyrightText: config.copyrightText || DEFAULT_FOOTER.copyrightText,
     };
-  } catch {
+  } catch (error) {
+    // Let Next see its own control-flow errors (dynamic-usage bail-out) instead of swallowing them.
+    unstable_rethrow(error);
+    console.warn("[footer] public footer unavailable; showing the built-in footer:", error instanceof Error ? error.message : error);
     return DEFAULT_FOOTER;
   }
 }
