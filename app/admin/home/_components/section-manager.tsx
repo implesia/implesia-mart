@@ -6,6 +6,7 @@ import { HomeFaq } from "./faq-editor";
 import { FeaturedProducts } from "./featured-editor";
 import { HomeCmsHeader } from "./home-cms-header";
 import { HomeNewsletter } from "./newsletter-editor";
+import { HomePromo } from "./promo-editor";
 import { CustomerReviews } from "./reviews-editor";
 import { ShowcaseRows } from "./showcase-editor";
 import { TrustBenefits } from "./trust-editor";
@@ -20,6 +21,7 @@ export function HomeSectionManager({ sectionId }: { sectionId: string }) {
   if (sectionId === "showcase") return <ShowcaseRows />;
   if (sectionId === "reviews") return <CustomerReviews />;
   if (sectionId === "faq") return <HomeFaq />;
+  if (sectionId === "promo") return <HomePromo />;
   if (sectionId === "newsletter") return <HomeNewsletter />;
 
   return (

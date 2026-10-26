@@ -5,6 +5,7 @@ import { FaqSection } from "./_components/home/faq-section";
 import { FeaturedProductsSection } from "./_components/home/featured-products-section";
 import { HeroSection } from "./_components/home/hero-section";
 import { HomeTrustStrip } from "./_components/home/home-trust-strip";
+import { PromoBannerSection } from "./_components/home/promo-banner-section";
 import { NewsletterSection } from "./_components/home/newsletter-section";
 import { TestimonialsSection } from "./_components/home/testimonials-section";
 import { Container } from "./_components/common/container";
@@ -17,6 +18,7 @@ import {
   FALLBACK_NEWSLETTER,
   listPublicNewsletter,
 } from "@/lib/mart-api/newsletter";
+import { listPublicPromo } from "@/lib/mart-api/promo";
 import { featuredForStore, listPublicFeatured } from "@/lib/mart-api/featured";
 import { FALLBACK_REVIEWS, listPublicReviews } from "@/lib/mart-api/reviews";
 import { listPublicShowcase, showcaseForStore } from "@/lib/mart-api/showcase";
@@ -49,6 +51,7 @@ export default async function HomePage() {
     reviews,
     faq,
     newsletter,
+    promo,
   ] = await Promise.all([
     loadStoreCatalog(),
     listPublicHeroSlides(),
@@ -59,6 +62,7 @@ export default async function HomePage() {
     listPublicReviews(),
     listPublicFaq(),
     listPublicNewsletter(),
+    listPublicPromo(),
   ]);
   const heroSettings = await getPublicHeroSettings();
   const products = catalog.products;
@@ -115,6 +119,7 @@ export default async function HomePage() {
             products={products}
           />
         ) : null}
+        <PromoBannerSection promo={promo} />
         {showcaseSection ? (
           <CategoryShowcaseSection
             section={showcaseSection}

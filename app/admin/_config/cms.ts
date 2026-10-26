@@ -55,6 +55,13 @@ export const HOME_CMS: CmsPage = {
       fields: ["heading", "slugs", "limit"],
     },
     {
+      id: "promo",
+      label: "Promo banner",
+      icon: "campaign",
+      description: "Slim banner under Featured Products. Hidden until you publish it.",
+      fields: ["image", "heading", "cta"],
+    },
+    {
       id: "showcase",
       label: "Showcase",
       icon: "view_quilt",
