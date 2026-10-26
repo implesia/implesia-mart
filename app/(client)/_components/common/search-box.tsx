@@ -141,13 +141,13 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
       onSubmit={submit}
       className={desktop ? "relative hidden w-[clamp(18rem,34vw,32rem)] lg:block" : "relative mb-4"}
     >
-      {desktop ? null : (
-        <MaterialIcon
-          name="search"
-          className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-neutral-400"
-        />
-      )}
-      <div className="flex w-full">
+      <div className="relative flex w-full">
+        {desktop ? null : (
+          <MaterialIcon
+            name="search"
+            className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-neutral-400"
+          />
+        )}
         <input
           type="search"
           name="q"
