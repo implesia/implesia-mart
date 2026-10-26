@@ -355,3 +355,38 @@ export function cascadeLevels<T extends CategoryTreeInput>(
 export function cascadeSelect(parentId: string | null, value: string): string {
   return value || parentId || "";
 }
+
+/** Deepest level the API allows (root = level 1); mirrors the backend `MAX_DEPTH`. */
+export const MAX_CATEGORY_DEPTH = 6;
+
+export type ParentChoice = {
+  id: string;
+  label: string;
+  /** 0 for a top-level category; used to indent the option. */
+  depth: number;
+  hidden: boolean;
+  /** True when a child of this category would exceed `MAX_CATEGORY_DEPTH`. */
+  disabled: boolean;
+};
+
+/** Every category as a parent option, parents first, deeper levels indented. */
+export function parentChoices<T extends CategoryTreeInput & { label: string }>(
+  items: readonly T[],
+  maxDepth: number = MAX_CATEGORY_DEPTH,
+): ParentChoice[] {
+  return flattenCategoryTree(buildCategoryTree(items, { includeHidden: true })).map(
+    ({ item, depth }) => ({
+      id: item.id,
+      label: item.label.trim() || "Untitled category",
+      depth,
+      hidden: item.isActive === false,
+      disabled: depth + 1 >= maxDepth,
+    }),
+  );
+}
+
+/** The parent a new category starts under: the category being viewed when it can hold a child. */
+export function defaultParentId(choices: readonly ParentChoice[], selectedId: string): string {
+  const match = choices.find((choice) => choice.id === selectedId);
+  return match && !match.disabled ? match.id : "";
+}
