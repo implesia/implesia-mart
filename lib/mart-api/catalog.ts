@@ -11,6 +11,8 @@ import type {
   ProductCategoryId,
   ProductStatus,
 } from "@/app/(client)/_data/products/catalog-meta";
+import { cardToProduct } from "@/lib/mart-api/catalog-product";
+import { mediaUrl } from "@/lib/mart-api/media-url";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import {
   catalogResponseKind,
@@ -19,16 +21,11 @@ import {
 } from "@/lib/mart-api/product-page";
 import {
   CATALOG_PAGE_SIZE,
-  CATALOG_SEARCH_PAGE_SIZE,
-  CATALOG_SEARCH_SCAN_PAGES,
   emptyCatalogCounts,
   interpretPublicCatalog,
-  matchesCatalogText,
-  paginateMatches,
   toApiSearchParams,
   type CatalogPageData,
   type CatalogSearch,
-  type PublicCatalogCard,
 } from "@/lib/mart-api/catalog-query";
 
 const API = process.env.NEXT_PUBLIC_MART_API_URL ?? "http://127.0.0.1:8001";
@@ -120,20 +117,7 @@ type ApiCard = {
   has_variants?: boolean;
 };
 
-function media(src: string) {
-  const value = src.trim();
-  if (!value || value.includes("..") || value.startsWith("//")) return "";
-  if (value.startsWith("/")) {
-    return value.startsWith("/media/") ? `${API}${value}` : value;
-  }
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
-    return url.href;
-  } catch {
-    return "";
-  }
-}
+const media = mediaUrl;
 
 function money(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
@@ -320,26 +304,6 @@ async function readJson(path: string): Promise<unknown | null> {
   }
 }
 
-function toProduct(card: PublicCatalogCard): Product {
-  return {
-    id: card.id,
-    slug: card.slug,
-    title: card.title,
-    subtitle: card.subtitle,
-    price: card.price,
-    compareAtPrice: card.compareAtPrice,
-    unitLabel: card.unitLabel || undefined,
-    imageSrc: media(card.imageSrc),
-    imageAlt: card.imageAlt || card.title,
-    badge: card.badge,
-    status: card.status,
-    categoryId: card.category,
-    categorySlug: card.categorySlug,
-    categoryName: card.categoryName || undefined,
-    featured: card.featured,
-    hasVariants: card.hasVariants,
-  };
-}
 
 function unavailableCatalog(search: CatalogSearch): CatalogPageData {
   return {
@@ -348,7 +312,6 @@ function unavailableCatalog(search: CatalogSearch): CatalogPageData {
     page: search.page,
     pages: 0,
     unavailable: true,
-    searchTruncated: false,
     ...emptyCatalogCounts(),
   };
 }
@@ -378,7 +341,7 @@ export const loadStoreCatalog = cache(async (): Promise<CatalogLoad> => {
     if (!body) return { products: [], unavailable: true };
     const parsed = interpretPublicCatalog(body);
     if (!parsed) return { products: [], unavailable: true };
-    for (const item of parsed.items) all.push(toProduct(item));
+    for (const item of parsed.items) all.push(cardToProduct(item));
     pages = parsed.pages || 1;
     if (parsed.pages === 0) break;
     page += 1;
@@ -396,44 +359,7 @@ export const queryStoreCatalog = cache(
         page: 1,
         pages: 0,
         unavailable: false,
-        searchTruncated: false,
-        ...emptyCatalogCounts(),
-      };
-    }
-
-    if (search.q) {
-      const matches: Product[] = [];
-      let apiPage = 1;
-      let apiPages = 1;
-      while (apiPage <= apiPages && apiPage <= CATALOG_SEARCH_SCAN_PAGES) {
-        const parsed = await fetchCatalogPage(
-          search,
-          apiPage,
-          CATALOG_SEARCH_PAGE_SIZE,
-        );
-        if (!parsed) return unavailableCatalog(search);
-        for (const item of parsed.items) {
-          const product = toProduct(item);
-          if (matchesCatalogText(product, search.q)) matches.push(product);
-        }
-        apiPages = parsed.pages;
-        if (parsed.pages === 0) break;
-        apiPage += 1;
-      }
-      const page = paginateMatches(matches, search.page, CATALOG_PAGE_SIZE);
-      const counts = emptyCatalogCounts();
-      for (const product of matches) {
-        counts.categoryCounts[product.categoryId] = (counts.categoryCounts[product.categoryId] ?? 0) + 1;
-        counts.availabilityCounts[product.status] += 1;
-      }
-      return {
-        products: page.items,
-        total: page.total,
-        page: page.page,
-        pages: page.pages,
-        unavailable: false,
-        searchTruncated: apiPages > CATALOG_SEARCH_SCAN_PAGES,
-        ...counts,
+            ...emptyCatalogCounts(),
       };
     }
 
@@ -444,13 +370,12 @@ export const queryStoreCatalog = cache(
     );
     if (!parsed) return unavailableCatalog(search);
     return {
-      products: parsed.items.map(toProduct),
+      products: parsed.items.map(cardToProduct),
       total: parsed.total,
       page: parsed.page || search.page,
       pages: parsed.pages,
       unavailable: false,
-      searchTruncated: false,
-      categoryCounts: parsed.categoryCounts,
+        categoryCounts: parsed.categoryCounts,
       availabilityCounts: parsed.availabilityCounts,
     };
   },

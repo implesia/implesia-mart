@@ -123,7 +123,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               pages={result.pages}
               categoryTree={categoryTree ?? []}
               availabilityCounts={result.availabilityCounts}
-              searchTruncated={result.searchTruncated}
             />
           )}
         </div>

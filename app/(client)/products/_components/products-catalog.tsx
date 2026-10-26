@@ -48,7 +48,6 @@ type ProductsCatalogProps = {
   /** Visible categories from the API (depth-first); empty when the API could not supply them. */
   categoryTree: CategoryTile[];
   availabilityCounts: Record<ProductStatus, number>;
-  searchTruncated: boolean;
 };
 
 export function ProductsCatalog({
@@ -60,7 +59,6 @@ export function ProductsCatalog({
   pages,
   categoryTree,
   availabilityCounts,
-  searchTruncated,
 }: ProductsCatalogProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -180,12 +178,6 @@ export function ProductsCatalog({
           onOpenMobileFilters={() => setMobileFiltersOpen(true)}
           filtersOpen={mobileFiltersOpen}
         />
-
-        {searchTruncated ? (
-          <p className="mb-2 text-xs leading-relaxed text-on-surface-variant">
-            আরও মিল থাকতে পারে। ক্যাটাগরি দিয়ে সীমিত করে দেখুন।
-          </p>
-        ) : null}
 
         {showActiveFilters ? (
           <ul

@@ -1,18 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
-  type FormEvent,
 } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import {
@@ -24,6 +22,7 @@ import { headerNav } from "../../_data/common/site-nav";
 import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
+import { SearchBox } from "./search-box";
 import { SiteLogo } from "./site-logo";
 
 const SITE_NAME = "Implesia Mart";
@@ -39,15 +38,6 @@ function useScrollLock(locked: boolean) {
   }, [locked]);
 }
 
-function submitSearch(
-  event: FormEvent<HTMLFormElement>,
-  go: (href: string) => void,
-) {
-  event.preventDefault();
-  const q = String(new FormData(event.currentTarget).get("q") ?? "").trim();
-  go(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
-}
-
 export type HeaderCategory = { slug: string; label: string };
 
 export default function Header({
@@ -59,7 +49,6 @@ export default function Header({
   categories?: HeaderCategory[];
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const phoneChannel = contactChannel(details, "call");
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
@@ -140,30 +129,7 @@ export default function Header({
               />
             </div>
 
-            <form
-              className="hidden w-[clamp(18rem,34vw,32rem)] lg:block"
-              role="search"
-              onSubmit={(event) =>
-                submitSearch(event, (href) => router.push(href))
-              }
-            >
-              <div className="flex w-full">
-                <input
-                  type="search"
-                  name="q"
-                  placeholder="প্রোডাক্ট খুঁজুন..."
-                  aria-label="প্রোডাক্ট খুঁজুন"
-                  className="h-11 min-w-0 flex-1 rounded-l-md border border-r-0 border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
-                />
-                <button
-                  type="submit"
-                  className="grid size-11 shrink-0 place-items-center rounded-r-md bg-neutral-950 text-white transition-colors hover:bg-black"
-                  aria-label="খুঁজুন"
-                >
-                  <MaterialIcon name="search" className="text-[20px]" />
-                </button>
-              </div>
-            </form>
+            <SearchBox variant="desktop" />
 
             <div className="ml-auto flex shrink-0 flex-col items-end gap-0.5">
               <span className="hidden items-center gap-1.5 pb-0.5 text-[13px] font-medium text-neutral-700 lg:inline-flex">
@@ -334,27 +300,7 @@ export default function Header({
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-5">
-            <form
-              className="relative mb-4"
-              role="search"
-              onSubmit={(event) => {
-                submitSearch(event, (href) => {
-                  setMenuPath(null);
-                  router.push(href);
-                });
-              }}
-            >
-              <MaterialIcon
-                name="search"
-                className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[20px] text-neutral-400"
-              />
-              <Input
-                name="q"
-                placeholder="প্রোডাক্ট খুঁজুন..."
-                className="h-11 w-full rounded-md border border-neutral-200 bg-white py-2 pr-4 pl-10 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-neutral-950/15 dark:border-white/15"
-                aria-label="প্রোডাক্ট খুঁজুন"
-              />
-            </form>
+            <SearchBox variant="mobile" onNavigate={() => setMenuPath(null)} />
 
             {phoneChannel ? (
               <a

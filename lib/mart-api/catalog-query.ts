@@ -14,9 +14,8 @@ import {
 import { isPublicCatalogCard } from "@/lib/mart-api/catalog-rules";
 
 export const CATALOG_PAGE_SIZE = 12;
-export const CATALOG_SEARCH_PAGE_SIZE = 48;
-/** Public list has no text-search parameter, so a query scans a bounded number of pages. */
-export const CATALOG_SEARCH_SCAN_PAGES = 4;
+/** The API caps `q` at 100 characters; the storefront trims to 80 before sending it. */
+export const CATALOG_SEARCH_MAX_CHARS = 80;
 
 const STATUSES: readonly ProductStatus[] = ["available", "sold-out", "coming-soon"];
 const STATUS_SET = new Set<ProductStatus>(STATUSES);
@@ -72,7 +71,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function cleanText(value: string) {
-  return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, CATALOG_SEARCH_MAX_CHARS);
 }
 
 export function canonicalizeStatuses(statuses: readonly ProductStatus[]) {
@@ -216,31 +215,10 @@ export function toApiSearchParams(
   if (search.sort !== "popularity") params.set("sort", search.sort);
   if (search.minPrice != null) params.set("min_price", String(search.minPrice));
   if (search.maxPrice != null) params.set("max_price", String(search.maxPrice));
+  if (search.q) params.set("q", search.q);
   params.set("page", String(options.page));
   params.set("page_size", String(options.pageSize));
   return params;
-}
-
-export function matchesCatalogText(
-  product: { title: string; subtitle: string },
-  query: string,
-) {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  return `${product.title} ${product.subtitle}`.toLowerCase().includes(needle);
-}
-
-export function paginateMatches<T>(items: readonly T[], page: number, size: number) {
-  const total = items.length;
-  const pages = total === 0 ? 0 : Math.ceil(total / size);
-  const current = pages === 0 ? 1 : Math.min(Math.max(1, page), pages);
-  const start = (current - 1) * size;
-  return {
-    items: items.slice(start, start + size),
-    total,
-    page: current,
-    pages,
-  };
 }
 
 function countFrom(value: unknown) {
@@ -338,7 +316,6 @@ export type CatalogPageData = {
   page: number;
   pages: number;
   unavailable: boolean;
-  searchTruncated: boolean;
   categoryCounts: Record<ProductCategoryId, number>;
   availabilityCounts: Record<ProductStatus, number>;
 };
