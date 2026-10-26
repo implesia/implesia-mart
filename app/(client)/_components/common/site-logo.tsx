@@ -16,7 +16,7 @@ type SiteLogoProps = {
   tone?: "auto" | "onDark" | "light";
   /** An admin-uploaded logo that replaces the built-in marks (footer). */
   custom?: { src: string; alt: string };
-  /** Accessible name for the link; defaults to the site name. */
+  /** Accessible name for the link; defaults to the site name. A custom logo is named by its alt text instead. */
   label?: string;
 };
 
@@ -54,13 +54,13 @@ export function SiteLogo({
         "relative block h-10 w-[9.75rem] shrink-0 transition-opacity hover:opacity-90 sm:h-12 sm:w-[12rem] lg:h-[3.25rem] lg:w-[13.25rem]",
         className,
       )}
-      aria-label={label}
+      aria-label={custom ? undefined : label}
       onClick={onClick}
     >
       {custom ? (
         <Image
           src={custom.src}
-          alt=""
+          alt={custom.alt}
           fill
           priority={priority}
           unoptimized={!canOptimize(custom.src)}
