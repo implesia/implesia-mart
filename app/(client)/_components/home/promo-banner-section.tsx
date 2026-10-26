@@ -51,8 +51,8 @@ export function PromoBannerView({
         className={cn(
           "absolute inset-0 -z-10",
           light
-            ? "bg-linear-to-r from-white/95 via-white/80 via-65% to-white/25"
-            : "bg-linear-to-r from-black/80 via-black/60 via-65% to-black/20",
+            ? "bg-linear-to-r from-white/95 via-white/90 via-65% to-white/85 sm:via-white/80 sm:to-white/25"
+            : "bg-linear-to-r from-black/80 via-black/70 via-65% to-black/65 sm:via-black/60 sm:to-black/20",
         )}
       />
       <div
