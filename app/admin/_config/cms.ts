@@ -516,17 +516,9 @@ export const SITE_CMS: CmsPage[] = [
     icon: "web",
     href: "/admin/site/header",
     publicPath: "/",
-    api: "cms/site/header",
-    description: "Top navigation on every page — links and labels.",
-    sections: [
-      {
-        id: "nav",
-        label: "Menu",
-        icon: "menu",
-        description: "Page links in the header.",
-        fields: ["items", "label", "href"],
-      },
-    ],
+    api: "site/header",
+    description: "Top navigation links shown on every page.",
+    sections: [],
   },
   {
     id: "footer",

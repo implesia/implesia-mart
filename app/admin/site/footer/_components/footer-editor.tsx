@@ -95,7 +95,7 @@ function RowTools({
   );
 }
 
-function LinkList({
+export function LinkList({
   name,
   links,
   max,
@@ -164,7 +164,7 @@ function LinkList({
   );
 }
 
-function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+export function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section className="grid min-w-0 gap-4 rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
       <div>

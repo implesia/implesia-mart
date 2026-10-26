@@ -14,6 +14,7 @@ import {
 } from "@/lib/mart-api/contact-details";
 import { listPublicCategoryTree } from "@/lib/mart-api/categories";
 import { listPublicFooter } from "@/lib/mart-api/footer";
+import { listPublicHeaderItems } from "@/lib/mart-api/header";
 import { DEFAULT_FOOTER } from "@/lib/footer-view";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
@@ -61,9 +62,10 @@ function organizationJsonLd(details: ContactDetails) {
 }
 
 async function ContactHeader() {
-  const [details, tree] = await Promise.all([
+  const [details, tree, navItems] = await Promise.all([
     listPublicContactDetails(),
     listPublicCategoryTree(),
+    listPublicHeaderItems(),
   ]);
   const categories = (tree ?? [])
     .filter((item) => item.parentId === null)
@@ -71,7 +73,7 @@ async function ContactHeader() {
   return (
     <>
       <JsonLd data={organizationJsonLd(details)} />
-      <Header details={details} categories={categories} />
+      <Header details={details} categories={categories} navItems={navItems} />
     </>
   );
 }

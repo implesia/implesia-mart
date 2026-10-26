@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui/button";
+import { DEFAULT_HEADER_ITEMS, type HeaderItem } from "@/lib/header-view";
 import { cn } from "@/lib/utils";
 
 import {
@@ -19,7 +20,6 @@ import {
   type ContactDetails,
 } from "@/lib/mart-api/contact-details";
 
-import { headerNav } from "../../_data/common/site-nav";
 import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
@@ -50,10 +50,13 @@ export type HeaderCategory = { slug: string; label: string };
 export default function Header({
   details,
   categories = [],
+  navItems = DEFAULT_HEADER_ITEMS,
 }: {
   details: ContactDetails | null;
   /** Top-level categories from the API (never a hardcoded list). */
   categories?: HeaderCategory[];
+  /** Top menu from the API (Admin → Site → Header); the built-in menu when omitted. */
+  navItems?: readonly HeaderItem[];
 }) {
   const pathname = usePathname();
   const phoneChannel = contactChannel(details, "call");
@@ -318,11 +321,11 @@ export default function Header({
               className="flex min-w-0 flex-1 snap-x snap-mandatory scroll-px-1 items-center gap-1 overflow-x-auto overscroll-x-contain [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] sm:gap-3 lg:[mask-image:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               aria-label="প্রধান নেভিগেশন"
             >
-              {headerNav.map((item) => {
+              {navItems.map((item, index) => {
                 const active = item.href === activeHref;
                 return (
                   <Link
-                    key={item.href}
+                    key={`${index}-${item.href}`}
                     href={item.href}
                     className={cn(
                       "inline-flex h-11 shrink-0 snap-start items-center rounded-md px-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white last:mr-6 lg:last:mr-0",
@@ -437,11 +440,11 @@ export default function Header({
             ) : null}
 
             <nav className="space-y-1" aria-label="মোবাইল লিংক">
-              {headerNav.map((item) => {
+              {navItems.map((item, index) => {
                 const active = item.href === activeHref;
                 return (
                   <Link
-                    key={item.href}
+                    key={`${index}-${item.href}`}
                     href={item.href}
                     className={cn(
                       "flex items-center justify-between rounded-lg px-3 py-3 text-[0.95rem] font-medium transition-colors",
