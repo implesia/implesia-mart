@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { canOptimize } from "@/lib/blog-view";
 import { cn } from "@/lib/utils";
 
 const SITE_NAME = "Implesia Mart";
@@ -13,6 +14,10 @@ type SiteLogoProps = {
   onClick?: () => void;
   /** auto = theme-aware; onDark = always white mark; light = always navy mark */
   tone?: "auto" | "onDark" | "light";
+  /** An admin-uploaded logo that replaces the built-in marks (footer). */
+  custom?: { src: string; alt: string };
+  /** Accessible name for the link; defaults to the site name. */
+  label?: string;
 };
 
 /**
@@ -25,6 +30,8 @@ export function SiteLogo({
   priority = false,
   onClick,
   tone = "auto",
+  custom,
+  label = SITE_NAME,
 }: SiteLogoProps) {
   const lightClass =
     tone === "onDark"
@@ -47,9 +54,21 @@ export function SiteLogo({
         "relative block h-10 w-[9.75rem] shrink-0 transition-opacity hover:opacity-90 sm:h-12 sm:w-[12rem] lg:h-[3.25rem] lg:w-[13.25rem]",
         className,
       )}
-      aria-label={SITE_NAME}
+      aria-label={label}
       onClick={onClick}
     >
+      {custom ? (
+        <Image
+          src={custom.src}
+          alt=""
+          fill
+          priority={priority}
+          unoptimized={!canOptimize(custom.src)}
+          className="object-contain object-left"
+          sizes="(max-width: 640px) 156px, (max-width: 1024px) 192px, 212px"
+        />
+      ) : (
+        <>
       <Image
         src={LOGO_LIGHT}
         alt=""
@@ -66,6 +85,8 @@ export function SiteLogo({
         className={darkClass}
         sizes="(max-width: 640px) 156px, (max-width: 1024px) 192px, 212px"
       />
+        </>
+      )}
     </Link>
   );
 }

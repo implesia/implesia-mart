@@ -13,6 +13,8 @@ import {
   type ContactDetails,
 } from "@/lib/mart-api/contact-details";
 import { listPublicCategoryTree } from "@/lib/mart-api/categories";
+import { listPublicFooter } from "@/lib/mart-api/footer";
+import { DEFAULT_FOOTER } from "@/lib/footer-view";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 const websiteJsonLd = {
@@ -75,8 +77,8 @@ async function ContactHeader() {
 }
 
 async function ContactFooter() {
-  const details = await listPublicContactDetails();
-  return <Footer details={details} />;
+  const [details, config] = await Promise.all([listPublicContactDetails(), listPublicFooter()]);
+  return <Footer details={details} config={config} />;
 }
 
 async function ContactFloating() {
@@ -99,7 +101,7 @@ export default function ClientLayout({
           </Suspense>
         }
         footer={
-          <Suspense fallback={<Footer details={FALLBACK_CONTACT_DETAILS} />}>
+          <Suspense fallback={<Footer details={FALLBACK_CONTACT_DETAILS} config={DEFAULT_FOOTER} />}>
             <ContactFooter />
           </Suspense>
         }

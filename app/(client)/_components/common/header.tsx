@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -38,6 +39,12 @@ function useScrollLock(locked: boolean) {
   }, [locked]);
 }
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Same breakpoint as Tailwind `lg`, where the desktop navigation takes over. */
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
 export type HeaderCategory = { slug: string; label: string };
 
 export default function Header({
@@ -54,11 +61,81 @@ export default function Header({
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
   const menuId = useId();
   const categoriesRef = useRef<HTMLDivElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  // What opened the menu, so focus goes back there when it closes.
+  const openerRef = useRef<HTMLButtonElement | null>(null);
+  const focusTargetRef = useRef<"close" | "search">("close");
+  const wasOpenRef = useRef(false);
   const mobileOpen = menuPath === pathname;
   const categoriesOpen = categoriesPath === pathname;
   const [menuEntered, setMenuEntered] = useState(false);
 
   useScrollLock(mobileOpen);
+
+  const closeMenu = useCallback(() => setMenuPath(null), []);
+  const openMenu = useCallback(
+    (opener: HTMLButtonElement | null, focus: "close" | "search") => {
+      openerRef.current = opener;
+      focusTargetRef.current = focus;
+      setMenuPath(pathname);
+    },
+    [pathname],
+  );
+
+  // Move focus into the menu when it opens, and back to the button that opened it when it
+  // closes (also after a link was followed), so keyboard and screen reader users keep their place.
+  useEffect(() => {
+    if (mobileOpen) {
+      wasOpenRef.current = true;
+      const frame = requestAnimationFrame(() => {
+        const aside = asideRef.current;
+        if (!aside) return;
+        const target =
+          focusTargetRef.current === "search"
+            ? aside.querySelector<HTMLElement>('input[role="combobox"]')
+            : aside.querySelector<HTMLElement>("[data-menu-close]");
+        target?.focus();
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      (openerRef.current ?? menuButtonRef.current)?.focus();
+    }
+  }, [mobileOpen]);
+
+  // The drawer is mobile only: if the window grows to desktop while it is open, close it
+  // so the scroll lock and the inert header do not stay behind.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const query = window.matchMedia(DESKTOP_QUERY);
+    const onChange = (event: MediaQueryListEvent) => {
+      if (event.matches) closeMenu();
+    };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, [mobileOpen, closeMenu]);
+
+  // Keep Tab inside the open dialog (the header behind it is inert).
+  const trapTab = useCallback((event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Tab") return;
+    const items = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE),
+    ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !event.currentTarget.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !event.currentTarget.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -124,8 +201,8 @@ export default function Header({
               <SiteLogo
                 priority
                 tone="light"
-                className="h-9 w-[8.875rem] sm:h-10 sm:w-[9.875rem] lg:h-10 lg:w-[9.875rem]"
-                onClick={() => setMenuPath(null)}
+                className="h-9 w-[7.5rem] min-[360px]:w-[8.875rem] sm:h-10 sm:w-[9.875rem] lg:h-10 lg:w-[9.875rem]"
+                onClick={closeMenu}
               />
             </div>
 
@@ -149,15 +226,27 @@ export default function Header({
                 <CartTrigger variant="summary" />
 
                 <button
+                  ref={searchButtonRef}
+                  type="button"
+                  className="inline-flex size-11 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 lg:hidden"
+                  aria-label="প্রোডাক্ট খুঁজুন"
+                  aria-haspopup="dialog"
+                  onClick={() => openMenu(searchButtonRef.current, "search")}
+                >
+                  <MaterialIcon name="search" className="text-[24px]" />
+                </button>
+
+                <button
+                  ref={menuButtonRef}
                   type="button"
                   className="-mr-1.5 inline-flex size-11 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 lg:hidden"
                   aria-label={mobileOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
                   aria-expanded={mobileOpen}
                   aria-controls={mobileOpen ? menuId : undefined}
                   onClick={() =>
-                    setMenuPath((current) =>
-                      current === pathname ? null : pathname,
-                    )
+                    mobileOpen
+                      ? closeMenu()
+                      : openMenu(menuButtonRef.current, "close")
                   }
                 >
                   <MaterialIcon
@@ -170,7 +259,7 @@ export default function Header({
           </Container>
         </div>
 
-        <div className="bg-neutral-950 text-white">
+        <div className="hidden bg-neutral-950 text-white lg:block">
           <Container className="flex h-12 items-center gap-3 px-4 sm:gap-5 sm:px-6 lg:h-[3.25rem] lg:px-8">
             <div className="relative shrink-0" ref={categoriesRef}>
               <button
@@ -266,10 +355,12 @@ export default function Header({
             "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300",
             menuEntered ? "opacity-100" : "opacity-0",
           )}
-          onClick={() => setMenuPath(null)}
+          onClick={closeMenu}
         />
 
         <aside
+          ref={asideRef}
+          onKeyDown={trapTab}
           className={cn(
             "absolute top-0 right-0 flex h-full w-[min(100vw-2.5rem,22rem)] max-w-full flex-col bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-[#0e1514]",
             "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
@@ -292,15 +383,16 @@ export default function Header({
               variant="ghost"
               size="icon"
               className="size-10 shrink-0"
+              data-menu-close
               aria-label="মেনু বন্ধ করুন"
-              onClick={() => setMenuPath(null)}
+              onClick={closeMenu}
             >
               <MaterialIcon name="close" className="text-[24px]" />
             </Button>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-5">
-            <SearchBox variant="mobile" onNavigate={() => setMenuPath(null)} />
+            <SearchBox variant="mobile" onNavigate={closeMenu} />
 
             {phoneChannel ? (
               <a
@@ -310,6 +402,38 @@ export default function Header({
                 <MaterialIcon name="call" className="text-[18px]" />
                 {phoneChannel.value}
               </a>
+            ) : null}
+
+            {categories.length > 0 ? (
+              <nav className="mb-4" aria-label="Categories">
+                <p className="px-3 pb-1 text-[11px] font-semibold tracking-[0.18em] text-neutral-500 uppercase">
+                  Categories
+                </p>
+                <ul className="space-y-0.5">
+                  {categories.map((category) => (
+                    <li key={category.slug}>
+                      <Link
+                        href={`/products?category=${category.slug}`}
+                        className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[0.95rem] font-medium text-neutral-800 transition-colors hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10"
+                        onClick={closeMenu}
+                      >
+                        <span>{category.label}</span>
+                        <MaterialIcon name="chevron_right" className="text-[18px]" />
+                      </Link>
+                    </li>
+                  ))}
+                  <li>
+                    <Link
+                      href="/products"
+                      className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[0.95rem] font-semibold text-neutral-950 transition-colors hover:bg-neutral-100 dark:text-white dark:hover:bg-white/10"
+                      onClick={closeMenu}
+                    >
+                      <span>View All</span>
+                      <MaterialIcon name="arrow_forward" className="text-[18px]" />
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
             ) : null}
 
             <nav className="space-y-1" aria-label="মোবাইল লিংক">
@@ -325,7 +449,7 @@ export default function Header({
                         ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950"
                         : "text-neutral-800 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10",
                     )}
-                    onClick={() => setMenuPath(null)}
+                    onClick={closeMenu}
                   >
                     <span>{item.label}</span>
                     <MaterialIcon
@@ -340,11 +464,11 @@ export default function Header({
             <div className="mt-auto grid grid-cols-2 gap-2 pt-6 pb-2">
               <CartTrigger
                 variant="button"
-                onNavigate={() => setMenuPath(null)}
+                onNavigate={closeMenu}
               />
               <Link
                 href="/order-status"
-                onClick={() => setMenuPath(null)}
+                onClick={closeMenu}
                 className="inline-flex h-11 items-center justify-center rounded-full border border-neutral-200 text-sm font-medium dark:border-white/15"
               >
                 <MaterialIcon

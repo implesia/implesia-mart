@@ -534,45 +534,9 @@ export const SITE_CMS: CmsPage[] = [
     icon: "bottom_navigation",
     href: "/admin/site/footer",
     publicPath: "/",
-    api: "cms/site/footer",
-    description: "Columns, trust points, and contact.",
-    sections: [
-      {
-        id: "shop",
-        label: "Shop column",
-        icon: "storefront",
-        description: "Product and blog links.",
-        fields: ["title", "links"],
-      },
-      {
-        id: "company",
-        label: "Company",
-        icon: "domain",
-        description: "About, sustainability, and contact.",
-        fields: ["title", "links"],
-      },
-      {
-        id: "support",
-        label: "Support",
-        icon: "support",
-        description: "FAQ, shipping, privacy, and checkout.",
-        fields: ["title", "links"],
-      },
-      {
-        id: "trust",
-        label: "Trust",
-        icon: "verified",
-        description: "Three promises in the footer.",
-        fields: ["items"],
-      },
-      {
-        id: "contact",
-        label: "Contact",
-        icon: "call",
-        description: "Phone, email, and social.",
-        fields: ["phone", "email", "social"],
-      },
-    ],
+    api: "site/footer",
+    description: "Brand text, link columns, trust points, and legal links.",
+    sections: [],
   },
 ];
 
