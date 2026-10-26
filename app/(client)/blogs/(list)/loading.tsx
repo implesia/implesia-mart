@@ -1,4 +1,4 @@
-import { Container } from "../_components/common/container";
+import { Container } from "../../_components/common/container";
 
 function CardSkeleton() {
   return (
