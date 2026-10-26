@@ -547,6 +547,34 @@ details > summary {
   transition: transform 6500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/*
+  Desktop category flyouts (category-nav.tsx): a subtle fade plus a small slide towards the row it
+  belongs to, ease-out, no overshoot. Only opacity and transform animate; left/top are set once by
+  JS before the first paint and are never transitioned. `backwards` keeps no transform afterwards.
+*/
+.category-flyout {
+  --flyout-shift: 8px;
+  animation: category-flyout-in 180ms cubic-bezier(0, 0, 0.2, 1) backwards;
+}
+.category-flyout[data-side="left"] {
+  --flyout-shift: -8px;
+}
+@keyframes category-flyout-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--flyout-shift), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .category-flyout {
+    animation: none;
+  }
+}
+
 /* Constrain fill images if a parent briefly has no height */
 img[data-nimg="fill"] {
   max-width: 100%;

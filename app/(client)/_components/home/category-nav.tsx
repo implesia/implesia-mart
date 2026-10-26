@@ -22,6 +22,7 @@ import {
   parseCategoryPreview,
   type CategoryPreview,
 } from "@/lib/mart-api/category-preview";
+import { placeFlyout, settledAnchor, type FlyoutAnchor } from "@/lib/category-flyout";
 import { buildCategoryTree, type CategoryNode } from "@/lib/mart-api/category-tree";
 import { mediaUrl, publicFetch } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ import { productPath } from "@/lib/mart-api/product-url";
 
 type Node = CategoryNode<CategoryTile>;
 /** One open flyout: the node whose children it lists and the row it is anchored to. */
-type OpenLevel = { id: string; rect: DOMRect };
+type OpenLevel = { id: string; rect: FlyoutAnchor };
 
 const OPEN_DELAY_MS = 90;
 const AIM_DELAY_MS = 320;
@@ -51,6 +52,19 @@ const PREVIEW_TTL_MS = 45_000;
  *   is a plain link.
  * Phones and tablets use the drill-down panel below the rail (tap, nested chevrons, Back).
  */
+
+/**
+ * The row's position as a flyout anchor. A row inside a flyout that is still sliding in is
+ * measured at its settled position, not mid-slide.
+ */
+function anchorOf(el: HTMLElement): FlyoutAnchor {
+  const rect = el.getBoundingClientRect();
+  const flyout = el.closest<HTMLElement>("[data-category-flyout]");
+  const transform = flyout ? getComputedStyle(flyout).transform : "none";
+  if (!flyout || transform === "none") return { left: rect.left, right: rect.right, top: rect.top };
+  const matrix = new DOMMatrixReadOnly(transform);
+  return settledAnchor(rect, matrix.m41, matrix.m42);
+}
 
 /** A row opens something when it has subcategories or products to preview. */
 function hasFlyout(node: Node) {
@@ -159,7 +173,7 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
       setPath((prev) => {
         if (!hasFlyout(node)) return prev.length > level ? prev.slice(0, level) : prev;
         if (prev[level]?.id === node.item.id && prev.length === level + 1) return prev;
-        return [...prev.slice(0, level), { id: node.item.id, rect: el.getBoundingClientRect() }];
+        return [...prev.slice(0, level), { id: node.item.id, rect: anchorOf(el) }];
       });
     },
     [],
@@ -615,7 +629,7 @@ function Flyout({
 }: {
   level: number;
   wide: boolean;
-  anchor: DOMRect;
+  anchor: FlyoutAnchor;
   node: Node;
   baseId: string;
   focusFirstRef: React.RefObject<number | null>;
@@ -629,20 +643,16 @@ function Flyout({
 
   // Place next to the anchor row; flip left when there is no room, clamp to the viewport.
   // The product panel changes height once its products arrive, so placement is redone then.
+  // Position is set directly (never transitioned): the flyout stays hidden until it is placed,
+  // then it fades/slides in from its final position, so it can never sweep in from a corner.
   const place = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    const gap = 6;
-    const margin = 8;
     const { width, height } = el.getBoundingClientRect();
-    let left = anchor.right + gap;
-    if (left + width > window.innerWidth - margin) left = Math.max(margin, anchor.left - width - gap);
-    left = Math.max(margin, left);
-    let top = anchor.top - 6;
-    top = Math.min(top, window.innerHeight - height - margin);
-    top = Math.max(margin, top);
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
+    const spot = placeFlyout(anchor, { width, height }, { width: window.innerWidth, height: window.innerHeight });
+    el.style.left = `${spot.left}px`;
+    el.style.top = `${spot.top}px`;
+    el.dataset.side = spot.side;
     el.style.visibility = "visible";
   }, [anchor]);
 
@@ -694,7 +704,7 @@ function Flyout({
       onPointerMove={onPointerMove}
       style={{ position: "fixed", left: 0, top: 0, visibility: "hidden", zIndex: 60 + level }}
       className={cn(
-        "force-light max-w-[calc(100vw-1rem)] rounded-2xl bg-white p-1.5 shadow-[0_18px_44px_rgba(16,24,40,0.16)] ring-1 ring-neutral-200/90 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150",
+        "category-flyout force-light max-w-[calc(100vw-1rem)] rounded-2xl bg-white p-1.5 shadow-[0_18px_44px_rgba(16,24,40,0.16)] ring-1 ring-neutral-200/90",
         wide ? "w-[22rem]" : "w-60",
       )}
       data-category-panel={wide ? "products" : "categories"}
