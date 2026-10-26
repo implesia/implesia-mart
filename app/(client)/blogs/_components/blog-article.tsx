@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { blogCategoryLabel, type BlogCategories } from "@/lib/mart-api/blog-categories";
@@ -10,6 +9,7 @@ import type { BlogRelated } from "@/lib/mart-api/blog-related";
 import { isExternalHref } from "@/lib/mart-mock/about-sections";
 import type { BlogPostRecord } from "@/lib/mart-mock/blog-sections";
 import { isContentActive } from "@/lib/mart-mock/visibility";
+import { articleSeo, coverSrc } from "@/lib/blog-view";
 import { absoluteUrl, bengaliDateToIso, SITE_NAME } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ import { Container } from "../../_components/common/container";
 import { JsonLd } from "../../_components/common/json-ld";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { ProductBreadcrumbs } from "../../products/_components/product-breadcrumbs";
+import { BlogImage } from "./blog-image";
 import { BlogContent } from "./blog-content";
 import { BlogRelatedPosts, BlogRelatedProducts } from "./blog-related";
 
@@ -57,15 +58,17 @@ export function BlogArticle({
   const showRelated = Boolean(related?.isActive);
   const relatedPosts = relatedArticles(posts, post);
   const publishedIso = bengaliDateToIso(post.publishedAt);
-  const postUrl = absoluteUrl(`/blogs/${post.slug}`);
+  const seo = articleSeo(post);
+  const postUrl = seo.url;
+  const hasCover = Boolean(coverSrc(post.coverImage));
   const readSuffix = listing?.isActive ? listing.readSuffix.trim() : "";
 
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
-    description: post.excerpt,
-    image: post.coverImage ? [absoluteUrl(post.coverImage)] : [],
+    description: seo.description,
+    image: seo.image ? [seo.image] : [],
     author: { "@type": "Organization", name: post.author },
     publisher: {
       "@type": "Organization",
@@ -182,15 +185,13 @@ export function BlogArticle({
               showRelated && headings.length > 1 ? "lg:col-span-9" : "mx-auto max-w-3xl lg:col-span-12",
             )}
           >
-            {post.coverImage ? (
+            {hasCover ? (
               <div className="relative mb-6 aspect-16/9 w-full overflow-hidden rounded-2xl bg-white sm:mb-8">
-                <Image
+                <BlogImage
                   src={post.coverImage}
-                  alt={post.coverAlt}
-                  fill
+                  alt={post.coverAlt.trim() || post.title}
                   priority
                   sizes="(max-width: 1024px) 100vw, 800px"
-                  className="object-cover"
                 />
               </div>
             ) : null}

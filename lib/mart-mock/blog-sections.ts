@@ -44,6 +44,8 @@ export type BlogPostRecord = {
   categoryId: string;
   coverImage: string;
   coverAlt: string;
+  seoTitle: string;
+  seoDescription: string;
   author: string;
   authorRole: string;
   publishedAt: string;
@@ -52,6 +54,8 @@ export type BlogPostRecord = {
   relatedProductSlugs: string[];
   content: BlogBlock[];
   isActive?: boolean;
+  /** Admin only: the stored cover is a legacy value that cannot render; upload a new one. */
+  coverNeedsUpload?: boolean;
 };
 
 export type BlogHeroContent = {
@@ -189,6 +193,8 @@ export function seedBlogSections(): BlogSections {
         categoryId: categoryIdFor(post.category),
         coverImage: post.coverImage,
         coverAlt: post.coverAlt,
+        seoTitle: "",
+        seoDescription: "",
         author: post.author,
         authorRole: post.authorRole,
         publishedAt: post.publishedAt,
@@ -264,6 +270,8 @@ export function blankBlogPost(categoryId: string): BlogPostRecord {
     categoryId,
     coverImage: "",
     coverAlt: "",
+    seoTitle: "",
+    seoDescription: "",
     author: "ইমপ্লেসিয়া মার্ট টিম",
     authorRole: "",
     publishedAt: "",

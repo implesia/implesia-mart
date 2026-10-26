@@ -1,7 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { blogHref, type SearchBlogHit } from "@/lib/mart-api/search";
+
+import { BlogImage } from "../../blogs/_components/blog-image";
 
 export function SearchBlogs({ posts, total }: { posts: SearchBlogHit[]; total: number }) {
   return (
@@ -17,9 +18,7 @@ export function SearchBlogs({ posts, total }: { posts: SearchBlogHit[]; total: n
               className="group flex h-full gap-3 rounded-2xl border border-neutral-200/90 bg-white p-3 transition-colors hover:border-primary/40"
             >
               <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-[#f5f6f8]">
-                {post.coverImage ? (
-                  <Image src={post.coverImage} alt={post.coverAlt} fill sizes="80px" className="object-cover" />
-                ) : null}
+                <BlogImage src={post.coverImage} alt={post.coverAlt} sizes="80px" />
               </div>
               <div className="min-w-0">
                 <h3 className="line-clamp-2 text-sm font-semibold group-hover:text-primary">{post.title}</h3>

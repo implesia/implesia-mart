@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
+import { BlogImage } from "@/app/(client)/blogs/_components/blog-image";
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { products } from "@/app/(client)/_data/products/products";
+import { adminCoverSrc } from "@/lib/blog-view";
 import {
   blogCategoryLabel,
   getBlogCategories,
@@ -17,6 +18,7 @@ import {
   listAdminBlogPosts,
   reorderBlogPosts,
   updateBlogPost,
+  uploadBlogCover,
 } from "@/lib/mart-api/blog-posts";
 import { MartApiError } from "@/lib/mart-api/products";
 import {
@@ -59,6 +61,9 @@ type Draft = {
   categoryId: string;
   coverImage: string;
   coverAlt: string;
+  coverNeedsUpload: boolean;
+  seoTitle: string;
+  seoDescription: string;
   author: string;
   authorRole: string;
   publishedAt: string;
@@ -78,6 +83,9 @@ function draftFrom(post: BlogPostRecord): Draft {
     categoryId: post.categoryId,
     coverImage: post.coverImage,
     coverAlt: post.coverAlt,
+    coverNeedsUpload: post.coverNeedsUpload === true,
+    seoTitle: post.seoTitle,
+    seoDescription: post.seoDescription,
     author: post.author,
     authorRole: post.authorRole,
     publishedAt: post.publishedAt,
@@ -221,15 +229,7 @@ export function BlogPostsEditor() {
                 )}
               >
                 <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg bg-admin-canvas sm:w-28">
-                  {post.coverImage ? (
-                    <Image
-                      src={post.coverImage}
-                      alt=""
-                      fill
-                      sizes="112px"
-                      className="object-cover"
-                    />
-                  ) : null}
+                  <BlogImage src={post.coverImage} alt="" sizes="112px" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -237,6 +237,11 @@ export function BlogPostsEditor() {
                       {post.title || "Untitled"}
                     </p>
                     <VisibilityBadge active={post.isActive !== false} />
+                    {post.coverNeedsUpload ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200">
+                        Cover needs re-upload
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">
                     {[label, post.publishedAt].filter(Boolean).join(" · ") || "No category"}
@@ -305,6 +310,8 @@ function cleanPost(draft: Draft): BlogPostRecord {
     categoryId: draft.categoryId,
     coverImage: draft.coverImage.trim(),
     coverAlt: draft.coverAlt.trim(),
+    seoTitle: draft.seoTitle.trim(),
+    seoDescription: draft.seoDescription.trim(),
     author: draft.author.trim(),
     authorRole: draft.authorRole.trim(),
     publishedAt: draft.publishedAt.trim(),
@@ -387,8 +394,8 @@ function PostForm({
       setError("Choose a category.");
       return;
     }
-    if (!draft.coverImage.trim()) {
-      setError("Cover photo is required.");
+    if (draft.isActive && !draft.coverImage.trim()) {
+      setError("Add a cover photo before publishing, or switch this article to hidden.");
       return;
     }
     if (draft.content.some((block) => !blockFilled(block))) {
@@ -397,7 +404,15 @@ function PostForm({
     }
     setSaving(true);
     try {
-      await onSave(draft);
+      let ready = draft;
+      // A chosen file is only a browser preview (blob:). Upload it first, then keep the stored
+      // path in the draft so a failed save does not upload the same file again.
+      if (draft.coverImage.trim().startsWith("blob:")) {
+        const url = await uploadBlogCover(draft.coverImage.trim());
+        ready = { ...draft, coverImage: url, coverNeedsUpload: false };
+        setDraft((current) => ({ ...current, coverImage: url, coverNeedsUpload: false }));
+      }
+      await onSave(ready);
     } catch (error) {
       setSaving(false);
       setError(error instanceof MartApiError ? error.message : "Could not save the article.");
@@ -486,10 +501,19 @@ function PostForm({
           multiline
           onChange={(excerpt) => setDraft({ ...draft, excerpt })}
         />
+        {draft.coverNeedsUpload && !draft.coverImage ? (
+          <p
+            data-testid="cover-legacy-warning"
+            className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200"
+          >
+            This article&apos;s saved cover can no longer be shown (it was never uploaded). Choose
+            the photo again, or save the article hidden and add it later.
+          </p>
+        ) : null}
         <ImageField
           label="Cover photo"
           variant="thumb"
-          value={draft.coverImage}
+          value={adminCoverSrc(draft.coverImage)}
           onChange={(coverImage) => {
             setDraft({ ...draft, coverImage });
             setError("");
@@ -501,6 +525,24 @@ function PostForm({
           value={draft.coverAlt}
           onChange={(coverAlt) => setDraft({ ...draft, coverAlt })}
         />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Labeled
+            id={`${formId}-seo-title`}
+            label="SEO title (optional, max 70)"
+            value={draft.seoTitle}
+            maxLength={70}
+            placeholder={draft.title}
+            onChange={(seoTitle) => setDraft({ ...draft, seoTitle })}
+          />
+          <Labeled
+            id={`${formId}-seo-description`}
+            label="SEO description (optional, max 200)"
+            value={draft.seoDescription}
+            maxLength={200}
+            placeholder={draft.excerpt}
+            onChange={(seoDescription) => setDraft({ ...draft, seoDescription })}
+          />
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Labeled
             id={`${formId}-author`}

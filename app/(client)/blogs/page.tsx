@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { listPublicBlogCategories } from "@/lib/mart-api/blog-categories";
 import { listPublicBlogHero } from "@/lib/mart-api/blog-hero";
 import { listPublicBlogListing } from "@/lib/mart-api/blog-listing";
-import { listPublicBlogPosts } from "@/lib/mart-api/blog-posts";
+import { fetchPublicBlogPosts } from "@/lib/mart-api/blog-posts";
 import { absoluteUrl } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
@@ -42,11 +42,11 @@ const breadcrumbJsonLd = {
 };
 
 export default async function BlogsPage() {
-  const [hero, categories, listing, posts] = await Promise.all([
+  const [hero, categories, listing, { posts, failed }] = await Promise.all([
     listPublicBlogHero(),
     listPublicBlogCategories(),
     listPublicBlogListing(),
-    listPublicBlogPosts(),
+    fetchPublicBlogPosts(),
   ]);
 
   return (
@@ -66,7 +66,7 @@ export default async function BlogsPage() {
 
       <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
         <Container className="w-full px-4 sm:px-6 lg:px-8">
-          <BlogsGrid categories={categories} listing={listing} posts={posts} />
+          <BlogsGrid categories={categories} listing={listing} posts={posts} failed={failed} />
         </Container>
       </section>
     </main>

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import type { BlogCategory } from "@/lib/mart-api/blog-categories";
@@ -9,6 +8,7 @@ import type { BlogPostRecord } from "@/lib/mart-mock/blog-sections";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
+import { BlogImage } from "./blog-image";
 
 export function BlogCard({
   post,
@@ -46,19 +46,17 @@ export function BlogCard({
         "group flex h-full flex-col overflow-hidden rounded-2xl",
         "border border-neutral-200/90 bg-white",
         "transition-colors hover:border-primary/40",
+        "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none",
         className,
       )}
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#f5f6f8]">
-        {post.coverImage ? (
-          <Image
-            src={post.coverImage}
-            alt={post.coverAlt}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover"
-          />
-        ) : null}
+        <BlogImage
+          src={post.coverImage}
+          alt={post.coverAlt}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+        />
         {category ? (
           <span className="absolute top-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-neutral-800">
             {category}
@@ -73,10 +71,12 @@ export function BlogCard({
         <p className="line-clamp-2 text-sm leading-relaxed text-neutral-600">{post.excerpt}</p>
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-neutral-200 pt-3.5">
-          <div className="flex min-w-0 items-center gap-2 text-[11px] text-neutral-500 sm:text-xs">
-            <span className="truncate">{post.publishedAt}</span>
-            <span className="size-0.5 shrink-0 rounded-full bg-neutral-300" aria-hidden />
-            <span className="shrink-0">{post.readTime}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-neutral-500 sm:text-xs">
+            {post.author.trim() ? (
+              <span className="max-w-[9rem] truncate font-medium text-neutral-700">{post.author}</span>
+            ) : null}
+            {post.publishedAt.trim() ? <span className="truncate">{post.publishedAt}</span> : null}
+            {post.readTime.trim() ? <span className="shrink-0">{post.readTime}</span> : null}
           </div>
           {readLabel ? (
             <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary">
@@ -109,20 +109,17 @@ function FeaturedBlogCard({
       className={cn(
         "group grid overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:grid-cols-12",
         "transition-colors hover:border-primary/40",
+        "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none",
         className,
       )}
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-[#f5f6f8] lg:col-span-7 lg:aspect-auto lg:min-h-[260px]">
-        {post.coverImage ? (
-          <Image
-            src={post.coverImage}
-            alt={post.coverAlt}
-            fill
-            priority
-            sizes="(max-width: 1024px) 100vw, 58vw"
-            className="object-cover"
-          />
-        ) : null}
+        <BlogImage
+          src={post.coverImage}
+          alt={post.coverAlt}
+          priority
+          sizes="(max-width: 1024px) 100vw, 58vw"
+        />
       </div>
 
       <div className="flex flex-col justify-center px-4 py-5 sm:px-6 sm:py-6 lg:col-span-5 lg:px-7">

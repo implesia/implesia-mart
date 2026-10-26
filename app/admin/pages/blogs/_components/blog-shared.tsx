@@ -260,9 +260,11 @@ export function Labeled({
   invalid,
   onChange,
   multiline,
+  maxLength,
 }: {
   id: string;
   label: string;
+  maxLength?: number;
   required?: boolean;
   value: string;
   placeholder?: string;
@@ -282,6 +284,7 @@ export function Labeled({
           id={id}
           rows={3}
           value={value}
+          maxLength={maxLength}
           placeholder={placeholder}
           aria-invalid={invalid || undefined}
           onChange={(event) => onChange(event.target.value)}
@@ -291,6 +294,7 @@ export function Labeled({
         <input
           id={id}
           value={value}
+          maxLength={maxLength}
           placeholder={placeholder}
           aria-invalid={invalid || undefined}
           onChange={(event) => onChange(event.target.value)}

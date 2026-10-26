@@ -1,5 +1,5 @@
 import type { BlogBlock, BlogPostRecord } from "@/lib/mart-mock/blog-sections";
-import { MartApiError, authorizedFetch } from "@/lib/mart-api/products";
+import { MartApiError, authorizedFetch, fileFromSrc } from "@/lib/mart-api/products";
 
 type ApiBlock = {
   id?: string;
@@ -20,6 +20,9 @@ type ApiPost = {
   category_id?: string | null;
   cover_image?: string;
   cover_alt?: string;
+  seo_title?: string;
+  seo_description?: string;
+  cover_needs_upload?: boolean;
   author?: string;
   author_role?: string;
   published_at?: string;
@@ -59,6 +62,9 @@ function toPost(body: ApiPost, index: number): BlogPostRecord {
     categoryId: body.category_id ?? "",
     coverImage: body.cover_image ?? "",
     coverAlt: body.cover_alt ?? "",
+    seoTitle: body.seo_title ?? "",
+    seoDescription: body.seo_description ?? "",
+    coverNeedsUpload: body.cover_needs_upload === true,
     author: body.author ?? "",
     authorRole: body.author_role ?? "",
     publishedAt: body.published_at ?? "",
@@ -94,6 +100,8 @@ function toBody(post: BlogPostRecord) {
     category_id: post.categoryId,
     cover_image: post.coverImage,
     cover_alt: post.coverAlt,
+    seo_title: post.seoTitle,
+    seo_description: post.seoDescription,
     author: post.author,
     author_role: post.authorRole,
     published_at: post.publishedAt,
@@ -113,6 +121,23 @@ async function readError(response: Response, fallback: string) {
   }
   if (response.status === 401) return "Sign in again to edit the blog page.";
   return fallback;
+}
+
+/** Sends a chosen cover (a blob: preview) to the media store and returns its `/media/blogs/..` path. */
+export async function uploadBlogCover(src: string): Promise<string> {
+  const file = await fileFromSrc(src, "cover");
+  const form = new FormData();
+  form.append("image", file);
+  const response = await authorizedFetch("/api/v1/admin/pages/blogs/posts/cover", {
+    method: "POST",
+    body: form,
+  });
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Could not upload the cover photo."));
+  }
+  const body = (await response.json()) as { url?: string };
+  if (!body.url) throw new MartApiError("Could not upload the cover photo.");
+  return body.url;
 }
 
 export async function listAdminBlogPosts(): Promise<BlogPostRecord[]> {
@@ -172,18 +197,25 @@ export async function reorderBlogPosts(ids: string[]): Promise<BlogPostRecord[]>
 
 const API = process.env.NEXT_PUBLIC_MART_API_URL ?? "http://127.0.0.1:8001";
 
-export async function listPublicBlogPosts(): Promise<BlogPostRecord[]> {
+/** Published posts, plus whether the API answered, so an outage is not shown as "no posts". */
+export async function fetchPublicBlogPosts(): Promise<{ posts: BlogPostRecord[]; failed: boolean }> {
   try {
     const response = await fetch(`${API}/api/v1/pages/blogs/posts`, {
       headers: { Accept: "application/json" },
       cache: "no-store",
+      // A hung API must end in the error state, not an endless skeleton.
+      signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok) return [];
+    if (!response.ok) return { posts: [], failed: true };
     const body = (await response.json()) as ApiPosts;
-    return (body.posts ?? []).map(toPost);
+    return { posts: (body.posts ?? []).map(toPost), failed: false };
   } catch {
-    return [];
+    return { posts: [], failed: true };
   }
+}
+
+export async function listPublicBlogPosts(): Promise<BlogPostRecord[]> {
+  return (await fetchPublicBlogPosts()).posts;
 }
 
 /** True only when the API answered 404, so an outage is not reported as a missing post. */
