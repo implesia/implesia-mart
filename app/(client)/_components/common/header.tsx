@@ -340,7 +340,7 @@ export default function Header({
       </header>
 
       {/* Matches the fixed header height per breakpoint (measured) so nothing jumps or gaps. */}
-      <div aria-hidden className="h-[105px] sm:h-[109px] lg:h-[145px]" />
+      <div aria-hidden className="h-[57px] sm:h-[81px] lg:h-[145px]" />
 
       {mobileOpen ? (
       <div
