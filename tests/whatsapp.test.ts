@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  configuredProductWhatsappNumber,
   productWhatsappMessage,
   selectionLabels,
   whatsappHref,
@@ -32,16 +31,6 @@ test("number normalises to wa.me international digits", () => {
   for (const bad of ["", "12345", "0158056912", "01280569129", "abc", "8801580569129x", undefined, null]) {
     assert.equal(whatsappNumber(bad), null, String(bad));
   }
-});
-
-test("the configured product number is the business number", () => {
-  const saved = process.env.NEXT_PUBLIC_PRODUCT_WHATSAPP_NUMBER;
-  delete process.env.NEXT_PUBLIC_PRODUCT_WHATSAPP_NUMBER;
-  assert.equal(configuredProductWhatsappNumber(), "8801580569129");
-  process.env.NEXT_PUBLIC_PRODUCT_WHATSAPP_NUMBER = "garbage";
-  assert.equal(configuredProductWhatsappNumber(), null);
-  if (saved === undefined) delete process.env.NEXT_PUBLIC_PRODUCT_WHATSAPP_NUMBER;
-  else process.env.NEXT_PUBLIC_PRODUCT_WHATSAPP_NUMBER = saved;
 });
 
 test("message carries product, id, url, options, quantity, prices", () => {

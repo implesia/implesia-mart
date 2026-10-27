@@ -9,6 +9,8 @@
  * - order lookup: /order-status (order number + checkout mobile)
  * - contact details and hours: contact copy
  */
+import { SITE_CONTACT_DEFAULTS } from "@/lib/site-contact";
+
 export type FaqCategory = {
   id: string;
   label: string;
@@ -25,8 +27,8 @@ export type FaqItem = {
   link?: FaqLink;
 };
 
-export const FAQ_PHONE = "+880 1516-527932";
-export const FAQ_EMAIL = "implesiaitltd@gmail.com";
+export const FAQ_PHONE: string = SITE_CONTACT_DEFAULTS.phone;
+export const FAQ_EMAIL: string = SITE_CONTACT_DEFAULTS.email;
 
 export const faqsCopy = {
   hero: {

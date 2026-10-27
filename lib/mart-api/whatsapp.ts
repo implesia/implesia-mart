@@ -3,9 +3,6 @@
  * values it already shows (prices come from the API, never from here).
  */
 
-/** Business number for product inquiries, local format. Override with NEXT_PUBLIC_PRODUCT_WHATSAPP_NUMBER. */
-export const DEFAULT_PRODUCT_WHATSAPP_NUMBER = "01580569129";
-
 /** Bangladesh mobile number to wa.me international digits, or null when it is not one. */
 export function whatsappNumber(value: string | undefined | null) {
   const digits = (value ?? "").replace(/[\s\-().]/g, "").replace(/^\+/, "");
@@ -13,12 +10,6 @@ export function whatsappNumber(value: string | undefined | null) {
   if (/^01[3-9]\d{8}$/.test(digits)) return `880${digits.slice(1)}`;
   if (/^8801[3-9]\d{8}$/.test(digits)) return digits;
   return null;
-}
-
-export function configuredProductWhatsappNumber() {
-  return whatsappNumber(
-    process.env.NEXT_PUBLIC_PRODUCT_WHATSAPP_NUMBER || DEFAULT_PRODUCT_WHATSAPP_NUMBER,
-  );
 }
 
 export type WhatsappProduct = {

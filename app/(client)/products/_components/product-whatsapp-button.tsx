@@ -7,13 +7,14 @@ import { absoluteUrl } from "@/lib/seo";
 import { priceView } from "@/lib/mart-api/variants";
 import { productPath } from "@/lib/mart-api/product-url";
 import {
-  configuredProductWhatsappNumber,
   productWhatsappMessage,
   selectionLabels,
   whatsappHref,
+  whatsappNumber,
 } from "@/lib/mart-api/whatsapp";
 import { cn } from "@/lib/utils";
 
+import { useSiteContact } from "../../_providers/site-contact-provider";
 import { WhatsAppIcon } from "../../_components/common/brand-icons";
 import type { ProductDetail } from "../../_data/products/product-details";
 import {
@@ -49,7 +50,7 @@ export function ProductWhatsAppButton({
     min: product.minPerOrder,
     max: product.maxPerOrder,
   });
-  const number = configuredProductWhatsappNumber();
+  const number = whatsappNumber(useSiteContact().whatsapp);
   const view = priceView(product, variant, quantity);
   const status = product.status ?? "available";
   const orderable = status === "available" && check.ok;

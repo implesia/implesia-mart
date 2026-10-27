@@ -1,4 +1,5 @@
 import { WHATSAPP_HREF } from "@/app/(client)/_data/contact/contact";
+import { DEFAULT_SITE_CONTACT } from "@/lib/site-contact";
 import { MartApiError, authorizedFetch } from "@/lib/mart-api/products";
 
 export type ContactHeroLink = {
@@ -32,7 +33,7 @@ export const FALLBACK_CONTACT_HERO: ContactHero = {
   subtitle:
     "কল বা হোয়াটসঅ্যাপে সরাসরি যোগাযোগ করুন। কর্মঘণ্টায় রিপ্লাই দেওয়ার চেষ্টা করি।",
   primaryCta: { label: "হোয়াটসঅ্যাপ", href: WHATSAPP_HREF },
-  secondaryCta: { label: "কল করুন", href: "tel:+8801516527932" },
+  secondaryCta: { label: "কল করুন", href: DEFAULT_SITE_CONTACT.telHref },
 };
 
 const HIDDEN: ContactHero = {

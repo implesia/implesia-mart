@@ -530,6 +530,16 @@ export const SITE_CMS: CmsPage[] = [
     description: "Brand text, link columns, trust points, and legal links.",
     sections: [],
   },
+  {
+    id: "contact",
+    label: "Contact settings",
+    icon: "call",
+    href: "/admin/site/contact",
+    publicPath: "/contact-us",
+    api: "site/contact",
+    description: "Phone, WhatsApp and email used across the whole storefront.",
+    sections: [],
+  },
 ];
 
 export const ALL_CMS_PAGES: CmsPage[] = [HOME_CMS, ...PAGE_CMS, ...SITE_CMS];

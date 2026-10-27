@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import type { FaqHelp } from "@/lib/mart-api/faq-help";
 import { isExternalHref } from "@/lib/mart-mock/about-sections";
+import { internationalDigits } from "@/lib/site-contact";
 import { cn } from "@/lib/utils";
 
 import { WhatsAppIcon } from "../../_components/common/brand-icons";
@@ -18,7 +19,8 @@ export function FaqsHelpCta({
   if (!help?.isActive || !help.title.trim()) return null;
   const primary = help.primaryLabel.trim();
   const secondary = help.secondaryLabel.trim();
-  const phoneHref = help.phone.replace(/[\s-]/g, "");
+  const phoneDigits = internationalDigits(help.phone);
+  const phoneHref = phoneDigits ? `+${phoneDigits}` : help.phone.replace(/[\s-]/g, "");
 
   return (
     <div className={cn("mt-8", className)}>

@@ -47,8 +47,8 @@ test("only site paths, http(s), mailto and tel links are allowed", () => {
 });
 
 test("contact-sourced hrefs only check the scheme", () => {
-  assert.equal(safeContactHref("tel:+880 1516 527932"), "tel:+880 1516 527932");
-  assert.equal(safeContactHref("https://wa.me/8801516527932"), "https://wa.me/8801516527932");
+  assert.equal(safeContactHref("tel:+880 1580 569129"), "tel:+880 1580 569129");
+  assert.equal(safeContactHref("https://wa.me/8801580569129"), "https://wa.me/8801580569129");
   assert.equal(safeContactHref("mailto:hello@example.com"), "mailto:hello@example.com");
   assert.equal(safeContactHref("javascript:alert(1)"), "");
   assert.equal(safeContactHref("data:text/html,x"), "");

@@ -3,10 +3,12 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 
 import { getStoreProduct, getStoreProductById } from "@/lib/mart-api/catalog";
+import { getPublicSiteContact } from "@/lib/mart-api/site-contact";
 import { parseProductRef, productPath } from "@/lib/mart-api/product-url";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
 
 import { JsonLd } from "../../_components/common/json-ld";
+import { SiteContactProvider } from "../../_providers/site-contact-provider";
 import { ProductDetailLayout } from "../_components/product-detail-view";
 
 // Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
@@ -80,7 +82,7 @@ export default async function ProductDetailsPage({
   params: Promise<{ ref: string }>;
 }) {
   const { ref } = await params;
-  const product = await resolveProduct(ref);
+  const [product, contact] = await Promise.all([resolveProduct(ref), getPublicSiteContact()]);
 
   const productUrl = absoluteUrl(productPath(product));
   const productJsonLd = {
@@ -115,7 +117,9 @@ export default async function ProductDetailsPage({
     <>
       <JsonLd data={productJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
-      <ProductDetailLayout product={product} />
+      <SiteContactProvider contact={contact}>
+        <ProductDetailLayout product={product} />
+      </SiteContactProvider>
     </>
   );
 }

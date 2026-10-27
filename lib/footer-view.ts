@@ -139,7 +139,7 @@ export function safeFooterHref(value: string): string {
 
 /**
  * A href that comes from the contact details (their own admin page). Only the scheme is
- * checked, so a number written as `tel:+880 1516 527932` still works; javascript:, data:
+ * checked, so a number written as `tel:+880 1580 569129` still works; javascript:, data:
  * and other schemes never render.
  */
 export function safeContactHref(value: string): string {
