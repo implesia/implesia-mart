@@ -194,6 +194,8 @@ export function BlogModal({
   size = "md",
   saving,
   saveLabel = "Save changes",
+  formError,
+  announce,
   onClose,
   onSave,
   children,
@@ -204,6 +206,10 @@ export function BlogModal({
   size?: AdminFormModalSize;
   saving: boolean;
   saveLabel?: string;
+  /** A problem that belongs to no field (network, sign-in, server), kept in view by the buttons. */
+  formError?: string;
+  /** Screen-reader summary of a failed save, spoken once; it is not shown. */
+  announce?: string;
   onClose: () => void;
   onSave: () => void;
   children: ReactNode;
@@ -229,6 +235,20 @@ export function BlogModal({
         </button>
       </div>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4">{children}</div>
+      {announce !== undefined ? (
+        <p role="status" aria-live="polite" className="sr-only">
+          {announce}
+        </p>
+      ) : null}
+      {formError ? (
+        <p
+          role="alert"
+          data-testid="form-error"
+          className="shrink-0 border-t border-red-100 bg-red-50 px-5 py-2.5 text-sm font-medium text-red-800"
+        >
+          {formError}
+        </p>
+      ) : null}
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
         <button
           type="button"
@@ -258,6 +278,7 @@ export function Labeled({
   value,
   placeholder,
   invalid,
+  error,
   onChange,
   multiline,
   maxLength,
@@ -269,10 +290,18 @@ export function Labeled({
   value: string;
   placeholder?: string;
   invalid?: boolean;
+  /** The message shown under the field. Marks it invalid and ties the message to it. */
+  error?: string;
   onChange: (value: string) => void;
   multiline?: boolean;
 }) {
-  const className = cn(adminFieldClass, invalid && "border-red-400", multiline && "h-auto py-3");
+  const isInvalid = invalid || Boolean(error);
+  const errorId = error ? `${id}-error` : undefined;
+  const className = cn(
+    adminFieldClass,
+    isInvalid && "border-red-600",
+    multiline && "h-auto py-3",
+  );
   return (
     <div>
       <FieldLabel htmlFor={id}>
@@ -286,7 +315,8 @@ export function Labeled({
           value={value}
           maxLength={maxLength}
           placeholder={placeholder}
-          aria-invalid={invalid || undefined}
+          aria-invalid={isInvalid || undefined}
+          aria-describedby={errorId}
           onChange={(event) => onChange(event.target.value)}
           className={className}
         />
@@ -296,12 +326,24 @@ export function Labeled({
           value={value}
           maxLength={maxLength}
           placeholder={placeholder}
-          aria-invalid={invalid || undefined}
+          aria-invalid={isInvalid || undefined}
+          aria-describedby={errorId}
           onChange={(event) => onChange(event.target.value)}
           className={className}
         />
       )}
+      <InlineError id={errorId} message={error} />
     </div>
+  );
+}
+
+/** The message under one invalid field. The field points at it with `aria-describedby`. */
+export function InlineError({ id, message }: { id?: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="mt-1.5 text-xs text-red-700">
+      {message}
+    </p>
   );
 }
 

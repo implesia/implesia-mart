@@ -160,6 +160,8 @@ export function ImageField({
   confirmRemove = false,
   variant = "default",
   onBusy,
+  error: outerError,
+  inputId: givenId,
 }: {
   value: string;
   onChange: (src: string) => void;
@@ -168,8 +170,13 @@ export function ImageField({
   confirmRemove?: boolean;
   variant?: "default" | "thumb";
   onBusy?: (busy: boolean) => void;
+  /** A problem with this image from the form (required, rejected by the API). */
+  error?: string;
+  /** Lets the form focus the file control when this image is the first invalid field. */
+  inputId?: string;
 }) {
-  const inputId = useId();
+  const fallbackId = useId();
+  const inputId = givenId ?? fallbackId;
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -203,6 +210,9 @@ export function ImageField({
   }
 
   const thumb = variant === "thumb";
+  // One message at a time: a file the browser rejected first, else the form's own problem.
+  const message = error || outerError || "";
+  const errorId = message ? `${inputId}-error` : undefined;
 
   return (
     <div>
@@ -232,6 +242,7 @@ export function ImageField({
           thumb
             ? "flex items-center gap-3 rounded-xl p-2"
             : "rounded-2xl",
+          message && "ring-red-600",
           dragging && "ring-2 ring-primary",
         )}
       >
@@ -288,15 +299,17 @@ export function ImageField({
         >
           <label
             htmlFor={inputId}
-            className="inline-flex h-9 cursor-pointer items-center rounded-full bg-neutral-950 px-3 text-xs font-semibold text-white hover:bg-neutral-800"
+            className="inline-flex h-9 cursor-pointer items-center rounded-full bg-neutral-950 px-3 text-xs font-semibold text-white hover:bg-neutral-800 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
           >
             {value ? "Replace image" : "Browse"}
             <input
               id={inputId}
               type="file"
               accept={ACCEPT}
-              className="sr-only"
+              className="peer sr-only"
               disabled={uploading}
+              aria-invalid={message ? true : undefined}
+              aria-describedby={errorId}
               onChange={(event) => {
                 void upload(event.target.files?.[0]);
                 event.target.value = "";
@@ -348,7 +361,11 @@ export function ImageField({
           )}
         </div>
       </div>
-      {error ? <p className="mt-1.5 text-xs text-red-600">{error}</p> : null}
+      {message ? (
+        <p id={errorId} className="mt-1.5 text-xs text-red-700">
+          {message}
+        </p>
+      ) : null}
     </div>
   );
 }

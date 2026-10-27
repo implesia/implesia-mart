@@ -112,15 +112,46 @@ function toBody(post: BlogPostRecord) {
   };
 }
 
-async function readError(response: Response, fallback: string) {
+/** A failed blog call: the HTTP status (0 = never reached the API) and the API's field details. */
+export class BlogApiError extends MartApiError {
+  readonly status: number;
+  readonly details: unknown;
+
+  constructor(message: string, status: number, details: unknown = null) {
+    super(message);
+    this.name = "BlogApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
+async function failure(response: Response, fallback: string) {
+  let message = "";
+  let details: unknown = null;
   try {
-    const parsed = (await response.json()) as { error?: { message?: string } };
-    if (parsed.error?.message) return parsed.error.message;
+    const parsed = (await response.json()) as { error?: { message?: string; details?: unknown } };
+    message = parsed.error?.message ?? "";
+    details = parsed.error?.details ?? null;
   } catch {
     /* not the API envelope */
   }
-  if (response.status === 401) return "Sign in again to edit the blog page.";
-  return fallback;
+  if (!message) {
+    message = response.status === 401 ? "Sign in again to edit the blog page." : fallback;
+  }
+  return new BlogApiError(message, response.status, details);
+}
+
+/** `authorizedFetch`, but a dropped connection becomes a status-0 error with an actionable text. */
+async function send(path: string, init?: RequestInit) {
+  try {
+    return await authorizedFetch(path, init);
+  } catch (error) {
+    if (error instanceof BlogApiError) throw error;
+    throw new BlogApiError(
+      "Could not reach the server. Your entries are kept. Check your connection and try again.",
+      0,
+    );
+  }
 }
 
 /** Sends a chosen cover (a blob: preview) to the media store and returns its `/media/blogs/..` path. */
@@ -128,68 +159,68 @@ export async function uploadBlogCover(src: string): Promise<string> {
   const file = await fileFromSrc(src, "cover");
   const form = new FormData();
   form.append("image", file);
-  const response = await authorizedFetch("/api/v1/admin/pages/blogs/posts/cover", {
+  const response = await send("/api/v1/admin/pages/blogs/posts/cover", {
     method: "POST",
     body: form,
   });
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Could not upload the cover photo."));
+    throw await failure(response, "Could not upload the cover photo.");
   }
   const body = (await response.json()) as { url?: string };
-  if (!body.url) throw new MartApiError("Could not upload the cover photo.");
+  if (!body.url) throw new BlogApiError("Could not upload the cover photo.", 200);
   return body.url;
 }
 
 export async function listAdminBlogPosts(): Promise<BlogPostRecord[]> {
-  const response = await authorizedFetch("/api/v1/admin/pages/blogs/posts");
+  const response = await send("/api/v1/admin/pages/blogs/posts");
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Could not load the articles."));
+    throw await failure(response, "Could not load the articles.");
   }
   const body = (await response.json()) as ApiPosts;
   return (body.posts ?? []).map(toPost);
 }
 
 export async function createBlogPost(post: BlogPostRecord): Promise<BlogPostRecord> {
-  const response = await authorizedFetch("/api/v1/admin/pages/blogs/posts", {
+  const response = await send("/api/v1/admin/pages/blogs/posts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(toBody(post)),
   });
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Could not save the article."));
+    throw await failure(response, "Could not save the article.");
   }
   return toPost((await response.json()) as ApiPost, 0);
 }
 
 export async function updateBlogPost(id: string, post: BlogPostRecord): Promise<BlogPostRecord> {
-  const response = await authorizedFetch(`/api/v1/admin/pages/blogs/posts/${id}`, {
+  const response = await send(`/api/v1/admin/pages/blogs/posts/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(toBody(post)),
   });
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Could not save the article."));
+    throw await failure(response, "Could not save the article.");
   }
   return toPost((await response.json()) as ApiPost, 0);
 }
 
 export async function deleteBlogPost(id: string): Promise<void> {
-  const response = await authorizedFetch(`/api/v1/admin/pages/blogs/posts/${id}`, {
+  const response = await send(`/api/v1/admin/pages/blogs/posts/${id}`, {
     method: "DELETE",
   });
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Could not remove the article."));
+    throw await failure(response, "Could not remove the article.");
   }
 }
 
 export async function reorderBlogPosts(ids: string[]): Promise<BlogPostRecord[]> {
-  const response = await authorizedFetch("/api/v1/admin/pages/blogs/posts/order", {
+  const response = await send("/api/v1/admin/pages/blogs/posts/order", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ids }),
   });
   if (!response.ok) {
-    throw new MartApiError(await readError(response, "Could not reorder the articles."));
+    throw await failure(response, "Could not reorder the articles.");
   }
   const body = (await response.json()) as ApiPosts;
   return (body.posts ?? []).map(toPost);
