@@ -142,7 +142,7 @@ function OptionCard({
                       values: option.values.filter((item) => item.id !== value.id),
                     })
                   }
-                  className="grid size-6 place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-950"
+                  className="grid size-6 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
                   aria-label={`Remove ${value.label}`}
                 >
                   <MaterialIcon name="close" className="text-[14px]" />

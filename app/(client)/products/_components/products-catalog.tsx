@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import type { CategoryTile } from "@/lib/mart-api/categories";
+import { categoryTrail } from "@/lib/mart-api/category-tree";
 import {
   CATALOG_PAGE_SIZE,
   catalogHref,
@@ -14,7 +16,7 @@ import {
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
-  categoryLabels,
+  categoryLabel,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   type CatalogView,
@@ -43,9 +45,9 @@ type ProductsCatalogProps = {
   total: number;
   page: number;
   pages: number;
-  categoryCounts: Record<ProductCategoryId, number>;
+  /** Visible categories from the API (depth-first); empty when the API could not supply them. */
+  categoryTree: CategoryTile[];
   availabilityCounts: Record<ProductStatus, number>;
-  searchTruncated: boolean;
 };
 
 export function ProductsCatalog({
@@ -55,9 +57,8 @@ export function ProductsCatalog({
   total,
   page,
   pages,
-  categoryCounts,
+  categoryTree,
   availabilityCounts,
-  searchTruncated,
 }: ProductsCatalogProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -106,7 +107,10 @@ export function ProductsCatalog({
 
   const priceDirty = search.minPrice != null || search.maxPrice != null;
   const comingSoonOn = search.statuses.includes("coming-soon");
-  const categoryChip = search.category ? categoryLabels[search.category] : null;
+  const trail = search.category ? categoryTrail(categoryTree, search.category) : [];
+  const categoryChip = search.category
+    ? (trail[trail.length - 1]?.label ?? categoryLabel(search.category))
+    : null;
   const viewChip = search.view ? VIEW_LABEL[search.view] : null;
   const showActiveFilters = Boolean(
     search.q || viewChip || categoryChip || comingSoonOn || priceDirty,
@@ -132,12 +136,10 @@ export function ProductsCatalog({
     onPriceRangeChange: commitPrice,
     availability: search.statuses,
     onAvailabilityToggle: toggleAvailability,
-    categories: search.category
-      ? [search.category]
-      : (["gadgets", "fashion"] as ProductCategoryId[]),
+    categoryTree,
+    activeCategory: search.category,
     onCategorySelect: selectCategory,
     onReset: () => go(cleared),
-    categoryCounts,
     availabilityCounts,
     resultCount: total,
     canReset: !unfiltered,
@@ -170,17 +172,12 @@ export function ProductsCatalog({
           }
           sort={search.sort}
           onSortChange={(sort) => patch({ sort })}
-          categories={filterControls.categories}
+          categoryTree={categoryTree}
+          activeCategory={search.category}
           onCategorySelect={selectCategory}
           onOpenMobileFilters={() => setMobileFiltersOpen(true)}
           filtersOpen={mobileFiltersOpen}
         />
-
-        {searchTruncated ? (
-          <p className="mb-2 text-xs leading-relaxed text-on-surface-variant">
-            আরও মিল থাকতে পারে। ক্যাটাগরি দিয়ে সীমিত করে দেখুন।
-          </p>
-        ) : null}
 
         {showActiveFilters ? (
           <ul

@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import { categoryLabels } from "@/app/(client)/_data/products/catalog-meta";
+import { categoryLabel } from "@/app/(client)/_data/products/catalog-meta";
 import type {
   ProductDetail,
   ProductSpecGroupId,
@@ -11,6 +11,8 @@ import type {
   ProductCategoryId,
   ProductStatus,
 } from "@/app/(client)/_data/products/catalog-meta";
+import { cardToProduct } from "@/lib/mart-api/catalog-product";
+import { mediaUrl } from "@/lib/mart-api/media-url";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import {
   catalogResponseKind,
@@ -19,16 +21,11 @@ import {
 } from "@/lib/mart-api/product-page";
 import {
   CATALOG_PAGE_SIZE,
-  CATALOG_SEARCH_PAGE_SIZE,
-  CATALOG_SEARCH_SCAN_PAGES,
   emptyCatalogCounts,
   interpretPublicCatalog,
-  matchesCatalogText,
-  paginateMatches,
   toApiSearchParams,
   type CatalogPageData,
   type CatalogSearch,
-  type PublicCatalogCard,
 } from "@/lib/mart-api/catalog-query";
 
 const API = process.env.NEXT_PUBLIC_MART_API_URL ?? "http://127.0.0.1:8001";
@@ -107,6 +104,8 @@ type ApiCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
+  category_slug?: string;
+  category_name?: string;
   price: number;
   compare_at_price: number | null;
   unit_label: string;
@@ -115,22 +114,10 @@ type ApiCard = {
   badge: ProductBadge | null;
   status: ProductStatus;
   featured: boolean;
+  has_variants?: boolean;
 };
 
-function media(src: string) {
-  const value = src.trim();
-  if (!value || value.includes("..") || value.startsWith("//")) return "";
-  if (value.startsWith("/")) {
-    return value.startsWith("/media/") ? `${API}${value}` : value;
-  }
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
-    return url.href;
-  } catch {
-    return "";
-  }
-}
+const media = mediaUrl;
 
 function money(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
@@ -167,7 +154,10 @@ function mapCard(item: ApiCard): Product {
     badge: item.badge ?? undefined,
     status: item.status,
     categoryId: item.category,
+    categorySlug: item.category_slug || item.category,
+    categoryName: item.category_name || undefined,
     featured: item.featured,
+    hasVariants: item.has_variants === true,
   };
 }
 
@@ -203,12 +193,20 @@ function mapDetail(
     ...card,
     breadcrumbs: [
       { label: "হোম", href: "/" },
-      {
-        label: categoryLabels[item.category],
-        href: `/products?category=${item.category}`,
-      },
+      ...(item.category_path.length > 0
+        ? item.category_path.map((crumb) => ({
+            label: crumb.name,
+            href: `/products?category=${crumb.slug}`,
+          }))
+        : [
+            {
+              label: categoryLabel(item.category, item.category_name),
+              href: `/products?category=${item.category}`,
+            },
+          ]),
       { label: item.title },
     ],
+    categoryPath: item.category_path,
     gallery: gallery.filter((image) => image.src),
     tagline: item.tagline,
     stockLabel: item.stock_label,
@@ -218,6 +216,9 @@ function mapDetail(
     whatsInBox: item.package_items,
     howToUse: item.how_to_use,
     faqs: item.faqs,
+    variants: item.variants,
+    minPerOrder: item.min_per_order,
+    maxPerOrder: item.max_per_order,
     purchaseOptions: (item.options ?? [])
       .filter((group) => group.values.length > 0)
       .map((group) => ({
@@ -256,7 +257,8 @@ function mapDetail(
         id: mapped.id,
         slug: mapped.slug,
         title: mapped.title,
-        priceLabel: money(mapped.price),
+        priceLabel: `${mapped.hasVariants ? "শুরু " : ""}${money(mapped.price)}`,
+        hasVariants: mapped.hasVariants,
         imageSrc: mapped.imageSrc,
         imageAlt: mapped.imageAlt,
         status: mapped.status,
@@ -302,23 +304,6 @@ async function readJson(path: string): Promise<unknown | null> {
   }
 }
 
-function toProduct(card: PublicCatalogCard): Product {
-  return {
-    id: card.id,
-    slug: card.slug,
-    title: card.title,
-    subtitle: card.subtitle,
-    price: card.price,
-    compareAtPrice: card.compareAtPrice,
-    unitLabel: card.unitLabel || undefined,
-    imageSrc: media(card.imageSrc),
-    imageAlt: card.imageAlt || card.title,
-    badge: card.badge,
-    status: card.status,
-    categoryId: card.category,
-    featured: card.featured,
-  };
-}
 
 function unavailableCatalog(search: CatalogSearch): CatalogPageData {
   return {
@@ -327,7 +312,6 @@ function unavailableCatalog(search: CatalogSearch): CatalogPageData {
     page: search.page,
     pages: 0,
     unavailable: true,
-    searchTruncated: false,
     ...emptyCatalogCounts(),
   };
 }
@@ -357,7 +341,7 @@ export const loadStoreCatalog = cache(async (): Promise<CatalogLoad> => {
     if (!body) return { products: [], unavailable: true };
     const parsed = interpretPublicCatalog(body);
     if (!parsed) return { products: [], unavailable: true };
-    for (const item of parsed.items) all.push(toProduct(item));
+    for (const item of parsed.items) all.push(cardToProduct(item));
     pages = parsed.pages || 1;
     if (parsed.pages === 0) break;
     page += 1;
@@ -375,44 +359,7 @@ export const queryStoreCatalog = cache(
         page: 1,
         pages: 0,
         unavailable: false,
-        searchTruncated: false,
-        ...emptyCatalogCounts(),
-      };
-    }
-
-    if (search.q) {
-      const matches: Product[] = [];
-      let apiPage = 1;
-      let apiPages = 1;
-      while (apiPage <= apiPages && apiPage <= CATALOG_SEARCH_SCAN_PAGES) {
-        const parsed = await fetchCatalogPage(
-          search,
-          apiPage,
-          CATALOG_SEARCH_PAGE_SIZE,
-        );
-        if (!parsed) return unavailableCatalog(search);
-        for (const item of parsed.items) {
-          const product = toProduct(item);
-          if (matchesCatalogText(product, search.q)) matches.push(product);
-        }
-        apiPages = parsed.pages;
-        if (parsed.pages === 0) break;
-        apiPage += 1;
-      }
-      const page = paginateMatches(matches, search.page, CATALOG_PAGE_SIZE);
-      const counts = emptyCatalogCounts();
-      for (const product of matches) {
-        counts.categoryCounts[product.categoryId] += 1;
-        counts.availabilityCounts[product.status] += 1;
-      }
-      return {
-        products: page.items,
-        total: page.total,
-        page: page.page,
-        pages: page.pages,
-        unavailable: false,
-        searchTruncated: apiPages > CATALOG_SEARCH_SCAN_PAGES,
-        ...counts,
+            ...emptyCatalogCounts(),
       };
     }
 
@@ -423,13 +370,12 @@ export const queryStoreCatalog = cache(
     );
     if (!parsed) return unavailableCatalog(search);
     return {
-      products: parsed.items.map(toProduct),
+      products: parsed.items.map(cardToProduct),
       total: parsed.total,
       page: parsed.page || search.page,
       pages: parsed.pages,
       unavailable: false,
-      searchTruncated: false,
-      categoryCounts: parsed.categoryCounts,
+        categoryCounts: parsed.categoryCounts,
       availabilityCounts: parsed.availabilityCounts,
     };
   },
@@ -439,23 +385,39 @@ export const listStoreProducts = cache(async (): Promise<Product[]> => {
   return (await loadStoreCatalog()).products;
 });
 
+async function loadStoreProduct(path: string): Promise<ProductDetail | null> {
+  // One lookup; the API answers 404 for missing, unpublished and hidden-category alike.
+  const result = await fetchCatalog(path);
+  if (result.kind === "missing") return null;
+  if (result.kind === "down") throw new CatalogUnavailableError();
+  const detail = normalizeProductDetail(result.body);
+  if (!detail) {
+    console.error("Product detail response was not usable");
+    throw new CatalogUnavailableError();
+  }
+  if (!catalogProductId(detail.id)) return null;
+  return mapDetail(detail, await getStoreDeliveryRates());
+}
+
+/** Legacy slug lookup. The page redirects to the canonical id URL. */
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
     const safeSlug = normalizeProductSlug(slug);
     if (!safeSlug) return null;
-    // One lookup by slug; the API answers 404 for missing and unpublished alike.
-    const result = await fetchCatalog(
+    const product = await loadStoreProduct(
       `/api/v1/products/by-slug/${encodeURIComponent(safeSlug)}`,
     );
-    if (result.kind === "missing") return null;
-    if (result.kind === "down") throw new CatalogUnavailableError();
-    const detail = normalizeProductDetail(result.body);
-    if (!detail) {
-      console.error("Product detail response was not usable");
-      throw new CatalogUnavailableError();
-    }
-    if (detail.slug !== safeSlug || !catalogProductId(detail.id)) return null;
-    return mapDetail(detail, await getStoreDeliveryRates());
+    return product && product.slug === safeSlug ? product : null;
+  },
+);
+
+/** Canonical lookup by the stable product id (UUID). */
+export const getStoreProductById = cache(
+  async (id: string): Promise<ProductDetail | null> => {
+    if (!isCatalogProductId(id)) return null;
+    const lower = id.toLowerCase();
+    const product = await loadStoreProduct(`/api/v1/products/${lower}`);
+    return product && product.id.toLowerCase() === lower ? product : null;
   },
 );
 

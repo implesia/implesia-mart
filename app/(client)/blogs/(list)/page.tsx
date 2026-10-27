@@ -3,22 +3,22 @@ import type { Metadata } from "next";
 import { listPublicBlogCategories } from "@/lib/mart-api/blog-categories";
 import { listPublicBlogHero } from "@/lib/mart-api/blog-hero";
 import { listPublicBlogListing } from "@/lib/mart-api/blog-listing";
-import { listPublicBlogPosts } from "@/lib/mart-api/blog-posts";
+import { fetchPublicBlogPosts } from "@/lib/mart-api/blog-posts";
 import { absoluteUrl } from "@/lib/seo";
 
-import { Container } from "../_components/common/container";
-import { JsonLd } from "../_components/common/json-ld";
-import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
-import { BlogsGrid } from "./_components/blogs-grid";
-import { BlogsHero } from "./_components/blogs-hero";
+import { Container } from "../../_components/common/container";
+import { JsonLd } from "../../_components/common/json-ld";
+import { ProductBreadcrumbs } from "../../products/_components/product-breadcrumbs";
+import { BlogsGrid } from "../_components/blogs-grid";
+import { BlogsHero } from "../_components/blogs-hero";
 
 // Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-const TITLE = "ব্লগ";
+const TITLE = "Blog";
 const DESCRIPTION =
-  "ইমপ্লেসিয়া মার্ট ব্লগ — গ্যাজেট গাইড ও গর্জিয়াস ড্রেস টিপস, বাংলায়।";
+  "Implesia Mart blog: gadget guides and dress tips.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -31,22 +31,22 @@ const breadcrumbJsonLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
+    { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
     {
       "@type": "ListItem",
       position: 2,
-      name: "ব্লগ",
+      name: "Blog",
       item: absoluteUrl("/blogs"),
     },
   ],
 };
 
 export default async function BlogsPage() {
-  const [hero, categories, listing, posts] = await Promise.all([
+  const [hero, categories, listing, { posts, failed }] = await Promise.all([
     listPublicBlogHero(),
     listPublicBlogCategories(),
     listPublicBlogListing(),
-    listPublicBlogPosts(),
+    fetchPublicBlogPosts(),
   ]);
 
   return (
@@ -56,8 +56,8 @@ export default async function BlogsPage() {
         <div className="w-full pt-3 sm:pt-4 lg:pt-5">
           <ProductBreadcrumbs
             items={[
-              { label: "হোম", href: "/" },
-              { label: "ব্লগ" },
+              { label: "Home", href: "/" },
+              { label: "Blog" },
             ]}
           />
         </div>
@@ -66,7 +66,7 @@ export default async function BlogsPage() {
 
       <section className="w-full bg-[#f5f6f8] py-6 sm:py-8">
         <Container className="w-full px-4 sm:px-6 lg:px-8">
-          <BlogsGrid categories={categories} listing={listing} posts={posts} />
+          <BlogsGrid categories={categories} listing={listing} posts={posts} failed={failed} />
         </Container>
       </section>
     </main>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
@@ -10,11 +10,21 @@ import { cn } from "@/lib/utils";
 
 import { catalogProductId } from "@/lib/mart-api/catalog";
 import { directCheckoutHref } from "@/lib/mart-api/product-page";
+import {
+  chooseOption,
+  clampQuantity,
+  defaultChoices,
+  findVariant,
+  priceView,
+  purchaseCheck,
+  valueIsOffered,
+} from "@/lib/mart-api/variants";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { setBuyQuantity } from "./buy-quantity-store";
 import { ProductPurchaseOptions } from "./product-purchase-options";
+import { ProductWhatsAppButton } from "./product-whatsapp-button";
 import {
   activePicks,
   defaultPicks,
@@ -38,6 +48,24 @@ const TRUST_BADGES = [
 
 export function ProductInfo({ product }: { product: ProductDetail }) {
   const router = useRouter();
+  const groups = useMemo(
+    () => product.purchaseOptions ?? [],
+    [product.purchaseOptions],
+  );
+  const variants = useMemo(() => product.variants ?? [], [product.variants]);
+  const hasVariants = product.hasVariants === true;
+  const initialChoices = useMemo<Record<string, string>>(
+    () =>
+      (hasVariants ? defaultChoices(variants) : null) ??
+      Object.fromEntries(
+        defaultPicks(groups).map((pick) => [pick.groupId, pick.valueId]),
+      ),
+    [hasVariants, variants, groups],
+  );
+  const [choices, setChoices] = useState<Record<string, string>>(initialChoices);
+  const selectedVariant = hasVariants ? findVariant(variants, choices) : null;
+  const check = purchaseCheck(hasVariants, selectedVariant);
+  const limits = { min: product.minPerOrder, max: product.maxPerOrder };
   const {
     quantity,
     inCart,
@@ -48,31 +76,28 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
     addItem,
     openCart,
     selected,
-  } = usePurchaseQuantity(product.slug);
-  const groups = product.purchaseOptions ?? [];
-  const [choices, setChoices] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      defaultPicks(groups).map((pick) => [pick.groupId, pick.valueId]),
-    ),
-  );
+  } = usePurchaseQuantity(product.slug, selectedVariant?.id ?? null, limits);
+  const view = priceView(product, selectedVariant, quantity);
   const [justAdded, setJustAdded] = useState(false);
   const [pending, setPending] = useState<"cart" | "buy" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const isComingSoon = product.status === "coming-soon";
   const isSoldOut = product.status === "sold-out";
-  const canBuy = !isComingSoon && !isSoldOut;
+  const canBuy = !isComingSoon && !isSoldOut && check.ok;
 
   useEffect(() => {
-    setBuyQuantity(1);
-    setActivePicks(defaultPicks(product.purchaseOptions ?? []));
-  }, [product.slug, product.purchaseOptions]);
+    setBuyQuantity(clampQuantity(1, { min: product.minPerOrder }));
+    setActivePicks(picksFromChoices(groups, initialChoices));
+  }, [product.slug, product.minPerOrder, initialChoices, groups]);
 
   function choose(groupId: string, valueId: string) {
-    setChoices((current) => {
-      const next = { ...current, [groupId]: valueId };
-      setActivePicks(picksFromChoices(groups, next));
-      return next;
-    });
+    const next = hasVariants
+      ? chooseOption(variants, choices, groupId, valueId)
+      : { ...choices, [groupId]: valueId };
+    if (!next) return;
+    setActionError(null);
+    setActivePicks(picksFromChoices(groups, next));
+    setChoices(next);
   }
 
   function handleAddToCart() {
@@ -89,7 +114,8 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
       const ok = await addItem(product.slug, selected(), {
         openDrawer: true,
         productId: catalogProductId(product.id),
-        selection: activePicks(),
+        variantId: selectedVariant?.id ?? null,
+        selection: hasVariants ? [] : activePicks(),
       });
       setPending(null);
       if (!ok) {
@@ -106,21 +132,16 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
     setPending("buy");
     setActionError(null);
     rememberBuySelection(product.slug, activePicks());
-    router.push(directCheckoutHref(product, selected()));
+    router.push(directCheckoutHref(product, selected(), selectedVariant?.id));
   }
 
-  const discountPct =
-    product.compareAtPrice && product.compareAtPrice > product.price
-      ? Math.round(
-          ((product.compareAtPrice - product.price) / product.compareAtPrice) *
-            100,
-        )
-      : null;
   const availabilityLabel = isSoldOut
     ? "শেষ"
     : isComingSoon
       ? "শীঘ্রই আসছে"
-      : product.stockLabel || "স্টকে আছে";
+      : !check.ok
+        ? "এই অপশন নেই"
+        : product.stockLabel || "স্টকে আছে";
 
   return (
     <div id="buy-box" className="flex flex-col">
@@ -150,18 +171,26 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             {product.unitLabel}
           </span>
         ) : null}
-        <span className="text-2xl font-semibold tracking-tight text-on-background sm:text-3xl">
-          {formatPrice(product.price)}
+        <span
+          data-testid="product-unit-price"
+          className="text-2xl font-semibold tracking-tight text-on-background sm:text-3xl"
+        >
+          {hasVariants && !selectedVariant ? (
+            <span className="mr-1 text-sm font-medium text-muted-foreground">
+              শুরু
+            </span>
+          ) : null}
+          {formatPrice(view.unitPrice)}
         </span>
-        {product.compareAtPrice ? (
+        {view.compareAtPrice ? (
           <>
             <span className="text-base text-muted-foreground line-through sm:text-lg">
               <span className="sr-only">আগের দাম </span>
-              {formatPrice(product.compareAtPrice)}
+              {formatPrice(view.compareAtPrice)}
             </span>
-            {discountPct ? (
+            {view.discountPercent ? (
               <span className="text-sm font-bold text-[#ba1a1a]">
-                {discountPct}% ছাড়
+                {view.discountPercent}% ছাড়
               </span>
             ) : null}
           </>
@@ -175,7 +204,22 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         groups={groups}
         choices={choices}
         onChoose={choose}
+        isOffered={
+          hasVariants
+            ? (groupId, valueId) => valueIsOffered(variants, groupId, valueId)
+            : undefined
+        }
       />
+
+      {hasVariants && !isSoldOut && !isComingSoon && !check.ok ? (
+        <p
+          role="status"
+          data-testid="variant-unavailable"
+          className="mb-4 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-3 text-sm text-neutral-800"
+        >
+          এই অপশনটি এখন পাওয়া যাচ্ছে না। অন্য অপশন বেছে নিন।
+        </p>
+      ) : null}
 
       {isSoldOut ? (
         <div className="mb-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-4 sm:mb-8 sm:p-6">
@@ -183,6 +227,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           <p className="mt-2 text-sm text-on-surface-variant sm:text-base">
             এই প্রোডাক্টটি এখন শেষ। কার্টে যোগ করা যাবে না।
           </p>
+          <ProductWhatsAppButton product={product} layout="full" className="mt-4" />
         </div>
       ) : isComingSoon ? (
         <div className="mb-6 rounded-2xl border border-dashed border-[#0b5e56]/40 bg-[#2BC0B5]/10 p-4 sm:mb-8 sm:p-6">
@@ -200,6 +245,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           >
             মেসেজ করে জানুন
           </Link>
+          <ProductWhatsAppButton product={product} layout="full" className="mt-3" />
         </div>
       ) : (
         <>
@@ -244,6 +290,19 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             </div>
           </div>
 
+          <p
+            className="mb-4 text-sm text-on-surface-variant"
+            data-testid="product-line-total"
+            aria-live="polite"
+          >
+            {quantity > 1
+              ? `${quantity} × ${formatPrice(view.unitPrice)} = `
+              : "মোট: "}
+            <span className="font-semibold text-on-background">
+              {formatPrice(view.lineTotal)}
+            </span>
+          </p>
+
           <div className="mb-2 hidden flex-col gap-3 lg:flex">
             <Button
               type="button"
@@ -267,6 +326,11 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
               {pending === "buy" ? "চেকআউটে যাচ্ছে…" : "অর্ডার করুন"}
             </Button>
           </div>
+          <ProductWhatsAppButton
+            product={product}
+            layout="full"
+            className="mb-2 mt-3 lg:mt-0"
+          />
         </>
       )}
 

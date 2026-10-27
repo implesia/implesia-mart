@@ -1,3 +1,4 @@
+import type { ProductVariant } from "@/lib/mart-api/variants";
 import {
   getProductGalleryItems,
   getProductMedia,
@@ -49,6 +50,11 @@ export type ProductDetail = Product & {
   faqs?: ProductFaq[];
   colorOptions?: { id: string; name: string; swatch: string }[];
   purchaseOptions?: ProductOptionGroup[];
+  /** Sellable variants from the API. Empty for a plain product. */
+  variants?: ProductVariant[];
+  /** Order limits per line, from the API. */
+  minPerOrder?: number;
+  maxPerOrder?: number | null;
   materialDetails?: ProductSpecItem[];
   delivery: { icon: string; title: string; description: string }[];
   details: {

@@ -30,6 +30,9 @@ export default async function CheckoutPage({
       : undefined;
   const rawId = Array.isArray(sp.id) ? sp.id[0] : sp.id;
   const productId = rawId && isCatalogProductId(rawId) ? rawId : undefined;
+  const rawVariant = Array.isArray(sp.variant) ? sp.variant[0] : sp.variant;
+  const variantId =
+    rawVariant && isCatalogProductId(rawVariant) ? rawVariant : undefined;
 
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
@@ -44,6 +47,7 @@ export default async function CheckoutPage({
         seedSlug={productSlug}
         seedQty={quantity}
         seedProductId={productId}
+        seedVariantId={variantId}
       />
     </main>
   );

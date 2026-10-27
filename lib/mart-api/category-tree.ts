@@ -138,3 +138,255 @@ export function parentIdField(
   if (previousParentId) return { parent_id: null };
   return {};
 }
+
+/** Node of `GET /api/v1/categories/tree` (already nested, visible categories only). */
+export type ApiTreeNode = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  image_src?: string;
+  depth?: number;
+  product_count?: number;
+  children?: ApiTreeNode[];
+};
+
+export type FlatTreeItem = {
+  id: string;
+  parentId: string | null;
+  slug: string;
+  name: string;
+  description: string;
+  imageSrc: string;
+  depth: number;
+  productCount: number;
+};
+
+/**
+ * Flattens the nested public tree depth-first (parents first, siblings in API order) into
+ * the parent-pointer shape used by `buildCategoryTree`. A node id seen twice is kept once, so
+ * a malformed response can never loop or duplicate rows.
+ */
+export function flattenApiTree(nodes: readonly ApiTreeNode[], parentId: string | null = null): FlatTreeItem[] {
+  const out: FlatTreeItem[] = [];
+  const seen = new Set<string>();
+  const walk = (list: readonly ApiTreeNode[], parent: string | null, depth: number) => {
+    for (const node of list) {
+      if (seen.has(node.id)) continue;
+      seen.add(node.id);
+      out.push({
+        id: node.id,
+        parentId: parent,
+        slug: node.slug,
+        name: node.name,
+        description: node.description ?? "",
+        imageSrc: node.image_src ?? "",
+        depth: node.depth ?? depth,
+        productCount: node.product_count ?? 0,
+      });
+      walk(node.children ?? [], node.id, depth + 1);
+    }
+  };
+  walk(nodes, parentId, 1);
+  return out;
+}
+
+/** Order payload for the reorder endpoint: the siblings of one parent after a move. */
+export function siblingOrder<T extends CategoryTreeInput>(
+  items: readonly T[],
+  id: string,
+  direction: -1 | 1,
+): { parentId: string | null; ids: string[] } | null {
+  const target = items.find((item) => item.id === id);
+  if (!target) return null;
+  const parentId = target.parentId ?? null;
+  const ids = items.filter((item) => (item.parentId ?? null) === parentId).map((item) => item.id);
+  const from = ids.indexOf(id);
+  const to = from + direction;
+  if (from < 0 || to < 0 || to >= ids.length) return null;
+  const [moved] = ids.splice(from, 1);
+  if (!moved) return null;
+  ids.splice(to, 0, moved);
+  return { parentId, ids };
+}
+
+/** Same as `siblingOrder` for a drag: put `dragId` where `targetId` is (same parent only). */
+export function dropOrder<T extends CategoryTreeInput>(
+  items: readonly T[],
+  dragId: string,
+  targetId: string,
+): { parentId: string | null; ids: string[] } | null {
+  const dragged = items.find((item) => item.id === dragId);
+  const target = items.find((item) => item.id === targetId);
+  if (!dragged || !target || dragId === targetId) return null;
+  const parentId = dragged.parentId ?? null;
+  if (parentId !== (target.parentId ?? null)) return null;
+  const ids = items.filter((item) => (item.parentId ?? null) === parentId).map((item) => item.id);
+  const from = ids.indexOf(dragId);
+  const to = ids.indexOf(targetId);
+  ids.splice(to, 0, ...ids.splice(from, 1));
+  return { parentId, ids };
+}
+
+/** Text filter for the admin tree: keeps matches plus their ancestors so the path stays readable. */
+export function filterCategoryRows<T extends CategoryTreeInput & { label?: string; slug?: string }>(
+  rows: readonly CategoryNode<T>[],
+  query: string,
+): CategoryNode<T>[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [...rows];
+  const byId = new Map(rows.map((row) => [row.item.id, row]));
+  const keep = new Set<string>();
+  for (const row of rows) {
+    const hay = `${row.item.label ?? ""} ${row.item.slug ?? ""}`.toLowerCase();
+    if (!hay.includes(needle)) continue;
+    let cursor: T | undefined = row.item;
+    const guard = new Set<string>();
+    while (cursor && !guard.has(cursor.id)) {
+      guard.add(cursor.id);
+      keep.add(cursor.id);
+      cursor = cursor.parentId ? byId.get(cursor.parentId)?.item : undefined;
+    }
+  }
+  return rows.filter((row) => keep.has(row.item.id));
+}
+
+export type BranchRow<T> = { item: T; depth: number; active: boolean };
+
+/**
+ * Rows for the listing page's category list: every top-level category, plus the children of
+ * each category on the path to `activeSlug` (so the open branch is expanded and the rest stay
+ * collapsed). Unknown slugs show only the top level.
+ */
+export function categoryBranch<T extends CategoryTreeInput & { slug: string }>(
+  items: readonly T[],
+  activeSlug?: string | null,
+): BranchRow<T>[] {
+  const tree = buildCategoryTree(items);
+  const open = new Set<string>();
+  if (activeSlug) {
+    const byId = new Map(items.map((item) => [item.id, item]));
+    let cursor = items.find((item) => item.slug === activeSlug);
+    while (cursor && !open.has(cursor.id)) {
+      open.add(cursor.id);
+      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+    }
+  }
+  const rows: BranchRow<T>[] = [];
+  const walk = (nodes: readonly CategoryNode<T>[], depth: number) => {
+    for (const node of nodes) {
+      rows.push({ item: node.item, depth, active: node.item.slug === activeSlug });
+      if (open.has(node.item.id)) walk(node.children, depth + 1);
+    }
+  };
+  walk(tree, 0);
+  return rows;
+}
+
+/** Chips for narrow screens: the children of the active category, else its siblings, else the roots. */
+export function categoryChips<T extends CategoryTreeInput & { slug: string }>(
+  items: readonly T[],
+  activeSlug?: string | null,
+): T[] {
+  const visible = items.filter((item) => item.isActive !== false);
+  const active = activeSlug ? visible.find((item) => item.slug === activeSlug) : undefined;
+  if (!active) return visible.filter((item) => !item.parentId);
+  const children = visible.filter((item) => item.parentId === active.id);
+  if (children.length > 0) return children;
+  return visible.filter((item) => (item.parentId ?? null) === (active.parentId ?? null));
+}
+
+/** Root-to-node chain for a slug (empty when the slug is not in the list). */
+export function categoryTrail<T extends CategoryTreeInput & { slug: string }>(
+  items: readonly T[],
+  slug: string,
+): T[] {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const trail: T[] = [];
+  const seen = new Set<string>();
+  let cursor = items.find((item) => item.slug === slug);
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    trail.unshift(cursor);
+    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+  }
+  return trail;
+}
+
+export type CascadeLevel<T> = {
+  /** Parent whose children this select lists; null for the first (top-level) select. */
+  parentId: string | null;
+  options: T[];
+  /** The option chosen at this level ("" when none). */
+  value: string;
+};
+
+/**
+ * Parent > child > grandchild selects for a product form. One level per node on the path to
+ * `selectedId`, plus one more level when the selected node has children (so the editor can
+ * go deeper, or stop: a product may sit at any level).
+ */
+export function cascadeLevels<T extends CategoryTreeInput>(
+  items: readonly T[],
+  selectedId: string | null | undefined,
+): CascadeLevel<T>[] {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const path: T[] = [];
+  const seen = new Set<string>();
+  let cursor = selectedId ? byId.get(selectedId) : undefined;
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    path.unshift(cursor);
+    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+  }
+  const childrenOf = (parentId: string | null) =>
+    items.filter((item) => (item.parentId ?? null) === parentId);
+  const levels: CascadeLevel<T>[] = [
+    { parentId: null, options: childrenOf(null), value: path[0]?.id ?? "" },
+  ];
+  path.forEach((node, index) => {
+    const options = childrenOf(node.id);
+    if (options.length > 0) levels.push({ parentId: node.id, options, value: path[index + 1]?.id ?? "" });
+  });
+  return levels;
+}
+
+/** New selection after a select changes: picking nothing falls back to that level's parent. */
+export function cascadeSelect(parentId: string | null, value: string): string {
+  return value || parentId || "";
+}
+
+/** Deepest level the API allows (root = level 1); mirrors the backend `MAX_DEPTH`. */
+export const MAX_CATEGORY_DEPTH = 6;
+
+export type ParentChoice = {
+  id: string;
+  label: string;
+  /** 0 for a top-level category; used to indent the option. */
+  depth: number;
+  hidden: boolean;
+  /** True when a child of this category would exceed `MAX_CATEGORY_DEPTH`. */
+  disabled: boolean;
+};
+
+/** Every category as a parent option, parents first, deeper levels indented. */
+export function parentChoices<T extends CategoryTreeInput & { label: string }>(
+  items: readonly T[],
+  maxDepth: number = MAX_CATEGORY_DEPTH,
+): ParentChoice[] {
+  return flattenCategoryTree(buildCategoryTree(items, { includeHidden: true })).map(
+    ({ item, depth }) => ({
+      id: item.id,
+      label: item.label.trim() || "Untitled category",
+      depth,
+      hidden: item.isActive === false,
+      disabled: depth + 1 >= maxDepth,
+    }),
+  );
+}
+
+/** The parent a new category starts under: the category being viewed when it can hold a child. */
+export function defaultParentId(choices: readonly ParentChoice[], selectedId: string): string {
+  const match = choices.find((choice) => choice.id === selectedId);
+  return match && !match.disabled ? match.id : "";
+}

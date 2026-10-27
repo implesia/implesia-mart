@@ -321,7 +321,7 @@ function SidebarNav({
             {collapsed ? (
               <div className="mx-1 mb-1 h-px bg-neutral-200" />
             ) : (
-              <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-[0.18em] text-neutral-400 uppercase">
+              <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-[0.18em] text-neutral-500 uppercase">
                 {group.title}
               </p>
             )}
@@ -397,7 +397,7 @@ function AdminHeader({
         />
       </button>
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold tracking-[0.16em] text-neutral-400 uppercase">
+        <p className="text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase">
           {page.group}
         </p>
         <p className="truncate text-sm font-semibold text-neutral-950">
@@ -411,6 +411,7 @@ function AdminHeader({
         <button
           type="button"
           onClick={onChangePassword}
+          aria-label="Change password"
           className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
         >
           <MaterialIcon name="key" className="text-[20px]" />
@@ -419,6 +420,7 @@ function AdminHeader({
         <button
           type="button"
           onClick={onLogout}
+          aria-label="Log out"
           className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
         >
           <MaterialIcon name="logout" className="text-[20px]" />

@@ -1,3 +1,9 @@
+import {
+  DEFAULT_SITE_CONTACT,
+  internationalDigits,
+  SITE_CONTACT_DEFAULTS,
+} from "@/lib/site-contact";
+
 export type ContactChannel = {
   icon: string;
   title: string;
@@ -23,7 +29,8 @@ export type ContactFaqItem = {
   answer: string;
 };
 
-export const WHATSAPP_NUMBER = "8801516527932";
+/** Built-in fallback only; the live number is the central site contact (Admin -> Site -> Contact). */
+export const WHATSAPP_NUMBER = internationalDigits(SITE_CONTACT_DEFAULTS.whatsapp) ?? "";
 const WHATSAPP_DEFAULT_MESSAGE =
   "হ্যালো, আমি ইমপ্লেসিয়া মার্ট সম্পর্কে জানতে চাই।";
 
@@ -40,7 +47,7 @@ export const contactCopy = {
     subtitle:
       "কল বা হোয়াটসঅ্যাপে সরাসরি যোগাযোগ করুন। কর্মঘণ্টায় রিপ্লাই দেওয়ার চেষ্টা করি।",
     primaryCta: { label: "হোয়াটসঅ্যাপ", href: WHATSAPP_HREF },
-    secondaryCta: { label: "কল করুন", href: "tel:+8801516527932" },
+    secondaryCta: { label: "কল করুন", href: DEFAULT_SITE_CONTACT.telHref },
   },
   form: {
     title: "মেসেজ পাঠান",
@@ -61,20 +68,20 @@ export const contactCopy = {
       {
         icon: "call",
         title: "কল করুন",
-        value: "+880 1516-527932",
-        href: "tel:+8801516527932",
+        value: DEFAULT_SITE_CONTACT.phone,
+        href: DEFAULT_SITE_CONTACT.telHref,
       },
       {
         icon: "chat",
         title: "হোয়াটসঅ্যাপ",
-        value: "+880 1516-527932",
+        value: DEFAULT_SITE_CONTACT.whatsapp,
         href: WHATSAPP_HREF,
       },
       {
         icon: "mail",
         title: "ইমেইল করুন",
-        value: "implesiaitltd@gmail.com",
-        href: "mailto:implesiaitltd@gmail.com",
+        value: DEFAULT_SITE_CONTACT.email,
+        href: DEFAULT_SITE_CONTACT.mailtoHref,
       },
       {
         icon: "location_on",

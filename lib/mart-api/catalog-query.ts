@@ -1,5 +1,6 @@
 import {
-  categoryLabels,
+  categoryLabel,
+  isCategorySlug,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   type CatalogView,
@@ -13,11 +14,9 @@ import {
 import { isPublicCatalogCard } from "@/lib/mart-api/catalog-rules";
 
 export const CATALOG_PAGE_SIZE = 12;
-export const CATALOG_SEARCH_PAGE_SIZE = 48;
-/** Public list has no text-search parameter, so a query scans a bounded number of pages. */
-export const CATALOG_SEARCH_SCAN_PAGES = 4;
+/** The API caps `q` at 100 characters; the storefront trims to 80 before sending it. */
+export const CATALOG_SEARCH_MAX_CHARS = 80;
 
-const CATEGORIES = new Set<ProductCategoryId>(["gadgets", "fashion"]);
 const STATUSES: readonly ProductStatus[] = ["available", "sold-out", "coming-soon"];
 const STATUS_SET = new Set<ProductStatus>(STATUSES);
 const SORTS = new Set<ProductSortId>(["popularity", "price-asc", "price-desc", "newest"]);
@@ -43,6 +42,8 @@ export type PublicCatalogCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
+  categorySlug: string;
+  categoryName: string;
   price: number;
   compareAtPrice?: number;
   unitLabel?: string;
@@ -51,6 +52,7 @@ export type PublicCatalogCard = {
   badge?: ProductBadge;
   status: ProductStatus;
   featured: boolean;
+  hasVariants: boolean;
 };
 
 export type InterpretedCatalog = {
@@ -69,7 +71,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function cleanText(value: string) {
-  return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, CATALOG_SEARCH_MAX_CHARS);
 }
 
 export function canonicalizeStatuses(statuses: readonly ProductStatus[]) {
@@ -114,9 +116,7 @@ export function readCatalogSearch(raw: RawParams): CatalogSearch {
   const categoryRaw = firstParam(raw.category)?.trim();
   const viewRaw = firstParam(raw.view)?.trim();
   const sortRaw = firstParam(raw.sort)?.trim();
-  const category = categoryRaw && CATEGORIES.has(categoryRaw as ProductCategoryId)
-    ? (categoryRaw as ProductCategoryId)
-    : undefined;
+  const category = isCategorySlug(categoryRaw) ? categoryRaw : undefined;
   const view = viewRaw && VIEWS.has(viewRaw as CatalogView) ? (viewRaw as CatalogView) : undefined;
   const explicitSort = sortRaw && SORTS.has(sortRaw as ProductSortId)
     ? (sortRaw as ProductSortId)
@@ -174,7 +174,7 @@ export function readCatalogQuery(raw: {
 
 export function catalogTitle(search: CatalogSearch) {
   if (search.q) return "খোঁজার ফল";
-  if (search.category) return categoryLabels[search.category];
+  if (search.category) return categoryLabel(search.category);
   if (search.view === "featured") return "Featured Products";
   if (search.view === "latest") return "সর্বশেষ প্রোডাক্ট";
   if (search.view === "new") return "নতুন আগমন";
@@ -215,31 +215,10 @@ export function toApiSearchParams(
   if (search.sort !== "popularity") params.set("sort", search.sort);
   if (search.minPrice != null) params.set("min_price", String(search.minPrice));
   if (search.maxPrice != null) params.set("max_price", String(search.maxPrice));
+  if (search.q) params.set("q", search.q);
   params.set("page", String(options.page));
   params.set("page_size", String(options.pageSize));
   return params;
-}
-
-export function matchesCatalogText(
-  product: { title: string; subtitle: string },
-  query: string,
-) {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  return `${product.title} ${product.subtitle}`.toLowerCase().includes(needle);
-}
-
-export function paginateMatches<T>(items: readonly T[], page: number, size: number) {
-  const total = items.length;
-  const pages = total === 0 ? 0 : Math.ceil(total / size);
-  const current = pages === 0 ? 1 : Math.min(Math.max(1, page), pages);
-  const start = (current - 1) * size;
-  return {
-    items: items.slice(start, start + size),
-    total,
-    page: current,
-    pages,
-  };
 }
 
 function countFrom(value: unknown) {
@@ -262,7 +241,7 @@ function readCard(value: unknown): PublicCatalogCard | null {
   if (record.published === false) return null;
   const category = record.category;
   const status = record.status;
-  if (!CATEGORIES.has(category as ProductCategoryId)) return null;
+  if (!isCategorySlug(category)) return null;
   if (!STATUS_SET.has(status as ProductStatus)) return null;
   const badge = record.badge;
   const compare = record.compare_at_price;
@@ -271,7 +250,9 @@ function readCard(value: unknown): PublicCatalogCard | null {
     slug,
     title: title.trim(),
     subtitle: typeof record.subtitle === "string" ? record.subtitle : "",
-    category: category as ProductCategoryId,
+    category,
+    categorySlug: typeof record.category_slug === "string" && record.category_slug ? record.category_slug : category,
+    categoryName: typeof record.category_name === "string" ? record.category_name : "",
     price,
     compareAtPrice:
       typeof compare === "number" && Number.isFinite(compare) && compare > price
@@ -283,6 +264,7 @@ function readCard(value: unknown): PublicCatalogCard | null {
     badge: BADGES.has(badge as ProductBadge) ? (badge as ProductBadge) : undefined,
     status: status as ProductStatus,
     featured: record.featured === true,
+    hasVariants: record.has_variants === true,
   };
 }
 
@@ -306,10 +288,9 @@ export function interpretPublicCatalog(body: unknown): InterpretedCatalog | null
     total,
     page,
     pages,
-    categoryCounts: {
-      gadgets: countFrom(categories?.gadgets),
-      fashion: countFrom(categories?.fashion),
-    },
+    categoryCounts: Object.fromEntries(
+      Object.entries(categories ?? {}).map(([key, value]) => [key, countFrom(value)]),
+    ),
     availabilityCounts: {
       available: countFrom(availability?.available),
       "sold-out": countFrom(availability?.sold_out),
@@ -320,7 +301,7 @@ export function interpretPublicCatalog(body: unknown): InterpretedCatalog | null
 
 export function emptyCatalogCounts() {
   return {
-    categoryCounts: { gadgets: 0, fashion: 0 } satisfies Record<ProductCategoryId, number>,
+    categoryCounts: {} as Record<ProductCategoryId, number>,
     availabilityCounts: {
       available: 0,
       "sold-out": 0,
@@ -335,7 +316,6 @@ export type CatalogPageData = {
   page: number;
   pages: number;
   unavailable: boolean;
-  searchTruncated: boolean;
   categoryCounts: Record<ProductCategoryId, number>;
   availabilityCounts: Record<ProductStatus, number>;
 };

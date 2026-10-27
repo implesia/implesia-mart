@@ -9,11 +9,14 @@ import { cn } from "@/lib/utils";
 
 import { catalogProductId } from "@/lib/mart-api/catalog";
 import { directCheckoutHref } from "@/lib/mart-api/product-page";
+import { priceView } from "@/lib/mart-api/variants";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { activePicks, rememberBuySelection } from "./purchase-selection";
+import { ProductWhatsAppButton } from "./product-whatsapp-button";
 import { usePurchaseQuantity } from "./use-purchase-quantity";
+import { useSelectedVariant } from "./use-selected-variant";
 
 function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
@@ -21,6 +24,7 @@ function formatPrice(value: number) {
 
 export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
   const router = useRouter();
+  const { hasVariants, variant, check } = useSelectedVariant(product);
   const {
     quantity,
     inCart,
@@ -32,19 +36,23 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
     addItem,
     openCart,
     selected,
-  } = usePurchaseQuantity(product.slug);
+  } = usePurchaseQuantity(product.slug, variant?.id ?? null, {
+    min: product.minPerOrder,
+    max: product.maxPerOrder,
+  });
+  const view = priceView(product, variant, quantity);
   const [pending, setPending] = useState<"cart" | "buy" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const isComingSoon = product.status === "coming-soon";
   const isSoldOut = product.status === "sold-out";
-  const canBuy = !isComingSoon && !isSoldOut;
+  const canBuy = !isComingSoon && !isSoldOut && check.ok;
 
   function handleBuyNow() {
     if (pending || !canBuy) return;
     setPending("buy");
     setActionError(null);
     rememberBuySelection(product.slug, activePicks());
-    router.push(directCheckoutHref(product, selected()));
+    router.push(directCheckoutHref(product, selected(), variant?.id));
   }
 
   function handleAddToCart() {
@@ -58,7 +66,8 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
     void addItem(product.slug, selected(), {
       openDrawer: true,
       productId: catalogProductId(product.id),
-      selection: activePicks(),
+      variantId: variant?.id ?? null,
+      selection: hasVariants ? [] : activePicks(),
     }).then((ok) => {
       setPending(null);
       if (!ok) setActionError("কার্টে যোগ করা যায়নি। আবার চেষ্টা করুন।");
@@ -86,8 +95,8 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
           <p className="truncate text-lg font-semibold text-on-background sm:text-xl">
             {formatPrice(
               isComingSoon
-                ? product.price
-                : (lineTotal ?? product.price * quantity),
+                ? view.unitPrice
+                : (lineTotal ?? view.lineTotal),
             )}
           </p>
         </div>
@@ -122,32 +131,51 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
         )}
 
         {isSoldOut ? (
-          <Button
-            type="button"
-            disabled
-            className="h-11 flex-1 rounded-full text-sm sm:h-12"
-          >
-            শেষ
-          </Button>
+          <>
+            <ProductWhatsAppButton
+              product={product}
+              layout="icon"
+              className="hidden min-[420px]:inline-flex"
+            />
+            <Button
+              type="button"
+              disabled
+              className="h-11 flex-1 rounded-full text-sm sm:h-12"
+            >
+              শেষ
+            </Button>
+          </>
         ) : isComingSoon ? (
-          <Link
-            href="/contact-us"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "h-11 flex-1 rounded-full text-sm shadow-lg sm:h-12",
-            )}
-          >
-            মেসেজ করুন
-          </Link>
+          <>
+            <ProductWhatsAppButton
+              product={product}
+              layout="icon"
+              className="hidden min-[420px]:inline-flex"
+            />
+            <Link
+              href="/contact-us"
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                "h-11 flex-1 rounded-full text-sm shadow-lg sm:h-12",
+              )}
+            >
+              মেসেজ করুন
+            </Link>
+          </>
         ) : (
           <>
+            <ProductWhatsAppButton
+              product={product}
+              layout="icon"
+              className="hidden min-[420px]:inline-flex"
+            />
             <Button
               type="button"
               variant="outline"
               size="icon"
               className="size-11 shrink-0 rounded-full sm:size-12"
               aria-label={`${product.title} কার্টে যুক্ত করুন`}
-              disabled={pending !== null}
+              disabled={pending !== null || !canBuy}
               onClick={handleAddToCart}
             >
               <MaterialIcon
@@ -158,7 +186,7 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
             <Button
               type="button"
               className="h-11 min-w-0 flex-1 rounded-full px-3 text-sm shadow-lg sm:h-12"
-              disabled={pending !== null}
+              disabled={pending !== null || !canBuy}
               onClick={handleBuyNow}
             >
               {pending === "buy" ? "যাচ্ছে…" : "অর্ডার করুন"}

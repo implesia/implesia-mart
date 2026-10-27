@@ -179,7 +179,7 @@ export default function AdminLoginPage() {
               <div className="relative">
                 <MaterialIcon
                   name="mail"
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-neutral-400"
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-neutral-500"
                 />
                 <Input
                   id="admin-email"
@@ -221,7 +221,7 @@ export default function AdminLoginPage() {
               <div className="relative">
                 <MaterialIcon
                   name="lock"
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-neutral-400"
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-neutral-500"
                 />
                 <Input
                   id="admin-password"

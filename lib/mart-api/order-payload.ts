@@ -2,6 +2,7 @@ export type DeliveryZoneName = "inside" | "suburban" | "outside";
 
 export type OrderItemRef = {
   productId: string;
+  variantId?: string | null;
   quantity: number;
   selection?: { groupId: string; valueId: string }[];
 };
@@ -36,6 +37,7 @@ export function buildQuotePayload(input: QuotePayloadInput) {
   if (input.source === "direct") {
     body.items = (input.items ?? []).map((item) => ({
       product_id: item.productId,
+      ...(item.variantId ? { variant_id: item.variantId } : {}),
       quantity: item.quantity,
       selection: (item.selection ?? []).map((choice) => ({
         group_id: choice.groupId,

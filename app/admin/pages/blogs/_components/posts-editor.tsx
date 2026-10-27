@@ -1,28 +1,42 @@
 "use client";
 
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
+import { BlogImage } from "@/app/(client)/blogs/_components/blog-image";
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { products } from "@/app/(client)/_data/products/products";
+import { adminCoverSrc } from "@/lib/blog-view";
+import {
+  blockFilled,
+  errorCount,
+  errorsFromApi,
+  firstInvalid,
+  NO_ERRORS,
+  POST_LIMITS,
+  validatePost,
+  type InvalidTarget,
+  type PostErrors,
+  type PostFieldKey,
+} from "@/lib/blog-post-validation";
 import {
   blogCategoryLabel,
   getBlogCategories,
   type BlogCategories,
 } from "@/lib/mart-api/blog-categories";
 import {
+  BlogApiError,
   createBlogPost,
   deleteBlogPost,
   listAdminBlogPosts,
   reorderBlogPosts,
   updateBlogPost,
+  uploadBlogCover,
 } from "@/lib/mart-api/blog-posts";
 import { MartApiError } from "@/lib/mart-api/products";
 import {
   blankBlogBlock,
   blankBlogPost,
-  isBlogSlug,
   moveList,
   type BlogBlock,
   type BlogPostRecord,
@@ -41,7 +55,7 @@ import { FormCloseGuard } from "../../../_components/form-close-guard";
 import {
   BlogHeader,
   BlogModal,
-  FormError,
+  InlineError,
   ItemToolbar,
   Labeled,
   setBlogQuery,
@@ -59,6 +73,9 @@ type Draft = {
   categoryId: string;
   coverImage: string;
   coverAlt: string;
+  coverNeedsUpload: boolean;
+  seoTitle: string;
+  seoDescription: string;
   author: string;
   authorRole: string;
   publishedAt: string;
@@ -78,6 +95,9 @@ function draftFrom(post: BlogPostRecord): Draft {
     categoryId: post.categoryId,
     coverImage: post.coverImage,
     coverAlt: post.coverAlt,
+    coverNeedsUpload: post.coverNeedsUpload === true,
+    seoTitle: post.seoTitle,
+    seoDescription: post.seoDescription,
     author: post.author,
     authorRole: post.authorRole,
     publishedAt: post.publishedAt,
@@ -86,12 +106,6 @@ function draftFrom(post: BlogPostRecord): Draft {
     relatedProductSlugs: [...post.relatedProductSlugs],
     content: post.content.map((block) => ({ ...block, isActive: block.isActive !== false })),
   };
-}
-
-function blockFilled(block: BlogBlock) {
-  if (block.type === "list") return block.items.some((item) => item.trim());
-  if (block.type === "callout") return Boolean(block.title.trim() || block.text.trim());
-  return Boolean(block.text.trim());
 }
 
 export function BlogPostsEditor() {
@@ -106,6 +120,16 @@ export function BlogPostsEditor() {
   const { focusEdit, markReturn } = useReturnFocus(editing);
   const existing = posts?.find((post) => post.id === postParam) ?? null;
 
+  function reloadCategories(isCurrent: () => boolean = () => true) {
+    getBlogCategories()
+      .then((next) => {
+        if (isCurrent()) setCategories(next);
+      })
+      .catch(() => {
+        if (isCurrent()) setCategories({ isActive: true, items: [] });
+      });
+  }
+
   useEffect(() => {
     let active = true;
     listAdminBlogPosts()
@@ -117,13 +141,7 @@ export function BlogPostsEditor() {
         setPosts([]);
         setLoadError(error instanceof Error ? error.message : "Could not load the articles.");
       });
-    getBlogCategories()
-      .then((next) => {
-        if (active) setCategories(next);
-      })
-      .catch(() => {
-        if (active) setCategories({ isActive: true, items: [] });
-      });
+    reloadCategories(() => active);
     return () => {
       active = false;
     };
@@ -221,15 +239,7 @@ export function BlogPostsEditor() {
                 )}
               >
                 <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg bg-admin-canvas sm:w-28">
-                  {post.coverImage ? (
-                    <Image
-                      src={post.coverImage}
-                      alt=""
-                      fill
-                      sizes="112px"
-                      className="object-cover"
-                    />
-                  ) : null}
+                  <BlogImage src={post.coverImage} alt="" sizes="112px" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -237,6 +247,11 @@ export function BlogPostsEditor() {
                       {post.title || "Untitled"}
                     </p>
                     <VisibilityBadge active={post.isActive !== false} />
+                    {post.coverNeedsUpload ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200">
+                        Cover needs re-upload
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">
                     {[label, post.publishedAt].filter(Boolean).join(" · ") || "No category"}
@@ -288,6 +303,7 @@ export function BlogPostsEditor() {
           onClose={close}
           posts={posts ?? []}
           onSave={save}
+          onReloadCategories={() => reloadCategories()}
           onRemove={postParam === "new" ? undefined : () => remove(formPost.id)}
         />
       ) : null}
@@ -305,6 +321,8 @@ function cleanPost(draft: Draft): BlogPostRecord {
     categoryId: draft.categoryId,
     coverImage: draft.coverImage.trim(),
     coverAlt: draft.coverAlt.trim(),
+    seoTitle: draft.seoTitle.trim(),
+    seoDescription: draft.seoDescription.trim(),
     author: draft.author.trim(),
     authorRole: draft.authorRole.trim(),
     publishedAt: draft.publishedAt.trim(),
@@ -339,6 +357,35 @@ function cleanPost(draft: Draft): BlogPostRecord {
   };
 }
 
+const FIELD_ID: Record<PostFieldKey, string> = {
+  title: "title",
+  slug: "slug",
+  category: "category",
+  excerpt: "excerpt",
+  cover: "cover",
+  coverAlt: "alt",
+  seoTitle: "seo-title",
+  seoDescription: "seo-description",
+  author: "author",
+  authorRole: "role",
+  publishedAt: "date",
+  readTime: "read",
+  tags: "tags",
+  related: "related",
+  body: "body",
+};
+
+/** The control a block's message is tied to (and where focus goes when it is the first invalid). */
+function blockInputId(formId: string, block: BlogBlock) {
+  if (block.type === "list") return `${formId}-list-${block.id}`;
+  if (block.type === "callout") {
+    return block.text.trim().length > POST_LIMITS.blockText
+      ? `${formId}-callout-text-${block.id}`
+      : `${formId}-callout-title-${block.id}`;
+  }
+  return `${formId}-text-${block.id}`;
+}
+
 function PostForm({
   post,
   posts,
@@ -347,6 +394,7 @@ function PostForm({
   onClose,
   onSave,
   onRemove,
+  onReloadCategories,
 }: {
   post: BlogPostRecord;
   posts: BlogPostRecord[];
@@ -355,11 +403,16 @@ function PostForm({
   onClose: () => void;
   onSave: (draft: Draft) => Promise<void>;
   onRemove?: () => Promise<void>;
+  onReloadCategories: () => void;
 }) {
   const initial = draftFrom(post);
   const [rawDraft, setDraft] = useState(initial);
   const [baseline] = useState(initial);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<PostErrors>(NO_ERRORS);
+  const [announce, setAnnounce] = useState("");
+  const [focusRequest, setFocusRequest] = useState<{ target: InvalidTarget; n: number } | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const formId = useId();
 
@@ -368,39 +421,83 @@ function PostForm({
   const draft =
     firstCategory && !rawDraft.categoryId ? { ...rawDraft, categoryId: firstCategory } : rawDraft;
 
+  // After a failed save, move to the first invalid control once its error has rendered.
+  useEffect(() => {
+    if (!focusRequest) return;
+    const { target } = focusRequest;
+    const block = "block" in target ? draft.content.find((item) => item.id === target.block) : null;
+    const id =
+      "field" in target
+        ? `${formId}-${FIELD_ID[target.field]}`
+        : block
+          ? blockInputId(formId, block)
+          : "";
+    const element = id ? document.getElementById(id) : null;
+    element?.focus({ preventScroll: true });
+    element?.scrollIntoView({ block: "center" });
+    // Only a new request moves focus, not every keystroke after it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRequest]);
+
+  function fail(next: PostErrors) {
+    setErrors(next);
+    const target = firstInvalid(
+      next,
+      draft.content.map((block) => block.id),
+    );
+    const count = errorCount(next);
+    setAnnounce(
+      count > 0
+        ? `The article was not saved. ${count} ${count === 1 ? "field needs" : "fields need"} attention.`
+        : "",
+    );
+    if (target) setFocusRequest((current) => ({ target, n: (current?.n ?? 0) + 1 }));
+  }
+
+  /** An edit to one field clears that field's message (and any form-level one), nothing else. */
+  function edit(key: PostFieldKey | null, next: Partial<Draft>) {
+    setDraft((current) => ({ ...current, ...next }));
+    setErrors((current) => {
+      if (!current.form && !(key && current.fields[key])) return current;
+      const fields = { ...current.fields };
+      if (key) delete fields[key];
+      return { ...current, fields, form: "" };
+    });
+    setAnnounce("");
+  }
+
   async function save() {
     if (saving) return;
-    const slug = draft.slug.trim().toLowerCase();
-    if (!draft.title.trim()) {
-      setError("Title is required.");
+    const found = validatePost(
+      { ...draft, relatedCount: draft.relatedProductSlugs.length },
+      {
+        takenSlugs: posts.filter((item) => item.id !== draft.id).map((item) => item.slug),
+        hasCategories: (categories?.items.length ?? 0) > 0,
+      },
+    );
+    if (errorCount(found) > 0) {
+      fail(found);
       return;
     }
-    if (!slug || !isBlogSlug(slug)) {
-      setError("Slug needs lowercase English letters, numbers, and hyphens.");
-      return;
-    }
-    if (posts.some((item) => item.id !== draft.id && item.slug === slug)) {
-      setError("Another article already uses this slug.");
-      return;
-    }
-    if (!draft.categoryId) {
-      setError("Choose a category.");
-      return;
-    }
-    if (!draft.coverImage.trim()) {
-      setError("Cover photo is required.");
-      return;
-    }
-    if (draft.content.some((block) => !blockFilled(block))) {
-      setError("Fill in every block, or remove the empty ones.");
-      return;
-    }
+    setErrors(NO_ERRORS);
+    setAnnounce("");
     setSaving(true);
+    let uploading = false;
     try {
-      await onSave(draft);
-    } catch (error) {
+      let ready = draft;
+      // A chosen file is only a browser preview (blob:). Upload it first, then keep the stored
+      // path in the draft so a failed save does not upload the same file again.
+      if (draft.coverImage.trim().startsWith("blob:")) {
+        uploading = true;
+        const url = await uploadBlogCover(draft.coverImage.trim());
+        uploading = false;
+        ready = { ...draft, coverImage: url, coverNeedsUpload: false };
+        setDraft((current) => ({ ...current, coverImage: url, coverNeedsUpload: false }));
+      }
+      await onSave(ready);
+    } catch (caught) {
       setSaving(false);
-      setError(error instanceof MartApiError ? error.message : "Could not save the article.");
+      fail(describeFailure(caught, uploading, draft.content));
     }
   }
 
@@ -409,7 +506,23 @@ function PostForm({
       ...current,
       content: current.content.map((block) => (block.id === id ? next : block)),
     }));
-    setError("");
+    setErrors((current) => {
+      if (!current.form && !current.blocks[id]) return current;
+      const blocks = { ...current.blocks };
+      delete blocks[id];
+      return { ...current, blocks, form: "" };
+    });
+    setAnnounce("");
+  }
+
+  function dropBlockError(id: string) {
+    setErrors((current) => {
+      const blocks = { ...current.blocks };
+      delete blocks[id];
+      const fields = { ...current.fields };
+      delete fields.body;
+      return { ...current, blocks, fields };
+    });
   }
 
   const categoryOptions = categories?.items.slice() ?? [];
@@ -420,6 +533,8 @@ function PostForm({
       isActive: true,
     });
   }
+  const f = (key: PostFieldKey) => `${formId}-${FIELD_ID[key]}`;
+  const field = errors.fields;
 
   return (
     <FormCloseGuard baseline={baseline} value={draft} onClose={onClose}>
@@ -430,45 +545,47 @@ function PostForm({
         size="lg"
         saving={saving}
         saveLabel={isNew ? "Add post" : "Save changes"}
+        formError={errors.form}
+        announce={announce}
         onClose={onClose}
         onSave={save}
       >
         <ActiveStatusField
           checked={draft.isActive}
-          onChange={(isActive) => setDraft({ ...draft, isActive })}
+          onChange={(isActive) => edit("cover", { isActive })}
         />
         <Labeled
-          id={`${formId}-title`}
+          id={f("title")}
           label="Title"
           required
           value={draft.title}
-          onChange={(title) => {
-            setDraft({ ...draft, title });
-            setError("");
-          }}
+          error={field.title}
+          onChange={(title) => edit("title", { title })}
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <Labeled
-            id={`${formId}-slug`}
+            id={f("slug")}
             label="Slug"
             required
             value={draft.slug}
             placeholder="power-bank-guide"
-            onChange={(slug) => {
-              setDraft({ ...draft, slug });
-              setError("");
-            }}
+            error={field.slug}
+            onChange={(slug) => edit("slug", { slug })}
           />
           <div>
-            <FieldLabel htmlFor={`${formId}-category`}>Category *</FieldLabel>
+            <FieldLabel htmlFor={f("category")}>Category *</FieldLabel>
             <select
-              id={`${formId}-category`}
+              id={f("category")}
               value={draft.categoryId}
-              onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
-              className={adminFieldClass}
+              aria-invalid={field.category ? true : undefined}
+              aria-describedby={field.category ? `${f("category")}-error` : undefined}
+              onChange={(event) => edit("category", { categoryId: event.target.value })}
+              className={cn(adminFieldClass, field.category && "border-red-600")}
             >
               {categoryOptions.length === 0 ? (
-                <option value="">Add a category first</option>
+                <option value="">
+                  {categories === null ? "Loading categories…" : "Add a category first"}
+                </option>
               ) : (
                 categoryOptions.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -477,69 +594,134 @@ function PostForm({
                 ))
               )}
             </select>
+            <InlineError id={`${f("category")}-error`} message={field.category} />
+            {categories !== null && categoryOptions.length === 0 ? (
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-3 text-xs text-neutral-600">
+                <a
+                  href="/admin/pages/blogs/categories"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-primary underline"
+                >
+                  Add a category (opens in a new tab)
+                </a>
+                <button
+                  type="button"
+                  onClick={onReloadCategories}
+                  className="font-medium text-neutral-800 underline"
+                >
+                  Reload categories
+                </button>
+              </p>
+            ) : null}
           </div>
         </div>
         <Labeled
-          id={`${formId}-excerpt`}
+          id={f("excerpt")}
           label="Excerpt"
           value={draft.excerpt}
           multiline
-          onChange={(excerpt) => setDraft({ ...draft, excerpt })}
+          error={field.excerpt}
+          onChange={(excerpt) => edit("excerpt", { excerpt })}
         />
+        {draft.coverNeedsUpload && !draft.coverImage ? (
+          <p
+            data-testid="cover-legacy-warning"
+            className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200"
+          >
+            This article&apos;s saved cover can no longer be shown (it was never uploaded). Choose
+            the photo again, or save the article hidden and add it later.
+          </p>
+        ) : null}
         <ImageField
           label="Cover photo"
           variant="thumb"
-          value={draft.coverImage}
-          onChange={(coverImage) => {
-            setDraft({ ...draft, coverImage });
-            setError("");
-          }}
+          inputId={f("cover")}
+          error={field.cover}
+          value={adminCoverSrc(draft.coverImage)}
+          onChange={(coverImage) => edit("cover", { coverImage })}
         />
         <Labeled
-          id={`${formId}-alt`}
+          id={f("coverAlt")}
           label="Cover description"
           value={draft.coverAlt}
-          onChange={(coverAlt) => setDraft({ ...draft, coverAlt })}
+          error={field.coverAlt}
+          onChange={(coverAlt) => edit("coverAlt", { coverAlt })}
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <Labeled
-            id={`${formId}-author`}
+            id={f("seoTitle")}
+            label="SEO title (optional, max 70)"
+            value={draft.seoTitle}
+            maxLength={70}
+            placeholder={draft.title}
+            error={field.seoTitle}
+            onChange={(seoTitle) => edit("seoTitle", { seoTitle })}
+          />
+          <Labeled
+            id={f("seoDescription")}
+            label="SEO description (optional, max 200)"
+            value={draft.seoDescription}
+            maxLength={200}
+            placeholder={draft.excerpt}
+            error={field.seoDescription}
+            onChange={(seoDescription) => edit("seoDescription", { seoDescription })}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Labeled
+            id={f("author")}
             label="Author"
             value={draft.author}
-            onChange={(author) => setDraft({ ...draft, author })}
+            error={field.author}
+            onChange={(author) => edit("author", { author })}
           />
           <Labeled
-            id={`${formId}-role`}
+            id={f("authorRole")}
             label="Author role"
             value={draft.authorRole}
-            onChange={(authorRole) => setDraft({ ...draft, authorRole })}
+            error={field.authorRole}
+            onChange={(authorRole) => edit("authorRole", { authorRole })}
           />
           <Labeled
-            id={`${formId}-date`}
+            id={f("publishedAt")}
             label="Date"
             value={draft.publishedAt}
             placeholder="3 Oct 2026"
-            onChange={(publishedAt) => setDraft({ ...draft, publishedAt })}
+            error={field.publishedAt}
+            onChange={(publishedAt) => edit("publishedAt", { publishedAt })}
           />
           <Labeled
-            id={`${formId}-read`}
+            id={f("readTime")}
             label="Read time"
             value={draft.readTime}
             placeholder="4 min"
-            onChange={(readTime) => setDraft({ ...draft, readTime })}
+            error={field.readTime}
+            onChange={(readTime) => edit("readTime", { readTime })}
           />
         </div>
-        <Labeled
-          id={`${formId}-tags`}
-          label="Tags"
-          value={draft.tagsText}
-          placeholder="guide, gadget"
-          onChange={(tagsText) => setDraft({ ...draft, tagsText })}
-        />
-        <p className="-mt-4 text-sm text-neutral-500">Separate tags with commas.</p>
+        <div>
+          <Labeled
+            id={f("tags")}
+            label="Tags"
+            value={draft.tagsText}
+            placeholder="guide, gadget"
+            error={field.tags}
+            onChange={(tagsText) => edit("tags", { tagsText })}
+          />
+          <p className="mt-1.5 text-sm text-neutral-500">Separate tags with commas.</p>
+        </div>
         <section className="border-t border-neutral-100 pt-5">
-          <h3 className="text-sm font-semibold text-neutral-950">Mentioned products</h3>
-          <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto rounded-2xl bg-admin-canvas p-2">
+          <h3 id={`${f("related")}-heading`} className="text-sm font-semibold text-neutral-950">
+            Mentioned products
+          </h3>
+          <ul
+            id={f("related")}
+            tabIndex={-1}
+            aria-labelledby={`${f("related")}-heading`}
+            aria-describedby={field.related ? `${f("related")}-error` : undefined}
+            className="mt-3 max-h-48 space-y-1 overflow-y-auto rounded-2xl bg-admin-canvas p-2"
+          >
             {products.map((product) => {
               const checked = draft.relatedProductSlugs.includes(product.slug);
               return (
@@ -549,12 +731,11 @@ function PostForm({
                       type="checkbox"
                       checked={checked}
                       onChange={() =>
-                        setDraft((current) => ({
-                          ...current,
+                        edit("related", {
                           relatedProductSlugs: checked
-                            ? current.relatedProductSlugs.filter((slug) => slug !== product.slug)
-                            : [...current.relatedProductSlugs, product.slug],
-                        }))
+                            ? draft.relatedProductSlugs.filter((slug) => slug !== product.slug)
+                            : [...draft.relatedProductSlugs, product.slug],
+                        })
                       }
                     />
                     <span className="min-w-0 truncate">{product.title}</span>
@@ -563,6 +744,7 @@ function PostForm({
               );
             })}
           </ul>
+          <InlineError id={`${f("related")}-error`} message={field.related} />
         </section>
         <section className="space-y-3 border-t border-neutral-100 pt-5">
           <h3 className="text-sm font-semibold text-neutral-950">Body</h3>
@@ -584,12 +766,13 @@ function PostForm({
                         content: moveList(current.content, index, direction),
                       }))
                     }
-                    onRemove={() =>
+                    onRemove={() => {
                       setDraft((current) => ({
                         ...current,
                         content: current.content.filter((item) => item.id !== block.id),
-                      }))
-                    }
+                      }));
+                      dropBlockError(block.id);
+                    }}
                   />
                   <FieldLabel htmlFor={`${formId}-type-${block.id}`}>Type</FieldLabel>
                   <select
@@ -613,6 +796,7 @@ function PostForm({
                     <BlockFields
                       formId={formId}
                       block={block}
+                      error={errors.blocks[block.id]}
                       onChange={(next) => patchBlock(block.id, next)}
                     />
                   </div>
@@ -631,25 +815,27 @@ function PostForm({
           )}
           <button
             type="button"
-            onClick={() =>
-              setDraft((current) => ({
-                ...current,
-                content: [...current.content, blankBlogBlock()],
-              }))
-            }
+            id={f("body")}
+            aria-describedby={field.body ? `${f("body")}-error` : undefined}
+            onClick={() => {
+              edit("body", { content: [...draft.content, blankBlogBlock()] });
+            }}
             className={adminButtonClass.secondary}
           >
             <MaterialIcon name="add" className="text-[18px]" />
             Add block
           </button>
+          <InlineError id={`${f("body")}-error`} message={field.body} />
         </section>
-        <FormError message={error} />
         {onRemove ? (
           <button
             type="button"
             onClick={() => {
               void onRemove?.().catch((error: unknown) => {
-                setError(error instanceof Error ? error.message : "Could not remove the article.");
+                setErrors({
+                  ...NO_ERRORS,
+                  form: error instanceof Error ? error.message : "Could not remove the article.",
+                });
               });
             }}
             className="text-sm font-medium text-red-600 hover:underline"
@@ -660,6 +846,34 @@ function PostForm({
       </BlogModal>
     </FormCloseGuard>
   );
+}
+
+/** Turns whatever a failed save threw into messages on the right fields. */
+function describeFailure(caught: unknown, uploading: boolean, content: BlogBlock[]): PostErrors {
+  if (caught instanceof BlogApiError) {
+    // status 0: never reached the API. 401/5xx: nothing to do with a single field.
+    if (caught.status === 0 || caught.status === 401 || caught.status >= 500) {
+      return { ...NO_ERRORS, form: caught.message };
+    }
+    if (uploading) return { ...NO_ERRORS, fields: { cover: caught.message } };
+    return errorsFromApi(
+      caught.status,
+      caught.message,
+      caught.details,
+      content.map((block) => block.id),
+    );
+  }
+  if (caught instanceof MartApiError) {
+    return uploading
+      ? { ...NO_ERRORS, fields: { cover: caught.message } }
+      : { ...NO_ERRORS, form: caught.message };
+  }
+  return {
+    ...NO_ERRORS,
+    form: uploading
+      ? "Could not upload the cover photo. Check your connection and try again."
+      : "Could not save the article. Check your connection and try again.",
+  };
 }
 
 type BlockKind = "paragraph" | "heading" | "list" | "tip" | "note";
@@ -691,10 +905,12 @@ function retarget(block: BlogBlock, kind: BlockKind): BlogBlock {
 function BlockFields({
   formId,
   block,
+  error,
   onChange,
 }: {
   formId: string;
   block: BlogBlock;
+  error?: string;
   onChange: (block: BlogBlock) => void;
 }) {
   if (block.type === "list") {
@@ -706,11 +922,13 @@ function BlockFields({
         value={block.items.join("\n")}
         placeholder="One item on each line"
         multiline
+        error={error}
         onChange={(value) => onChange({ ...block, items: value.split("\n") })}
       />
     );
   }
   if (block.type === "callout") {
+    const onText = block.text.trim().length > POST_LIMITS.blockText;
     return (
       <div className="space-y-3">
         <Labeled
@@ -718,6 +936,7 @@ function BlockFields({
           label="Title"
           required
           value={block.title}
+          error={onText ? undefined : error}
           onChange={(title) => onChange({ ...block, title })}
         />
         <Labeled
@@ -725,6 +944,7 @@ function BlockFields({
           label="Text"
           value={block.text}
           multiline
+          error={onText ? error : undefined}
           onChange={(text) => onChange({ ...block, text })}
         />
       </div>
@@ -737,6 +957,7 @@ function BlockFields({
       required
       value={block.text}
       multiline={block.type === "paragraph"}
+      error={error}
       onChange={(text) => onChange({ ...block, text })}
     />
   );

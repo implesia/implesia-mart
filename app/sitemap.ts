@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
 
+import { articleSeo } from "@/lib/blog-view";
 import { listPublicBlogPosts } from "@/lib/mart-api/blog-posts";
 import { listStoreProducts } from "@/lib/mart-api/catalog";
 import { absoluteUrl } from "@/lib/seo";
+import { productPath } from "@/lib/mart-api/product-url";
 
 const STATIC_ROUTES: {
   path: string;
@@ -32,20 +34,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const productEntries: MetadataRoute.Sitemap = products.map((product) => ({
-    url: absoluteUrl(`/products/${product.slug}`),
+    url: absoluteUrl(productPath(product)),
     lastModified: now,
     changeFrequency: "weekly",
     priority: 0.8,
     images: [absoluteUrl(product.imageSrc)],
   }));
 
-  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
-    url: absoluteUrl(`/blogs/${post.slug}`),
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.7,
-    images: [absoluteUrl(post.coverImage)],
-  }));
+  // The cover lives on the API origin (`/media/...`), so it goes through the same URL
+  // resolution as the article page; a post without a usable cover lists no image.
+  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => {
+    const { image } = articleSeo(post);
+    return {
+      url: absoluteUrl(`/blogs/${post.slug}`),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+      ...(image ? { images: [image] } : {}),
+    };
+  });
 
   return [...staticEntries, ...productEntries, ...blogEntries];
 }

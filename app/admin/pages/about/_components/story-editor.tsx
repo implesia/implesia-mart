@@ -280,7 +280,7 @@ export function AboutStoryEditor() {
                       onClick={() => openStory(story.id)}
                       className="flex min-w-0 flex-1 items-start gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <span className="mt-0.5 w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                      <span className="mt-0.5 w-5 shrink-0 text-right text-xs text-neutral-500 tabular-nums">
                         {index + 1}
                       </span>
                       <span className="min-w-0 flex-1">
@@ -306,7 +306,7 @@ export function AboutStoryEditor() {
                               {story.cta.label}
                             </span>
                           ) : (
-                            <span className="text-xs text-neutral-400">
+                            <span className="text-xs text-neutral-500">
                               No button
                             </span>
                           )}
@@ -325,7 +325,7 @@ export function AboutStoryEditor() {
                             </span>
                           ))}
                           {photos.length === 0 ? (
-                            <span className="text-xs text-neutral-400">
+                            <span className="text-xs text-neutral-500">
                               No photo
                             </span>
                           ) : null}

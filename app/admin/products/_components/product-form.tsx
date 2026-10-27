@@ -18,6 +18,14 @@ import type {
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { cn } from "@/lib/utils";
 import {
+  rollup,
+  rowsFromVariants,
+  rowsToVariants,
+  sameVariants,
+  validateVariants,
+  type VariantRow,
+} from "@/lib/mart-api/admin-variants";
+import {
   deleteMartProduct,
   MartApiError,
   saveMartProduct,
@@ -35,7 +43,6 @@ import {
 } from "@/lib/mart-mock/store";
 
 import {
-  ADMIN_CATEGORY_LABEL,
   ADMIN_STOCK_STATUS_LABEL,
   adminButtonClass,
   adminFieldClass,
@@ -52,7 +59,10 @@ import {
   ProductDetailFields,
   ProductGalleryFields,
 } from "./product-content-fields";
+import { CategoryCascade } from "./category-cascade";
 import { ProductOptionsFields } from "./product-options-fields";
+import { ProductVariantsFields } from "./product-variants-fields";
+import { productPath } from "@/lib/mart-api/product-url";
 
 const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
   { value: "", label: "None" },
@@ -67,6 +77,7 @@ const SECTIONS = [
   { id: "product-pricing", label: "Pricing" },
   { id: "product-inventory", label: "Inventory" },
   { id: "product-options", label: "Options" },
+  { id: "product-variants", label: "Variants" },
   { id: "product-details", label: "Product details" },
   { id: "product-organization", label: "Organization" },
   { id: "product-publishing", label: "Publishing" },
@@ -78,6 +89,8 @@ type FormState = {
   title: string;
   subtitle: string;
   categoryId: ProductCategoryId;
+  categoryRefId: string;
+  categoryTrail: string;
   price: string;
   compareAtPrice: string;
   quantity: string;
@@ -87,9 +100,19 @@ type FormState = {
   featured: boolean;
   published: boolean;
   content: ProductStorefrontContent;
+  minOrder: string;
+  maxOrder: string;
+  variants: VariantRow[];
 };
 
-type FieldKey = "title" | "price" | "compareAtPrice" | "quantity";
+type FieldKey =
+  | "category"
+  | "title"
+  | "price"
+  | "compareAtPrice"
+  | "quantity"
+  | "orderLimits"
+  | "variants";
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
 const SIDEBAR_KEY = "implesia.admin.sidebar.collapsed";
@@ -115,7 +138,9 @@ function toForm(product?: AdminProduct): FormState {
     return {
       title: "",
       subtitle: "",
-      categoryId: "gadgets",
+      categoryId: "",
+      categoryRefId: "",
+      categoryTrail: "",
       price: "",
       compareAtPrice: "",
       quantity: "",
@@ -125,12 +150,17 @@ function toForm(product?: AdminProduct): FormState {
       featured: false,
       published: false,
       content: emptyProductContent(),
+      minOrder: "1",
+      maxOrder: "",
+      variants: [],
     };
   }
   return {
     title: product.title,
     subtitle: product.subtitle,
     categoryId: product.categoryId,
+    categoryRefId: product.categoryRefId ?? "",
+    categoryTrail: product.categoryPath?.map((node) => node.name).join(" › ") ?? "",
     price: String(product.price),
     compareAtPrice:
       product.compareAtPrice == null ? "" : String(product.compareAtPrice),
@@ -141,19 +171,25 @@ function toForm(product?: AdminProduct): FormState {
     featured: product.featured,
     published: product.published,
     content: structuredClone(product.content),
+    minOrder: String(product.minOrderQuantity ?? 1),
+    maxOrder: product.maxOrderQuantity == null ? "" : String(product.maxOrderQuantity),
+    variants: rowsFromVariants(product.variants),
   };
 }
 
 function validate(form: FormState): FieldErrors {
   const errors: FieldErrors = {};
   if (!form.title.trim()) errors.title = "Product name is required.";
+  if (!form.categoryRefId) errors.category = "Choose a category.";
 
+  // With variants the API rolls the price and stock up from them, so the product's own are unused.
+  const hasVariants = form.variants.length > 0;
   const price = Number(form.price);
-  if (!form.price.trim() || !Number.isFinite(price) || price < 0) {
+  if (!hasVariants && (!form.price.trim() || !Number.isFinite(price) || price < 0)) {
     errors.price = "Enter a selling price of 0 or more.";
   }
 
-  if (form.compareAtPrice.trim()) {
+  if (!hasVariants && form.compareAtPrice.trim()) {
     const compareAtPrice = Number(form.compareAtPrice);
     if (!Number.isFinite(compareAtPrice) || compareAtPrice < 0) {
       errors.compareAtPrice =
@@ -164,7 +200,7 @@ function validate(form: FormState): FieldErrors {
     }
   }
 
-  if (form.quantity.trim()) {
+  if (!hasVariants && form.quantity.trim()) {
     const quantity = Number(form.quantity);
     if (!Number.isInteger(quantity) || quantity < 0) {
       errors.quantity =
@@ -172,13 +208,31 @@ function validate(form: FormState): FieldErrors {
     }
   }
 
+  const min = Number(form.minOrder);
+  const max = Number(form.maxOrder);
+  if (!Number.isInteger(min) || min < 1 || min > 5) {
+    errors.orderLimits = "Minimum per order must be a whole number from 1 to 5.";
+  } else if (form.maxOrder.trim()) {
+    if (!Number.isInteger(max) || max < 1 || max > 5) {
+      errors.orderLimits = "Maximum per order must be from 1 to 5, or blank for no extra limit.";
+    } else if (max < min) {
+      errors.orderLimits = "Maximum per order must be at least the minimum.";
+    }
+  }
+
+  if (hasVariants && !validateVariants(form.variants, form.content.options).ok) {
+    errors.variants = "Fix the highlighted variants.";
+  }
+
   return errors;
 }
 
 function firstErrorSection(errors: FieldErrors): SectionId | null {
   if (errors.title) return "product-information";
+  if (errors.category) return "product-organization";
   if (errors.price || errors.compareAtPrice) return "product-pricing";
-  if (errors.quantity) return "product-inventory";
+  if (errors.quantity || errors.orderLimits) return "product-inventory";
+  if (errors.variants) return "product-variants";
   return null;
 }
 
@@ -200,7 +254,18 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
 
   const issues = validate(form);
   const errors = showErrors ? issues : {};
-  const dirty = JSON.stringify(form) !== JSON.stringify(baseline);
+  const dirty =
+    JSON.stringify({ ...form, categoryTrail: "" }) !==
+    JSON.stringify({ ...baseline, categoryTrail: "" });
+  const variantMode = form.variants.length > 0;
+  const variantCheck = validateVariants(form.variants, form.content.options);
+  const summary = rollup(form.variants);
+  const shownPrice = variantMode ? String(summary.price ?? "") : form.price;
+  const shownQuantity = variantMode
+    ? summary.quantity == null
+      ? ""
+      : String(summary.quantity)
+    : form.quantity;
   const priceNumber = Number(form.price);
   const priceReady =
     form.price.trim() !== "" &&
@@ -323,23 +388,27 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     }
     if (uploading || saving) return;
 
-    const price = Number(form.price);
+    const price = variantMode ? (summary.price ?? 0) : Number(form.price);
     if (!Number.isInteger(price)) {
       setSaveError("Enter the price as a whole number of taka.");
       return;
     }
-    const compareAtPrice = form.compareAtPrice.trim()
-      ? Number(form.compareAtPrice)
-      : null;
+    const compareAtPrice =
+      form.compareAtPrice.trim() && !variantMode ? Number(form.compareAtPrice) : null;
     if (compareAtPrice != null && !Number.isInteger(compareAtPrice)) {
       setSaveError("Enter the compare-at price as a whole number of taka.");
       return;
     }
-    const quantity = form.quantity.trim() ? Number(form.quantity) : null;
+    const quantity = variantMode
+      ? summary.quantity
+      : form.quantity.trim()
+        ? Number(form.quantity)
+        : null;
     const draft: ProductDraft = {
       title: form.title.trim(),
       subtitle: form.subtitle.trim(),
       categoryId: form.categoryId,
+      categoryRefId: form.categoryRefId,
       price,
       compareAtPrice,
       quantity,
@@ -348,6 +417,12 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       imageSrc: form.imageSrc.trim(),
       featured: form.featured,
       published: form.published,
+      minOrderQuantity: Number(form.minOrder),
+      maxOrderQuantity: form.maxOrder.trim() ? Number(form.maxOrder) : null,
+      // Sent only when changed, so editing something else never rewrites variant prices or stock.
+      variants: sameVariants(form.variants, baseline.variants)
+        ? undefined
+        : rowsToVariants(form.variants),
       content: cleanProductContent({
         ...form.content,
         imageAlt: form.content.imageAlt.trim() || form.title.trim(),
@@ -440,7 +515,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             <span className="text-xs font-medium text-primary">Featured</span>
           ) : null}
           <Link
-            href={`/products/${product.slug}`}
+            href={productPath(product)}
             target="_blank"
             className="text-xs font-semibold text-primary hover:underline"
           >
@@ -610,6 +685,15 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             title="Pricing"
             description="Selling price is required. Compare-at is optional and must be at least the selling price. Amounts are in taka."
           >
+            {variantMode ? (
+              <p
+                className="mb-4 rounded-xl bg-[#f5f6f8] px-3 py-2.5 text-sm text-neutral-600"
+                data-testid="pricing-from-variants"
+              >
+                This product has variants, so its price comes from them. The product list shows the lowest
+                available variant price. Edit prices under Variants.
+              </p>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <FieldLabel htmlFor={`${formId}-price`}>
@@ -618,7 +702,8 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 <input
                   id={`${formId}-price`}
                   inputMode="decimal"
-                  value={form.price}
+                  value={shownPrice}
+                  disabled={variantMode}
                   onChange={(event) => setField("price", event.target.value)}
                   placeholder="999"
                   aria-invalid={errors.price ? true : undefined}
@@ -643,7 +728,8 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 <input
                   id={`${formId}-compare`}
                   inputMode="decimal"
-                  value={form.compareAtPrice}
+                  value={variantMode ? "" : form.compareAtPrice}
+                  disabled={variantMode}
                   onChange={(event) =>
                     setField("compareAtPrice", event.target.value)
                   }
@@ -753,7 +839,8 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               <input
                 id={`${formId}-qty`}
                 inputMode="numeric"
-                value={form.quantity}
+                value={shownQuantity}
+                disabled={variantMode}
                 onChange={(event) => setField("quantity", event.target.value)}
                 placeholder="Blank = made to order"
                 aria-invalid={errors.quantity ? true : undefined}
@@ -775,11 +862,64 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   id={`${formId}-qty-hint`}
                   className="mt-1.5 text-xs text-neutral-500"
                 >
-                  {form.quantity.trim()
-                    ? `${form.quantity.trim()} in stock in the product list.`
-                    : "Blank is saved as made to order."}
+                  {variantMode
+                    ? "Total of the available variants. Edit stock under Variants."
+                    : form.quantity.trim()
+                      ? `${form.quantity.trim()} in stock in the product list.`
+                      : "Blank is saved as made to order."}
                 </p>
               ) : null}
+            </div>
+            <div className="mt-4">
+              <p className="mb-1.5 text-sm font-medium text-neutral-700">
+                Order limits per customer
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel htmlFor={`${formId}-min-order`}>Minimum</FieldLabel>
+                  <input
+                    id={`${formId}-min-order`}
+                    inputMode="numeric"
+                    value={form.minOrder}
+                    onChange={(event) => setField("minOrder", event.target.value)}
+                    aria-invalid={errors.orderLimits ? true : undefined}
+                    aria-describedby={`${formId}-order-limits-hint`}
+                    className={cn(
+                      adminFieldClass,
+                      errors.orderLimits &&
+                        "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    )}
+                  />
+                </div>
+                <div>
+                  <FieldLabel htmlFor={`${formId}-max-order`}>Maximum</FieldLabel>
+                  <input
+                    id={`${formId}-max-order`}
+                    inputMode="numeric"
+                    value={form.maxOrder}
+                    placeholder="No extra limit"
+                    onChange={(event) => setField("maxOrder", event.target.value)}
+                    aria-invalid={errors.orderLimits ? true : undefined}
+                    aria-describedby={`${formId}-order-limits-hint`}
+                    className={cn(
+                      adminFieldClass,
+                      errors.orderLimits &&
+                        "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    )}
+                  />
+                </div>
+              </div>
+              <FieldErrorSlot
+                id={`${formId}-order-limits-error`}
+                message={errors.orderLimits}
+              />
+              <p
+                id={`${formId}-order-limits-hint`}
+                className="mt-1.5 text-xs text-neutral-500"
+              >
+                Units a customer can put in one cart line. The store allows 5 at most; the API checks these
+                limits again at cart and order time.
+              </p>
             </div>
             <div className="mt-4">
               <FieldLabel htmlFor={`${formId}-stock-label`}>
@@ -813,6 +953,22 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            id="product-variants"
+            title="Variants"
+            description="Price, stock, and SKU for each combination of options."
+          >
+            <ProductVariantsFields
+              formId={formId}
+              groups={form.content.options}
+              rows={form.variants}
+              basePrice={form.price}
+              check={variantCheck}
+              showErrors={showErrors}
+              onChange={(variants) => setField("variants", variants)}
+            />
+          </FormSection>
+
+          <FormSection
             id="product-details"
             title="Product details"
             description="Content for the product page: highlights, the details tab, specifications, and questions. Reviews stay as they are."
@@ -821,37 +977,35 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               formId={formId}
               content={form.content}
               onChange={setContent}
+              category={form.categoryId}
             />
           </FormSection>
 
           <FormSection
             id="product-organization"
             title="Organization"
-            description="Category is required and already selected. Badge is optional."
+            description="Category is required. Badge is optional."
           >
-            <fieldset>
-              <legend className="mb-1.5 text-sm font-medium text-neutral-700">
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-neutral-700">
                 Category <RequiredMark />
-              </legend>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {(["gadgets", "fashion"] as const).map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-pressed={form.categoryId === id}
-                    onClick={() => setField("categoryId", id)}
-                    className={cn(
-                      "h-11 rounded-xl px-3 text-sm font-medium ring-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      form.categoryId === id
-                        ? "bg-primary/10 text-[#0b3d39] ring-primary/30"
-                        : "bg-[#f5f6f8] text-neutral-700 ring-transparent hover:bg-neutral-100",
-                    )}
-                  >
-                    {ADMIN_CATEGORY_LABEL[id]}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
+              </p>
+              <CategoryCascade
+                value={form.categoryRefId}
+                error={errors.category}
+                onChange={(id, trail) => {
+                  setForm((current) =>
+                    current.categoryRefId === id && current.categoryTrail === trail
+                      ? current
+                      : { ...current, categoryRefId: id, categoryTrail: trail },
+                  );
+                }}
+              />
+              <p className="mt-1.5 text-xs text-neutral-500">
+                Pick a category, then a subcategory if there is one. The product shows up under every
+                level above the one you choose.
+              </p>
+            </div>
             <div className="mt-4">
               <p className="mb-1.5 text-sm font-medium text-neutral-700">
                 Badge
@@ -893,13 +1047,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   className="object-contain p-4"
                 />
               ) : (
-                <div className="grid h-full place-items-center text-sm text-neutral-400">
+                <div className="grid h-full place-items-center text-sm text-neutral-500">
                   No image yet
                 </div>
               )}
             </div>
             <div className="space-y-2 px-4 py-3">
-              <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
+              <p className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
                 Catalog preview
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -919,14 +1073,14 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 </p>
               ) : null}
               <p className="text-xs text-neutral-500">
-                {ADMIN_CATEGORY_LABEL[form.categoryId]}
+                {form.categoryTrail || "No category yet"}
               </p>
               <p className="flex items-baseline gap-2">
                 <span className="text-lg font-semibold text-neutral-950 tabular-nums">
                   {priceReady ? formatTaka(priceNumber) : "৳—"}
                 </span>
                 {discount != null ? (
-                  <span className="text-sm text-neutral-400 line-through tabular-nums">
+                  <span className="text-sm text-neutral-500 line-through tabular-nums">
                     {formatTaka(compareNumber)}
                   </span>
                 ) : null}
@@ -1107,16 +1261,16 @@ function CheckRow({
         name={done ? "check_circle" : "radio_button_unchecked"}
         className={cn(
           "text-[18px]",
-          done ? "text-emerald-700" : "text-neutral-400",
+          done ? "text-emerald-700" : "text-neutral-500",
         )}
       />
       <span className={done ? "text-neutral-800" : "text-neutral-600"}>
         {label}
       </span>
       {optional ? (
-        <span className="text-xs text-neutral-400">Optional</span>
+        <span className="text-xs text-neutral-500">Optional</span>
       ) : (
-        <span className="text-xs text-neutral-400">Required</span>
+        <span className="text-xs text-neutral-500">Required</span>
       )}
     </li>
   );

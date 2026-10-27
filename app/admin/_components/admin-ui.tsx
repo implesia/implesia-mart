@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import type { OrderStatus, StockStatus } from "@/lib/mart-mock/store";
-import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 
 export const ADMIN_ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   new: "New",
@@ -15,11 +14,6 @@ export const ADMIN_STOCK_STATUS_LABEL: Record<StockStatus, string> = {
   available: "In stock",
   "sold-out": "Sold out",
   "coming-soon": "Coming soon",
-};
-
-export const ADMIN_CATEGORY_LABEL: Record<ProductCategoryId, string> = {
-  gadgets: "Trending gadgets",
-  fashion: "Gorgeous dresses",
 };
 
 export function AdminPageHeader({
@@ -129,7 +123,7 @@ export function StockStatusBadge({ status }: { status: StockStatus }) {
 }
 
 export const adminFieldClass =
-  "h-11 w-full rounded-xl border border-neutral-200 bg-[#f5f6f8] px-3.5 text-sm text-neutral-950 shadow-none outline-none placeholder:text-neutral-400 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/30";
+  "h-11 w-full rounded-xl border border-neutral-200 bg-[#f5f6f8] px-3.5 text-sm text-neutral-950 shadow-none outline-none placeholder:text-neutral-500 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/30";
 
 export function FieldLabel({
   htmlFor,

@@ -179,10 +179,13 @@ export function ProductDetailFields({
   formId,
   content,
   onChange,
+  category,
 }: {
   formId: string;
   content: ProductStorefrontContent;
   onChange: (content: ProductStorefrontContent) => void;
+  /** Top-level category slug. Only used to suggest empty specification rows. */
+  category?: string;
 }) {
   return (
     <div className="space-y-6">
@@ -249,7 +252,7 @@ export function ProductDetailFields({
           />
         </div>
       </div>
-      <SpecList content={content} onChange={onChange} />
+      <SpecList content={content} onChange={onChange} category={category} />
       <LineList
         label="What's included"
         hint="Package list on the specifications tab."
@@ -295,13 +298,41 @@ export function ProductDetailFields({
   );
 }
 
+/**
+ * Labels worth asking about, per category. They add EMPTY rows: nothing is filled in and a row
+ * with no value is not saved, so no spec is ever invented.
+ */
+const SPEC_SUGGESTIONS: Record<string, { label: string; group: ProductSpecRow["group"] }[]> = {
+  gadgets: [
+    { label: "Battery capacity", group: "power" },
+    { label: "Charging", group: "power" },
+    { label: "Connectivity", group: "connectivity" },
+    { label: "Dimensions", group: "dimensions" },
+    { label: "Warranty", group: "general" },
+  ],
+  fashion: [
+    { label: "Fabric", group: "fabric" },
+    { label: "Fit", group: "sizing" },
+    { label: "Care", group: "care" },
+    { label: "Customization", group: "customization" },
+  ],
+};
+
 function SpecList({
   content,
   onChange,
+  category,
 }: {
   content: ProductStorefrontContent;
   onChange: (content: ProductStorefrontContent) => void;
+  category?: string;
 }) {
+  const suggestions = (SPEC_SUGGESTIONS[category ?? ""] ?? []).filter(
+    (item) =>
+      !content.specs.some(
+        (row) => row.label.trim().toLowerCase() === item.label.toLowerCase(),
+      ),
+  );
   function update(id: string, patch: Partial<ProductSpecRow>) {
     onChange({
       ...content,
@@ -333,6 +364,29 @@ function SpecList({
           Add specification
         </button>
       </div>
+      {suggestions.length > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="spec-suggestions">
+          <span className="text-xs text-neutral-500">Suggested for this category:</span>
+          {suggestions.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...content,
+                  specs: [
+                    ...content.specs,
+                    { ...blankSpec(), label: item.label, group: item.group },
+                  ],
+                })
+              }
+              className="h-9 rounded-full bg-[#f5f6f8] px-3 text-xs font-medium text-neutral-800 ring-1 ring-neutral-200 hover:bg-neutral-100"
+            >
+              + {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {content.specs.length === 0 ? (
         <p className="mt-3 text-sm text-neutral-500">No specifications yet.</p>
       ) : (

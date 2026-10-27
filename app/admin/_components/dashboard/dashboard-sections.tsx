@@ -113,7 +113,7 @@ export function BestSellingProducts({
                 }
                 className="flex items-center gap-3 py-2.5 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
-                <span className="w-4 shrink-0 text-xs font-semibold tabular-nums text-neutral-400">
+                <span className="w-4 shrink-0 text-xs font-semibold tabular-nums text-neutral-500">
                   {index + 1}
                 </span>
                 <span className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-neutral-100">

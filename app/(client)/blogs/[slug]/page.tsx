@@ -10,7 +10,7 @@ import {
   listPublicBlogPosts,
 } from "@/lib/mart-api/blog-posts";
 import { listPublicBlogRelated } from "@/lib/mart-api/blog-related";
-import { bengaliDateToIso } from "@/lib/seo";
+import { articleSeo } from "@/lib/blog-view";
 
 import { BlogArticle } from "../_components/blog-article";
 
@@ -27,33 +27,32 @@ export async function generateMetadata({
   const post = await getPublicBlogPost(slug);
   if (!post) {
     if (await isMissingBlogPost(slug)) notFound();
-    return { title: "ব্লগ" };
+    return { title: "Blog" };
   }
 
-  const url = `/blogs/${post.slug}`;
+  const seo = articleSeo(post);
+  const images = seo.image ? [{ url: seo.image, alt: seo.imageAlt, width: 1200, height: 675 }] : [];
 
   return {
-    title: post.title,
-    description: post.excerpt,
-    keywords: post.tags,
-    alternates: { canonical: url },
+    title: seo.title,
+    description: seo.description,
+    keywords: seo.keywords,
+    alternates: { canonical: seo.url },
     openGraph: {
       type: "article",
-      url,
-      title: post.title,
-      description: post.excerpt,
-      images: [
-        { url: post.coverImage, alt: post.coverAlt, width: 1200, height: 675 },
-      ],
-      authors: [post.author],
-      publishedTime: bengaliDateToIso(post.publishedAt),
-      tags: post.tags,
+      url: seo.url,
+      title: seo.title,
+      description: seo.description,
+      ...(images.length ? { images } : {}),
+      authors: seo.authors,
+      publishedTime: seo.publishedTime,
+      tags: seo.keywords,
     },
     twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.excerpt,
-      images: [post.coverImage],
+      card: images.length ? "summary_large_image" : "summary",
+      title: seo.title,
+      description: seo.description,
+      ...(seo.image ? { images: [seo.image] } : {}),
     },
   };
 }

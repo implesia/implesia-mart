@@ -84,7 +84,7 @@ export function DashboardView() {
           </h1>
           <p className="mt-1 text-sm text-neutral-600">
             {snapshot.periodLabel}
-            <span className="text-neutral-400"> · </span>
+            <span className="text-neutral-500"> · </span>
             <span className="text-neutral-500">{snapshot.comparisonLabel}</span>
           </p>
         </div>

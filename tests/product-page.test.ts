@@ -113,3 +113,38 @@ test("purchase quantity and buy-now stay inside the public contract", () => {
     false,
   );
 });
+
+test("a variant product keeps its variants and order limits", () => {
+  const detail = normalizeProductDetail({
+    ...published,
+    has_variants: true,
+    min_per_order: 2,
+    max_per_order: 4,
+    variants: [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        options: { size: "m" },
+        label: "M",
+        price: 640,
+        compare_at_price: 700,
+        available: true,
+      },
+      { id: "", options: { size: "m" }, price: 1 },
+    ],
+  });
+  assert.ok(detail);
+  assert.equal(detail.has_variants, true);
+  assert.equal(detail.variants.length, 1);
+  assert.equal(detail.variants[0].price, 640);
+  assert.equal(detail.min_per_order, 2);
+  assert.equal(detail.max_per_order, 4);
+});
+
+test("a plain product has no variants and the default limits", () => {
+  const detail = normalizeProductDetail(published);
+  assert.ok(detail);
+  assert.equal(detail.has_variants, false);
+  assert.deepEqual(detail.variants, []);
+  assert.equal(detail.min_per_order, 1);
+  assert.equal(detail.max_per_order, null);
+});

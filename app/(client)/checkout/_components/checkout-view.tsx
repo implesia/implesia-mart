@@ -16,11 +16,13 @@ import { CheckoutPageHeader } from "./checkout-page-header";
 import { CheckoutPaymentMethod } from "./checkout-payment-method";
 import { CheckoutShippingForm } from "./checkout-shipping-form";
 import { CheckoutSuccess } from "./checkout-success";
+import { productPath } from "@/lib/mart-api/product-url";
 
 type CheckoutViewProps = {
   seedSlug?: string;
   seedQty?: number;
   seedProductId?: string;
+  seedVariantId?: string;
 };
 
 const pagePad =
@@ -30,14 +32,17 @@ export function CheckoutView({
   seedSlug,
   seedQty,
   seedProductId,
+  seedVariantId,
 }: CheckoutViewProps) {
   const { hydrated, items } = useCart();
 
-  const productHref = seedSlug
-    ? `/products/${seedSlug}`
-    : items[0]
-      ? `/products/${items[0].slug}`
-      : "/products";
+  const productHref = seedProductId
+    ? productPath({ id: seedProductId, slug: seedSlug ?? "" })
+    : seedSlug
+      ? productPath({ slug: seedSlug })
+      : items[0]
+        ? productPath({ id: items[0].id, slug: items[0].slug })
+        : "/products";
 
   if (!hydrated) {
     return (
@@ -59,6 +64,7 @@ export function CheckoutView({
       seedSlug={seedSlug}
       seedQty={seedQty}
       seedProductId={seedProductId}
+      seedVariantId={seedVariantId}
     >
       <CheckoutReadyView productHref={productHref} />
     </CheckoutFormProvider>

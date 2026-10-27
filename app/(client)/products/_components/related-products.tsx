@@ -16,6 +16,7 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 import { catalogProductId } from "@/lib/mart-api/catalog";
 
 import { useCart } from "../../_providers/cart-provider";
+import { productPath } from "@/lib/mart-api/product-url";
 
 type RelatedProduct = {
   id: string;
@@ -25,6 +26,7 @@ type RelatedProduct = {
   imageSrc: string;
   imageAlt: string;
   status?: "available" | "sold-out" | "coming-soon";
+  hasVariants?: boolean;
 };
 
 export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
@@ -110,7 +112,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
 
           return (
             <SwiperSlide key={p.id} className="!h-auto">
-              <Link href={`/products/${p.slug}`} className="group block h-full">
+              <Link href={productPath(p)} className="group block h-full">
                 <div className="relative mb-3 aspect-3/4 overflow-hidden rounded-xl bg-surface-container-low shadow-sm transition-all duration-500 group-hover:shadow-xl sm:mb-4 sm:rounded-2xl">
                   <Image
                     src={p.imageSrc}
@@ -126,7 +128,7 @@ export function RelatedProducts({ items }: { items: RelatedProduct[] }) {
                     <span className="absolute top-3 left-3 rounded-full bg-on-surface/80 px-2.5 py-1 text-[9px] tracking-widest text-white uppercase sm:top-4 sm:left-4 sm:px-3 sm:text-[10px]">
                       {isSoldOut ? "শেষ" : "কামিং সুন"}
                     </span>
-                  ) : (
+                  ) : p.hasVariants ? null : (
                     <Button
                       type="button"
                       size="icon"

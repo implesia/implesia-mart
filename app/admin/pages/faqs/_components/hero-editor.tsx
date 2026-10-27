@@ -155,7 +155,7 @@ export function FaqHeroEditor() {
           <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-white/70">
             {hero.subtitle.trim() || "Subtitle"}
           </p>
-          <p className="mx-auto mt-4 max-w-md rounded-full bg-white px-4 py-2.5 text-left text-sm text-neutral-400">
+          <p className="mx-auto mt-4 max-w-md rounded-full bg-white px-4 py-2.5 text-left text-sm text-neutral-500">
             {hero.placeholder.trim() || "Search"}
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">

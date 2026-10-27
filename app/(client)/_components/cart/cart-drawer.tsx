@@ -21,6 +21,7 @@ import {
 } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
+import { productPath } from "@/lib/mart-api/product-url";
 
 export function CartDrawer() {
   const {
@@ -84,7 +85,8 @@ export function CartDrawer() {
             <ul className="space-y-4">
               {items.map((item) => (
                 <li
-                  key={item.slug}
+                  key={item.key}
+                  data-cart-line={item.key}
                   className="flex gap-3 rounded-2xl border border-outline-variant/25 bg-surface-container-low/50 p-3"
                 >
                   <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-surface-container">
@@ -103,7 +105,7 @@ export function CartDrawer() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <Link
-                          href={`/products/${item.slug}`}
+                          href={productPath({ id: item.id, slug: item.slug })}
                           onClick={closeCart}
                           className="line-clamp-2 font-label-md text-on-surface transition-colors hover:text-primary"
                         >
@@ -117,10 +119,19 @@ export function CartDrawer() {
                         <p className="mt-0.5 text-label-sm text-outline">
                           {formatCartMoney(item.unitPrice)} / পিস
                         </p>
+                        {item.available ? null : (
+                          <p
+                            role="status"
+                            data-cart-unavailable=""
+                            className="mt-1 text-label-sm font-medium text-[#ba1a1a]"
+                          >
+                            এই অপশনটি এখন পাওয়া যাচ্ছে না। সরিয়ে দিন বা অন্য অপশন বেছে নিন।
+                          </p>
+                        )}
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(item.slug)}
+                        onClick={() => removeItem(item.key)}
                         className="rounded-full p-1 text-outline transition-colors hover:bg-surface-container hover:text-red-500"
                         aria-label={`${item.title} সরান`}
                       >
@@ -137,8 +148,8 @@ export function CartDrawer() {
                         <button
                           type="button"
                           className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
-                          onClick={() => adjustQuantity(item.slug, -1)}
-                          disabled={item.quantity <= 1}
+                          onClick={() => adjustQuantity(item.key, -1)}
+                          disabled={item.quantity <= item.minQuantity}
                           aria-label={`${item.title} এর পরিমাণ কমান`}
                         >
                           <MaterialIcon name="remove" className="text-[16px]" />
@@ -152,8 +163,8 @@ export function CartDrawer() {
                         <button
                           type="button"
                           className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
-                          onClick={() => adjustQuantity(item.slug, 1)}
-                          disabled={item.quantity >= MAX_CART_QTY}
+                          onClick={() => adjustQuantity(item.key, 1)}
+                          disabled={item.quantity >= Math.min(MAX_CART_QTY, item.maxQuantity)}
                           aria-label={`${item.title} এর পরিমাণ বাড়ান`}
                         >
                           <MaterialIcon name="add" className="text-[16px]" />

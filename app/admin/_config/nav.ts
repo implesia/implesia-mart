@@ -133,6 +133,8 @@ function matchCmsLabel(pathname: string) {
       const section = record.sections.find((item) => item.id === site[2]);
       return { group: record.label, label: section?.label ?? record.label };
     }
+    // A single-form page (Header, Footer) has no sections: show "Site › Header", not "Header › Sections".
+    if (record.sections.length === 0) return { group: "Site", label: record.label };
     return { group: record.label, label: "Sections" };
   }
 

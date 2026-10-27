@@ -17,18 +17,80 @@ import {
 import { createPortal } from "react-dom";
 
 import type { CategoryTile } from "@/lib/mart-api/categories";
+import {
+  categoryPreviewPath,
+  parseCategoryPreview,
+  type CategoryPreview,
+} from "@/lib/mart-api/category-preview";
+import { placeFlyout, settledAnchor, type FlyoutAnchor } from "@/lib/category-flyout";
 import { buildCategoryTree, type CategoryNode } from "@/lib/mart-api/category-tree";
+import { mediaUrl, publicFetch } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../common/material-icon";
+import { productPath } from "@/lib/mart-api/product-url";
 
 type Node = CategoryNode<CategoryTile>;
 /** One open flyout: the node whose children it lists and the row it is anchored to. */
-type OpenLevel = { id: string; rect: DOMRect };
+type OpenLevel = { id: string; rect: FlyoutAnchor };
 
 const OPEN_DELAY_MS = 90;
 const AIM_DELAY_MS = 320;
 const CLOSE_DELAY_MS = 380;
+const PREVIEW_TTL_MS = 45_000;
+
+/*
+ * Interaction model (desktop, `lg` and up)
+ * - Mouse: hovering a row opens its flyout after a short intent delay; moving towards an open
+ *   flyout (the "safe triangle") delays switching rows; leaving the whole menu closes it.
+ * - Keyboard: Arrow Up/Down/Home/End move within a list, Arrow Right opens the flyout and focuses
+ *   its first item, Arrow Left/Escape close it and return to the row, Enter follows the link.
+ * - Touch/pen on a wide screen: the first tap on a row with a flyout opens it, the second follows
+ *   the link; the "View all" row in every flyout always navigates.
+ * - A category with subcategories opens a list of them. A category without subcategories but with
+ *   products opens a product panel (up to six products, loaded on demand). A category with neither
+ *   is a plain link.
+ * Phones and tablets use the drill-down panel below the rail (tap, nested chevrons, Back).
+ */
+
+/**
+ * The row's position as a flyout anchor. A row inside a flyout that is still sliding in is
+ * measured at its settled position, not mid-slide.
+ */
+function anchorOf(el: HTMLElement): FlyoutAnchor {
+  const rect = el.getBoundingClientRect();
+  const flyout = el.closest<HTMLElement>("[data-category-flyout]");
+  const transform = flyout ? getComputedStyle(flyout).transform : "none";
+  if (!flyout || transform === "none") return { left: rect.left, right: rect.right, top: rect.top };
+  const matrix = new DOMMatrixReadOnly(transform);
+  return settledAnchor(rect, matrix.m41, matrix.m42);
+}
+
+/** A row opens something when it has subcategories or products to preview. */
+function hasFlyout(node: Node) {
+  return node.children.length > 0 || node.item.productCount > 0;
+}
+
+const previews = new Map<string, { at: number; promise: Promise<CategoryPreview | null> }>();
+
+/** One request per category within the TTL; a failed request is dropped so a retry refetches. */
+function loadPreview(slug: string): Promise<CategoryPreview | null> {
+  const cached = previews.get(slug);
+  if (cached && Date.now() - cached.at < PREVIEW_TTL_MS) return cached.promise;
+  const promise = publicFetch(categoryPreviewPath(slug))
+    .then(async (response) => (response.ok ? parseCategoryPreview(await response.json()) : null))
+    .catch(() => null)
+    .then((result) => {
+      if (!result) previews.delete(slug);
+      return result;
+    });
+  previews.set(slug, { at: Date.now(), promise });
+  return promise;
+}
+
+function formatTaka(value: number) {
+  return `৳${value.toLocaleString("en-US")}`;
+}
 
 function hrefOf(tile: CategoryTile) {
   return tile.href || "/products";
@@ -109,9 +171,9 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
   const openAt = useCallback(
     (level: number, node: Node, el: HTMLElement) => {
       setPath((prev) => {
-        if (node.children.length === 0) return prev.length > level ? prev.slice(0, level) : prev;
+        if (!hasFlyout(node)) return prev.length > level ? prev.slice(0, level) : prev;
         if (prev[level]?.id === node.item.id && prev.length === level + 1) return prev;
-        return [...prev.slice(0, level), { id: node.item.id, rect: el.getBoundingClientRect() }];
+        return [...prev.slice(0, level), { id: node.item.id, rect: anchorOf(el) }];
       });
     },
     [],
@@ -194,7 +256,7 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
   const onRowClick = useCallback(
     (level: number, node: Node, event: React.MouseEvent<HTMLAnchorElement>) => {
       // Touch/pen on a wide screen: the first tap opens the flyout, the second follows the link.
-      if (pointerType.current === "mouse" || node.children.length === 0) return;
+      if (pointerType.current === "mouse" || !hasFlyout(node)) return;
       const open = path[level]?.id === node.item.id;
       if (!open) {
         event.preventDefault();
@@ -228,7 +290,7 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
           focusAt(items.length - 1);
           break;
         case "ArrowRight":
-          if (node.children.length > 0) {
+          if (hasFlyout(node)) {
             event.preventDefault();
             pendingFocus.current = level + 1;
             openAt(level, node, event.currentTarget);
@@ -310,6 +372,7 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
           <Flyout
             key={`${level}-${open.id}`}
             level={level}
+            wide={node.children.length === 0}
             anchor={open.rect}
             node={node}
             baseId={baseId}
@@ -319,11 +382,28 @@ function DesktopCategoryMenu({ tree, byId }: { tree: Node[]; byId: Map<string, N
             onPointerLeave={onAreaPointerLeave}
             onPointerMove={onAreaPointerMove}
           >
-            {node.children.map((child, index) => (
-              <li key={child.item.id} role="none">
-                <MenuRow node={child} level={level + 1} index={index} variant="flyout" {...rowProps} />
-              </li>
-            ))}
+            {node.children.length > 0 ? (
+              node.children.map((child, index) => (
+                <li key={child.item.id} role="none">
+                  <MenuRow node={child} level={level + 1} index={index} variant="flyout" {...rowProps} />
+                </li>
+              ))
+            ) : (
+              <ProductPanel
+                tile={node.item}
+                onKeyDown={(event) =>
+                  onRowKeyDown(level + 1, { item: node.item, depth: node.depth, children: [] }, event)
+                }
+              />
+            )}
+            <li role="none">
+              <ViewAllLink
+                tile={node.item}
+                onKeyDown={(event) =>
+                  onRowKeyDown(level + 1, { item: node.item, depth: node.depth, children: [] }, event)
+                }
+              />
+            </li>
           </Flyout>
         );
       })}
@@ -356,7 +436,7 @@ const MenuRow = memo(function MenuRow({
   onRowKeyDown,
 }: RowProps) {
   const tile = node.item;
-  const hasChildren = node.children.length > 0;
+  const hasChildren = hasFlyout(node);
   const expanded = path[level]?.id === tile.id;
   const ref = useCallback((el: HTMLAnchorElement | null) => registerRow(tile.id, el), [registerRow, tile.id]);
 
@@ -400,8 +480,143 @@ const MenuRow = memo(function MenuRow({
   );
 });
 
+function ViewAllLink({
+  tile,
+  onKeyDown,
+}: {
+  tile: CategoryTile;
+  onKeyDown: (event: ReactKeyboardEvent<HTMLAnchorElement>) => void;
+}) {
+  return (
+    <Link
+      href={hrefOf(tile)}
+      role="menuitem"
+      onKeyDown={onKeyDown}
+      data-view-all=""
+      className="mt-1 flex min-h-11 items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-semibold text-primary outline-none hover:bg-primary/8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+    >
+      <span className="min-w-0 flex-1 truncate">View all {tile.label}</span>
+      <MaterialIcon name="arrow_forward" className="text-[18px]" />
+    </Link>
+  );
+}
+
+type PanelState =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "ready"; data: CategoryPreview };
+
+/** Bounded product preview for a category without subcategories. */
+function ProductPanel({
+  tile,
+  onKeyDown,
+}: {
+  tile: CategoryTile;
+  onKeyDown: (event: ReactKeyboardEvent<HTMLAnchorElement>) => void;
+}) {
+  const [state, setState] = useState<PanelState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    // Resetting to loading on a retry is the point of this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState({ status: "loading" });
+    loadPreview(tile.slug).then((data) => {
+      if (live) setState(data ? { status: "ready", data } : { status: "error" });
+    });
+    return () => {
+      live = false;
+    };
+  }, [tile.slug, attempt]);
+
+  if (state.status === "loading") {
+    return (
+      <li role="none" data-panel-state="loading" className="space-y-2 px-1.5 py-1">
+        <span className="sr-only" role="status">
+          Loading products
+        </span>
+        {[0, 1, 2].map((key) => (
+          <span key={key} aria-hidden="true" className="flex items-center gap-3">
+            <span className="size-12 shrink-0 animate-pulse rounded-lg bg-neutral-100" />
+            <span className="flex-1 space-y-1.5">
+              <span className="block h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
+              <span className="block h-3 w-1/3 animate-pulse rounded bg-neutral-100" />
+            </span>
+          </span>
+        ))}
+      </li>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <li role="none" data-panel-state="error" className="px-2.5 py-2 text-sm text-neutral-700">
+        <p role="alert">Couldn’t load products.</p>
+        <button
+          type="button"
+          onClick={() => setAttempt((value) => value + 1)}
+          className="mt-1 inline-flex min-h-11 items-center font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          Try again
+        </button>
+      </li>
+    );
+  }
+  if (state.data.products.length === 0) {
+    return (
+      <li role="none" data-panel-state="empty" className="px-2.5 py-3 text-sm text-neutral-600">
+        No products in {tile.label} yet.
+      </li>
+    );
+  }
+  return (
+    <>
+      {state.data.products.map((product) => (
+        <li key={product.id} role="none" data-panel-state="ready">
+          <Link
+            href={productPath(product)}
+            role="menuitem"
+            onKeyDown={onKeyDown}
+            data-panel-product=""
+            className="flex min-h-14 items-center gap-3 rounded-xl px-2 py-1.5 outline-none hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          >
+            <span className="relative block size-12 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+              {product.imageSrc ? (
+                <Image
+                  src={mediaUrl(product.imageSrc)}
+                  alt=""
+                  fill
+                  sizes="48px"
+                  className="object-cover"
+                />
+              ) : null}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="line-clamp-2 text-sm leading-snug font-medium text-neutral-950">
+                {product.title}
+              </span>
+              <span className="mt-0.5 flex items-baseline gap-1.5 text-xs">
+                <span className="font-semibold text-neutral-950">{formatTaka(product.price)}</span>
+                {product.compareAtPrice ? (
+                  <span className="text-neutral-400 line-through">
+                    {formatTaka(product.compareAtPrice)}
+                  </span>
+                ) : null}
+                {product.status === "sold-out" ? (
+                  <span className="text-neutral-500">Sold out</span>
+                ) : null}
+              </span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </>
+  );
+}
+
 function Flyout({
   level,
+  wide,
   anchor,
   node,
   baseId,
@@ -413,7 +628,8 @@ function Flyout({
   children,
 }: {
   level: number;
-  anchor: DOMRect;
+  wide: boolean;
+  anchor: FlyoutAnchor;
   node: Node;
   baseId: string;
   focusFirstRef: React.RefObject<number | null>;
@@ -426,25 +642,49 @@ function Flyout({
   const ref = useRef<HTMLDivElement | null>(null);
 
   // Place next to the anchor row; flip left when there is no room, clamp to the viewport.
-  useLayoutEffect(() => {
+  // The product panel changes height once its products arrive, so placement is redone then.
+  // Position is set directly (never transitioned): the flyout stays hidden until it is placed,
+  // then it fades/slides in from its final position, so it can never sweep in from a corner.
+  const place = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    const gap = 6;
-    const margin = 8;
     const { width, height } = el.getBoundingClientRect();
-    let left = anchor.right + gap;
-    if (left + width > window.innerWidth - margin) left = Math.max(margin, anchor.left - width - gap);
-    let top = anchor.top - 6;
-    top = Math.min(top, window.innerHeight - height - margin);
-    top = Math.max(margin, top);
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
+    const spot = placeFlyout(anchor, { width, height }, { width: window.innerWidth, height: window.innerHeight });
+    el.style.left = `${spot.left}px`;
+    el.style.top = `${spot.top}px`;
+    el.dataset.side = spot.side;
     el.style.visibility = "visible";
-    if (focusFirstRef.current === level + 1) {
-      focusFirstRef.current = null;
-      menuItems(el.querySelector("[role='menu']"))[0]?.focus();
-    }
-  }, [anchor, focusFirstRef, level]);
+  }, [anchor]);
+
+  useLayoutEffect(() => {
+    // The flyout is hidden until it has been placed, and a hidden element cannot take focus, so
+    // the keyboard hand-off (Arrow Right) happens only once the flyout is visible.
+    let wantsFocus = focusFirstRef.current === level + 1;
+    let frame = 0;
+    let attempts = 0;
+    const settle = () => {
+      place();
+      const el = ref.current;
+      if (!wantsFocus || !el) return;
+      const target = menuItems(el.querySelector("[role='menu']"))[0];
+      target?.focus();
+      if (!target || document.activeElement === target) {
+        wantsFocus = false;
+        if (focusFirstRef.current === level + 1) focusFirstRef.current = null;
+      } else if (attempts++ < 10) {
+        // Focus is refused until the browser has laid the freshly mounted flyout out.
+        frame = window.requestAnimationFrame(settle);
+      }
+    };
+    settle();
+    const el = ref.current;
+    const observer = el && typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
+    if (el) observer?.observe(el);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [place, focusFirstRef, level]);
 
   const setRef = useCallback(
     (el: HTMLDivElement | null) => {
@@ -463,7 +703,11 @@ function Flyout({
       onPointerLeave={onPointerLeave}
       onPointerMove={onPointerMove}
       style={{ position: "fixed", left: 0, top: 0, visibility: "hidden", zIndex: 60 + level }}
-      className="force-light w-60 rounded-2xl bg-white p-1.5 shadow-[0_18px_44px_rgba(16,24,40,0.16)] ring-1 ring-neutral-200/90 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150"
+      className={cn(
+        "category-flyout force-light max-w-[calc(100vw-1rem)] rounded-2xl bg-white p-1.5 shadow-[0_18px_44px_rgba(16,24,40,0.16)] ring-1 ring-neutral-200/90",
+        wide ? "w-[22rem]" : "w-60",
+      )}
+      data-category-panel={wide ? "products" : "categories"}
     >
       <p className="truncate px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
         {node.item.label}
@@ -507,17 +751,36 @@ function MobileCategoryNav({ tree, byId }: { tree: Node[]; byId: Map<string, Nod
           const active = rootOpen === tile.id;
           return (
             <li key={tile.id} className="w-[4.5rem] shrink-0 snap-start sm:w-20">
-              <Link
-                href={hrefOf(tile)}
-                aria-expanded={hasChildren ? active : undefined}
-                aria-controls={hasChildren && active ? panelId : undefined}
-                onClick={(event) => {
-                  if (!hasChildren) return;
-                  event.preventDefault();
-                  setTrail(active ? [] : [tile.id]);
-                }}
-                className="group flex min-h-11 flex-col items-center gap-1.5 rounded-xl py-1 focus-visible:outline-2 focus-visible:outline-primary"
-              >
+              {hasChildren ? (
+                <button
+                  type="button"
+                  aria-expanded={active}
+                  aria-controls={active ? panelId : undefined}
+                  onClick={() => setTrail(active ? [] : [tile.id])}
+                  className="group flex min-h-11 w-full flex-col items-center gap-1.5 rounded-xl py-1 focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <CategoryThumb
+                    src={tile.imageSrc}
+                    size="size-16 sm:size-[4.5rem]"
+                    active={active}
+                  />
+                  <span
+                    className={cn(
+                      "line-clamp-2 text-center text-xs leading-snug font-semibold tracking-tight transition-colors group-hover:text-primary",
+                      active ? "text-primary" : "text-neutral-950",
+                    )}
+                  >
+                    {tile.label}
+                    {hasChildren ? (
+                      <MaterialIcon
+                        name={active ? "expand_less" : "expand_more"}
+                        className="ml-0.5 align-middle text-[14px]"
+                      />
+                    ) : null}
+                  </span>
+                </button>
+              ) : (
+                <Link href={hrefOf(tile)} className="group flex min-h-11 w-full flex-col items-center gap-1.5 rounded-xl py-1 focus-visible:outline-2 focus-visible:outline-primary">
                 <CategoryThumb
                   src={tile.imageSrc}
                   size="size-16 sm:size-[4.5rem]"
@@ -537,14 +800,23 @@ function MobileCategoryNav({ tree, byId }: { tree: Node[]; byId: Map<string, Nod
                     />
                   ) : null}
                 </span>
-              </Link>
+                </Link>
+              )}
             </li>
           );
         })}
       </ul>
 
       {current ? (
-        <div id={panelId} className="mt-2 border-t border-neutral-200 pt-2" aria-live="polite">
+        <div
+          id={panelId}
+          className="mt-2 border-t border-neutral-200 pt-2"
+          role="region"
+          aria-label={`${current.item.label} categories`}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setTrail((prev) => prev.slice(0, -1));
+          }}
+        >
           <div className="flex items-center gap-1">
             <button
               type="button"

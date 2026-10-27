@@ -43,6 +43,7 @@ type OrderSource = "cart" | "direct";
 
 type DirectItem = {
   productId: string;
+  variantId?: string | null;
   quantity: number;
   selection?: { groupId: string; valueId: string }[];
 };
@@ -111,12 +112,14 @@ export function CheckoutFormProvider({
   seedSlug,
   seedQty,
   seedProductId,
+  seedVariantId,
 }: {
   children: React.ReactNode;
   source: OrderSource;
   seedSlug?: string;
   seedQty?: number;
   seedProductId?: string;
+  seedVariantId?: string;
 }) {
   const { reloadCart } = useCart();
   const [shipping, setShipping] =
@@ -257,7 +260,12 @@ export function CheckoutFormProvider({
       queueMicrotask(() => {
         if (cancelled) return;
         setDirectItems([
-          { productId, quantity, selection: readBuySelection(seedSlug) },
+          {
+            productId,
+            variantId: seedVariantId ?? null,
+            quantity,
+            selection: seedVariantId ? [] : readBuySelection(seedSlug),
+          },
         ]);
         setDirectReady(true);
       });
@@ -275,14 +283,19 @@ export function CheckoutFormProvider({
         return;
       }
       setDirectItems([
-        { productId, quantity, selection: readBuySelection(seedSlug) },
+        {
+          productId,
+          variantId: seedVariantId ?? null,
+          quantity,
+          selection: seedVariantId ? [] : readBuySelection(seedSlug),
+        },
       ]);
       setDirectReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [source, seedSlug, seedQty, seedProductId]);
+  }, [source, seedSlug, seedQty, seedProductId, seedVariantId]);
 
   useEffect(() => {
     if (source === "direct" && !directReady) return;

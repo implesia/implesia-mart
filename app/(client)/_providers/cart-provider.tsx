@@ -18,11 +18,12 @@ import {
   setCartItemQuantity,
   type ShopCart,
 } from "@/lib/mart-api/cart";
+import { MartApiError } from "@/lib/mart-api/products";
+import { lineKey } from "@/lib/mart-api/variants";
 
 import { optionSummary } from "../products/_components/purchase-selection";
 import {
   clampCartQty,
-  MAX_CART_QTY,
   type CartLineResolved,
   type CartPricing,
 } from "../_lib/cart-shared";
@@ -30,6 +31,8 @@ import {
 type AddItemOptions = {
   openDrawer?: boolean;
   productId?: string;
+  /** Required for a product that has variants. The API prices the line from it. */
+  variantId?: string | null;
   selection?: { groupId: string; valueId: string }[];
 };
 
@@ -47,9 +50,10 @@ type CartContextValue = {
     quantity?: number,
     options?: AddItemOptions,
   ) => Promise<boolean>;
-  removeItem: (slug: string) => void;
-  adjustQuantity: (slug: string, delta: number) => void;
-  readQuantity: (slug: string) => number;
+  /** The next three take a line key: `item.key`, or `lineKey(slug, variantId)`. */
+  removeItem: (key: string) => void;
+  adjustQuantity: (key: string, delta: number) => void;
+  readQuantity: (key: string) => number;
   reloadCart: () => Promise<void>;
 };
 
@@ -72,6 +76,12 @@ const CartContext = createContext<CartContextValue | null>(null);
 function applyCart(cart: ShopCart) {
   const items: CartLineResolved[] = cart.items.map((item) => ({
     id: item.productId,
+    key: lineKey(item.slug, item.variantId),
+    variantId: item.variantId,
+    sku: item.sku,
+    available: item.available,
+    minQuantity: item.minQuantity,
+    maxQuantity: item.maxQuantity,
     slug: item.slug,
     title: item.title,
     meta: optionSummary(item.selection ?? []),
@@ -81,7 +91,7 @@ function applyCart(cart: ShopCart) {
     imageSrc: item.imageSrc,
     imageAlt: item.title,
   }));
-  const ids = new Map(cart.items.map((item) => [item.slug, item.id]));
+  const ids = new Map(cart.items.map((item) => [lineKey(item.slug, item.variantId), item.id]));
   const pricing: CartPricing = {
     subtotal: cart.subtotal,
     shipping: cart.shipping,
@@ -104,6 +114,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [pricing, setPricing] = useState<CartPricing>(EMPTY_PRICING);
   const [itemCount, setItemCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<number | null>(null);
+
+  /** Backend refusals (stock limits) are shown to the shopper; the message never names a count. */
+  const showFailure = useCallback((error: unknown) => {
+    const message =
+      error instanceof MartApiError && error.message
+        ? error.message
+        : "We couldn't update your cart. Please try again.";
+    setNotice(message);
+    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 6000);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+    },
+    [],
+  );
   const ids = useRef(new Map<string, string>());
   const itemsRef = useRef<CartLineResolved[]>([]);
   const pricingRef = useRef<CartPricing>(EMPTY_PRICING);
@@ -218,28 +248,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       epoch.current += 1;
       inflight.current += 1;
       try {
-        commit(await addCartItem(productId, clampCartQty(quantity), options?.selection));
+        commit(await addCartItem(
+            productId,
+            clampCartQty(quantity),
+            options?.selection,
+            options?.variantId,
+          ));
         return true;
-      } catch {
+      } catch (error) {
+        showFailure(error);
         return false;
       } finally {
         inflight.current -= 1;
       }
     },
-    [commit, openCart],
+    [commit, openCart, showFailure],
   );
 
   const removeItem = useCallback(
-    (slug: string) => {
-      const itemId = ids.current.get(slug);
+    (key: string) => {
+      const itemId = ids.current.get(key);
       if (!itemId) return;
-      desired.current.delete(slug);
+      desired.current.delete(key);
       epoch.current += 1;
       inflight.current += 1;
-      publish(itemsRef.current.filter((item) => item.slug !== slug));
+      publish(itemsRef.current.filter((item) => item.key !== key));
       void removeCartItem(itemId)
         .then((cart) => {
-          if (!desired.current.has(slug)) commit(cart);
+          if (!desired.current.has(key)) commit(cart);
         })
         .catch(() => undefined)
         .finally(() => {
@@ -249,49 +285,54 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [commit, publish],
   );
 
-  const readQuantity = useCallback((slug: string) => {
+  const readQuantity = useCallback((key: string) => {
     return (
-      desired.current.get(slug) ??
-      itemsRef.current.find((item) => item.slug === slug)?.quantity ??
+      desired.current.get(key) ??
+      itemsRef.current.find((item) => item.key === key)?.quantity ??
       1
     );
   }, []);
 
   const adjustQuantity = useCallback(
-    (slug: string, delta: number) => {
-      const itemId = ids.current.get(slug);
+    (key: string, delta: number) => {
+      const itemId = ids.current.get(key);
       if (!itemId || !delta) return;
-      const current = readQuantity(slug);
-      const next = Math.max(1, Math.min(MAX_CART_QTY, current + delta));
+      const line = itemsRef.current.find((item) => item.key === key);
+      const current = readQuantity(key);
+      const next = clampCartQty(current + delta, {
+        min: line?.minQuantity,
+        max: line?.maxQuantity,
+      });
       if (next === current) return;
-      desired.current.set(slug, next);
+      desired.current.set(key, next);
       epoch.current += 1;
       publish(
         itemsRef.current.map((item) =>
-          item.slug === slug
+          item.key === key
             ? { ...item, quantity: next, lineTotal: item.unitPrice * next }
             : item,
         ),
       );
-      const ticket = (writes.current.get(slug) ?? 0) + 1;
-      writes.current.set(slug, ticket);
+      const ticket = (writes.current.get(key) ?? 0) + 1;
+      writes.current.set(key, ticket);
       window.setTimeout(() => {
-        const qty = desired.current.get(slug);
-        if (qty == null || writes.current.get(slug) !== ticket) return;
+        const qty = desired.current.get(key);
+        if (qty == null || writes.current.get(key) !== ticket) return;
         inflight.current += 1;
         void setCartItemQuantity(itemId, qty)
           .then((cart) => {
             if (
-              writes.current.get(slug) !== ticket ||
-              desired.current.get(slug) !== qty
+              writes.current.get(key) !== ticket ||
+              desired.current.get(key) !== qty
             )
               return;
-            desired.current.delete(slug);
+            desired.current.delete(key);
             commit(cart);
           })
-          .catch(() => {
-            if (writes.current.get(slug) !== ticket) return;
-            desired.current.delete(slug);
+          .catch((error) => {
+            if (writes.current.get(key) !== ticket) return;
+            showFailure(error);
+            desired.current.delete(key);
             void getShopCart()
               .then(commit)
               .catch(() => undefined);
@@ -301,7 +342,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           });
       }, 160);
     },
-    [commit, publish, readQuantity],
+    [commit, publish, readQuantity, showFailure],
   );
 
   const value = useMemo<CartContextValue>(
@@ -337,7 +378,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      {notice ? (
+        <div
+          role="alert"
+          data-cart-notice=""
+          className="fixed inset-x-3 bottom-4 z-[100] mx-auto max-w-sm rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white shadow-lg"
+        >
+          {notice}
+        </div>
+      ) : null}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {

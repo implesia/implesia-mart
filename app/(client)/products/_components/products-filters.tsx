@@ -11,11 +11,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import type { CategoryTile } from "@/lib/mart-api/categories";
+import { categoryBranch } from "@/lib/mart-api/category-tree";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
-  categoryLabels,
   PRICE_FILTER_MAX,
   PRICE_FILTER_MIN,
   productFilters,
@@ -28,10 +29,11 @@ export type ProductsFilterControls = {
   onPriceRangeChange: (range: [number, number]) => void;
   availability: ProductStatus[];
   onAvailabilityToggle: (id: ProductStatus) => void;
-  categories: ProductCategoryId[];
+  /** Visible categories from the API, depth-first. Empty hides the section. */
+  categoryTree: CategoryTile[];
+  activeCategory?: ProductCategoryId;
   onCategorySelect: (id: ProductCategoryId | "all") => void;
   onReset: () => void;
-  categoryCounts: Record<ProductCategoryId, number>;
   availabilityCounts: Record<ProductStatus, number>;
   resultCount: number;
   canReset: boolean;
@@ -55,18 +57,18 @@ function FilterBody({
   onPriceRangeChange,
   availability,
   onAvailabilityToggle,
-  categories,
+  categoryTree,
+  activeCategory,
   onCategorySelect,
   onReset,
-  categoryCounts,
   availabilityCounts,
   resultCount,
   canReset,
   showHeading = true,
 }: ProductsFilterControls & { showHeading?: boolean }) {
   const [draft, setDraft] = useState(priceRange);
-  const allCategoriesSelected =
-    categories.length === productFilters.categories.length;
+  const allCategoriesSelected = !activeCategory;
+  const categoryRows = categoryBranch(categoryTree, activeCategory);
 
   const setBound = (index: 0 | 1, raw: number) => {
     const next: [number, number] = [...draft];
@@ -134,33 +136,27 @@ function FilterBody({
           >
             সব
           </button>
-          {productFilters.categories.map((option) => {
-            const active =
-              !allCategoriesSelected &&
-              categories.length === 1 &&
-              categories[0] === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => onCategorySelect(option.id)}
-                aria-pressed={active}
-                className={cn(
-                  "flex min-h-11 w-full items-center rounded-lg px-2 py-2 text-left text-sm transition-colors",
-                  active
-                    ? "font-semibold text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
-                )}
-              >
-                <span className="min-w-0 flex-1">
-                  {categoryLabels[option.id]}
-                </span>
-                <span className="text-xs font-medium text-on-surface-variant tabular-nums">
-                  {categoryCounts[option.id]}
-                </span>
-              </button>
-            );
-          })}
+          {categoryRows.map(({ item, depth, active }) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onCategorySelect(item.slug)}
+              aria-pressed={active}
+              aria-current={active ? "true" : undefined}
+              style={{ paddingInlineStart: `${0.5 + depth * 0.875}rem` }}
+              className={cn(
+                "flex min-h-11 w-full items-center rounded-lg py-2 pe-2 text-left text-sm transition-colors",
+                active
+                  ? "font-semibold text-primary"
+                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
+              )}
+            >
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              <span className="text-xs font-medium text-on-surface-variant tabular-nums">
+                {item.productCount}
+              </span>
+            </button>
+          ))}
         </div>
       </section>
 

@@ -146,7 +146,7 @@ function OrdersView() {
         <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <label className="relative block min-w-0 flex-1">
-              <MaterialIcon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-400" />
+              <MaterialIcon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}

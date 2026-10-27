@@ -14,6 +14,9 @@ const GUEST_KEY = "implesia.cart.guest.v1";
 export type CartLine = {
   id: string;
   productId: string;
+  /** Null for a product without variants. */
+  variantId: string | null;
+  sku: string;
   title: string;
   slug: string;
   imageSrc: string;
@@ -21,6 +24,9 @@ export type CartLine = {
   quantity: number;
   lineTotal: number;
   available: boolean;
+  /** Order limits for this line (the configured cap, never the stock). */
+  minQuantity: number;
+  maxQuantity: number;
   selection: { name: string; label: string; swatch: string }[];
   addedAt?: string;
 };
@@ -83,6 +89,8 @@ export type CartDirectory = {
 type ApiLine = {
   id: string;
   product_id: string;
+  variant_id?: string | null;
+  sku?: string;
   title: string;
   slug: string;
   image_src: string;
@@ -90,6 +98,8 @@ type ApiLine = {
   quantity: number;
   line_total: number;
   available: boolean;
+  min_quantity?: number;
+  max_quantity?: number;
   selection?: { name: string; label: string; swatch?: string }[];
   added_at?: string;
 };
@@ -161,6 +171,8 @@ function mapLine(item: ApiLine): CartLine {
   return {
     id: item.id,
     productId: item.product_id,
+    variantId: item.variant_id ?? null,
+    sku: item.sku ?? "",
     title: item.title,
     slug: item.slug,
     imageSrc: mediaUrl(item.image_src),
@@ -168,6 +180,8 @@ function mapLine(item: ApiLine): CartLine {
     quantity: item.quantity,
     lineTotal: item.line_total,
     available: item.available,
+    minQuantity: item.min_quantity ?? 1,
+    maxQuantity: item.max_quantity ?? 5,
     selection: (item.selection ?? []).map((choice) => ({
       name: choice.name,
       label: choice.label,
@@ -252,8 +266,9 @@ export function addCartItem(
   productId: string,
   quantity: number,
   selection: { groupId: string; valueId: string }[] = [],
+  variantId?: string | null,
 ) {
-  return shop("/items", "POST", cartItemBody(productId, quantity, selection));
+  return shop("/items", "POST", cartItemBody(productId, quantity, selection, variantId));
 }
 
 export function setCartItemQuantity(itemId: string, quantity: number) {

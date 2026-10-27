@@ -175,14 +175,39 @@ function contentPayload(content: ProductStorefrontContent) {
   };
 }
 
-function productFields(draft: ProductDraft, sendMainFile: boolean) {
+function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boolean) {
+  // A product with variants has its price and stock rolled up by the API from the variants.
+  // On update those are left out, so a stale page can never overwrite the live totals.
+  const rolledUp = updating && Boolean(draft.variants?.length);
+  const variantFields =
+    draft.variants === undefined
+      ? {}
+      : {
+          variants: draft.variants.map((variant) => ({
+            ...(variant.id ? { id: variant.id } : {}),
+            options: variant.options,
+            sku: variant.sku,
+            price: variant.price,
+            compare_at_price: variant.compareAtPrice,
+            quantity: variant.quantity,
+            is_active: variant.isActive,
+          })),
+        };
   return {
     title: draft.title,
     subtitle: draft.subtitle,
-    category: draft.categoryId,
-    price: draft.price,
-    compare_at_price: draft.compareAtPrice,
-    quantity: draft.quantity,
+    // The assigned category node; the API derives the legacy root slug from it.
+    ...(draft.categoryRefId ? { category_id: draft.categoryRefId } : { category: draft.categoryId }),
+    ...(rolledUp
+      ? {}
+      : {
+          price: draft.price,
+          compare_at_price: draft.compareAtPrice,
+          quantity: draft.quantity,
+        }),
+    min_order_quantity: draft.minOrderQuantity ?? 1,
+    max_order_quantity: draft.maxOrderQuantity ?? null,
+    ...variantFields,
     status: draft.status,
     badge: draft.badge,
     image_src: sendMainFile ? "" : sitePath(draft.imageSrc),
@@ -296,7 +321,7 @@ export async function logoutMart() {
 
 export async function saveMartProduct(productId: string | undefined, draft: ProductDraft) {
   const { files, alts, mainIsFile } = await imageParts(draft);
-  const fields = productFields(draft, mainIsFile);
+  const fields = productFields(draft, mainIsFile, Boolean(productId));
   const payload = productId ? fields : { ...fields, slug: null };
   const body = formDataFor(payload, files, alts);
   if (productId) {
@@ -359,6 +384,10 @@ type ApiCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
+  category_id?: string;
+  category_slug?: string;
+  category_name?: string;
+  category_path?: { id?: string; slug: string; name: string }[];
   price: number;
   compare_at_price: number | null;
   quantity: number | null;
@@ -368,6 +397,19 @@ type ApiCard = {
   featured: boolean;
   published: boolean;
   content?: ApiContent;
+  min_order_quantity?: number;
+  max_order_quantity?: number | null;
+  variants?: ApiVariant[];
+};
+
+type ApiVariant = {
+  id: string;
+  options: Record<string, string>;
+  sku: string;
+  price: number;
+  compare_at_price: number | null;
+  quantity: number | null;
+  is_active: boolean;
 };
 
 type ApiList = {
@@ -377,7 +419,7 @@ type ApiList = {
   page_size: number;
   pages: number;
   metrics: { total: number; live: number; hidden: number; sold_out: number };
-  category_counts: { all: number; gadgets: number; fashion: number };
+  category_counts: Record<string, number>;
 };
 
 export type ProductListQuery = {
@@ -398,7 +440,7 @@ export type ProductListResult = {
   page: number;
   pages: number;
   metrics: { total: number; live: number; hidden: number; soldOut: number };
-  categoryCounts: { all: number; gadgets: number; fashion: number };
+  categoryCounts: Record<string, number>;
 };
 
 function specGroup(value: string | undefined): ProductSpecGroupId {
@@ -470,6 +512,9 @@ function cardToProduct(item: ApiCard): AdminProduct {
     title: item.title,
     subtitle: item.subtitle,
     categoryId: item.category,
+    categoryRefId: item.category_id,
+    categoryName: item.category_name,
+    categoryPath: (item.category_path ?? []).map(({ slug, name }) => ({ slug, name })),
     price: item.price,
     compareAtPrice: item.compare_at_price,
     quantity: item.quantity,
@@ -480,6 +525,17 @@ function cardToProduct(item: ApiCard): AdminProduct {
     published: item.published,
     custom: true,
     content: contentFromApi(item.content),
+    minOrderQuantity: item.min_order_quantity ?? 1,
+    maxOrderQuantity: item.max_order_quantity ?? null,
+    variants: (item.variants ?? []).map((variant) => ({
+      id: variant.id,
+      options: variant.options,
+      sku: variant.sku,
+      price: variant.price,
+      compareAtPrice: variant.compare_at_price,
+      quantity: variant.quantity,
+      isActive: variant.is_active,
+    })),
   };
 }
 

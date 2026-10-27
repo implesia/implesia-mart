@@ -1,3 +1,5 @@
+import { SITE_CONTACT_DEFAULTS } from "@/lib/site-contact";
+
 export type PrivacyNavItem = {
   id: string;
   label: string;
@@ -151,8 +153,8 @@ export const privacyPolicyCopy = {
   support: {
     title: "এখনও সাহায্য দরকার?",
     subtitle: "তথ্য বা এই নীতি নিয়ে কল বা হোয়াটসঅ্যাপে জিজ্ঞাসা করুন।",
-    phone: "+880 1516-527932",
-    email: "implesiaitltd@gmail.com",
+    phone: SITE_CONTACT_DEFAULTS.phone,
+    email: SITE_CONTACT_DEFAULTS.email,
     cta: "যোগাযোগ",
     whatsapp: "হোয়াটসঅ্যাপ",
   },

@@ -35,14 +35,15 @@ export function HeroSection({
   settings = DEFAULT_HERO_SETTINGS,
 }: {
   slides: HeroSlide[];
-  categories: CategorySection;
+  /** null: the categories API failed (the rail shows an error state). */
+  categories: CategorySection | null;
   settings?: HeroCarouselSettings;
 }) {
-  const openCategories = {
-    ...categories,
-    tiles: categories.tiles.filter(isContentActive),
-  };
-  if (slides.length === 0 && openCategories.tiles.length === 0) return null;
+  const openCategories = categories
+    ? { ...categories, tiles: categories.tiles.filter(isContentActive) }
+    : null;
+  const showRail = openCategories === null || openCategories.tiles.length > 0;
+  if (slides.length === 0 && !showRail) return null;
 
   return (
     <section
@@ -59,7 +60,7 @@ export function HeroSection({
             // minmax(0,1fr): an implicit track would grow to the category rail's min-content width
             // and push the page 2px wider than a 360px screen (IM-QA-010).
             "grid grid-cols-[minmax(0,1fr)] items-stretch gap-3 lg:gap-4",
-            openCategories.tiles.length > 0 && "lg:grid-cols-[18rem_minmax(0,1fr)]",
+            showRail && "lg:grid-cols-[18rem_minmax(0,1fr)]",
           )}
         >
           <CategoryRail section={openCategories} />

@@ -6,7 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { categoryLabel } from "@/app/(client)/_data/products/catalog-meta";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
+import { listAdminCategories, type CategoryTile } from "@/lib/mart-api/categories";
+import { categoryChips, categoryTrail } from "@/lib/mart-api/category-tree";
 import {
   listMartProducts,
   MartApiError,
@@ -21,7 +24,6 @@ import {
 import { cn } from "@/lib/utils";
 
 import {
-  ADMIN_CATEGORY_LABEL,
   ADMIN_STOCK_STATUS_LABEL,
   AdminEmpty,
   AdminLoading,
@@ -31,7 +33,6 @@ import {
 } from "../_components/admin-ui";
 
 const PAGE_SIZE = 10;
-const CATEGORIES: ProductCategoryId[] = ["gadgets", "fashion"];
 const STOCK_FILTERS: StockStatus[] = ["available", "sold-out", "coming-soon"];
 const SORTS = [
   { id: "catalog", label: "Catalog order" },
@@ -47,7 +48,7 @@ type SortId = (typeof SORTS)[number]["id"];
 type Visibility = "live" | "hidden";
 
 function isCategory(value: string | null): value is ProductCategoryId {
-  return value === "gadgets" || value === "fashion";
+  return Boolean(value && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value));
 }
 
 function isStock(value: string | null): value is StockStatus {
@@ -91,6 +92,21 @@ function ProductsView() {
   const [settledKey, setSettledKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CategoryTile[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listAdminCategories()
+      .then((rows) => {
+        if (!cancelled) setCategories(rows);
+      })
+      .catch(() => {
+        /* the tabs fall back to "All"; the product list reports its own errors */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
@@ -206,7 +222,11 @@ function ProductsView() {
   const total = list?.total ?? 0;
   const pageCount = list?.pages ?? 0;
   const metrics = list?.metrics ?? { total: 0, live: 0, hidden: 0, soldOut: 0 };
-  const categoryCounts = list?.categoryCounts ?? { all: 0, gadgets: 0, fashion: 0 };
+  const categoryCounts = list?.categoryCounts ?? { all: 0 };
+  const roots = categories.filter((item) => !item.parentId);
+  const trail = category ? categoryTrail(categories, category) : [];
+  const activeRootId = trail[0]?.id ?? null;
+  const subChips = category ? categoryChips(categories, category).filter((item) => item.parentId) : [];
   const catalogEmpty =
     categoryCounts.all === 0 &&
     !status &&
@@ -283,14 +303,14 @@ function ProductsView() {
             <label className="relative block min-w-0 flex-1">
               <MaterialIcon
                 name="search"
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-400"
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500"
               />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Name, category, or product id"
                 aria-label="Search products"
-                className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-10 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-primary focus:ring-3 focus:ring-primary/25"
+                className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-10 pl-10 text-sm text-neutral-950 outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-3 focus:ring-primary/25"
               />
               {query ? (
                 <button
@@ -392,6 +412,7 @@ function ProductsView() {
           ) : null}
           <ActiveFilters
             category={category}
+            categoryName={trail[trail.length - 1]?.label ?? (category ? categoryLabel(category) : "")}
             status={status}
             visibility={visibility}
             minPrice={minPrice}
@@ -407,16 +428,39 @@ function ProductsView() {
             count={categoryCounts.all}
             active={category == null}
           />
-          {CATEGORIES.map((id) => (
+          {roots.map((root) => (
             <FilterTab
-              key={id}
-              href={hrefWith({ category: id })}
-              label={ADMIN_CATEGORY_LABEL[id]}
-              count={categoryCounts[id]}
-              active={category === id}
+              key={root.id}
+              href={hrefWith({ category: root.slug })}
+              label={root.label}
+              count={root.subtreeProductCount}
+              active={activeRootId === root.id}
             />
           ))}
         </div>
+        {subChips.length > 0 ? (
+          <ul
+            aria-label="Subcategories"
+            className="flex gap-1.5 overflow-x-auto border-b border-neutral-100 px-3 py-2"
+          >
+            {subChips.map((chip) => (
+              <li key={chip.id} className="shrink-0">
+                <Link
+                  href={hrefWith({ category: chip.slug })}
+                  aria-current={category === chip.slug ? "page" : undefined}
+                  className={cn(
+                    "inline-flex h-8 items-center rounded-full px-3 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    category === chip.slug
+                      ? "bg-neutral-950 text-white"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200",
+                  )}
+                >
+                  {chip.label} ({chip.subtreeProductCount})
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {error ? (
           <p className="border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">
@@ -561,6 +605,7 @@ function Metric({
 
 function ActiveFilters({
   category,
+  categoryName,
   status,
   visibility,
   minPrice,
@@ -568,6 +613,7 @@ function ActiveFilters({
   onClear,
 }: {
   category: ProductCategoryId | null;
+  categoryName: string;
   status: StockStatus | null;
   visibility: Visibility | null;
   minPrice: string;
@@ -576,7 +622,7 @@ function ActiveFilters({
 }) {
   const chips = [
     category
-      ? { key: "category", label: ADMIN_CATEGORY_LABEL[category] }
+      ? { key: "category", label: categoryName }
       : null,
     status ? { key: "status", label: ADMIN_STOCK_STATUS_LABEL[status] } : null,
     visibility
@@ -728,7 +774,7 @@ function ProductRow({
       <td
         className={cn(
           pinned,
-          "px-2 py-3 text-right text-xs tabular-nums text-neutral-400 xl:left-0 xl:px-4",
+          "px-2 py-3 text-right text-xs tabular-nums text-neutral-500 xl:left-0 xl:px-4",
         )}
       >
         {index}
@@ -753,7 +799,7 @@ function ProductRow({
               {product.subtitle}
             </span>
             <span className="mt-0.5 flex min-w-0 items-center gap-2">
-              <span className="truncate text-xs text-neutral-400">
+              <span className="truncate text-xs text-neutral-500">
                 {product.slug}
               </span>
               {product.featured ? (
@@ -766,7 +812,7 @@ function ProductRow({
         </span>
       </td>
       <td className="border-b border-neutral-100 px-3 py-3 text-neutral-700 xl:px-4">
-        {ADMIN_CATEGORY_LABEL[product.categoryId]}
+        {product.categoryPath?.map((node) => node.name).join(" › ") || product.categoryName || categoryLabel(product.categoryId)}
       </td>
       <td className="border-b border-neutral-100 px-2 py-3 text-right whitespace-nowrap xl:px-4">
         <PriceStack product={product} />
@@ -811,12 +857,12 @@ function ProductCard({
             <span className="truncate font-semibold text-neutral-950">
               {product.title}
             </span>
-            <span className="shrink-0 text-xs tabular-nums text-neutral-400">
+            <span className="shrink-0 text-xs tabular-nums text-neutral-500">
               #{index}
             </span>
           </span>
           <span className="mt-0.5 block truncate text-xs text-neutral-500">
-            {ADMIN_CATEGORY_LABEL[product.categoryId]}
+            {product.categoryPath?.map((node) => node.name).join(" › ") || product.categoryName || categoryLabel(product.categoryId)}
             {product.featured ? " · Featured" : ""}
           </span>
           <span className="mt-2 flex items-end justify-between gap-3">
@@ -842,7 +888,7 @@ function QuantityCell({ product }: { product: AdminProduct }) {
     return (
       <span className="block text-right">
         <span
-          className="block font-semibold tabular-nums text-neutral-400"
+          className="block font-semibold tabular-nums text-neutral-500"
           aria-hidden
         >
           —
@@ -943,7 +989,7 @@ function PublishSwitch({
       <span
         className={cn(
           "text-xs font-medium",
-          product.published ? "text-neutral-800" : "text-neutral-400",
+          product.published ? "text-neutral-800" : "text-neutral-500",
         )}
       >
         {product.published ? "Live" : "Hidden"}
@@ -956,7 +1002,7 @@ function ProductThumb({ product }: { product: AdminProduct }) {
   const [failed, setFailed] = useState(false);
   if (!product.imageSrc || failed) {
     return (
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-400 xl:size-12">
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-500 xl:size-12">
         <MaterialIcon name="image" className="text-[20px]" />
       </span>
     );
@@ -986,7 +1032,7 @@ function PriceStack({ product }: { product: AdminProduct }) {
         {formatTaka(product.price)}
       </span>
       {compare != null ? (
-        <span className="block text-xs text-neutral-400 line-through tabular-nums">
+        <span className="block text-xs text-neutral-500 line-through tabular-nums">
           {formatTaka(compare)}
         </span>
       ) : null}

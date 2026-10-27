@@ -2,6 +2,14 @@ export const MAX_CART_QTY = 5;
 
 export type CartLineResolved = {
   id: string;
+  /** Stable line identity: the slug, plus the variant id for a variant line. */
+  key: string;
+  variantId: string | null;
+  sku: string;
+  /** False when the product or variant can no longer be bought. */
+  available: boolean;
+  minQuantity: number;
+  maxQuantity: number;
   slug: string;
   title: string;
   meta: string;
@@ -27,9 +35,16 @@ export type CartPricing = {
   ratesConfirmed: boolean;
 };
 
-export function clampCartQty(value: number) {
-  if (!Number.isFinite(value)) return 1;
-  return Math.max(1, Math.min(MAX_CART_QTY, Math.floor(value)));
+export function clampCartQty(
+  value: number,
+  limits: { min?: number; max?: number | null } = {},
+) {
+  const min = Math.max(1, Math.min(MAX_CART_QTY, Math.floor(limits.min ?? 1)));
+  const ceiling = limits.max
+    ? Math.min(MAX_CART_QTY, Math.floor(limits.max))
+    : MAX_CART_QTY;
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(Math.max(min, ceiling), Math.floor(value)));
 }
 
 export function formatCartMoney(value: number) {

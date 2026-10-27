@@ -5,13 +5,27 @@ export type OptionPick = { groupId: string; valueId: string };
 const BUY_KEY = "implesia.buy.selection.v1";
 
 let active: OptionPick[] = [];
+const listeners = new Set<() => void>();
 
 export function setActivePicks(selection: OptionPick[]) {
   active = selection;
+  listeners.forEach((listener) => listener());
 }
 
 export function activePicks() {
   return active;
+}
+
+/** Lets the mobile buy bar follow the picks made in the buy box. */
+export function subscribeActivePicks(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function choicesOf(picks: OptionPick[]): Record<string, string> {
+  return Object.fromEntries(picks.map((pick) => [pick.groupId, pick.valueId]));
 }
 
 export function defaultPicks(groups: ProductOptionGroup[]): OptionPick[] {

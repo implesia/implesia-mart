@@ -65,7 +65,7 @@ export function BlogContent({ blocks }: { blocks: BlogBlock[] }) {
         return (
           <p
             key={block.id}
-            className="mb-4 text-[15px] leading-[1.8] text-neutral-600 sm:text-base sm:leading-[1.85]"
+            className="mb-4 text-[15px] leading-[1.8] break-words whitespace-pre-line text-neutral-600 sm:text-base sm:leading-[1.85]"
           >
             {block.text}
           </p>

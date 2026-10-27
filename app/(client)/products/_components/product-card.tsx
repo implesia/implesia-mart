@@ -7,15 +7,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { cardAction } from "@/lib/mart-api/card-action";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import {
-  categoryLabels,
+  categoryLabel,
   type Product,
   type ProductBadge,
 } from "../../_data/products/catalog-meta";
 import { useCart } from "../../_providers/cart-provider";
+import { productPath } from "@/lib/mart-api/product-url";
 
 type ProductCardProps = {
   product: Product;
@@ -26,10 +28,18 @@ function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
 }
 
+/**
+ * Add to Cart: white text on the dark teal `primary-ink` (#0b5e56, about 7.6:1). White on the
+ * brand teal (#2bc0b5) is only about 2.2:1 and fails WCAG AA, so only this button's background
+ * uses the darker token. Hover/active go one step darker; the focus ring is always visible.
+ */
+const CART_BUTTON =
+  "h-11 w-full gap-0 rounded-lg bg-primary-ink text-sm font-semibold text-white shadow-sm sm:rounded-xl hover:bg-on-primary-fixed-variant active:bg-on-primary-fixed-variant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink motion-reduce:transition-none transition-colors duration-200";
+
 const BADGE_LABEL: Record<ProductBadge, string> = {
-  New: "নতুন",
-  "Best Seller": "বেস্ট সেলার",
-  Limited: "লিমিটেড",
+  New: "New",
+  "Best Seller": "Best Seller",
+  Limited: "Limited",
 };
 
 export function ProductCard({ product, priority = false }: ProductCardProps) {
@@ -42,6 +52,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const isComingSoon = product.status === "coming-soon";
   const isSoldOut = product.status === "sold-out";
   const isFashion = product.categoryId === "fashion";
+  const action = cardAction(product);
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -85,9 +96,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       )}
     >
       <Link
-        href={`/products/${product.slug}`}
+        href={productPath(product)}
         className="relative block aspect-square overflow-hidden sm:aspect-4/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-        aria-label={`${product.title} দেখুন`}
+        aria-label={`View ${product.title}`}
       >
         <div
           aria-hidden
@@ -114,11 +125,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         <div className="absolute top-2 left-2 z-10 flex max-w-[calc(100%-2.75rem)] flex-wrap gap-1 sm:top-2.5 sm:left-2.5 sm:gap-1.5">
           {isComingSoon ? (
             <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
-              শীঘ্রই আসছে
+              Coming soon
             </span>
           ) : isSoldOut ? (
             <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
-              শেষ
+              Sold out
             </span>
           ) : product.badge ? (
             <span
@@ -136,7 +147,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
         {discountPct && !isComingSoon && !isSoldOut ? (
           <span className="absolute top-2 right-2 z-10 rounded-full bg-error px-1.5 py-0.5 text-[10px] font-bold text-on-error shadow-sm sm:top-2.5 sm:right-2.5 sm:px-2 sm:py-1 sm:text-xs">
-            <span className="sr-only">ছাড় </span>-{discountPct}%
+            <span className="sr-only">Discount </span>-{discountPct}%
           </span>
         ) : null}
 
@@ -147,7 +158,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               name="visibility"
               className="text-[14px] text-primary"
             />
-            বিস্তারিত দেখুন
+            View details
           </span>
         </div>
       </Link>
@@ -155,21 +166,21 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3 md:p-3.5">
         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary md:text-[11px]">
-            {categoryLabels[product.categoryId]}
+            {categoryLabel(product.categorySlug ?? product.categoryId, product.categoryName)}
           </span>
           {isFashion ? (
             <span className="hidden rounded-full bg-warm-gold/15 px-1.5 py-0.5 text-[9px] font-semibold text-on-surface sm:inline-flex sm:px-2 sm:text-[10px] md:text-[11px]">
-              হাতে তৈরি
+              Handmade
             </span>
           ) : (
             <span className="hidden rounded-full bg-surface-container px-1.5 py-0.5 text-[9px] font-medium text-on-surface-variant sm:inline-flex sm:px-2 sm:text-[10px] md:text-[11px] dark:bg-background/40">
-              ক্যাশ অন ডেলিভারি
+              Cash on delivery
             </span>
           )}
         </div>
 
         <div className="min-w-0">
-          <Link href={`/products/${product.slug}`} className="block">
+          <Link href={productPath(product)} className="block">
             <h3 className="line-clamp-2 min-h-[2.9em] text-sm leading-[1.45] font-semibold text-on-surface transition-colors group-hover:text-primary md:text-[15px]">
               {product.title}
             </h3>
@@ -187,72 +198,94 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               </span>
             ) : null}
             <span className="text-base font-bold tabular-nums text-primary-ink sm:text-lg md:text-xl">
-              <span className="sr-only">বর্তমান দাম </span>
+              <span className="sr-only">Current price </span>
+              {product.hasVariants ? (
+                <span className="mr-1 text-[11px] font-medium text-on-surface-variant">
+                  From
+                </span>
+              ) : null}
               {formatPrice(product.price)}
             </span>
             {product.compareAtPrice && !isComingSoon ? (
               <span className="text-xs tabular-nums text-on-surface-variant line-through">
-                <span className="sr-only">আগের দাম </span>
+                <span className="sr-only">Previous price </span>
                 {formatPrice(product.compareAtPrice)}
               </span>
             ) : null}
           </div>
 
-          {isComingSoon ? (
+          {action === "coming-soon" ? (
             <Link
-              href={`/products/${product.slug}`}
+              href={productPath(product)}
               className={cn(
                 "inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg text-xs font-semibold sm:gap-1.5 sm:rounded-xl sm:text-sm",
-                "border border-outline-variant/40 text-primary",
+                "border border-outline-variant/40 text-primary-ink",
                 "transition-colors hover:border-primary/40 hover:bg-primary/5",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink",
                 "dark:border-white/12",
               )}
             >
-              <span className="sm:hidden">বিস্তারিত</span>
-              <span className="hidden sm:inline">বিস্তারিত দেখুন</span>
+              <span className="sm:hidden">Details</span>
+              <span className="hidden sm:inline">View details</span>
               <MaterialIcon
                 name="arrow_forward"
                 className="text-[14px] sm:text-[16px]"
               />
             </Link>
-          ) : isSoldOut ? (
+          ) : action === "sold-out" ? (
             <Button
               type="button"
               disabled
               className="h-11 w-full rounded-lg text-xs font-semibold sm:rounded-xl sm:text-sm"
             >
-              স্টক শেষ
+              Out of stock
             </Button>
+          ) : action === "choose-on-page" ? (
+            // Variant products: the shopper picks the option on the product page, so this is an
+            // Add to Cart control that routes there. There is no separate "Option" button.
+            <Link
+              href={productPath(product)}
+              data-card-action="add-to-cart"
+              aria-label={`Add ${product.title} to cart — choose options on the product page`}
+              className={cn(
+                "inline-flex items-center justify-center",
+                CART_BUTTON,
+              )}
+            >
+              <MaterialIcon
+                name="add_shopping_cart"
+                className="mr-1 text-[16px] sm:mr-1.5 sm:text-[18px]"
+              />
+              <span className="sm:hidden">Add</span>
+              <span className="hidden sm:inline">Add to Cart</span>
+            </Link>
           ) : (
             <Button
               type="button"
               onClick={handleAddToCart}
               disabled={pending || !productId}
               aria-busy={pending}
+              data-card-action="add-to-cart"
               aria-label={
                 pending
-                  ? `${product.title} যোগ হচ্ছে`
-                  : `${product.title} কার্টে যোগ করুন`
+                  ? `Adding ${product.title} to cart`
+                  : `Add ${product.title} to cart`
               }
-              className={cn(
-                "h-11 w-full rounded-lg text-sm font-semibold shadow-sm sm:rounded-xl",
-                "motion-reduce:transition-none transition-transform duration-200 ease-out active:scale-[0.99]",
-                justAdded && "bg-primary/90",
-              )}
+              className={cn(CART_BUTTON, "active:scale-[0.99]")}
             >
               <MaterialIcon
                 name={justAdded ? "check_circle" : "add_shopping_cart"}
                 className="mr-1 text-[16px] sm:mr-1.5 sm:text-[18px]"
               />
               <span className="sm:hidden">
-                {pending ? "যোগ…" : justAdded ? "যোগ" : "কার্টে"}
+                {pending ? "Adding…" : justAdded ? "Added" : "Add"}
               </span>
               <span className="hidden sm:inline">
                 {pending
-                  ? "যোগ হচ্ছে…"
+                  ? "Adding…"
                   : justAdded
-                    ? "যোগ হয়েছে"
-                    : "কার্টে যোগ করুন"}
+                    ? "Added"
+                    : "Add to Cart"}
               </span>
             </Button>
           )}
@@ -261,7 +294,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               role="alert"
               className="text-[11px] leading-snug text-error sm:text-xs"
             >
-              কার্টে যোগ করা যায়নি। আবার চেষ্টা করুন।
+              Could not add to cart. Please try again.
             </p>
           ) : null}
         </div>

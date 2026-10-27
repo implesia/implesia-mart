@@ -1,6 +1,15 @@
 export type ProductBadge = "New" | "Best Seller" | "Limited";
 export type ProductStatus = "available" | "sold-out" | "coming-soon";
-export type ProductCategoryId = "gadgets" | "fashion";
+/** A category slug. Categories are managed in the admin; "gadgets" and "fashion" are the seeded roots. */
+export type ProductCategoryId = string;
+
+export const CATEGORY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function isCategorySlug(value: unknown): value is ProductCategoryId {
+  return typeof value === "string" && value.length <= 80 && CATEGORY_SLUG_PATTERN.test(value);
+}
+
+export type ProductCategoryCrumb = { slug: string; name: string };
 
 export type Product = {
   id: string;
@@ -14,14 +23,34 @@ export type Product = {
   imageAlt: string;
   badge?: ProductBadge;
   status: ProductStatus;
+  /** Slug of the TOP-LEVEL category (drives the fashion/gadget layouts). */
   categoryId: ProductCategoryId;
+  /** The category the product is assigned to, and its name. */
+  categorySlug?: string;
+  categoryName?: string;
+  /** Root to leaf, only on product detail. */
+  categoryPath?: ProductCategoryCrumb[];
   featured?: boolean;
+  /** True when price and stock are per variant; `price` is then the lowest buyable price. */
+  hasVariants?: boolean;
 };
 
-export const categoryLabels: Record<ProductCategoryId, string> = {
+/** Fallback names for the seeded roots; the API's category name wins when present. */
+export const categoryLabels: Record<string, string> = {
   gadgets: "Trending Gadgets",
   fashion: "গর্জিয়াস ড্রেস",
 };
+
+export function categoryLabel(slug: string, name?: string | null) {
+  if (name) return name;
+  const known = categoryLabels[slug];
+  if (known) return known;
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 /** Slider ceiling only. An unset price filter does not apply this limit. */
 export const PRICE_FILTER_MIN = 0;

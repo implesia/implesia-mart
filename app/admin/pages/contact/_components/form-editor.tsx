@@ -185,7 +185,7 @@ function FormPreview({ form }: { form: ContactForm }) {
             <p className="text-sm font-medium text-neutral-700">
               {form.fields[key].label.trim() || FIELD_NAMES[key]}
             </p>
-            <p className="mt-1.5 rounded-xl bg-admin-canvas px-3.5 py-3 text-sm text-neutral-400">
+            <p className="mt-1.5 rounded-xl bg-admin-canvas px-3.5 py-3 text-sm text-neutral-500">
               {form.fields[key].placeholder.trim() || "Placeholder"}
             </p>
           </div>

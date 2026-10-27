@@ -154,14 +154,14 @@ export default function AdminCartPage() {
             <label className="relative block">
               <MaterialIcon
                 name="search"
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-400"
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500"
               />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search by name, email, or product"
                 aria-label="Search carts"
-                className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-3 pl-10 text-sm outline-none placeholder:text-neutral-400 focus:border-primary focus:ring-3 focus:ring-primary/25"
+                className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-3 pl-10 text-sm outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-3 focus:ring-primary/25"
               />
             </label>
           </div>
@@ -361,14 +361,14 @@ function AddPanel({ onAdded }: { onAdded: () => void }) {
         <label className="relative mt-3 block">
           <MaterialIcon
             name="search"
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-400"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500"
           />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search live products"
             aria-label="Search live products"
-            className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-3 pl-10 text-sm outline-none placeholder:text-neutral-400 focus:border-primary focus:ring-3 focus:ring-primary/25"
+            className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-3 pl-10 text-sm outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-3 focus:ring-primary/25"
           />
         </label>
       </div>
@@ -480,7 +480,7 @@ function Thumb({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-400">
+      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-500">
         <MaterialIcon name="image" className="text-[20px]" />
       </span>
     );

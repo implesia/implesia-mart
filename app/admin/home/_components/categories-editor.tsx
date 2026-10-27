@@ -8,21 +8,23 @@ import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
   blankCategoryDraft,
   categoryImage,
-  createCategoryTile,
-  deleteCategoryTile,
+  createCategory,
+  deleteCategory,
   getCategorySection,
-  reorderCategoryTiles,
+  reorderCategories,
+  updateCategory,
   updateCategoryHeading,
-  updateCategoryTile,
   type CategoryDraft,
   type CategorySection,
   type CategoryTile,
 } from "@/lib/mart-api/categories";
 import {
   buildCategoryTree,
+  dropOrder,
+  filterCategoryRows,
   flattenCategoryTree,
-  moveAmongSiblings,
   selfAndDescendantIds,
+  siblingOrder,
 } from "@/lib/mart-api/category-tree";
 import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
@@ -63,6 +65,10 @@ export function CategoryTiles() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [resolved, setResolved] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "hidden">("all");
+  const [pendingParent, setPendingParent] = useState<string | null>(null);
+  const [reassignTo, setReassignTo] = useState("");
   const focusId = useRef<string | null>(null);
   const labelId = useId();
   const tiles = useMemo(() => section?.tiles ?? [], [section]);
@@ -96,7 +102,7 @@ export function CategoryTiles() {
       setDraft(null);
       setBaseline(null);
     } else if (selected === "new") {
-      const next = blankCategoryDraft();
+      const next = blankCategoryDraft(pendingParent);
       setDraft(next);
       setBaseline(next);
     } else {
@@ -118,8 +124,8 @@ export function CategoryTiles() {
     const next = new URLSearchParams(window.location.search);
     if (id) next.set("edit", id);
     else next.delete("edit");
-    const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    const search = next.toString();
+    router.replace(search ? `${pathname}?${search}` : pathname, { scroll: false });
   }
 
   function flash(message: string) {
@@ -130,31 +136,45 @@ export function CategoryTiles() {
     }, 1600);
   }
 
+  async function refresh() {
+    try {
+      setSection(await getCategorySection());
+    } catch (error) {
+      setLoadError(error instanceof MartApiError ? error.message : "Could not load categories.");
+    }
+  }
+
+  function addUnder(parentId: string | null) {
+    setPendingParent(parentId);
+    setOpenKey(null);
+    setEdit("new");
+  }
+
   async function saveHeading(heading: string) {
     if (!section) return;
-    setSection(await updateCategoryHeading(heading));
+    setSection({ ...section, heading: await updateCategoryHeading(heading) });
   }
 
   async function save() {
     if (!draft || saving || uploading || !section) return;
     const label = draft.label.trim();
     if (!label) {
-      setLabelError("Label is required.");
+      setLabelError("Name is required.");
       return;
     }
     setSaving(true);
     setFormError("");
-    const nextDraft = { ...draft, label, href: draft.href.trim() };
+    const nextDraft = { ...draft, label, slug: draft.slug.trim().toLowerCase() };
     try {
       if (creating) {
-        const created = await createCategoryTile(nextDraft);
+        const created = await createCategory(nextDraft);
         setSection({ ...section, tiles: [...section.tiles, created] });
         setSavedId(created.id);
         focusId.current = created.id;
       } else if (selected) {
         const previousParentId =
           section.tiles.find((entry) => entry.id === selected)?.parentId ?? null;
-        const updated = await updateCategoryTile(selected, nextDraft, previousParentId);
+        const updated = await updateCategory(selected, nextDraft, previousParentId);
         setSection({
           ...section,
           tiles: section.tiles.map((entry) => (entry.id === selected ? updated : entry)),
@@ -165,6 +185,7 @@ export function CategoryTiles() {
       setSaving(false);
       flash("Saved");
       setEdit(null);
+      void refresh();
     } catch (error) {
       setSaving(false);
       setFormError(error instanceof MartApiError ? error.message : "Could not save the category.");
@@ -173,24 +194,28 @@ export function CategoryTiles() {
 
   async function remove(id: string) {
     if (!section) return;
+    setLoadError("");
     try {
-      await deleteCategoryTile(id);
-      setSection({ ...section, tiles: section.tiles.filter((tile) => tile.id !== id) });
+      await deleteCategory(id, reassignTo || null);
       if (selected === id) setEdit(null);
       setConfirmId(null);
+      setReassignTo("");
       flash("Removed");
+      await refresh();
     } catch (error) {
       setLoadError(error instanceof MartApiError ? error.message : "Could not remove the category.");
     }
   }
 
-  async function move(id: string, direction: -1 | 1) {
-    if (!section) return;
+  async function applyOrder(next: { parentId: string | null; ids: string[] } | null) {
+    if (!next) return;
     setLoadError("");
-    const order = moveAmongSiblings(section.tiles, id, direction);
-    if (!order) return;
     try {
-      setSection(await reorderCategoryTiles(order));
+      setSection(
+        section
+          ? { ...section, tiles: await reorderCategories(next.parentId, next.ids) }
+          : section,
+      );
     } catch (error) {
       setLoadError(
         error instanceof MartApiError ? error.message : "Could not reorder the categories.",
@@ -198,43 +223,22 @@ export function CategoryTiles() {
     }
   }
 
+  async function move(id: string, direction: -1 | 1) {
+    if (!section) return;
+    await applyOrder(siblingOrder(section.tiles, id, direction));
+  }
+
   async function dropOn(targetId: string) {
-    if (!dragId || dragId === targetId || !section) {
-      setDragId(null);
-      setOverId(null);
-      return;
-    }
-    const dragged = section.tiles.find((tile) => tile.id === dragId);
-    const target = section.tiles.find((tile) => tile.id === targetId);
+    const dragged = dragId;
     setDragId(null);
     setOverId(null);
-    setLoadError("");
-    if (!dragged || !target) return;
-    if ((dragged.parentId ?? null) !== (target.parentId ?? null)) {
+    if (!dragged || dragged === targetId || !section) return;
+    const next = dropOrder(section.tiles, dragged, targetId);
+    if (!next) {
       setLoadError("Drag within the same parent. Change the parent in Edit to move a category.");
       return;
     }
-    // Reorder the siblings, then send the whole tree depth-first.
-    const siblings = section.tiles.filter(
-      (tile) => (tile.parentId ?? null) === (dragged.parentId ?? null),
-    );
-    const from = siblings.findIndex((tile) => tile.id === dragged.id);
-    const to = siblings.findIndex((tile) => tile.id === target.id);
-    siblings.splice(to, 0, ...siblings.splice(from, 1));
-    const rank = new Map(siblings.map((tile, index) => [tile.id, index]));
-    const reordered = [...section.tiles].sort(
-      (a, b) => (rank.get(a.id) ?? -1) - (rank.get(b.id) ?? -1),
-    );
-    const order = flattenCategoryTree(buildCategoryTree(reordered, { includeHidden: true })).map(
-      (node) => node.item.id,
-    );
-    try {
-      setSection(await reorderCategoryTiles(order));
-    } catch (error) {
-      setLoadError(
-        error instanceof MartApiError ? error.message : "Could not reorder the categories.",
-      );
-    }
+    await applyOrder(next);
   }
 
   if (!section && !loadError) {
@@ -252,19 +256,24 @@ export function CategoryTiles() {
   const visibleTree = buildCategoryTree(tiles);
   const visible = visibleTree.map((node) => node.item);
   const childCount = new Map(visibleTree.map((node) => [node.item.id, node.children.length]));
+  const shownRows = filterCategoryRows(treeRows, query).filter(({ item }) =>
+    statusFilter === "all" ? true : statusFilter === "hidden" ? !item.visible : item.visible,
+  );
+  const filtering = query.trim() !== "" || statusFilter !== "all";
   const parentOptions = treeRows.filter(
     (row) => !(selected && selected !== "new" && selfAndDescendantIds(tiles, selected).has(row.item.id)),
   );
+  const maxDepth = 6;
   const labelOf = new Map(tiles.map((tile) => [tile.id, tile.label || "Untitled category"]));
 
   return (
     <div className="min-w-0 space-y-4">
       <HomeCmsHeader
         title="Categories"
-        description="Manage the category tiles displayed on your storefront."
+        description="Organise the catalog: categories, subcategories and what customers see in the storefront menu."
         sectionId="categories"
         extra={
-          <button type="button" onClick={() => setEdit("new")} className={adminButtonClass.primary}>
+          <button type="button" onClick={() => addUnder(null)} className={adminButtonClass.primary}>
             <MaterialIcon name="add" className="text-[18px]" />
             Add category
           </button>
@@ -318,7 +327,7 @@ export function CategoryTiles() {
                   Add a category tile so customers can open a collection from the home page.
                 </p>
                 {tiles.length === 0 ? (
-                  <button type="button" onClick={() => setEdit("new")} className={cn(adminButtonClass.primary, "mt-4")}>
+                  <button type="button" onClick={() => addUnder(null)} className={cn(adminButtonClass.primary, "mt-4")}>
                     <MaterialIcon name="add" className="text-[18px]" />
                     Add category
                   </button>
@@ -370,10 +379,36 @@ export function CategoryTiles() {
           <div className="border-b border-neutral-100 px-4 py-3 sm:px-5">
             <h2 id="category-list-heading" className="text-sm font-semibold text-neutral-950">
               {tiles.length === 1 ? "1 category" : `${tiles.length} categories`}
+              {filtering ? ` · ${shownRows.length} shown` : ""}
             </h2>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search by name or slug"
+                aria-label="Search categories"
+                className={cn(adminFieldClass, "max-w-xs")}
+              />
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+                aria-label="Filter by visibility"
+                className={cn(adminFieldClass, "w-auto")}
+              >
+                <option value="all">All</option>
+                <option value="active">Visible on the storefront</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </div>
           </div>
+          {shownRows.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-neutral-500">
+              No categories match this search.
+            </p>
+          ) : null}
           <ol>
-            {treeRows.map(({ item: tile, depth }, index) => {
+            {shownRows.map(({ item: tile, depth }) => {
               const siblings = tiles.filter(
                 (entry) => (entry.parentId ?? null) === (tile.parentId ?? null),
               );
@@ -415,7 +450,7 @@ export function CategoryTiles() {
                         setDragId(null);
                         setOverId(null);
                       }}
-                      className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
                       <MaterialIcon name="drag_indicator" className="text-[18px]" />
                     </button>
@@ -425,12 +460,12 @@ export function CategoryTiles() {
                       onClick={() => setEdit(tile.id)}
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">{index + 1}</span>
+                      <span className="w-5 shrink-0 text-right text-xs text-neutral-500 tabular-nums">{siblingIndex + 1}</span>
                       <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                         {tile.imageSrc ? (
                           <Image src={categoryImage(tile.imageSrc)} alt="" fill sizes="48px" className="object-cover" />
                         ) : (
-                          <span className="grid size-full place-items-center text-neutral-400">
+                          <span className="grid size-full place-items-center text-neutral-500">
                             <MaterialIcon name="image" className="text-[18px]" />
                           </span>
                         )}
@@ -439,29 +474,78 @@ export function CategoryTiles() {
                         <span className="flex min-w-0 items-center gap-2">
                           <span className="truncate text-sm font-semibold text-neutral-950">{tile.label || "Untitled category"}</span>
                           <VisibilityBadge active={isContentActive(tile)} />
+                          {isContentActive(tile) && !tile.visible ? (
+                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                              Hidden by parent
+                            </span>
+                          ) : null}
                         </span>
                         <span className="block truncate text-xs text-neutral-500">
-                          {depth > 0 && tile.parentId ? `in ${labelOf.get(tile.parentId)} · ` : ""}
-                          {tile.href || "/products"}
+                          {depth > 0 && tile.parentId ? `in ${labelOf.get(tile.parentId)} · ` : ""}/{tile.slug} ·{" "}
+                          {tile.subtreeProductCount === 1 ? "1 product" : `${tile.subtreeProductCount} products`}
+                          {tile.productCount !== tile.subtreeProductCount ? ` (${tile.productCount} direct)` : ""}
                         </span>
                       </span>
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 pl-11 sm:pl-0">
+                    <button
+                      type="button"
+                      onClick={() => addUnder(tile.id)}
+                      aria-label={`Add subcategory under ${tile.label}`}
+                      disabled={tile.depth >= maxDepth}
+                      className={adminButtonClass.quiet}
+                    >
+                      Add subcategory
+                    </button>
                     <IconButton label="Move earlier" icon="arrow_upward" disabled={siblingIndex <= 0} onClick={() => void move(tile.id, -1)} />
                     <IconButton label="Move later" icon="arrow_downward" disabled={siblingIndex === siblings.length - 1} onClick={() => void move(tile.id, 1)} />
                     <button type="button" onClick={() => setEdit(tile.id)} className={adminButtonClass.quiet}>
                       Edit
                     </button>
                     {confirmId === tile.id ? (
-                      <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                        {tiles.some((entry) => entry.parentId === tile.id)
-                          ? "Remove? Its subcategories move up one level."
-                          : "Remove from the home page?"}
-                        <button type="button" onClick={() => void remove(tile.id)} className="font-semibold underline">
+                      <span className="flex flex-wrap items-center gap-1 rounded-2xl bg-red-50 px-2 py-1 text-xs text-red-700">
+                        {tile.childCount > 0 || tile.productCount > 0 ? (
+                          <>
+                            <label htmlFor={`reassign-${tile.id}`}>
+                              This category has {tile.childCount} subcategor{tile.childCount === 1 ? "y" : "ies"} and{" "}
+                              {tile.productCount} product{tile.productCount === 1 ? "" : "s"}. Move them to:
+                            </label>
+                            <select
+                              id={`reassign-${tile.id}`}
+                              value={reassignTo}
+                              onChange={(event) => setReassignTo(event.target.value)}
+                              className="max-w-48 rounded-md border border-red-200 bg-white px-1 py-1"
+                            >
+                              <option value="">Choose a category</option>
+                              {treeRows
+                                .filter((row) => !selfAndDescendantIds(tiles, tile.id).has(row.item.id))
+                                .map(({ item, depth: rowDepth }) => (
+                                  <option key={item.id} value={item.id}>
+                                    {`${"\u00a0\u00a0".repeat(rowDepth)}${item.label}`}
+                                  </option>
+                                ))}
+                            </select>
+                          </>
+                        ) : (
+                          "Remove this category?"
+                        )}
+                        <button
+                          type="button"
+                          disabled={(tile.childCount > 0 || tile.productCount > 0) && !reassignTo}
+                          onClick={() => void remove(tile.id)}
+                          className="font-semibold underline disabled:opacity-40"
+                        >
                           Yes
                         </button>
-                        <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmId(null);
+                            setReassignTo("");
+                          }}
+                          className="font-semibold"
+                        >
                           No
                         </button>
                       </span>
@@ -486,7 +570,7 @@ export function CategoryTiles() {
                   {creating ? "Add category" : "Edit category"}
                 </h2>
                 <p className="mt-1 text-sm text-neutral-500">
-                  {creating ? "Create a category tile for the home page." : "Update this category tile."}
+                  {creating ? "Create a category or subcategory." : "Update this category."}
                 </p>
               </div>
               <button
@@ -519,7 +603,7 @@ export function CategoryTiles() {
               />
               <div>
                 <FieldLabel htmlFor={labelId}>
-                  Label <span className="text-red-700">*</span>
+                  Name <span className="text-red-700">*</span>
                 </FieldLabel>
                 <input
                   id={labelId}
@@ -550,7 +634,7 @@ export function CategoryTiles() {
                 >
                   <option value="">None (top level)</option>
                   {parentOptions.map(({ item, depth }) => (
-                    <option key={item.id} value={item.id}>
+                    <option key={item.id} value={item.id} disabled={item.depth >= maxDepth}>
                       {`${"\u00a0\u00a0".repeat(depth)}${depth > 0 ? "└ " : ""}${item.label || "Untitled category"}${isContentActive(item) ? "" : " (hidden)"}`}
                     </option>
                   ))}
@@ -561,17 +645,49 @@ export function CategoryTiles() {
                 </p>
               </div>
               <div>
-                <FieldLabel htmlFor={`${labelId}-href`}>Link</FieldLabel>
+                <FieldLabel htmlFor={`${labelId}-slug`}>Slug</FieldLabel>
                 <input
-                  id={`${labelId}-href`}
-                  value={draft.href}
-                  onChange={(event) => setDraft({ ...draft, href: event.target.value })}
-                  placeholder="/products"
+                  id={`${labelId}-slug`}
+                  value={draft.slug}
+                  onChange={(event) => setDraft({ ...draft, slug: event.target.value })}
+                  placeholder="generated from the name"
                   className={adminFieldClass}
                 />
                 <p className="mt-1.5 text-xs text-neutral-500">
-                  Where this category goes when a customer taps it. Blank uses the products page.
+                  Used in the address /products?category=slug. Lowercase letters, numbers and hyphens;
+                  must be unique. Leave blank to generate it.
                 </p>
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${labelId}-description`}>Description</FieldLabel>
+                <textarea
+                  id={`${labelId}-description`}
+                  value={draft.description}
+                  rows={3}
+                  onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                  className={adminFieldClass}
+                />
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${labelId}-meta-title`}>SEO title</FieldLabel>
+                <input
+                  id={`${labelId}-meta-title`}
+                  value={draft.metaTitle}
+                  maxLength={160}
+                  onChange={(event) => setDraft({ ...draft, metaTitle: event.target.value })}
+                  className={adminFieldClass}
+                />
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${labelId}-meta-description`}>SEO description</FieldLabel>
+                <textarea
+                  id={`${labelId}-meta-description`}
+                  value={draft.metaDescription}
+                  maxLength={320}
+                  rows={2}
+                  onChange={(event) => setDraft({ ...draft, metaDescription: event.target.value })}
+                  className={adminFieldClass}
+                />
               </div>
             </div>
             <div className="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-100 px-5 py-3">
@@ -599,9 +715,12 @@ function draftFrom(tile: CategoryTile): CategoryDraft {
   return {
     parentId: tile.parentId ?? null,
     label: tile.label,
+    slug: tile.slug,
+    description: tile.description,
     imageSrc: tile.imageSrc,
-    href: tile.href,
     isActive: tile.isActive,
+    metaTitle: tile.metaTitle,
+    metaDescription: tile.metaDescription,
   };
 }
 

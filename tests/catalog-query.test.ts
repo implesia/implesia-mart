@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  CATALOG_SEARCH_MAX_CHARS,
   catalogHref,
   interpretPublicCatalog,
   isUnfilteredCatalog,
-  matchesCatalogText,
-  paginateMatches,
   readCatalogSearch,
   toApiSearchParams,
+  toBrowserSearchParams,
 } from "../lib/mart-api/catalog-query.ts";
 
 const published = {
@@ -87,7 +87,7 @@ test("a malformed catalog body is not a product list", () => {
 
 test("invalid query params fall back safely", () => {
   const search = readCatalogSearch({
-    category: "unknown",
+    category: "Not A Slug!",
     sort: "<script>",
     view: "nope",
     page: "0",
@@ -105,6 +105,13 @@ test("invalid query params fall back safely", () => {
   assert.equal(search.maxPrice, 1000);
   assert.equal(search.q, "lamp");
   assert.equal(isUnfilteredCatalog(search), false);
+});
+
+test("any well-formed category slug is kept, so new categories need no code change", () => {
+  assert.equal(readCatalogSearch({ category: "bed-heaters" }).category, "bed-heaters");
+  assert.equal(readCatalogSearch({ category: "gadgets" }).category, "gadgets");
+  assert.equal(readCatalogSearch({ category: "a/b" }).category, undefined);
+  assert.equal(readCatalogSearch({ category: "" }).category, undefined);
 });
 
 test("the default catalog query is shareable without extra params", () => {
@@ -142,16 +149,13 @@ test("clearing every stock filter is explicit and matches nothing by itself", ()
   assert.equal(catalogHref(search).includes("status=none"), true);
 });
 
-test("text match and pagination stay inside the loaded rows", () => {
-  const rows = [
-    { title: "Night upload check", subtitle: "one" },
-    { title: "Chiquita Mckay", subtitle: "two" },
-    { title: "ল্যাম্প", subtitle: "three" },
-  ];
-  assert.equal(matchesCatalogText(rows[0], "night"), true);
-  assert.equal(matchesCatalogText(rows[2], "night"), false);
-  const page = paginateMatches(rows, 2, 2);
-  assert.equal(page.pages, 2);
-  assert.equal(page.items.length, 1);
-  assert.equal(page.items[0]?.title, "ল্যাম্প");
+test("the typed query is cleaned and sent to the API, not matched in the browser", () => {
+  const search = readCatalogSearch({ q: "  লাল \n  শার্ট\u0000 " + "x".repeat(200) });
+  assert.equal(search.q.startsWith("লাল শার্ট x"), true);
+  assert.equal(search.q.length, CATALOG_SEARCH_MAX_CHARS);
+  const params = toApiSearchParams(search, { page: 2, pageSize: 12 });
+  assert.equal(params.get("q"), search.q);
+  assert.equal(params.get("page"), "2");
+  assert.equal(toApiSearchParams(readCatalogSearch({}), { page: 1, pageSize: 12 }).has("q"), false);
+  assert.equal(toBrowserSearchParams(search).get("q"), search.q);
 });

@@ -12,6 +12,10 @@ import {
   listPublicContactDetails,
   type ContactDetails,
 } from "@/lib/mart-api/contact-details";
+import { listPublicCategoryTree } from "@/lib/mart-api/categories";
+import { listPublicFooter } from "@/lib/mart-api/footer";
+import { listPublicHeaderItems } from "@/lib/mart-api/header";
+import { DEFAULT_FOOTER } from "@/lib/footer-view";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 const websiteJsonLd = {
@@ -58,18 +62,25 @@ function organizationJsonLd(details: ContactDetails) {
 }
 
 async function ContactHeader() {
-  const details = await listPublicContactDetails();
+  const [details, tree, navItems] = await Promise.all([
+    listPublicContactDetails(),
+    listPublicCategoryTree(),
+    listPublicHeaderItems(),
+  ]);
+  const categories = (tree ?? [])
+    .filter((item) => item.parentId === null)
+    .map((item) => ({ slug: item.slug, label: item.label }));
   return (
     <>
       <JsonLd data={organizationJsonLd(details)} />
-      <Header details={details} />
+      <Header details={details} categories={categories} navItems={navItems} />
     </>
   );
 }
 
 async function ContactFooter() {
-  const details = await listPublicContactDetails();
-  return <Footer details={details} />;
+  const [details, config] = await Promise.all([listPublicContactDetails(), listPublicFooter()]);
+  return <Footer details={details} config={config} />;
 }
 
 async function ContactFloating() {
@@ -92,7 +103,7 @@ export default function ClientLayout({
           </Suspense>
         }
         footer={
-          <Suspense fallback={<Footer details={FALLBACK_CONTACT_DETAILS} />}>
+          <Suspense fallback={<Footer details={FALLBACK_CONTACT_DETAILS} config={DEFAULT_FOOTER} />}>
             <ContactFooter />
           </Suspense>
         }

@@ -463,7 +463,7 @@ function ShowcaseRowBlock({
                           setDragId(null);
                           setOverId(null);
                         }}
-                        className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        className="grid size-9 shrink-0 cursor-grab place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
                         <MaterialIcon name="drag_indicator" className="text-[18px]" />
                       </button>
@@ -473,14 +473,14 @@ function ShowcaseRowBlock({
                         onClick={() => onEdit(item.id)}
                         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
-                        <span className="w-5 shrink-0 text-right text-xs text-neutral-400 tabular-nums">
+                        <span className="w-5 shrink-0 text-right text-xs text-neutral-500 tabular-nums">
                           {index + 1}
                         </span>
                         <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                           {product?.imageSrc ? (
                             <Image src={featuredImage(product.imageSrc)} alt="" fill sizes="48px" className="object-cover" />
                           ) : (
-                            <span className="grid size-full place-items-center text-neutral-400">
+                            <span className="grid size-full place-items-center text-neutral-500">
                               <MaterialIcon name="image" className="text-[18px]" />
                             </span>
                           )}
@@ -578,7 +578,7 @@ function ShowcaseProductForm({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
+        <p className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
           {creating ? "Add product" : "Edit product"}
         </p>
         <h3 className="mt-1 text-base font-semibold text-neutral-950">

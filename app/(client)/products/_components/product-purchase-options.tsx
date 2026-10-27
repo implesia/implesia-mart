@@ -7,10 +7,13 @@ export function ProductPurchaseOptions({
   groups,
   choices,
   onChoose,
+  isOffered,
 }: {
   groups: ProductOptionGroup[];
   choices: Record<string, string>;
   onChoose: (groupId: string, valueId: string) => void;
+  /** When set, a value that no buyable variant uses is shown disabled. */
+  isOffered?: (groupId: string, valueId: string) => boolean;
 }) {
   if (groups.length === 0) return null;
 
@@ -33,19 +36,22 @@ export function ProductPurchaseOptions({
             <div className="flex flex-wrap gap-2">
               {group.values.map((value) => {
                 const pressed = selected?.id === value.id;
+                const offered = isOffered ? isOffered(group.id, value.id) : true;
                 if (group.kind === "color") {
                   return (
                     <button
                       key={value.id}
                       type="button"
                       aria-pressed={pressed}
-                      aria-label={value.label}
+                      aria-label={offered ? value.label : `${value.label} (নেই)`}
+                      disabled={!offered}
                       onClick={() => onChoose(group.id, value.id)}
                       className={cn(
                         "grid size-11 place-items-center rounded-full ring-2 ring-offset-2 transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56]",
                         pressed
                           ? "ring-primary"
                           : "ring-transparent hover:ring-neutral-300",
+                        !offered && "opacity-40",
                       )}
                     >
                       <span
@@ -60,9 +66,11 @@ export function ProductPurchaseOptions({
                     key={value.id}
                     type="button"
                     aria-pressed={pressed}
+                    disabled={!offered}
                     onClick={() => onChoose(group.id, value.id)}
                     className={cn(
                       "h-11 min-w-11 rounded-full px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5e56]",
+                      !offered && "text-on-surface-variant line-through opacity-50",
                       pressed
                         ? "bg-neutral-950 text-white"
                         : "bg-surface-container text-on-surface hover:bg-neutral-200",

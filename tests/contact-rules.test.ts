@@ -43,16 +43,16 @@ test("every field is optional, but phone or message is needed and filled fields 
 test("WhatsApp hand-off keeps the CMS number and encodes the composed message", () => {
   const text = composeWhatsAppMessage({ name: "রহিম", phone: "০১৭১২৩৪৫৬৭৮", subject: "ডেলিভারি", message: "কবে পাব?" });
   assert.match(text, /ফোন: 01712345678/);
-  const href = whatsAppChatHref("https://wa.me/8801516527932?text=hi", text);
-  assert.ok(href.startsWith("https://wa.me/8801516527932?text="));
+  const href = whatsAppChatHref("https://wa.me/8801580569129?text=hi", text);
+  assert.ok(href.startsWith("https://wa.me/8801580569129?text="));
   assert.equal(decodeURIComponent(href.split("text=")[1]), text);
   assert.equal(whatsAppChatHref("tel:+880", text), "");
 });
 
 test("copy values come from mailto, tel and wa.me links only", () => {
   assert.equal(copyValueFor("mailto:a@b.com", "a@b.com"), "a@b.com");
-  assert.equal(copyValueFor("tel:+8801516527932", "+880 1516-527932"), "+8801516527932");
-  assert.equal(copyValueFor("https://wa.me/8801516527932?text=x", "x"), "+8801516527932");
+  assert.equal(copyValueFor("tel:+8801580569129", "01580569129"), "+8801580569129");
+  assert.equal(copyValueFor("https://wa.me/8801580569129?text=x", "x"), "+8801580569129");
   assert.equal(copyValueFor("/shipping-returns", "সারাদেশে ৬৪ জেলা"), null);
 });
 
