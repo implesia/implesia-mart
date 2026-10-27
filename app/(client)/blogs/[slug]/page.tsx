@@ -27,7 +27,7 @@ export async function generateMetadata({
   const post = await getPublicBlogPost(slug);
   if (!post) {
     if (await isMissingBlogPost(slug)) notFound();
-    return { title: "ব্লগ" };
+    return { title: "Blog" };
   }
 
   const seo = articleSeo(post);

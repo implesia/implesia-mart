@@ -158,7 +158,7 @@ export function BlogsGrid({
           className="relative mb-4 sm:mb-5 sm:max-w-md"
         >
           <label htmlFor={searchId} className="sr-only">
-            ব্লগে খুঁজুন
+            Search articles
           </label>
           <MaterialIcon
             name="search"
@@ -169,7 +169,7 @@ export function BlogsGrid({
             type="search"
             value={query}
             maxLength={80}
-            placeholder="ব্লগে খুঁজুন…"
+            placeholder="Search articles…"
             onChange={(event) => {
               setQuery(event.target.value);
               setShown(BLOG_PAGE_SIZE);
@@ -186,15 +186,15 @@ export function BlogsGrid({
           className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-14 text-center"
         >
           <p className="text-sm font-semibold text-neutral-950">
-            এই মুহূর্তে আর্টিকেল লোড করা যাচ্ছে না
+            Articles could not be loaded right now
           </p>
-          <p className="mt-1 text-sm text-neutral-600">কিছুক্ষণ পরে পেজটি রিফ্রেশ করে আবার চেষ্টা করুন।</p>
+          <p className="mt-1 text-sm text-neutral-600">Please refresh the page in a moment and try again.</p>
           <button
             type="button"
             onClick={() => router.refresh()}
             className="mt-4 inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-on-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            আবার চেষ্টা করুন
+            Try again
           </button>
         </div>
       ) : visible.length === 0 ? (
@@ -204,11 +204,11 @@ export function BlogsGrid({
           className="rounded-2xl border border-neutral-200/90 bg-white px-4 py-16 text-center"
         >
           {filtering ? (
-            <p className="text-sm text-neutral-600">কোনো আর্টিকেল মেলেনি। অন্য শব্দে খুঁজে দেখুন।</p>
+            <p className="text-sm text-neutral-600">No articles found. Try different words.</p>
           ) : listing?.emptyMessage.trim() ? (
             <p className="text-sm text-neutral-600">{listing.emptyMessage}</p>
           ) : (
-            <p className="text-sm text-neutral-600">এখনো কোনো আর্টিকেল প্রকাশিত হয়নি।</p>
+            <p className="text-sm text-neutral-600">No articles have been published yet.</p>
           )}
         </div>
       ) : (
@@ -232,7 +232,7 @@ export function BlogsGrid({
                 onClick={() => setShown((count) => nextVisibleCount(count, rest.length))}
                 className="inline-flex h-11 items-center rounded-full border border-neutral-300 bg-white px-6 text-sm font-semibold text-neutral-950 transition-colors hover:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
               >
-                আরও দেখুন ({hiddenCount.toLocaleString("bn-BD")})
+                Show more ({hiddenCount.toLocaleString("en-US")})
               </button>
             </div>
           ) : null}

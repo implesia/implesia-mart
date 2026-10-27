@@ -41,9 +41,9 @@ export function BlogArticle({
     return (
       <main className="force-light w-full bg-[#f5f6f8] text-neutral-950">
         <Container className="px-4 py-16 text-center sm:px-6">
-          <h1 className="text-xl font-semibold">এই আর্টিকেলটি পাওয়া যায়নি</h1>
+          <h1 className="text-xl font-semibold">This article could not be found</h1>
           <Link href="/blogs" className="mt-4 inline-flex text-sm font-semibold text-primary">
-            সব ব্লগ
+            All articles
           </Link>
         </Container>
       </main>
@@ -83,8 +83,8 @@ export function BlogArticle({
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
-      { "@type": "ListItem", position: 2, name: "ব্লগ", item: absoluteUrl("/blogs") },
+      { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blogs") },
       { "@type": "ListItem", position: 3, name: post.title, item: postUrl },
     ],
   };
@@ -99,8 +99,8 @@ export function BlogArticle({
           <div className="mx-auto max-w-5xl">
             <ProductBreadcrumbs
               items={[
-                { label: "হোম", href: "/" },
-                { label: "ব্লগ", href: "/blogs" },
+                { label: "Home", href: "/" },
+                { label: "Blog", href: "/blogs" },
                 { label: post.title },
               ]}
             />
@@ -179,7 +179,7 @@ export function BlogArticle({
                     {related?.tocTitle}
                   </p>
                 </div>
-                <nav className="flex flex-col gap-0.5 p-2.5" aria-label="আর্টিকেল বিষয়বস্তু">
+                <nav className="flex flex-col gap-0.5 p-2.5" aria-label="Article contents">
                   {headings.map((item, index) => (
                     <a
                       key={item.id}

@@ -22,7 +22,7 @@ export default function BlogsLoading() {
     >
       <Container className="w-full px-4 py-8 sm:px-6 lg:px-8">
         <span className="sr-only" role="status">
-          লোড হচ্ছে…
+          Loading…
         </span>
         <div className="mb-6 h-8 w-48 animate-pulse rounded bg-[#e9ebef]" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">

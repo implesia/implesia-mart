@@ -44,7 +44,35 @@ test("the card has no Option label and uses white text on the dark token", () =>
     new URL("../app/(client)/products/_components/product-card.tsx", import.meta.url),
     "utf8",
   );
-  assert.ok(!src.includes("অপশন বেছে নিন"), "no 'Choose option' label");
-  assert.ok(!src.includes(">অপশন<"), "no 'Option' label");
+  assert.ok(!src.includes("Choose option"), "no 'Choose option' label");
+  assert.ok(!src.includes(">Option<"), "no 'Option' label");
   assert.ok(src.includes("text-white") && src.includes("bg-primary-ink"));
+});
+
+test("the card CTA labels are English", () => {
+  const src = readFileSync(
+    new URL("../app/(client)/products/_components/product-card.tsx", import.meta.url),
+    "utf8",
+  );
+  for (const label of ["Add to Cart", "Out of stock", "Coming soon", "View details"]) {
+    assert.ok(src.includes(label), `missing label: ${label}`);
+  }
+});
+
+test("blog pages and the product card carry no Bengali UI labels (the taka sign is a currency)", () => {
+  const files = [
+    "../app/(client)/products/_components/product-card.tsx",
+    "../app/(client)/blogs/(list)/page.tsx",
+    "../app/(client)/blogs/(list)/loading.tsx",
+    "../app/(client)/blogs/[slug]/page.tsx",
+    "../app/(client)/blogs/_components/blog-article.tsx",
+    "../app/(client)/blogs/_components/blog-card.tsx",
+    "../app/(client)/blogs/_components/blog-related.tsx",
+    "../app/(client)/blogs/_components/blogs-grid.tsx",
+    "../app/(client)/blogs/_components/blogs-hero.tsx",
+  ];
+  for (const file of files) {
+    const src = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.equal(/[\u0980-\u09F2\u09F4-\u09FF]/.test(src), false, `${file} has Bengali text`);
+  }
 });

@@ -16,9 +16,9 @@ import { BlogsHero } from "../_components/blogs-hero";
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-const TITLE = "ব্লগ";
+const TITLE = "Blog";
 const DESCRIPTION =
-  "ইমপ্লেসিয়া মার্ট ব্লগ — গ্যাজেট গাইড ও গর্জিয়াস ড্রেস টিপস, বাংলায়।";
+  "Implesia Mart blog: gadget guides and dress tips.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -31,11 +31,11 @@ const breadcrumbJsonLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
+    { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
     {
       "@type": "ListItem",
       position: 2,
-      name: "ব্লগ",
+      name: "Blog",
       item: absoluteUrl("/blogs"),
     },
   ],
@@ -56,8 +56,8 @@ export default async function BlogsPage() {
         <div className="w-full pt-3 sm:pt-4 lg:pt-5">
           <ProductBreadcrumbs
             items={[
-              { label: "হোম", href: "/" },
-              { label: "ব্লগ" },
+              { label: "Home", href: "/" },
+              { label: "Blog" },
             ]}
           />
         </div>
