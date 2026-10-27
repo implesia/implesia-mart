@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { cardAction } from "@/lib/mart-api/card-action";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -27,6 +28,14 @@ function formatPrice(value: number) {
   return `৳${value.toLocaleString("en-US")}`;
 }
 
+/**
+ * Add to Cart: white text on the dark teal `primary-ink` (#0b5e56, about 7.6:1). White on the
+ * brand teal (#2bc0b5) is only about 2.2:1 and fails WCAG AA, so only this button's background
+ * uses the darker token. Hover/active go one step darker; the focus ring is always visible.
+ */
+const CART_BUTTON =
+  "h-11 w-full gap-0 rounded-lg bg-primary-ink text-sm font-semibold text-white shadow-sm sm:rounded-xl hover:bg-on-primary-fixed-variant active:bg-on-primary-fixed-variant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink motion-reduce:transition-none transition-colors duration-200";
+
 const BADGE_LABEL: Record<ProductBadge, string> = {
   New: "নতুন",
   "Best Seller": "বেস্ট সেলার",
@@ -43,6 +52,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const isComingSoon = product.status === "coming-soon";
   const isSoldOut = product.status === "sold-out";
   const isFashion = product.categoryId === "fashion";
+  const action = cardAction(product);
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -204,30 +214,25 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             ) : null}
           </div>
 
-          {isComingSoon || (product.hasVariants && !isSoldOut) ? (
+          {action === "coming-soon" ? (
             <Link
               href={productPath(product)}
               className={cn(
                 "inline-flex h-11 w-full items-center justify-center gap-1 rounded-lg text-xs font-semibold sm:gap-1.5 sm:rounded-xl sm:text-sm",
-                "border border-outline-variant/40 text-primary",
+                "border border-outline-variant/40 text-primary-ink",
                 "transition-colors hover:border-primary/40 hover:bg-primary/5",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink",
                 "dark:border-white/12",
               )}
             >
-              <span className="sm:hidden">
-                {product.hasVariants && !isComingSoon ? "অপশন" : "বিস্তারিত"}
-              </span>
-              <span className="hidden sm:inline">
-                {product.hasVariants && !isComingSoon
-                  ? "অপশন বেছে নিন"
-                  : "বিস্তারিত দেখুন"}
-              </span>
+              <span className="sm:hidden">বিস্তারিত</span>
+              <span className="hidden sm:inline">বিস্তারিত দেখুন</span>
               <MaterialIcon
                 name="arrow_forward"
                 className="text-[14px] sm:text-[16px]"
               />
             </Link>
-          ) : isSoldOut ? (
+          ) : action === "sold-out" ? (
             <Button
               type="button"
               disabled
@@ -235,22 +240,38 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             >
               স্টক শেষ
             </Button>
+          ) : action === "choose-on-page" ? (
+            // Variant products: the shopper picks the option on the product page, so this is an
+            // Add to Cart control that routes there. There is no separate "Option" button.
+            <Link
+              href={productPath(product)}
+              data-card-action="add-to-cart"
+              aria-label={`${product.title} কার্টে যোগ করুন — অপশন বেছে নিতে প্রোডাক্ট পেজে যাবেন`}
+              className={cn(
+                "inline-flex items-center justify-center",
+                CART_BUTTON,
+              )}
+            >
+              <MaterialIcon
+                name="add_shopping_cart"
+                className="mr-1 text-[16px] sm:mr-1.5 sm:text-[18px]"
+              />
+              <span className="sm:hidden">কার্টে</span>
+              <span className="hidden sm:inline">কার্টে যোগ করুন</span>
+            </Link>
           ) : (
             <Button
               type="button"
               onClick={handleAddToCart}
               disabled={pending || !productId}
               aria-busy={pending}
+              data-card-action="add-to-cart"
               aria-label={
                 pending
                   ? `${product.title} যোগ হচ্ছে`
                   : `${product.title} কার্টে যোগ করুন`
               }
-              className={cn(
-                "h-11 w-full rounded-lg text-sm font-semibold shadow-sm sm:rounded-xl",
-                "motion-reduce:transition-none transition-transform duration-200 ease-out active:scale-[0.99]",
-                justAdded && "bg-primary/90",
-              )}
+              className={cn(CART_BUTTON, "active:scale-[0.99]")}
             >
               <MaterialIcon
                 name={justAdded ? "check_circle" : "add_shopping_cart"}
