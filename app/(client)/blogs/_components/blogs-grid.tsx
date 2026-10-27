@@ -212,14 +212,14 @@ export function BlogsGrid({
           )}
         </div>
       ) : (
-        <div className="space-y-4 sm:space-y-5">
+        <div className="space-y-8 sm:space-y-10">
           {featured ? (
             <BlogCard post={featured} categories={categoryItems} listing={listing} featured />
           ) : null}
           {shownRest.length > 0 ? (
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-6">
               {shownRest.map((post) => (
-                <li key={post.id} className="flex min-w-0 [&>a]:w-full">
+                <li key={post.id} className="flex min-w-0 [&>article]:w-full">
                   <BlogCard post={post} categories={categoryItems} listing={listing} />
                 </li>
               ))}

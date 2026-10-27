@@ -126,7 +126,7 @@ export function BlogRelatedPosts({
           </Link>
         ) : null}
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-6">
         {posts.map((post) => (
           <BlogCard key={post.id} post={post} categories={categories} listing={listing} />
         ))}

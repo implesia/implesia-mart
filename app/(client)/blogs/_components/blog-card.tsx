@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { BlogCategory } from "@/lib/mart-api/blog-categories";
 import type { BlogListing } from "@/lib/mart-api/blog-listing";
@@ -40,53 +41,33 @@ export function BlogCard({
   }
 
   return (
-    <Link
-      href={`/blogs/${post.slug}`}
-      className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-2xl",
-        "border border-neutral-200/90 bg-white",
-        "transition-colors hover:border-primary/40",
-        "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none",
-        className,
-      )}
-    >
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#f5f6f8]">
-        <BlogImage
-          src={post.coverImage}
-          alt={post.coverAlt}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
-        />
+    <article className={cn("group relative flex h-full flex-col", className)}>
+      <CoverBox sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" post={post} />
+
+      <div className="flex flex-1 flex-col pt-4">
         {category ? (
-          <span className="absolute top-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-neutral-800">
-            {category}
-          </span>
+          <p className="mb-1.5 text-xs font-semibold text-primary-ink">{category}</p>
         ) : null}
-      </div>
-
-      <div className="flex flex-1 flex-col px-4 py-4 sm:px-5">
-        <h3 className="mb-2 line-clamp-2 text-[15px] leading-snug font-semibold tracking-tight text-neutral-950 group-hover:text-primary sm:text-base">
-          {post.title}
+        <h3 className="line-clamp-2 text-base leading-snug font-semibold tracking-tight text-neutral-950 transition-colors group-hover:text-primary-ink">
+          <PostLink slug={post.slug}>{post.title}</PostLink>
         </h3>
-        <p className="line-clamp-2 text-sm leading-relaxed text-neutral-600">{post.excerpt}</p>
+        {post.excerpt.trim() ? (
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-neutral-600">
+            {post.excerpt}
+          </p>
+        ) : null}
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-neutral-200 pt-3.5">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-neutral-500 sm:text-xs">
-            {post.author.trim() ? (
-              <span className="max-w-[9rem] truncate font-medium text-neutral-700">{post.author}</span>
-            ) : null}
-            {post.publishedAt.trim() ? <span className="truncate">{post.publishedAt}</span> : null}
-            {post.readTime.trim() ? <span className="shrink-0">{post.readTime}</span> : null}
-          </div>
+        <div className="mt-auto flex items-center justify-between gap-3 pt-3">
+          <p className="min-w-0 text-xs leading-relaxed text-neutral-500">{metaLine(post)}</p>
           {readLabel ? (
-            <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary">
+            <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary-ink">
               {readLabel}
               <MaterialIcon name="arrow_forward" className="text-[16px]" />
             </span>
           ) : null}
         </div>
       </div>
-    </Link>
+    </article>
   );
 }
 
@@ -104,47 +85,39 @@ function FeaturedBlogCard({
   className?: string;
 }) {
   return (
-    <Link
-      href={`/blogs/${post.slug}`}
+    <article
       className={cn(
-        "group grid overflow-hidden rounded-2xl border border-neutral-200/90 bg-white lg:grid-cols-12",
-        "transition-colors hover:border-primary/40",
-        "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none",
+        "group relative grid gap-5 lg:grid-cols-12 lg:items-center lg:gap-8",
         className,
       )}
     >
-      <div className="relative aspect-[16/10] overflow-hidden bg-[#f5f6f8] lg:col-span-7 lg:aspect-auto lg:min-h-[260px]">
-        <BlogImage
-          src={post.coverImage}
-          alt={post.coverAlt}
-          priority
-          sizes="(max-width: 1024px) 100vw, 58vw"
-        />
+      <div className="lg:col-span-7">
+        <CoverBox sizes="(max-width: 1024px) 100vw, 58vw" post={post} priority />
       </div>
 
-      <div className="flex flex-col justify-center px-4 py-5 sm:px-6 sm:py-6 lg:col-span-5 lg:px-7">
-        <div className="mb-2.5 flex flex-wrap items-center gap-2">
+      <div className="lg:col-span-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           {featuredLabel ? (
             <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary-ink">
               {featuredLabel}
             </span>
           ) : null}
-          {category ? <span className="text-xs text-neutral-500">{category}</span> : null}
-          {post.readTime ? <span className="text-xs text-neutral-500">{post.readTime}</span> : null}
+          {category ? <span className="text-xs font-semibold text-primary-ink">{category}</span> : null}
         </div>
 
-        <h2 className="mb-2 text-xl leading-snug font-semibold tracking-tight text-neutral-950 group-hover:text-primary sm:text-2xl">
-          {post.title}
+        <h2 className="line-clamp-4 text-xl leading-snug font-semibold tracking-tight text-neutral-950 transition-colors group-hover:text-primary-ink sm:text-2xl">
+          <PostLink slug={post.slug}>{post.title}</PostLink>
         </h2>
-        <p className="mb-5 line-clamp-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
-          {post.excerpt}
-        </p>
+        {post.excerpt.trim() ? (
+          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
+            {post.excerpt}
+          </p>
+        ) : null}
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-neutral-200 pt-4">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-neutral-950">{post.author}</p>
-            <p className="text-xs text-neutral-500">{post.publishedAt}</p>
-          </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="min-w-0 text-xs leading-relaxed text-neutral-500 sm:text-sm">
+            {metaLine(post)}
+          </p>
           {readLabel ? (
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-on-primary">
               {readLabel}
@@ -153,6 +126,51 @@ function FeaturedBlogCard({
           ) : null}
         </div>
       </div>
+    </article>
+  );
+}
+
+/** Same 16:10 box for every card so the grid never shifts while images load. */
+function CoverBox({
+  post,
+  sizes,
+  priority = false,
+}: {
+  post: BlogPostRecord;
+  sizes: string;
+  priority?: boolean;
+}) {
+  return (
+    <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-[#eceef2]">
+      <BlogImage
+        src={post.coverImage}
+        alt={post.coverAlt}
+        priority={priority}
+        sizes={sizes}
+        className="transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+      />
+    </div>
+  );
+}
+
+/** The title is the one link; its ::after stretches over the whole card. */
+function PostLink({ slug, children }: { slug: string; children: ReactNode }) {
+  return (
+    <Link
+      href={`/blogs/${slug}`}
+      className={cn(
+        "after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none",
+        "focus-visible:after:ring-2 focus-visible:after:ring-primary focus-visible:after:ring-offset-2",
+      )}
+    >
+      {children}
     </Link>
   );
+}
+
+function metaLine(post: BlogPostRecord) {
+  return [post.author, post.publishedAt, post.readTime]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" · ");
 }

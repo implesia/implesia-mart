@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { canOptimize, coverSrc } from "@/lib/blog-view";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,13 @@ export function BlogImage({
 }) {
   const resolved = coverSrc(src);
   const [failedSrc, setFailedSrc] = useState("");
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // A server-rendered image can fail before React hydrates, and onError is never replayed.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth === 0) setFailedSrc(resolved);
+  }, [resolved]);
 
   if (!resolved || failedSrc === resolved) {
     return (
@@ -43,6 +50,7 @@ export function BlogImage({
 
   return (
     <Image
+      ref={imgRef}
       src={resolved}
       alt={alt}
       fill

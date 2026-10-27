@@ -96,65 +96,83 @@ export function BlogArticle({
 
       <section className="w-full bg-[#f5f6f8]">
         <Container className="w-full px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:px-8">
-          <ProductBreadcrumbs
-            items={[
-              { label: "হোম", href: "/" },
-              { label: "ব্লগ", href: "/blogs" },
-              { label: post.title },
-            ]}
-          />
+          <div className="mx-auto max-w-5xl">
+            <ProductBreadcrumbs
+              items={[
+                { label: "হোম", href: "/" },
+                { label: "ব্লগ", href: "/blogs" },
+                { label: post.title },
+              ]}
+            />
 
-          <div className="mt-3 max-w-3xl">
-            {category ? (
-              <span className="mb-3 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-ink">
-                {category}
-              </span>
-            ) : null}
-            <h1 className="mb-3 text-[1.35rem] leading-[1.2] font-bold tracking-tight text-neutral-950 sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
-              {post.title}
-            </h1>
-            {post.excerpt.trim() ? (
-              <p className="mb-5 max-w-2xl text-sm leading-relaxed text-neutral-600 sm:text-base">
-                {post.excerpt}
-              </p>
-            ) : null}
+            <div className="mt-3 max-w-3xl">
+              {category ? (
+                <span className="mb-3 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-ink">
+                  {category}
+                </span>
+              ) : null}
+              <h1 className="mb-3 break-words text-[1.35rem] leading-[1.2] font-bold tracking-tight text-neutral-950 sm:mb-4 sm:text-3xl lg:text-[2.15rem]">
+                {post.title}
+              </h1>
+              {post.excerpt.trim() ? (
+                <p className="mb-5 max-w-2xl text-sm leading-relaxed text-neutral-600 sm:text-base">
+                  {post.excerpt}
+                </p>
+              ) : null}
 
-            <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500 sm:gap-5 sm:text-sm">
-              {post.author.trim() ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary-ink">
-                    {post.author.charAt(0)}
+              <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500 sm:gap-5 sm:text-sm">
+                {post.author.trim() ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary-ink">
+                      {post.author.charAt(0)}
+                    </span>
+                    <span className="text-left">
+                      <span className="block font-medium text-neutral-950">{post.author}</span>
+                      {post.authorRole.trim() ? (
+                        <span className="text-[11px] text-neutral-500">{post.authorRole}</span>
+                      ) : null}
+                    </span>
                   </span>
-                  <span className="text-left">
-                    <span className="block font-medium text-neutral-950">{post.author}</span>
-                    {post.authorRole.trim() ? (
-                      <span className="text-[11px] text-neutral-500">{post.authorRole}</span>
-                    ) : null}
+                ) : null}
+                {post.publishedAt.trim() ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MaterialIcon name="calendar_today" className="text-[15px]" />
+                    {post.publishedAt}
                   </span>
-                </span>
-              ) : null}
-              {post.publishedAt.trim() ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <MaterialIcon name="calendar_today" className="text-[15px]" />
-                  {post.publishedAt}
-                </span>
-              ) : null}
-              {post.readTime.trim() ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <MaterialIcon name="schedule" className="text-[15px]" />
-                  {post.readTime}
-                  {readSuffix ? ` ${readSuffix}` : ""}
-                </span>
-              ) : null}
+                ) : null}
+                {post.readTime.trim() ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MaterialIcon name="schedule" className="text-[15px]" />
+                    {post.readTime}
+                    {readSuffix ? ` ${readSuffix}` : ""}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
         </Container>
       </section>
 
-      <Container className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+      <Container className="w-full px-4 pb-6 sm:px-6 sm:pb-8 lg:px-8">
+        {hasCover ? (
+          <div className="mx-auto mb-6 max-w-5xl sm:mb-8">
+            <div
+              data-testid="blog-hero"
+              className="relative aspect-16/9 w-full overflow-hidden rounded-2xl bg-[#eceef2] md:aspect-2/1"
+            >
+              <BlogImage
+                src={post.coverImage}
+                alt={post.coverAlt.trim() || post.title}
+                priority
+                sizes="(max-width: 1024px) 100vw, 1024px"
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10">
           {showRelated && headings.length > 1 ? (
-            <aside className="hidden lg:col-span-3 lg:block">
+            <aside className="hidden lg:block">
               <div className="sticky top-28 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
                 <div className="border-b border-neutral-200 px-4 py-3.5">
                   <p className="text-sm font-semibold text-neutral-950">
@@ -181,21 +199,10 @@ export function BlogArticle({
 
           <article
             className={cn(
-              "min-w-0",
-              showRelated && headings.length > 1 ? "lg:col-span-9" : "mx-auto max-w-3xl lg:col-span-12",
+              "min-w-0 max-w-[70ch]",
+              !(showRelated && headings.length > 1) && "lg:col-span-2",
             )}
           >
-            {hasCover ? (
-              <div className="relative mb-6 aspect-16/9 w-full overflow-hidden rounded-2xl bg-white sm:mb-8">
-                <BlogImage
-                  src={post.coverImage}
-                  alt={post.coverAlt.trim() || post.title}
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 800px"
-                />
-              </div>
-            ) : null}
-
             {showRelated && headings.length > 1 ? (
               <div className="mb-6 lg:hidden">
                 <p className="mb-2.5 text-sm font-semibold text-neutral-950">
