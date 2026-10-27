@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 import {
   cleanSearchQuery,
   fetchSearch,
-  searchHref,
   type SearchResults,
 } from "@/lib/mart-api/search";
 import { buildSearchOptions, SEARCH_PRODUCT_LIMIT } from "@/lib/mart-api/search-options";
+import { isRepeatSubmit, submitTarget } from "@/lib/search-input";
 
 import { MaterialIcon } from "./material-icon";
 
@@ -37,6 +37,14 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
   const [openedAt, setOpenedAt] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, SearchResults | "error">>({});
   const [active, setActive] = useState(-1);
+  const lastSubmitAt = useRef<number | null>(null);
+  // The box belongs to the layout, so it outlives page changes: a new page starts with a blank box.
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    setValue("");
+    setActive(-1);
+  }
 
   const open = openedAt === pathname;
   const query = cleanSearchQuery(value);
@@ -81,6 +89,17 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
   }, [key, query, answer]);
 
   useEffect(() => {
+    // Back and forward within one path (/search?q=a to /search?q=b) must not bring typed text back.
+    function history() {
+      setValue("");
+      setActive(-1);
+      setOpenedAt(null);
+    }
+    window.addEventListener("popstate", history);
+    return () => window.removeEventListener("popstate", history);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     function outside(event: PointerEvent) {
       if (root.current && !root.current.contains(event.target as Node)) setOpenedAt(null);
@@ -89,18 +108,28 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
     return () => document.removeEventListener("pointerdown", outside);
   }, [open]);
 
-  function go(href: string) {
+  /** The search is done: close the panel, blank the box (the results page keeps the query) and go. */
+  function finish() {
     setOpen(false);
     setActive(-1);
+    setValue("");
     onNavigate?.();
+  }
+
+  function go(href: string) {
+    finish();
     router.push(href);
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Enter and the button both land here. A repeat inside the guard window would find the box
+    // already blank and wrongly send the shopper to /products.
+    const now = Date.now();
+    if (isRepeatSubmit(lastSubmitAt.current, now)) return;
+    lastSubmitAt.current = now;
     const chosen = showPanel && status === "ready" ? options[active] : undefined;
-    if (chosen) return go(chosen.href);
-    go(query ? searchHref(query) : "/products");
+    go(submitTarget(query, chosen?.href));
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -239,10 +268,7 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
                     href={option.href}
                     onMouseDown={(event) => event.preventDefault()}
                     onMouseEnter={() => setActive(index)}
-                    onClick={() => {
-                      setOpen(false);
-                      onNavigate?.();
-                    }}
+                    onClick={finish}
                     className={cn(
                       "flex items-center gap-3 px-4 py-2 text-sm",
                       index === active ? "bg-neutral-100" : "hover:bg-neutral-50",
