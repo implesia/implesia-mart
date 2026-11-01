@@ -31,6 +31,7 @@ import {
 } from "../../_components/admin-ui";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
+import { useConfirmDelete } from "../../_components/confirm-delete";
 
 export function ShowcaseRows() {
   const params = useSearchParams();
@@ -45,6 +46,7 @@ export function ShowcaseRows() {
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ key: string; message: string } | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const focusId = useRef<string | null>(null);
   const rows = section?.rows ?? [];
   const selection = rows
@@ -168,23 +170,26 @@ export function ShowcaseRows() {
     }
   }
 
-  async function remove(row: ShowcaseRow, id: string) {
+  function remove(row: ShowcaseRow, id: string) {
     setLoadError("");
-    try {
-      await deleteShowcaseItem(row.key, id);
-      setSection({
-        ...section!,
-        rows: section!.rows.map((entry) =>
-          entry.key === row.key
-            ? { ...entry, items: entry.items.filter((item) => item.id !== id) }
-            : entry,
-        ),
-      });
-      if (params.get(`row-${row.key}`) === id) setRowEdit(row.key, null);
-      flash(row.key, "Removed");
-    } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the product.");
-    }
+    void confirmDelete({
+      title: "Remove this product from the row?",
+      description: "It stays in your catalog. Only this home page spot is removed.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the product.",
+      onConfirm: async () => {
+        await deleteShowcaseItem(row.key, id);
+        setSection({
+          ...section!,
+          rows: section!.rows.map((entry) =>
+            entry.key === row.key
+              ? { ...entry, items: entry.items.filter((item) => item.id !== id) }
+              : entry,
+          ),
+        });
+        if (params.get(`row-${row.key}`) === id) setRowEdit(row.key, null);
+      },
+    });
   }
 
   async function move(row: ShowcaseRow, id: string, direction: -1 | 1) {
@@ -323,7 +328,7 @@ function ShowcaseRowBlock({
   notice: string;
   savedId: string | null;
   onSaveCopy: (values: Record<string, string>) => Promise<void>;
-  onRemove: (id: string) => Promise<void>;
+  onRemove: (id: string) => void;
   onMove: (id: string, direction: -1 | 1) => Promise<void>;
   onDrop: (targetId: string, dragId: string) => Promise<void>;
   onEdit: (id: string | null) => void;
@@ -333,7 +338,6 @@ function ShowcaseRowBlock({
   const byId = new Map(row.choices.map((item) => [item.id, item]));
   const used = new Set(row.items.map((item) => item.productId));
   const unused = row.choices.filter((item) => !used.has(item.id));
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
@@ -508,19 +512,7 @@ function ShowcaseRowBlock({
                       <button type="button" onClick={() => onEdit(item.id)} className={adminButtonClass.quiet}>
                         Edit
                       </button>
-                      {confirmId === item.id ? (
-                        <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                          Remove from the home page?
-                          <button type="button" onClick={() => void onRemove(item.id).then(() => setConfirmId(null))} className="font-semibold underline">
-                            Yes
-                          </button>
-                          <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
-                            No
-                          </button>
-                        </span>
-                      ) : (
-                        <IconButton label="Remove product" icon="delete" danger onClick={() => setConfirmId(item.id)} />
-                      )}
+                      <IconButton label="Remove product" icon="delete" danger onClick={() => onRemove(item.id)} />
                     </div>
                   </div>
                 </li>

@@ -54,6 +54,7 @@ import {
   StockStatusBadge,
 } from "../../_components/admin-ui";
 import { UnsavedChangesDialog } from "../../_components/unsaved-changes-dialog";
+import { useConfirmDelete } from "../../_components/confirm-delete";
 import { ImageField } from "../../_components/image-field";
 import {
   ProductCopyFields,
@@ -346,7 +347,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const toastSeq = useRef(0);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const confirmDelete = useConfirmDelete();
   const [uploading, setUploading] = useState(false);
   const uploads = useRef(0);
   const [active, setActive] = useState<SectionId>("product-information");
@@ -612,23 +613,32 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     }
   }
 
-  async function removeProduct() {
-    if (!product?.id || saving) return;
-    setSaving(true);
-    setSaveError("");
-    try {
-      await deleteMartProduct(product.id);
-      bypassLeave.current = true;
-      router.push("/admin/products");
-    } catch (error) {
-      setSaving(false);
-      setConfirmDelete(false);
-      setSaveError(
-        error instanceof MartApiError
-          ? error.message
-          : "The product could not be deleted.",
-      );
-    }
+  function removeProduct() {
+    const id = product?.id;
+    if (!id || saving) return;
+    void confirmDelete({
+      title: "Delete this product?",
+      description: (
+        <>
+          <span className="font-semibold text-neutral-800">“{product.title}”</span>{" "}
+          will be removed from the catalog and the store. This cannot be undone.
+        </>
+      ),
+      successMessage: "Product deleted",
+      errorMessage: "The product could not be deleted.",
+      onConfirm: async () => {
+        setSaving(true);
+        setSaveError("");
+        try {
+          await deleteMartProduct(id);
+        } catch (error) {
+          setSaving(false);
+          throw error;
+        }
+        bypassLeave.current = true;
+        router.push("/admin/products");
+      },
+    });
   }
 
   const statusLine = uploading
@@ -719,32 +729,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             View on site
           </Link>
           {product.id ? (
-            confirmDelete ? (
-              <span className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => void removeProduct()}
-                  className="h-8 rounded-full px-3 text-xs font-semibold text-red-700 hover:bg-red-50"
-                >
-                  Delete product
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(false)}
-                  className="h-8 rounded-full px-3 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
-                >
-                  Keep
-                </button>
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                className="h-8 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
-              >
-                Delete
-              </button>
-            )
+            <button
+              type="button"
+              onClick={removeProduct}
+              className="h-8 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
+            >
+              Delete
+            </button>
           ) : null}
         </div>
       ) : null}

@@ -33,6 +33,7 @@ import {
 import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
 import { SingleImageField } from "./single-image-field";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 export function AboutStoryEditor() {
   const params = useSearchParams();
@@ -49,7 +50,7 @@ export function AboutStoryEditor() {
   const drawerOpen = creating || Boolean(editing);
   const missing = stories !== null && Boolean(storyId && !creating && !editing);
   const [notice, setNotice] = useState("");
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const page = findCmsPage("about");
 
   useEffect(() => {
@@ -98,18 +99,20 @@ export function AboutStoryEditor() {
     openStory(null);
   }
 
-  async function removeStory(id: string) {
+  function removeStory(id: string) {
     if (!stories) return;
     setLoadError("");
-    try {
-      await deleteAboutStory(id);
-      setStories(stories.filter((item) => item.id !== id));
-      if (storyId === id) openStory(null);
-      setConfirmId(null);
-      flash("Removed");
-    } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the story.");
-    }
+    void confirmDelete({
+      title: "Delete this story?",
+      description: "It will be removed from the About page. This cannot be undone.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the story.",
+      onConfirm: async () => {
+        await deleteAboutStory(id);
+        setStories(stories.filter((item) => item.id !== id));
+        if (storyId === id) openStory(null);
+      },
+    });
   }
 
   async function applyOrder(ids: string[]) {
@@ -352,32 +355,12 @@ export function AboutStoryEditor() {
                       >
                         Edit
                       </button>
-                      {confirmId === story.id ? (
-                        <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                          Remove this story?
-                          <button
-                            type="button"
-                            onClick={() => removeStory(story.id)}
-                            className="font-semibold underline"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmId(null)}
-                            className="font-semibold"
-                          >
-                            No
-                          </button>
-                        </span>
-                      ) : (
-                        <IconButton
-                          label={`Remove ${story.title.trim() || "story"}`}
-                          icon="delete"
-                          danger
-                          onClick={() => setConfirmId(story.id)}
-                        />
-                      )}
+                      <IconButton
+                        label={`Remove ${story.title.trim() || "story"}`}
+                        icon="delete"
+                        danger
+                        onClick={() => removeStory(story.id)}
+                      />
                     </div>
                   </div>
                 </li>

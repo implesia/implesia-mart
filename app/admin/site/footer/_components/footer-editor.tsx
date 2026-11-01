@@ -36,6 +36,7 @@ import {
   FieldLabel,
 } from "../../../_components/admin-ui";
 import { ImageField } from "../../../_components/image-field";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 const SAME = (a: FooterAdmin, b: FooterAdmin) => JSON.stringify(a) === JSON.stringify(b);
 const iconButton =
@@ -201,6 +202,7 @@ export function FooterEditor() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const confirmDelete = useConfirmDelete();
   const [picking, setPicking] = useState(false);
   const id = useId();
 
@@ -299,21 +301,26 @@ export function FooterEditor() {
     }
   }
 
-  async function onReset() {
+  function onReset() {
     if (busy) return;
-    if (!window.confirm("Restore the built-in footer? Your saved footer will be removed.")) return;
-    setBusy(true);
     setError("");
-    try {
-      const next = await resetFooter();
-      setSaved(next);
-      setDraft(next);
-      setNotice("Restored the built-in footer.");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not restore the default footer.");
-    } finally {
-      setBusy(false);
-    }
+    void confirmDelete({
+      title: "Restore the built-in footer?",
+      description: "Your saved footer will be removed.",
+      confirmLabel: "Restore",
+      successMessage: "Restored the built-in footer.",
+      errorMessage: "Could not restore the default footer.",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const next = await resetFooter();
+          setSaved(next);
+          setDraft(next);
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   }
 
   const previewConfig = previewFooter({ ...draft, logoSrc: adminCoverSrc(draft.logoSrc) });

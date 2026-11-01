@@ -31,6 +31,7 @@ import {
 } from "../../../_components/admin-ui";
 import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 const ICONS: { name: string; label: string }[] = [
   { name: "payments", label: "Payments" },
@@ -88,7 +89,7 @@ export function AboutStatsEditor() {
       : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const focusId = useRef<string | null>(null);
@@ -155,22 +156,20 @@ export function AboutStatsEditor() {
     setEdit(null);
   }
 
-  async function remove(id: string) {
+  function remove(id: string) {
     if (!stats) return;
     setLoadError("");
-    try {
-      await deleteAboutStat(id);
-      setStats(stats.filter((stat) => stat.id !== id));
-      if (selected === id) setEdit(null);
-      setConfirmId(null);
-      flash("Removed");
-    } catch (error) {
-      setLoadError(
-        error instanceof MartApiError
-          ? error.message
-          : "Could not remove the stat.",
-      );
-    }
+    void confirmDelete({
+      title: "Delete this stat?",
+      description: "It will be removed from the About page. This cannot be undone.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the stat.",
+      onConfirm: async () => {
+        await deleteAboutStat(id);
+        setStats(stats.filter((stat) => stat.id !== id));
+        if (selected === id) setEdit(null);
+      },
+    });
   }
 
   async function applyOrder(ids: string[]) {
@@ -481,32 +480,12 @@ export function AboutStatsEditor() {
                     >
                       Edit
                     </button>
-                    {confirmId === stat.id ? (
-                      <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                        Remove from the about page?
-                        <button
-                          type="button"
-                          onClick={() => remove(stat.id)}
-                          className="font-semibold underline"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmId(null)}
-                          className="font-semibold"
-                        >
-                          No
-                        </button>
-                      </span>
-                    ) : (
-                      <IconButton
-                        label="Remove stat"
-                        icon="delete"
-                        danger
-                        onClick={() => setConfirmId(stat.id)}
-                      />
-                    )}
+                    <IconButton
+                      label="Remove stat"
+                      icon="delete"
+                      danger
+                      onClick={() => remove(stat.id)}
+                    />
                   </div>
                 </div>
               </li>

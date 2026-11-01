@@ -33,6 +33,7 @@ import {
 import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
 import { SectionCopyForm } from "../../../home/_components/section-copy-form";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 const ICONS: { name: string; label: string }[] = [
   { name: "payments", label: "Payments" },
@@ -100,7 +101,7 @@ export function AboutStepsEditor() {
       : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -191,23 +192,21 @@ export function AboutStepsEditor() {
     setEdit(null);
   }
 
-  async function remove(id: string) {
-    try {
-      await deleteAboutStep(id);
-      setSection((current) => ({
-        ...current,
-        items: current.items.filter((item) => item.id !== id),
-      }));
-      if (selected === id) setEdit(null);
-      setConfirmId(null);
-      flash("Removed");
-    } catch (error) {
-      setLoadError(
-        error instanceof MartApiError
-          ? error.message
-          : "Could not remove the step.",
-      );
-    }
+  function remove(id: string) {
+    void confirmDelete({
+      title: "Delete this step?",
+      description: "It will be removed from the About page. This cannot be undone.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the step.",
+      onConfirm: async () => {
+        await deleteAboutStep(id);
+        setSection((current) => ({
+          ...current,
+          items: current.items.filter((item) => item.id !== id),
+        }));
+        if (selected === id) setEdit(null);
+      },
+    });
   }
 
   async function place(ids: string[]) {
@@ -561,32 +560,12 @@ export function AboutStepsEditor() {
                     >
                       Edit
                     </button>
-                    {confirmId === item.id ? (
-                      <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                        Remove from the about page?
-                        <button
-                          type="button"
-                          onClick={() => remove(item.id)}
-                          className="font-semibold underline"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmId(null)}
-                          className="font-semibold"
-                        >
-                          No
-                        </button>
-                      </span>
-                    ) : (
-                      <IconButton
-                        label="Remove step"
-                        icon="delete"
-                        danger
-                        onClick={() => setConfirmId(item.id)}
-                      />
-                    )}
+                    <IconButton
+                      label="Remove step"
+                      icon="delete"
+                      danger
+                      onClick={() => remove(item.id)}
+                    />
                   </div>
                 </div>
               </li>

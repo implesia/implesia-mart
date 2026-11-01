@@ -32,6 +32,7 @@ import {
   adminButtonClass,
   adminFieldClass,
 } from "../_components/admin-ui";
+import { useConfirmDelete } from "../_components/confirm-delete";
 
 type Editor = { id: string | null; name: string; tone: BadgeTone; isActive: boolean };
 
@@ -43,6 +44,7 @@ function message(reason: unknown, fallback: string) {
 
 export default function AdminBadgesPage() {
   const [badges, setBadges] = useState<AdminBadge[] | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor>(EMPTY);
   const [touched, setTouched] = useState(false);
@@ -134,20 +136,24 @@ export default function AdminBadgesPage() {
     }
   }
 
-  async function remove(badge: AdminBadge) {
-    if (!window.confirm(`Delete the badge “${badge.name}”? This cannot be undone.`)) return;
-    setBusyId(badge.id);
+  function remove(badge: AdminBadge) {
     setRowError(null);
-    try {
-      await deleteMartBadge(badge.id);
-      setBadges((current) => (current ?? []).filter((item) => item.id !== badge.id));
-      if (editor.id === badge.id) reset();
-      setNotice(`“${badge.name}” deleted.`);
-    } catch (reason) {
-      setRowError({ id: badge.id, text: message(reason, "The badge could not be deleted.") });
-    } finally {
-      setBusyId(null);
-    }
+    void confirmDelete({
+      title: "Delete this badge?",
+      description: `“${badge.name}” will be deleted. This cannot be undone.`,
+      successMessage: `“${badge.name}” deleted`,
+      errorMessage: "The badge could not be deleted.",
+      onConfirm: async () => {
+        setBusyId(badge.id);
+        try {
+          await deleteMartBadge(badge.id);
+        } finally {
+          setBusyId(null);
+        }
+        setBadges((current) => (current ?? []).filter((item) => item.id !== badge.id));
+        if (editor.id === badge.id) reset();
+      },
+    });
   }
 
   return (
@@ -258,7 +264,7 @@ export default function AdminBadgesPage() {
                       {badge.isSystem ? null : (
                         <button
                           type="button"
-                          onClick={() => void remove(badge)}
+                          onClick={() => remove(badge)}
                           disabled={busyId === badge.id}
                           aria-label={`Delete ${badge.name}`}
                           className="inline-flex size-9 items-center justify-center rounded-full text-red-600 ring-1 ring-neutral-200 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:text-neutral-300"

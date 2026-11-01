@@ -28,6 +28,7 @@ import {
   FieldLabel,
 } from "../../../_components/admin-ui";
 import { HomeCmsHeader } from "../../_components/home-cms-header";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 const ACCENTS: { id: HeroAccent; label: string; swatch: string; banner: string }[] = [
   { id: "gold", label: "Gold", swatch: "bg-[#c4a35a]", banner: "bg-[linear-gradient(100deg,#1c1408_0%,#0c0d12_42%,#05060a_100%)]" },
@@ -45,7 +46,7 @@ export default function EditHomeHeroSlidePage() {
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const confirmDelete = useConfirmDelete();
 
   useEffect(() => {
     if (creating) return;
@@ -242,39 +243,24 @@ export default function EditHomeHeroSlidePage() {
             </div>
             {creating ? null : (
               <div className="border-t border-neutral-100 pt-4">
-                {confirmDelete ? (
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-red-700">
-                    Delete this slide?
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void deleteHeroSlide(id)
-                          .then(() => router.push("/admin/home/hero"))
-                          .catch((deleteError: unknown) => {
-                            setError(
-                              deleteError instanceof MartApiError
-                                ? deleteError.message
-                                : "Could not delete the slide.",
-                            );
-                          });
-                      }}
-                      className="font-semibold underline"
-                    >
-                      Delete
-                    </button>
-                    <button type="button" onClick={() => setConfirmDelete(false)} className="font-semibold">
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-sm font-medium text-neutral-500 hover:text-red-600"
-                  >
-                    Delete slide
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    void confirmDelete({
+                      title: "Delete this slide?",
+                      description: "It will be removed from the home page hero. This cannot be undone.",
+                      successMessage: "Slide deleted",
+                      errorMessage: "Could not delete the slide.",
+                      onConfirm: async () => {
+                        await deleteHeroSlide(id);
+                        router.push("/admin/home/hero");
+                      },
+                    })
+                  }
+                  className="text-sm font-medium text-neutral-500 hover:text-red-600"
+                >
+                  Delete slide
+                </button>
               </div>
             )}
           </Panel>

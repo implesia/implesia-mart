@@ -19,6 +19,7 @@ import {
   adminButtonClass,
 } from "../../../_components/admin-ui";
 import { Card, LinkList } from "../../footer/_components/footer-editor";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 const SAME = (a: HeaderAdmin, b: HeaderAdmin) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -29,6 +30,7 @@ export function HeaderEditor() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const confirmDelete = useConfirmDelete();
 
   useEffect(() => {
     let cancelled = false;
@@ -111,21 +113,26 @@ export function HeaderEditor() {
     }
   }
 
-  async function onReset() {
+  function onReset() {
     if (busy) return;
-    if (!window.confirm("Restore the built-in menu? Your saved menu will be removed.")) return;
-    setBusy(true);
     setError("");
-    try {
-      const next = await resetHeader();
-      setSaved(next);
-      setDraft(next);
-      setNotice("Restored the built-in menu.");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not restore the default menu.");
-    } finally {
-      setBusy(false);
-    }
+    void confirmDelete({
+      title: "Restore the built-in menu?",
+      description: "Your saved menu will be removed.",
+      confirmLabel: "Restore",
+      successMessage: "Restored the built-in menu.",
+      errorMessage: "Could not restore the default menu.",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const next = await resetHeader();
+          setSaved(next);
+          setDraft(next);
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   }
 
   return (

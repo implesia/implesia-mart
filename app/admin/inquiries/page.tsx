@@ -23,6 +23,7 @@ import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import { AdminEmpty, AdminPageHeader } from "../_components/admin-ui";
+import { useConfirmDelete, useConfirmDeleteOpen } from "../_components/confirm-delete";
 
 const STATUS_TONE: Record<InquiryStatus, string> = {
   new: "bg-amber-100 text-amber-900 ring-amber-200",
@@ -356,7 +357,6 @@ function InquiriesView() {
         }}
         onDeleted={() => {
           setParam("open", null);
-          notify("Inquiry deleted.");
           setReload((v) => v + 1);
         }}
         onError={(message) => notify(message, "error")}
@@ -429,7 +429,8 @@ function InquiryDrawer({
   // The parent keys this component by inquiry id, so state starts fresh per inquiry.
   const [note, setNote] = useState(item?.adminNote ?? "");
   const [busy, setBusy] = useState<"status" | "note" | "delete" | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const confirmDelete = useConfirmDelete();
+  const confirming = useConfirmDeleteOpen();
 
   if (!item) return null;
   const links = phoneLinks(item.phone);
@@ -447,23 +448,35 @@ function InquiryDrawer({
     }
   }
 
-  async function remove() {
+  function remove() {
     if (!item) return;
-    setBusy("delete");
-    try {
-      await deleteInquiry(item.id);
-      onDeleted();
-    } catch (reason) {
-      onError(errorText(reason, "Could not delete."));
-    } finally {
-      setBusy(null);
-    }
+    const id = item.id;
+    void confirmDelete({
+      title: "Delete this inquiry?",
+      description: "It will be deleted permanently. This cannot be undone.",
+      successMessage: "Inquiry deleted.",
+      errorMessage: "Could not delete.",
+      onConfirm: async () => {
+        setBusy("delete");
+        try {
+          await deleteInquiry(id);
+        } finally {
+          setBusy(null);
+        }
+        onDeleted();
+      },
+    });
   }
 
   const meta = Object.entries(item.meta).filter(([, v]) => v);
 
   return (
-    <Sheet open={open} onOpenChange={(next) => (next ? null : onClose())}>
+    <Sheet
+      open={open}
+      modal={!confirming}
+      disablePointerDismissal={confirming}
+      onOpenChange={(next) => (next ? null : onClose())}
+    >
       <SheetContent side="right" className="w-full overflow-y-auto bg-white p-0 sm:max-w-lg data-[side=right]:sm:max-w-lg">
         <SheetHeader className="border-b border-neutral-100 px-5 py-4">
           <div className="flex items-center gap-2 text-xs font-medium text-neutral-500">
@@ -556,20 +569,10 @@ function InquiryDrawer({
           </div>
 
           <div className="border-t border-neutral-100 pt-4">
-            {confirmDelete ? (
-              <div role="alertdialog" aria-label="Delete this inquiry?" className="flex flex-wrap items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-900">
-                <span className="flex-1">Delete permanently? This cannot be undone.</span>
-                <button type="button" onClick={() => setConfirmDelete(false)} className="min-h-10 rounded-full px-4 font-semibold ring-1 ring-red-200">Cancel</button>
-                <button type="button" disabled={busy === "delete"} onClick={() => void remove()} className="min-h-10 rounded-full bg-red-700 px-4 font-semibold text-white disabled:opacity-50">
-                  {busy === "delete" ? "Deleting…" : "Delete"}
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => setConfirmDelete(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-red-700 hover:bg-red-50">
-                <MaterialIcon name="delete" className="text-[18px]" />
-                Delete inquiry
-              </button>
-            )}
+            <button type="button" disabled={busy === "delete"} onClick={remove} className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+              <MaterialIcon name="delete" className="text-[18px]" />
+              Delete inquiry
+            </button>
           </div>
         </div>
       </SheetContent>

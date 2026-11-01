@@ -11,6 +11,7 @@ import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import { listAdminCategories, type CategoryTile } from "@/lib/mart-api/categories";
 import { categoryChips, categoryTrail } from "@/lib/mart-api/category-tree";
 import {
+  deleteMartProduct,
   listMartProducts,
   MartApiError,
   patchMartProduct,
@@ -31,6 +32,7 @@ import {
   adminButtonClass,
   STOCK_STATUS_TONE,
 } from "../_components/admin-ui";
+import { useConfirmDelete } from "../_components/confirm-delete";
 
 const PAGE_SIZE = 10;
 const STOCK_FILTERS: StockStatus[] = ["available", "sold-out", "coming-soon"];
@@ -93,6 +95,7 @@ function ProductsView() {
   const [error, setError] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryTile[]>([]);
+  const confirmDelete = useConfirmDelete();
 
   useEffect(() => {
     let cancelled = false;
@@ -200,6 +203,57 @@ function ProductsView() {
     } finally {
       setPendingId(null);
     }
+  }
+
+  function removeRow(product: AdminProduct) {
+    const id = product.id;
+    if (!id || pendingId) return;
+    void confirmDelete({
+      title: "Delete this product?",
+      description: (
+        <>
+          <span className="font-semibold text-neutral-800">“{product.title}”</span>{" "}
+          will be removed from the catalog and the store. This cannot be undone.
+        </>
+      ),
+      successMessage: "Product deleted",
+      errorMessage: "The product could not be deleted.",
+      onConfirm: async () => {
+        setPendingId(id);
+        setError("");
+        try {
+          await deleteMartProduct(id);
+        } finally {
+          setPendingId(null);
+        }
+        // The delete succeeded. A failed refresh only leaves a stale row behind.
+        const lastOnPage = (list?.items.length ?? 0) === 1 && page > 0;
+        if (lastOnPage) {
+          setPageState({ key: filterKey, page: page - 1 });
+          return;
+        }
+        try {
+          setList(
+            await listMartProducts({
+              q: debouncedQuery,
+              category,
+              status,
+              visibility,
+              minPrice,
+              maxPrice,
+              sort,
+              page: page + 1,
+            }),
+          );
+        } catch {
+          setList((current) =>
+            current
+              ? { ...current, items: current.items.filter((item) => item.id !== id) }
+              : current,
+          );
+        }
+      },
+    });
   }
 
   function hrefWith(patch: Record<string, string | null>) {
@@ -491,6 +545,7 @@ function ProductsView() {
                   pending={pendingId === product.id}
                   onStock={(status) => updateRow(product, { status })}
                   onPublished={(published) => updateRow(product, { published })}
+                  onDelete={() => removeRow(product)}
                 />
               ))}
             </ul>
@@ -520,6 +575,9 @@ function ProductsView() {
                     <th className="w-[7.5rem] border-b border-neutral-200 bg-admin-subtle px-3 py-3 font-medium xl:px-4">
                       Published
                     </th>
+                    <th className="w-14 border-b border-neutral-200 bg-admin-subtle px-2 py-3 font-medium xl:px-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -533,6 +591,7 @@ function ProductsView() {
                       onPublished={(published) =>
                         updateRow(product, { published })
                       }
+                      onDelete={() => removeRow(product)}
                     />
                   ))}
                 </tbody>
@@ -755,12 +814,14 @@ function ProductRow({
   pending,
   onStock,
   onPublished,
+  onDelete,
 }: {
   product: AdminProduct;
   index: number;
   pending: boolean;
   onStock: (status: StockStatus) => void;
   onPublished: (published: boolean) => void;
+  onDelete: () => void;
 }) {
   const router = useRouter();
   const href = `/admin/products/${product.id}`;
@@ -830,6 +891,9 @@ function ProductRow({
           onChange={onPublished}
         />
       </td>
+      <td className="border-b border-neutral-100 px-2 py-3 text-right xl:px-3">
+        <DeleteProductButton product={product} pending={pending} onDelete={onDelete} />
+      </td>
     </tr>
   );
 }
@@ -840,12 +904,14 @@ function ProductCard({
   pending,
   onStock,
   onPublished,
+  onDelete,
 }: {
   product: AdminProduct;
   index: number;
   pending: boolean;
   onStock: (status: StockStatus) => void;
   onPublished: (published: boolean) => void;
+  onDelete: () => void;
 }) {
   const href = `/admin/products/${product.id}`;
   return (
@@ -873,13 +939,44 @@ function ProductCard({
       </Link>
       <span className="mt-3 flex items-center justify-between gap-3 pl-[3.25rem]">
         <StockSelect product={product} pending={pending} onChange={onStock} />
-        <PublishSwitch
-          product={product}
-          pending={pending}
-          onChange={onPublished}
-        />
+        <span className="flex items-center gap-1">
+          <PublishSwitch
+            product={product}
+            pending={pending}
+            onChange={onPublished}
+          />
+          <DeleteProductButton product={product} pending={pending} onDelete={onDelete} />
+        </span>
       </span>
     </li>
+  );
+}
+
+function DeleteProductButton({
+  product,
+  pending,
+  onDelete,
+}: {
+  product: AdminProduct;
+  pending: boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Delete ${product.title}`}
+      title="Delete"
+      disabled={pending}
+      onClick={(event) => {
+        // The table row opens the product on click; a delete must not navigate.
+        event.preventDefault();
+        event.stopPropagation();
+        onDelete();
+      }}
+      className="inline-grid size-9 place-items-center rounded-full text-neutral-500 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-40"
+    >
+      <MaterialIcon name="delete" className="text-[20px]" />
+    </button>
   );
 }
 

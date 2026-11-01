@@ -34,6 +34,7 @@ import {
 import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
 import { SectionCopyForm } from "../../../home/_components/section-copy-form";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 const ICONS: { name: string; label: string }[] = [
   { name: "payments", label: "Payments" },
@@ -93,7 +94,7 @@ export function AboutValuesEditor() {
     selected && selected !== "new" ? (items.find((item) => item.id === selected) ?? null) : null;
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const focusId = useRef<string | null>(null);
@@ -172,17 +173,19 @@ export function AboutValuesEditor() {
     setEdit(null);
   }
 
-  async function remove(id: string) {
+  function remove(id: string) {
     if (!section) return;
-    try {
-      await deleteAboutValue(id);
-      setSection({ ...section, items: section.items.filter((item) => item.id !== id) });
-      if (selected === id) setEdit(null);
-      setConfirmId(null);
-      flash("Removed");
-    } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the value.");
-    }
+    void confirmDelete({
+      title: "Delete this value?",
+      description: "It will be removed from the About page. This cannot be undone.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the value.",
+      onConfirm: async () => {
+        await deleteAboutValue(id);
+        setSection({ ...section, items: section.items.filter((item) => item.id !== id) });
+        if (selected === id) setEdit(null);
+      },
+    });
   }
 
   async function place(nextIds: string[]) {
@@ -536,32 +539,12 @@ export function AboutValuesEditor() {
                     >
                       Edit
                     </button>
-                    {confirmId === item.id ? (
-                      <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                        Remove from the about page?
-                        <button
-                          type="button"
-                          onClick={() => remove(item.id)}
-                          className="font-semibold underline"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmId(null)}
-                          className="font-semibold"
-                        >
-                          No
-                        </button>
-                      </span>
-                    ) : (
-                      <IconButton
-                        label="Remove value"
-                        icon="delete"
-                        danger
-                        onClick={() => setConfirmId(item.id)}
-                      />
-                    )}
+                    <IconButton
+                      label="Remove value"
+                      icon="delete"
+                      danger
+                      onClick={() => remove(item.id)}
+                    />
                   </div>
                 </div>
               </li>

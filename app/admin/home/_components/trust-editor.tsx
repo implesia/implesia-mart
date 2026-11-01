@@ -30,6 +30,7 @@ import {
 } from "../../_components/admin-ui";
 import { FormCloseGuard } from "../../_components/form-close-guard";
 import { HomeCmsHeader } from "./home-cms-header";
+import { useConfirmDelete } from "../../_components/confirm-delete";
 
 const ICONS: { name: TrustIcon; label: string }[] = [
   { name: "payments", label: "Payments" },
@@ -59,7 +60,7 @@ export function TrustBenefits() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [resolved, setResolved] = useState<string | null>(null);
@@ -155,19 +156,20 @@ export function TrustBenefits() {
     }
   }
 
-  async function remove(id: string) {
+  function remove(id: string) {
     if (!items) return;
     setFormError("");
-    try {
-      await deleteTrustBenefit(id);
-      setItems(items.filter((item) => item.id !== id));
-      if (selected === id) setEdit(null);
-      setConfirmId(null);
-      setNotice("Removed");
-      window.setTimeout(() => setNotice(""), 1600);
-    } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the benefit.");
-    }
+    void confirmDelete({
+      title: "Delete this benefit?",
+      description: "It will be removed from the home page. This cannot be undone.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the benefit.",
+      onConfirm: async () => {
+        await deleteTrustBenefit(id);
+        setItems(items.filter((item) => item.id !== id));
+        if (selected === id) setEdit(null);
+      },
+    });
   }
 
   async function move(id: string, direction: -1 | 1) {
@@ -434,32 +436,12 @@ export function TrustBenefits() {
                     >
                       Edit
                     </button>
-                    {confirmId === item.id ? (
-                      <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                        Remove from the home page?
-                        <button
-                          type="button"
-                          onClick={() => remove(item.id)}
-                          className="font-semibold underline"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmId(null)}
-                          className="font-semibold"
-                        >
-                          No
-                        </button>
-                      </span>
-                    ) : (
-                      <IconButton
-                        label="Remove benefit"
-                        icon="delete"
-                        danger
-                        onClick={() => setConfirmId(item.id)}
-                      />
-                    )}
+                    <IconButton
+                      label="Remove benefit"
+                      icon="delete"
+                      danger
+                      onClick={() => remove(item.id)}
+                    />
                   </div>
                 </div>
               </li>

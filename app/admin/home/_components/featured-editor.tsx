@@ -30,6 +30,7 @@ import {
 } from "../../_components/admin-ui";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
+import { useConfirmDelete } from "../../_components/confirm-delete";
 
 type Draft = { productId: string };
 
@@ -49,7 +50,7 @@ export function FeaturedProducts() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [resolved, setResolved] = useState<string | null>(null);
@@ -166,17 +167,19 @@ export function FeaturedProducts() {
     }
   }
 
-  async function remove(id: string) {
+  function remove(id: string) {
     if (!section) return;
-    try {
-      await deleteFeaturedItem(id);
-      setSection({ ...section, items: section.items.filter((item) => item.id !== id) });
-      if (selected === id) setEdit(null);
-      setConfirmId(null);
-      flash("Removed");
-    } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the product.");
-    }
+    void confirmDelete({
+      title: "Remove this product from the home page?",
+      description: "It stays in your catalog. Only this home page spot is removed.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the product.",
+      onConfirm: async () => {
+        await deleteFeaturedItem(id);
+        setSection({ ...section, items: section.items.filter((item) => item.id !== id) });
+        if (selected === id) setEdit(null);
+      },
+    });
   }
 
   async function move(id: string, direction: -1 | 1) {
@@ -465,24 +468,12 @@ export function FeaturedProducts() {
                       <button type="button" onClick={() => setEdit(item.id)} className={adminButtonClass.quiet}>
                         Edit
                       </button>
-                      {confirmId === item.id ? (
-                        <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                          Remove from the home page?
-                          <button type="button" onClick={() => void remove(item.id)} className="font-semibold underline">
-                            Yes
-                          </button>
-                          <button type="button" onClick={() => setConfirmId(null)} className="font-semibold">
-                            No
-                          </button>
-                        </span>
-                      ) : (
-                        <IconButton
-                          label="Remove product"
-                          icon="delete"
-                          danger
-                          onClick={() => setConfirmId(item.id)}
-                        />
-                      )}
+                      <IconButton
+                        label="Remove product"
+                        icon="delete"
+                        danger
+                        onClick={() => remove(item.id)}
+                      />
                     </div>
                   </div>
                 </li>
