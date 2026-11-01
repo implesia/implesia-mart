@@ -1,5 +1,6 @@
 "use client";
 
+import { ToggleLeft, ToggleRight } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
@@ -228,9 +229,15 @@ export default function AdminBadgesPage() {
                         type="button"
                         onClick={() => void toggle(badge)}
                         disabled={busyId === badge.id}
+                        aria-label={`${badge.isActive ? "Switch off" : "Switch on"} ${badge.name}`}
+                        title={badge.isActive ? "Switch off" : "Switch on"}
                         className={cn(adminButtonClass.secondary, "h-9 px-3")}
                       >
-                        {badge.isActive ? "Switch off" : "Switch on"}
+                        {badge.isActive ? (
+                          <ToggleRight aria-hidden className="size-[18px]" />
+                        ) : (
+                          <ToggleLeft aria-hidden className="size-[18px]" />
+                        )}
                       </button>
                       {badge.isSystem ? null : (
                         <button
