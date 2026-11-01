@@ -1,6 +1,5 @@
 "use client";
 
-import { ToggleLeft, ToggleRight } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
@@ -227,17 +226,34 @@ export default function AdminBadgesPage() {
                       </button>
                       <button
                         type="button"
+                        role="switch"
+                        aria-checked={badge.isActive}
+                        aria-busy={busyId === badge.id}
                         onClick={() => void toggle(badge)}
                         disabled={busyId === badge.id}
                         aria-label={`${badge.isActive ? "Switch off" : "Switch on"} ${badge.name}`}
                         title={badge.isActive ? "Switch off" : "Switch on"}
-                        className={cn(adminButtonClass.secondary, "h-9 px-3")}
+                        className="inline-flex h-9 items-center rounded-full px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-wait"
                       >
-                        {badge.isActive ? (
-                          <ToggleRight aria-hidden className="size-[18px]" />
-                        ) : (
-                          <ToggleLeft aria-hidden className="size-[18px]" />
-                        )}
+                        <span
+                          aria-hidden
+                          className={cn(
+                            "relative h-6 w-11 shrink-0 rounded-full shadow-inner transition-colors duration-200 ease-out",
+                            badge.isActive ? "bg-primary" : "bg-neutral-300",
+                            busyId === badge.id && "opacity-60",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "absolute top-0.5 left-0.5 grid size-5 place-items-center rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ease-out",
+                              badge.isActive ? "translate-x-5" : "translate-x-0",
+                            )}
+                          >
+                            {busyId === badge.id ? (
+                              <span className="size-3 animate-spin rounded-full border-2 border-neutral-300 border-t-primary" />
+                            ) : null}
+                          </span>
+                        </span>
                       </button>
                       {badge.isSystem ? null : (
                         <button
