@@ -1,3 +1,5 @@
+import { visibleBadges } from "@/lib/mart-api/badge-rules";
+
 import type { ProductDetail } from "../../_data/products/product-details";
 import { ProductBreadcrumbs } from "./product-breadcrumbs";
 import { ProductDetailsTabs } from "./product-details-tabs";
@@ -7,11 +9,19 @@ import { ProductMobileBuyBar } from "./product-mobile-buy-bar";
 import { ProductSupportPanel } from "./product-support-panel";
 import { RelatedProducts } from "./related-products";
 
-const badgeLabel: Record<NonNullable<ProductDetail["badge"]>, string> = {
-  New: "নতুন প্রোডাক্ট",
-  "Best Seller": "বেস্ট সেলার",
-  Limited: "লিমিটেড স্টক",
+/** Built-in badges keep their Bengali storefront wording unless an admin renamed them. */
+const builtInLabel: Record<string, { name: string; label: string }> = {
+  new: { name: "New", label: "নতুন প্রোডাক্ট" },
+  "best-seller": { name: "Best Seller", label: "বেস্ট সেলার" },
+  limited: { name: "Limited", label: "লিমিটেড স্টক" },
 };
+
+function detailBadges(product: ProductDetail) {
+  return visibleBadges(product.badges, product.badge).map((badge) => {
+    const builtIn = builtInLabel[badge.slug];
+    return builtIn && builtIn.name === badge.name ? { ...badge, name: builtIn.label } : badge;
+  });
+}
 
 export function ProductDetailLayout({ product }: { product: ProductDetail }) {
   return (
@@ -29,10 +39,9 @@ export function ProductDetailLayout({ product }: { product: ProductDetail }) {
                 ? "কামিং সুন"
                 : product.status === "sold-out"
                   ? "শেষ"
-                  : product.badge
-                    ? badgeLabel[product.badge]
-                    : undefined
+                  : undefined
             }
+            badges={detailBadges(product)}
             images={product.gallery}
           />
         </div>

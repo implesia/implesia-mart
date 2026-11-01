@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState, type KeyboardEvent } from "react";
 
+import { badgeToneClass, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { galleryControlName } from "@/lib/mart-api/product-page";
 import { cn } from "@/lib/utils";
 
@@ -65,10 +66,14 @@ function GalleryFrame({
 export function ProductGallery({
   title,
   badge,
+  badges = [],
   images,
 }: {
   title: string;
+  /** Status pill (coming soon / sold out), shown first. */
   badge?: string;
+  /** Admin badges, in display order. */
+  badges?: StoreBadge[];
   images: ProductGalleryItem[];
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -135,11 +140,24 @@ export function ProductGallery({
             <FailedImage label={`${title} — ছবি নেই`} />
           )}
 
-          {badge ? (
-            <div className="pointer-events-none absolute top-3 left-3 z-10 sm:top-4 sm:left-4">
-              <span className="rounded-full bg-warm-gold px-2.5 py-1 text-[10px] font-semibold tracking-wide text-[#042422] shadow-md sm:px-3 sm:text-xs">
-                {badge}
-              </span>
+          {badge || badges.length > 0 ? (
+            <div className="pointer-events-none absolute top-3 left-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5 sm:top-4 sm:left-4 sm:max-w-[calc(100%-2rem)]">
+              {badge ? (
+                <span className="rounded-full bg-warm-gold px-2.5 py-1 text-[10px] font-semibold tracking-wide text-[#042422] shadow-md sm:px-3 sm:text-xs">
+                  {badge}
+                </span>
+              ) : null}
+              {badges.map((item) => (
+                <span
+                  key={item.slug}
+                  className={cn(
+                    "max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-md sm:px-3 sm:text-xs",
+                    badgeToneClass(item.tone),
+                  )}
+                >
+                  {item.name}
+                </span>
+              ))}
             </div>
           ) : null}
         </div>

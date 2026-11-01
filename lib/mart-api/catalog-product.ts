@@ -15,6 +15,7 @@ export function cardToProduct(card: PublicCatalogCard): Product {
     imageSrc: mediaUrl(card.imageSrc),
     imageAlt: card.imageAlt || card.title,
     badge: card.badge,
+    badges: card.badges,
     status: card.status,
     categoryId: card.category,
     categorySlug: card.categorySlug,

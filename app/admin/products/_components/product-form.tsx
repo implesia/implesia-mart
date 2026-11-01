@@ -63,13 +63,8 @@ import { CategoryCascade } from "./category-cascade";
 import { ProductOptionsFields } from "./product-options-fields";
 import { ProductVariantsFields } from "./product-variants-fields";
 import { productPath } from "@/lib/mart-api/product-url";
-
-const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
-  { value: "", label: "None" },
-  { value: "New", label: "New" },
-  { value: "Best Seller", label: "Best seller" },
-  { value: "Limited", label: "Limited" },
-];
+import { badgeToneClass, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
+import { ProductBadgePicker } from "./product-badge-picker";
 
 const SECTIONS = [
   { id: "product-information", label: "Product information" },
@@ -95,7 +90,10 @@ type FormState = {
   compareAtPrice: string;
   quantity: string;
   status: StockStatus;
+  /** Legacy single badge; only sent when `badges` is unknown (older API data). */
   badge: ProductBadge | "";
+  /** Badges in display order. `null` = the API did not send a list for this product. */
+  badges: AdminBadgeRef[] | null;
   imageSrc: string;
   featured: boolean;
   published: boolean;
@@ -146,6 +144,7 @@ function toForm(product?: AdminProduct): FormState {
       quantity: "",
       status: "available",
       badge: "",
+      badges: [],
       imageSrc: "",
       featured: false,
       published: false,
@@ -167,6 +166,7 @@ function toForm(product?: AdminProduct): FormState {
     quantity: product.quantity == null ? "" : String(product.quantity),
     status: product.status,
     badge: product.badge ?? "",
+    badges: product.badges ? [...product.badges] : null,
     imageSrc: product.imageSrc,
     featured: product.featured,
     published: product.published,
@@ -414,6 +414,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       quantity,
       status: form.status,
       badge: form.badge || null,
+      badges: form.badges ?? undefined,
       imageSrc: form.imageSrc.trim(),
       featured: form.featured,
       published: form.published,
@@ -984,7 +985,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           <FormSection
             id="product-organization"
             title="Organization"
-            description="Category is required. Badge is optional."
+            description="Category is required. Badges are optional."
           >
             <div>
               <p className="mb-1.5 text-sm font-medium text-neutral-700">
@@ -1007,27 +1008,11 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               </p>
             </div>
             <div className="mt-4">
-              <p className="mb-1.5 text-sm font-medium text-neutral-700">
-                Badge
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {BADGE_OPTIONS.map((option) => (
-                  <button
-                    key={option.label}
-                    type="button"
-                    aria-pressed={form.badge === option.value}
-                    onClick={() => setField("badge", option.value)}
-                    className={cn(
-                      "h-9 rounded-full px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      form.badge === option.value
-                        ? "bg-neutral-950 text-white"
-                        : "bg-[#f5f6f8] text-neutral-600 hover:bg-neutral-200",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+              <ProductBadgePicker
+                value={form.badges ?? []}
+                initial={baseline.badges ?? []}
+                onChange={(next) => setField("badges", next)}
+              />
             </div>
           </FormSection>
         </div>
@@ -1058,11 +1043,26 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <StockStatusBadge status={form.status} />
-                {form.badge ? (
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
-                    {form.badge}
-                  </span>
-                ) : null}
+                {form.badges === null ? (
+                  form.badge ? (
+                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                      {form.badge}
+                    </span>
+                  ) : null
+                ) : (
+                  form.badges.map((badge) => (
+                    <span
+                      key={badge.id}
+                      className={cn(
+                        "max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase",
+                        badgeToneClass(badge.tone),
+                        !badge.isActive && "opacity-50",
+                      )}
+                    >
+                      {badge.name}
+                    </span>
+                  ))
+                )}
               </div>
               <p className="text-base font-semibold text-neutral-950">
                 {form.title.trim() || "Product name"}

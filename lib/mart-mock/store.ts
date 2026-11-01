@@ -1,3 +1,4 @@
+import type { AdminBadgeRef } from "@/lib/mart-api/badge-rules";
 import { heroSlides } from "@/app/(client)/_data/home/home";
 import {
   emptyProductContent,
@@ -91,6 +92,8 @@ export type AdminProduct = {
   quantity: number | null;
   status: StockStatus;
   badge: ProductBadge | null;
+  /** Admin badges in display order (API products). Absent = only the legacy `badge`. */
+  badges?: AdminBadgeRef[];
   imageSrc: string;
   featured: boolean;
   published: boolean;

@@ -1,3 +1,5 @@
+import type { StoreBadge } from "@/lib/mart-api/badge-rules";
+
 export type ProductBadge = "New" | "Best Seller" | "Limited";
 export type ProductStatus = "available" | "sold-out" | "coming-soon";
 /** A category slug. Categories are managed in the admin; "gadgets" and "fashion" are the seeded roots. */
@@ -22,6 +24,8 @@ export type Product = {
   imageSrc: string;
   imageAlt: string;
   badge?: ProductBadge;
+  /** Active badges in display order. Absent = older data; fall back to `badge`. */
+  badges?: StoreBadge[];
   status: ProductStatus;
   /** Slug of the TOP-LEVEL category (drives the fashion/gadget layouts). */
   categoryId: ProductCategoryId;

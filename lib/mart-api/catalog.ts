@@ -11,6 +11,7 @@ import type {
   ProductCategoryId,
   ProductStatus,
 } from "@/app/(client)/_data/products/catalog-meta";
+import type { StoreBadge } from "@/lib/mart-api/badge-rules";
 import { cardToProduct } from "@/lib/mart-api/catalog-product";
 import { mediaUrl } from "@/lib/mart-api/media-url";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
@@ -112,6 +113,7 @@ type ApiCard = {
   image_src: string;
   image_alt: string;
   badge: ProductBadge | null;
+  badges?: StoreBadge[];
   status: ProductStatus;
   featured: boolean;
   has_variants?: boolean;
@@ -152,6 +154,7 @@ function mapCard(item: ApiCard): Product {
     imageSrc,
     imageAlt: item.image_alt || item.title,
     badge: item.badge ?? undefined,
+    badges: item.badges,
     status: item.status,
     categoryId: item.category,
     categorySlug: item.category_slug || item.category,

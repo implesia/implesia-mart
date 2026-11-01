@@ -1,3 +1,4 @@
+import { readAdminBadgeRef, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
 import { publicRequestInit } from "@/lib/mart-api/public-request";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
@@ -89,7 +90,7 @@ export async function publicFetch(path: string, init?: RequestInit) {
   }
 }
 
-async function readError(response: Response, fallback: string) {
+export async function readError(response: Response, fallback: string) {
   try {
     const body = (await response.json()) as ApiErrorBody;
     if (body.error?.message) return body.error.message;
@@ -209,7 +210,10 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
     max_order_quantity: draft.maxOrderQuantity ?? null,
     ...variantFields,
     status: draft.status,
-    badge: draft.badge,
+    // `badge_ids` when the form knows the badge list; the API derives `badge` from it.
+    ...(draft.badges !== undefined
+      ? { badge_ids: draft.badges.map((badge) => badge.id) }
+      : { badge: draft.badge }),
     image_src: sendMainFile ? "" : sitePath(draft.imageSrc),
     featured: draft.featured,
     published: draft.published,
@@ -393,6 +397,7 @@ type ApiCard = {
   quantity: number | null;
   status: StockStatus;
   badge: AdminProduct["badge"];
+  badges?: unknown[];
   image_src: string;
   featured: boolean;
   published: boolean;
@@ -520,6 +525,12 @@ function cardToProduct(item: ApiCard): AdminProduct {
     quantity: item.quantity,
     status: item.status,
     badge: item.badge,
+    badges: Array.isArray(item.badges)
+      ? item.badges.flatMap((badge) => {
+          const ref = readAdminBadgeRef(badge);
+          return ref ? [ref] : ([] as AdminBadgeRef[]);
+        })
+      : undefined,
     imageSrc: mediaUrl(item.image_src),
     featured: item.featured,
     published: item.published,

@@ -1,3 +1,4 @@
+import { readStoreBadges, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import { readVariants, type ProductVariant } from "@/lib/mart-api/variants";
 
@@ -93,6 +94,7 @@ export type StoreDetailPayload = {
   image_src: string;
   image_alt: string;
   badge: "New" | "Best Seller" | "Limited" | null;
+  badges?: StoreBadge[];
   status: "available" | "sold-out" | "coming-soon";
   featured: boolean;
   has_variants: boolean;
@@ -136,6 +138,7 @@ export type StoreDetailPayload = {
     image_src: string;
     image_alt: string;
     badge: "New" | "Best Seller" | "Limited" | null;
+    badges?: StoreBadge[];
     status: "available" | "sold-out" | "coming-soon";
     featured: boolean;
     has_variants: boolean;
@@ -184,6 +187,7 @@ function readCard(value: unknown) {
     badge: BADGES.has(String(badge))
       ? (badge as "New" | "Best Seller" | "Limited")
       : null,
+    badges: readStoreBadges(record.badges),
     status: status as "available" | "sold-out" | "coming-soon",
     featured: record.featured === true,
     has_variants: record.has_variants === true,
