@@ -29,6 +29,7 @@ import {
   deleteMartProduct,
   MartApiError,
   saveMartProduct,
+  type ApiFieldError,
 } from "@/lib/mart-api/products";
 import {
   cleanProductContent,
@@ -112,6 +113,103 @@ type FieldKey =
   | "orderLimits"
   | "variants";
 type FieldErrors = Partial<Record<FieldKey, string>>;
+
+// Field keys in the product create API's `errors` list, in the order the form shows them.
+const SERVER_FIELD_ORDER = [
+  "title",
+  "slug",
+  "subtitle",
+  "images",
+  "price",
+  "compareAtPrice",
+  "quantity",
+  "status",
+  "orderLimits",
+  "variants",
+  "content",
+  "category",
+  "badges",
+  "publishing",
+  "form",
+] as const;
+
+const SERVER_FIELD_LABEL: Record<string, string> = {
+  title: "প্রোডাক্টের নাম",
+  slug: "প্রোডাক্টের নাম",
+  subtitle: "সাবটাইটেল",
+  images: "ছবি",
+  price: "দাম",
+  compareAtPrice: "আগের দাম",
+  quantity: "স্টকের পরিমাণ",
+  status: "স্টক স্ট্যাটাস",
+  orderLimits: "অর্ডারের সীমা",
+  variants: "ভ্যারিয়েন্ট",
+  content: "প্রোডাক্টের বিস্তারিত",
+  category: "ক্যাটাগরি",
+  badges: "ব্যাজ",
+  publishing: "পাবলিশিং",
+  form: "ফর্ম",
+};
+
+/** Section that holds each API field; `form` problems live in the summary only. */
+const SERVER_FIELD_SECTION: Record<string, SectionId> = {
+  title: "product-information",
+  slug: "product-information",
+  subtitle: "product-information",
+  images: "product-media",
+  price: "product-pricing",
+  compareAtPrice: "product-pricing",
+  quantity: "product-inventory",
+  status: "product-inventory",
+  orderLimits: "product-inventory",
+  variants: "product-variants",
+  content: "product-details",
+  category: "product-organization",
+  badges: "product-organization",
+  publishing: "product-publishing",
+};
+
+/** `${formId}-<suffix>` input to focus for an API field. */
+const SERVER_FIELD_INPUT: Record<string, string> = {
+  title: "title",
+  slug: "title",
+  subtitle: "subtitle",
+  price: "price",
+  compareAtPrice: "compare",
+  quantity: "qty",
+  orderLimits: "min-order",
+};
+
+/** API fields whose error goes away as soon as the matching form value changes. */
+const SERVER_FIELDS_FOR: Partial<Record<keyof FormState, string[]>> = {
+  title: ["title", "slug"],
+  subtitle: ["subtitle"],
+  price: ["price"],
+  compareAtPrice: ["compareAtPrice"],
+  quantity: ["quantity"],
+  status: ["status"],
+  minOrder: ["orderLimits"],
+  maxOrder: ["orderLimits"],
+  variants: ["variants", "price", "quantity"],
+  imageSrc: ["images"],
+  badges: ["badges"],
+  published: ["publishing"],
+  featured: ["publishing"],
+};
+
+const INVALID_FIELD = "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200";
+const NETWORK_TOAST =
+  "সার্ভারের সাথে যোগাযোগ করা যায়নি। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।";
+const SERVER_TOAST = "সার্ভারে একটা সমস্যা হয়েছে। একটু পরে আবার চেষ্টা করুন।";
+
+function bengaliDigits(value: number) {
+  return String(value).replace(/\d/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
+}
+
+function serverRank(field: string) {
+  const index = (SERVER_FIELD_ORDER as readonly string[]).indexOf(field);
+  return index === -1 ? SERVER_FIELD_ORDER.length : index;
+}
 
 const SIDEBAR_KEY = "implesia.admin.sidebar.collapsed";
 const SIDEBAR_EVENT = "implesia-admin-sidebar";
@@ -244,6 +342,10 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [serverErrors, setServerErrors] = useState<ApiFieldError[]>([]);
+  const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const toastSeq = useRef(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
   const uploads = useRef(0);
@@ -282,12 +384,57 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       ? Math.round(((compareNumber - priceNumber) / compareNumber) * 100)
       : null;
 
+  function serverFor(...fields: string[]) {
+    return serverErrors.filter((item) => fields.includes(item.field));
+  }
+
+  function clearServer(fields: string[]) {
+    setServerErrors((prev) =>
+      prev.some((item) => fields.includes(item.field))
+        ? prev.filter((item) => !fields.includes(item.field))
+        : prev,
+    );
+  }
+
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
+    const fields = SERVER_FIELDS_FOR[key];
+    if (fields) clearServer(fields);
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function setContent(content: ProductStorefrontContent) {
+    if (JSON.stringify(content) !== JSON.stringify(form.content)) {
+      clearServer(["content", "images"]);
+    }
     setForm((prev) => ({ ...prev, content }));
+  }
+
+  function showToast(message: string) {
+    toastSeq.current += 1;
+    setToast({ message, key: toastSeq.current });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  function focusServerField(field: string) {
+    const suffix = SERVER_FIELD_INPUT[field];
+    const input = suffix ? document.getElementById(`${formId}-${suffix}`) : null;
+    if (input && !(input as HTMLInputElement).disabled) {
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+      input.focus({ preventScroll: true });
+      return;
+    }
+    const section = SERVER_FIELD_SECTION[field];
+    if (section) {
+      scrollToSection(section);
+      document.getElementById(`${formId}-server-${field}`)?.focus({ preventScroll: true });
+      return;
+    }
+    const summary = document.getElementById(`${formId}-error-summary`);
+    summary?.scrollIntoView({ behavior: "smooth", block: "center" });
+    summary?.focus({ preventScroll: true });
   }
 
   function onUploadBusy(busy: boolean) {
@@ -387,6 +534,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       return;
     }
     if (uploading || saving) return;
+    setServerErrors([]);
 
     const price = variantMode ? (summary.price ?? 0) : Number(form.price);
     if (!Number.isInteger(price)) {
@@ -438,6 +586,24 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       router.push("/admin/products");
     } catch (error) {
       setSaving(false);
+      if (error instanceof MartApiError && error.kind === "network") {
+        showToast(NETWORK_TOAST);
+        return;
+      }
+      if (error instanceof MartApiError && error.kind === "server") {
+        const first = error.fieldErrors[0];
+        showToast(first ? `${first.message} ${first.fix}`.trim() : SERVER_TOAST);
+        return;
+      }
+      if (error instanceof MartApiError && error.fieldErrors.length > 0) {
+        const sorted = [...error.fieldErrors].sort(
+          (a, b) => serverRank(a.field) - serverRank(b.field),
+        );
+        setServerErrors(sorted);
+        // Wait for the messages to render, then bring the first problem into view.
+        requestAnimationFrame(() => focusServerField(sorted[0].field));
+        return;
+      }
       setSaveError(
         error instanceof MartApiError
           ? error.message
@@ -495,6 +661,36 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         <p className="-mt-3 mb-5 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
           {saveError}
         </p>
+      ) : null}
+      {serverErrors.length > 0 ? (
+        <div
+          id={`${formId}-error-summary`}
+          tabIndex={-1}
+          role="alert"
+          className="-mt-3 mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200 focus:outline-none"
+        >
+          <p className="flex items-center gap-2 font-semibold">
+            <MaterialIcon name="error" className="text-[18px]" />
+            {bengaliDigits(serverErrors.length)}টা সমস্যা আছে, ঠিক করে আবার চেষ্টা করুন
+          </p>
+          <ul className="mt-2 space-y-1.5 pl-6">
+            {serverErrors.map((item, index) => (
+              <li key={`${item.field}-${index}`}>
+                <button
+                  type="button"
+                  onClick={() => focusServerField(item.field)}
+                  className="text-left hover:underline focus-visible:underline focus-visible:outline-none"
+                >
+                  <span className="font-medium">
+                    {SERVER_FIELD_LABEL[item.field] ?? SERVER_FIELD_LABEL.form}:
+                  </span>{" "}
+                  {item.message}
+                </button>
+                {item.fix ? <span className="block text-xs text-red-600">{item.fix}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {product ? (
         <div className="-mt-3 mb-5 flex flex-wrap items-center gap-2">
@@ -595,6 +791,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </div>
 
           <FormSection
+            invalid={serverFor("title", "slug", "subtitle").length > 0}
             id="product-information"
             title="Product information"
             description="Name is required. Subtitle is the short catalog line. Tagline and description are the product page copy."
@@ -609,20 +806,29 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   value={form.title}
                   onChange={(event) => setField("title", event.target.value)}
                   placeholder="Sunset projection lamp"
-                  aria-invalid={errors.title ? true : undefined}
+                  aria-invalid={
+                    errors.title || serverFor("title", "slug").length ? true : undefined
+                  }
                   aria-describedby={
-                    errors.title ? `${formId}-title-error` : undefined
+                    errors.title
+                      ? `${formId}-title-error`
+                      : serverFor("title", "slug").length
+                        ? `${formId}-server-title`
+                        : undefined
                   }
                   className={cn(
                     adminFieldClass,
                     "h-12 text-base",
-                    errors.title &&
-                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    (errors.title || serverFor("title", "slug").length > 0) && INVALID_FIELD,
                   )}
                 />
                 <FieldErrorSlot
                   id={`${formId}-title-error`}
                   message={errors.title}
+                />
+                <ServerFieldErrors
+                  id={`${formId}-server-title`}
+                  items={serverFor("title", "slug")}
                 />
               </div>
               <div>
@@ -632,7 +838,18 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   value={form.subtitle}
                   onChange={(event) => setField("subtitle", event.target.value)}
                   placeholder="Short line under the name"
-                  className={adminFieldClass}
+                  aria-invalid={serverFor("subtitle").length ? true : undefined}
+                  aria-describedby={
+                    serverFor("subtitle").length ? `${formId}-server-subtitle` : undefined
+                  }
+                  className={cn(
+                    adminFieldClass,
+                    serverFor("subtitle").length > 0 && INVALID_FIELD,
+                  )}
+                />
+                <ServerFieldErrors
+                  id={`${formId}-server-subtitle`}
+                  items={serverFor("subtitle")}
                 />
               </div>
               <ProductCopyFields
@@ -644,6 +861,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("images").length > 0}
             id="product-media"
             title="Media"
             description="The main image is the catalog thumbnail. Gallery images are the product page photos. JPG, PNG, WEBP, GIF, or AVIF, up to 5 MB."
@@ -655,6 +873,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               confirmRemove
               onBusy={onUploadBusy}
             />
+            <ServerFieldErrors id={`${formId}-server-images`} items={serverFor("images")} />
             {!form.imageSrc ? (
               <p className="mt-2 text-sm text-neutral-500">
                 Add a product image before saving.
@@ -682,6 +901,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("price", "compareAtPrice").length > 0}
             id="product-pricing"
             title="Pricing"
             description="Selling price is required. Compare-at is optional and must be at least the selling price. Amounts are in taka."
@@ -707,20 +927,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   disabled={variantMode}
                   onChange={(event) => setField("price", event.target.value)}
                   placeholder="999"
-                  aria-invalid={errors.price ? true : undefined}
+                  aria-invalid={errors.price || serverFor("price").length ? true : undefined}
                   aria-describedby={
                     errors.price ? `${formId}-price-error` : undefined
                   }
                   className={cn(
                     adminFieldClass,
-                    errors.price &&
-                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    (errors.price || serverFor("price").length > 0) && INVALID_FIELD,
                   )}
                 />
                 <FieldErrorSlot
                   id={`${formId}-price-error`}
                   message={errors.price}
                 />
+                <ServerFieldErrors id={`${formId}-server-price`} items={serverFor("price")} />
               </div>
               <div>
                 <FieldLabel htmlFor={`${formId}-compare`}>
@@ -735,7 +955,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                     setField("compareAtPrice", event.target.value)
                   }
                   placeholder="Optional"
-                  aria-invalid={errors.compareAtPrice ? true : undefined}
+                  aria-invalid={errors.compareAtPrice || serverFor("compareAtPrice").length ? true : undefined}
                   aria-describedby={
                     errors.compareAtPrice
                       ? `${formId}-compare-error`
@@ -743,14 +963,14 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   }
                   className={cn(
                     adminFieldClass,
-                    errors.compareAtPrice &&
-                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    (errors.compareAtPrice || serverFor("compareAtPrice").length > 0) && INVALID_FIELD,
                   )}
                 />
                 <FieldErrorSlot
                   id={`${formId}-compare-error`}
                   message={errors.compareAtPrice}
                 />
+                <ServerFieldErrors id={`${formId}-server-compareAtPrice`} items={serverFor("compareAtPrice")} />
                 {!errors.compareAtPrice &&
                 priceReady &&
                 compareReady &&
@@ -799,6 +1019,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("quantity", "status", "orderLimits").length > 0}
             id="product-inventory"
             title="Inventory"
             description="Stock status is the availability label. Quantity is optional: leave it blank for made to order."
@@ -827,6 +1048,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   ),
                 )}
               </div>
+              <ServerFieldErrors id={`${formId}-server-status`} items={serverFor("status")} />
               <p className="mt-2 text-xs text-neutral-500">
                 {form.status === "available"
                   ? "In stock. Catalog products with this status can be added to cart."
@@ -844,20 +1066,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 disabled={variantMode}
                 onChange={(event) => setField("quantity", event.target.value)}
                 placeholder="Blank = made to order"
-                aria-invalid={errors.quantity ? true : undefined}
+                aria-invalid={errors.quantity || serverFor("quantity").length ? true : undefined}
                 aria-describedby={
                   errors.quantity ? `${formId}-qty-error` : `${formId}-qty-hint`
                 }
                 className={cn(
                   adminFieldClass,
-                  errors.quantity &&
-                    "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                  (errors.quantity || serverFor("quantity").length > 0) && INVALID_FIELD,
                 )}
               />
               <FieldErrorSlot
                 id={`${formId}-qty-error`}
                 message={errors.quantity}
               />
+              <ServerFieldErrors id={`${formId}-server-quantity`} items={serverFor("quantity")} />
               {!errors.quantity ? (
                 <p
                   id={`${formId}-qty-hint`}
@@ -883,12 +1105,11 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                     inputMode="numeric"
                     value={form.minOrder}
                     onChange={(event) => setField("minOrder", event.target.value)}
-                    aria-invalid={errors.orderLimits ? true : undefined}
+                    aria-invalid={errors.orderLimits || serverFor("orderLimits").length ? true : undefined}
                     aria-describedby={`${formId}-order-limits-hint`}
                     className={cn(
                       adminFieldClass,
-                      errors.orderLimits &&
-                        "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                      (errors.orderLimits || serverFor("orderLimits").length > 0) && INVALID_FIELD,
                     )}
                   />
                 </div>
@@ -900,12 +1121,11 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                     value={form.maxOrder}
                     placeholder="No extra limit"
                     onChange={(event) => setField("maxOrder", event.target.value)}
-                    aria-invalid={errors.orderLimits ? true : undefined}
+                    aria-invalid={errors.orderLimits || serverFor("orderLimits").length ? true : undefined}
                     aria-describedby={`${formId}-order-limits-hint`}
                     className={cn(
                       adminFieldClass,
-                      errors.orderLimits &&
-                        "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                      (errors.orderLimits || serverFor("orderLimits").length > 0) && INVALID_FIELD,
                     )}
                   />
                 </div>
@@ -914,6 +1134,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 id={`${formId}-order-limits-error`}
                 message={errors.orderLimits}
               />
+              <ServerFieldErrors id={`${formId}-server-orderLimits`} items={serverFor("orderLimits")} />
               <p
                 id={`${formId}-order-limits-hint`}
                 className="mt-1.5 text-xs text-neutral-500"
@@ -954,10 +1175,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("variants").length > 0}
             id="product-variants"
             title="Variants"
             description="Price, stock, and SKU for each combination of options."
           >
+            <ServerFieldErrors
+              id={`${formId}-server-variants`}
+              items={serverFor("variants")}
+              boxed
+            />
             <ProductVariantsFields
               formId={formId}
               groups={form.content.options}
@@ -970,10 +1197,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("content").length > 0}
             id="product-details"
             title="Product details"
             description="Content for the product page: highlights, the details tab, specifications, and questions. Reviews stay as they are."
           >
+            <ServerFieldErrors
+              id={`${formId}-server-content`}
+              items={serverFor("content")}
+              boxed
+            />
             <ProductDetailFields
               formId={formId}
               content={form.content}
@@ -983,6 +1216,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("category", "badges").length > 0}
             id="product-organization"
             title="Organization"
             description="Category is required. Badges are optional."
@@ -993,14 +1227,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               </p>
               <CategoryCascade
                 value={form.categoryRefId}
-                error={errors.category}
+                error={errors.category ?? serverFor("category")[0]?.message}
                 onChange={(id, trail) => {
+                  if (id !== form.categoryRefId) clearServer(["category"]);
                   setForm((current) =>
                     current.categoryRefId === id && current.categoryTrail === trail
                       ? current
                       : { ...current, categoryRefId: id, categoryTrail: trail },
                   );
                 }}
+              />
+              <ServerFieldErrors
+                id={`${formId}-server-category`}
+                items={errors.category ? [] : serverFor("category")}
+                fixOnly
               />
               <p className="mt-1.5 text-xs text-neutral-500">
                 Pick a category, then a subcategory if there is one. The product shows up under every
@@ -1013,6 +1253,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 initial={baseline.badges ?? []}
                 onChange={(next) => setField("badges", next)}
               />
+              <ServerFieldErrors id={`${formId}-server-badges`} items={serverFor("badges")} />
             </div>
           </FormSection>
         </div>
@@ -1089,6 +1330,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </section>
 
           <FormSection
+            invalid={serverFor("publishing").length > 0}
             id="product-publishing"
             title="Publishing"
             description="Live and Hidden are the catalog states. Featured adds a label in the product list."
@@ -1111,6 +1353,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 onChange={(checked) => setField("featured", checked)}
               />
             </div>
+            <ServerFieldErrors id={`${formId}-server-publishing`} items={serverFor("publishing")} />
             <p className="mt-4 border-t border-neutral-100 pt-3 text-sm font-medium text-neutral-800">
               Setup {setupDone} of 4
             </p>
@@ -1171,6 +1414,22 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       {leaveHref ? (
         <UnsavedChangesDialog onStay={() => setLeaveHref(null)} onDiscard={confirmLeave} />
       ) : null}
+
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex justify-center px-4"
+      >
+        {toast ? (
+          <p
+            key={toast.key}
+            className="flex max-w-xl items-center gap-2 rounded-full bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-xl"
+          >
+            <MaterialIcon name="error" className="shrink-0 text-[18px]" />
+            {toast.message}
+          </p>
+        ) : null}
+      </div>
     </form>
   );
 }
@@ -1179,17 +1438,22 @@ function FormSection({
   id,
   title,
   description,
+  invalid = false,
   children,
 }: {
   id: string;
   title: string;
   description: string;
+  invalid?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <section
       id={id}
-      className="scroll-mt-32 rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5"
+      className={cn(
+        "scroll-mt-32 rounded-2xl bg-white p-4 ring-1 sm:p-5",
+        invalid ? "ring-red-300" : "ring-neutral-200/90",
+      )}
     >
       <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
       <p className="mt-1 text-sm leading-relaxed text-neutral-500">
@@ -1242,6 +1506,38 @@ function FieldErrorSlot({ id, message }: { id: string; message?: string }) {
   return (
     <div id={id}>
       <FieldError message={message} />
+    </div>
+  );
+}
+
+/** Problems the API reported for one field: the message, then how to fix it, in red. */
+function ServerFieldErrors({
+  id,
+  items,
+  boxed = false,
+  fixOnly = false,
+}: {
+  id: string;
+  items: ApiFieldError[];
+  boxed?: boolean;
+  fixOnly?: boolean;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div
+      id={id}
+      tabIndex={-1}
+      className={cn(
+        "space-y-1 focus:outline-none",
+        boxed ? "mb-4 rounded-xl bg-red-50 px-3 py-2.5 ring-1 ring-red-200" : "mt-1.5",
+      )}
+    >
+      {items.map((item, index) => (
+        <p key={`${item.field}-${index}`} className="text-sm text-red-700">
+          {fixOnly ? null : <span className="block font-medium">{item.message}</span>}
+          {item.fix ? <span className="block text-xs text-red-600">{item.fix}</span> : null}
+        </p>
+      ))}
     </div>
   );
 }

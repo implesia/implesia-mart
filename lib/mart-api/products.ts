@@ -20,11 +20,38 @@ type ApiErrorBody = {
   error?: { message?: string; details?: unknown };
 };
 
+/** One problem from the product create API: `{field, message, fix}`, field = form field key. */
+export type ApiFieldError = { field: string; message: string; fix: string };
+
+/** `network`: the API was not reached. `server`: it answered 5xx. `request`: any other failure. */
+export type MartApiErrorKind = "network" | "server" | "request";
+
 export class MartApiError extends Error {
-  constructor(message: string) {
+  readonly kind: MartApiErrorKind;
+  readonly fieldErrors: ApiFieldError[];
+
+  constructor(
+    message: string,
+    options: { kind?: MartApiErrorKind; fieldErrors?: ApiFieldError[] } = {},
+  ) {
     super(message);
     this.name = "MartApiError";
+    this.kind = options.kind ?? "request";
+    this.fieldErrors = options.fieldErrors ?? [];
   }
+}
+
+/** The `errors` list of the product create API, or `[]` when the body has another shape. */
+export function readFieldErrors(body: unknown): ApiFieldError[] {
+  if (!body || typeof body !== "object") return [];
+  const list = (body as { errors?: unknown }).errors;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const { field, message, fix } = item as Record<string, unknown>;
+    if (typeof field !== "string" || typeof message !== "string" || !message.trim()) return [];
+    return [{ field, message, fix: typeof fix === "string" ? fix : "" }];
+  });
 }
 
 export type SavedProduct = {
@@ -74,7 +101,7 @@ export async function authorizedFetch(path: string, init?: RequestInit) {
       credentials: "same-origin",
     });
   } catch {
-    throw new MartApiError("Could not reach the API.");
+    throw new MartApiError("Could not reach the API.", { kind: "network" });
   }
   if (response.status === 401 && !path.includes("/auth/change-password")) clearSession();
   return response;
@@ -258,7 +285,20 @@ async function sendProduct(path: string, method: "POST" | "PATCH", body: FormDat
   if (response.status === 401) {
     throw new MartApiError("Sign in again to manage products.");
   }
-  if (!response.ok) throw new MartApiError(await readError(response, "The product could not be saved."));
+  if (!response.ok) {
+    const kind = response.status >= 500 ? "server" : "request";
+    let body: unknown = null;
+    try {
+      body = await response.clone().json();
+    } catch {
+      /* Not JSON (a proxy or gateway page). */
+    }
+    const fieldErrors = readFieldErrors(body);
+    if (fieldErrors.length > 0) {
+      throw new MartApiError(fieldErrors[0].message, { kind, fieldErrors });
+    }
+    throw new MartApiError(await readError(response, "The product could not be saved."), { kind });
+  }
   return (await response.json()) as SavedProduct;
 }
 
