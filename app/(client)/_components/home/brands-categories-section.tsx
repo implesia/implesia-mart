@@ -1,39 +1,11 @@
-"use client";
-
-import Image from "next/image";
 import Link from "next/link";
 
 import type { ShowcasePublic } from "@/lib/mart-api/showcase";
 
 import { ProductCard } from "../../products/_components/product-card";
-import {
-  products,
-  productsHref,
-  type Product,
-} from "../../_data/products/products";
+import type { Product } from "../../_data/products/products";
 import { Container } from "../common/container";
 import { MaterialIcon } from "../common/material-icon";
-import { productPath } from "@/lib/mart-api/product-url";
-
-function productBySlug(slug: string) {
-  const product = products.find((item) => item.slug === slug);
-  if (!product) throw new Error(`Missing product: ${slug}`);
-  return product;
-}
-
-const brandProducts = [
-  "sunset-rainbow-projection-lamp",
-  "ai-face-tracking-phone-holder",
-  "tws-wireless-earbuds",
-  "bluetooth-neckband-earphone",
-  "magnetic-car-phone-holder",
-  "fast-charging-3in1-cable",
-  "slim-power-bank-10000mah",
-  "mini-thermal-printer",
-  "smart-fitness-ring",
-  "galaxy-projector-humidifier",
-  "custom-gorgeous-womens-gown",
-].map(productBySlug);
 
 function ViewAll({ href }: { href: string }) {
   return (
@@ -44,46 +16,6 @@ function ViewAll({ href }: { href: string }) {
       View All
       <MaterialIcon name="chevron_right" className="text-[18px]" />
     </Link>
-  );
-}
-
-export function BrandsSection() {
-  return (
-    <section
-      className="bg-[#f5f6f8] pb-4 sm:pb-5 dark:bg-background"
-      aria-labelledby="home-brands-heading"
-    >
-      <Container className="px-4 sm:px-6 lg:px-8">
-        <div className="mb-4 flex items-center justify-between gap-4 sm:mb-5">
-          <h2
-            id="home-brands-heading"
-            className="text-lg font-semibold tracking-tight text-neutral-950 sm:text-xl dark:text-white"
-          >
-            ব্র্যান্ড
-          </h2>
-          <ViewAll href={productsHref()} />
-        </div>
-        <ul className="flex items-center justify-between gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {brandProducts.map((product) => (
-            <li key={product.id} className="shrink-0">
-              <Link
-                href={productPath(product)}
-                aria-label={product.title}
-                className="relative block size-14 overflow-hidden rounded-full border border-neutral-200 bg-white shadow-sm transition-transform hover:scale-105 sm:size-16 dark:border-white/15 dark:bg-[#121816]"
-              >
-                <Image
-                  src={product.imageSrc}
-                  alt=""
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </Container>
-    </section>
   );
 }
 

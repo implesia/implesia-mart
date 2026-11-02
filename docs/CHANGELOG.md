@@ -4,6 +4,12 @@ Newest first. Every task adds an entry: date, what changed, files touched, and a
 
 ## 2026-11-02 (summary of today's work)
 
+- **Home page Showcase fixes.**
+  - The section was a client component that received the whole store catalog as props, so every published product (not only the pinned ones) was sent in the home page payload. It is now a server component; only the shown cards go to the browser.
+  - Removed the unused `BrandsSection` and its mock-catalog import from the same file (it ran a lookup at module load that throws if a seed slug goes missing).
+  - When every pinned product is removed or hidden, the section now stays off the page instead of filling itself with auto-picked category products. The category fallback is only used when the showcase API could not be read.
+  - Checked: API data arrives, only published products, View All and card links return 200, desktop and mobile layout, no console or network errors from the section.
+  - Files: `app/(client)/_components/home/brands-categories-section.tsx`, `lib/mart-api/showcase.ts`.
 - **Custom thumbnails for gallery videos and YouTube items.**
   - Admin: each video/YouTube tile has "Add thumbnail", "Change thumbnail" and "Remove". The image stays in the browser until Save and goes up as a `thumbnails` part with `thumbnail_targets`.
   - Storefront product page: a video/YouTube item with a custom thumbnail shows it with a ▶ button; pressing it starts the player (YouTube with `autoplay=1`, video with `autoPlay`). Without a custom thumbnail nothing changes (YouTube hqdefault / first video frame).

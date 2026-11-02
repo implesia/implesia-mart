@@ -80,13 +80,17 @@ export function fallbackShowcase(products: Product[]): ShowcasePublic {
   };
 }
 
-/** A saved showcase wins. Empty rows mean nothing was pinned yet. */
+/**
+ * A saved showcase always wins: when every pinned product is removed or hidden
+ * the section stays off the page. The category fallback is only for when the
+ * showcase API could not be read.
+ */
 export function showcaseForStore(
   curated: ShowcasePublic | null,
   products: Product[],
   unavailable: boolean,
 ): ShowcasePublic | null {
-  if (curated && curated.rows.some((row) => row.productIds.length > 0)) return curated;
+  if (curated) return curated.rows.some((row) => row.productIds.length > 0) ? curated : null;
   if (unavailable) return null;
   const fallback = fallbackShowcase(products);
   return fallback.rows.some((row) => row.productIds.length > 0) ? fallback : null;
