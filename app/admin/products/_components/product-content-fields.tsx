@@ -1,5 +1,7 @@
 "use client";
 
+import { useId, useState } from "react";
+
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
   blankFaq,
@@ -18,7 +20,7 @@ import {
   adminFieldClass,
   FieldLabel,
 } from "../../_components/admin-ui";
-import { ImageField } from "../../_components/image-field";
+import { ImageField, uploadImage } from "../../_components/image-field";
 
 export function ProductCopyFields({
   formId,
@@ -73,6 +75,10 @@ export function ProductGalleryFields({
   onChange: (content: ProductStorefrontContent) => void;
   onBusy: (busy: boolean) => void;
 }) {
+  const addId = useId();
+  const [adding, setAdding] = useState(0);
+  const [addError, setAddError] = useState("");
+
   function update(index: number, patch: Partial<ProductGalleryImage>) {
     onChange({
       ...content,
@@ -82,96 +88,158 @@ export function ProductGalleryFields({
     });
   }
 
+  // Same upload as each tile (kept in the browser until Save), several files at once.
+  async function addFiles(list: FileList | null) {
+    const files = Array.from(list ?? []);
+    if (files.length === 0) return;
+    setAddError("");
+    setAdding(files.length);
+    onBusy(true);
+    try {
+      const results = await Promise.allSettled(files.map(uploadImage));
+      const added = results.flatMap((result) =>
+        result.status === "fulfilled"
+          ? [{ ...blankGalleryImage(), src: result.value }]
+          : [],
+      );
+      if (added.length) {
+        onChange({ ...content, gallery: [...content.gallery, ...added] });
+      }
+      const failed = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failed) {
+        setAddError(
+          failed.reason instanceof Error
+            ? failed.reason.message
+            : "Upload failed. Try again.",
+        );
+      }
+    } finally {
+      setAdding(0);
+      onBusy(false);
+    }
+  }
+
   return (
     <div className="mt-5 border-t border-neutral-100 pt-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold text-neutral-950">Gallery</h3>
-          <p className="mt-1 text-sm text-neutral-500">
-            These photos appear on the product page. The catalog image above is
-            the thumbnail. An existing product video stays first and is not
-            edited here.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() =>
-            onChange({
-              ...content,
-              gallery: [...content.gallery, blankGalleryImage()],
-            })
-          }
-          className={adminButtonClass.secondary}
-        >
-          Add photo
-        </button>
-      </div>
+      <h3 className="text-sm font-semibold text-neutral-950">Gallery</h3>
+      <p className="mt-1 text-sm text-neutral-500">
+        These photos appear on the product page. The catalog image above is
+        the thumbnail. An existing product video stays first and is not
+        edited here.
+      </p>
+      <ul className="mt-4 flex flex-wrap gap-3" aria-label="Gallery photos">
+        {content.gallery.map((item, index) => (
+          <li key={item.id} className="w-28">
+            <ImageField
+              label=""
+              variant="tile"
+              value={item.src}
+              onChange={(src) => update(index, { src })}
+              onRemove={() =>
+                onChange({
+                  ...content,
+                  gallery: content.gallery.filter((row) => row.id !== item.id),
+                })
+              }
+              overlay={
+                <>
+                  <TileButton
+                    label={`Move photo ${index + 1} earlier`}
+                    icon="chevron_left"
+                    disabled={index === 0}
+                    onClick={() =>
+                      onChange({
+                        ...content,
+                        gallery: move(content.gallery, index, index - 1),
+                      })
+                    }
+                  />
+                  <TileButton
+                    label={`Move photo ${index + 1} later`}
+                    icon="chevron_right"
+                    disabled={index === content.gallery.length - 1}
+                    onClick={() =>
+                      onChange({
+                        ...content,
+                        gallery: move(content.gallery, index, index + 1),
+                      })
+                    }
+                  />
+                </>
+              }
+              onBusy={onBusy}
+            />
+            <input
+              value={item.alt}
+              onChange={(event) => update(index, { alt: event.target.value })}
+              placeholder="Description"
+              aria-label={`Photo ${index + 1} description`}
+              className="mt-1.5 h-8 w-full rounded-lg bg-white px-2 text-xs text-neutral-800 ring-1 ring-neutral-200 placeholder:text-neutral-400 focus:ring-2 focus:ring-primary/40 focus:outline-none"
+            />
+          </li>
+        ))}
+        <li className="w-28">
+          <label
+            htmlFor={addId}
+            className={cn(
+              "grid size-28 cursor-pointer place-items-center rounded-xl border border-dashed border-neutral-300 bg-[#f7f8fa] text-center text-neutral-500 hover:border-primary hover:text-primary focus-within:ring-2 focus-within:ring-primary",
+              adding > 0 && "pointer-events-none opacity-60",
+            )}
+          >
+            <span>
+              <MaterialIcon name="add" className="text-[22px]" />
+              <span className="block text-xs font-medium">
+                {adding > 0 ? "Uploading…" : "Add image"}
+              </span>
+            </span>
+            <input
+              id={addId}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              className="sr-only"
+              disabled={adding > 0}
+              onChange={(event) => {
+                void addFiles(event.target.files);
+                event.target.value = "";
+              }}
+            />
+          </label>
+        </li>
+      </ul>
+      {addError ? <p className="mt-1.5 text-xs text-red-700">{addError}</p> : null}
       {content.gallery.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">
+        <p className="mt-2 text-xs text-neutral-500">
           No gallery photos. The product page uses the catalog image.
         </p>
-      ) : (
-        <ul className="mt-4 space-y-4">
-          {content.gallery.map((item, index) => (
-            <li
-              key={item.id}
-              className="rounded-2xl bg-[#f7f8fa] p-3 ring-1 ring-neutral-200"
-            >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-neutral-500">
-                  Photo {index + 1}
-                </p>
-                <RowActions
-                  label={`gallery photo ${index + 1}`}
-                  disableUp={index === 0}
-                  disableDown={index === content.gallery.length - 1}
-                  onUp={() =>
-                    onChange({
-                      ...content,
-                      gallery: move(content.gallery, index, index - 1),
-                    })
-                  }
-                  onDown={() =>
-                    onChange({
-                      ...content,
-                      gallery: move(content.gallery, index, index + 1),
-                    })
-                  }
-                  onRemove={() =>
-                    onChange({
-                      ...content,
-                      gallery: content.gallery.filter(
-                        (row) => row.id !== item.id,
-                      ),
-                    })
-                  }
-                />
-              </div>
-              <ImageField
-                compact
-                label=""
-                value={item.src}
-                onChange={(src) => update(index, { src })}
-                onBusy={onBusy}
-              />
-              <label className="mt-3 block">
-                <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                  Photo description
-                </span>
-                <input
-                  value={item.alt}
-                  onChange={(event) =>
-                    update(index, { alt: event.target.value })
-                  }
-                  placeholder="What is in this photo"
-                  className={adminFieldClass}
-                />
-              </label>
-            </li>
-          ))}
-        </ul>
-      )}
+      ) : null}
     </div>
+  );
+}
+
+function TileButton({
+  label,
+  icon,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="grid size-6 place-items-center rounded-full bg-white/95 text-neutral-700 shadow ring-1 ring-neutral-200 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
+    >
+      <MaterialIcon name={icon} className="text-[16px]" />
+    </button>
   );
 }
 

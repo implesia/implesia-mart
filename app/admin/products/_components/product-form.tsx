@@ -893,8 +893,11 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             title="Media"
             description="The main image is the catalog thumbnail. Gallery images are the product page photos. JPG, PNG, WEBP, GIF, or AVIF, up to 5 MB."
           >
+            <p className="mb-1.5 text-sm font-medium text-neutral-700">Main image</p>
             <ImageField
               label=""
+              variant="tile"
+              tileSize="lg"
               value={form.imageSrc}
               onChange={(imageSrc) => setField("imageSrc", imageSrc)}
               confirmRemove
