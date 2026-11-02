@@ -4,6 +4,7 @@ import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
 import {
   emptyProductContent,
+  type ProductGalleryImage,
   type ProductStorefrontContent,
 } from "@/lib/mart-mock/product-content";
 import {
@@ -60,7 +61,7 @@ export type SavedProduct = {
   image_src: string;
   content?: {
     image_alt?: string;
-    gallery?: { id?: string; src?: string; alt?: string }[];
+    gallery?: ApiGallery[];
   };
 };
 
@@ -78,15 +79,21 @@ export function withSavedMedia(draft: ProductDraft, saved: SavedProduct): Produc
     content: {
       ...draft.content,
       imageAlt: saved.content?.image_alt || draft.content.imageAlt,
-      gallery: gallery
-        .filter((item) => item.src)
-        .map((item, index) => ({
-          id: item.id || `gallery-${index + 1}`,
-          src: mediaUrl(item.src ?? ""),
-          alt: item.alt ?? "",
-        })),
+      gallery: galleryFromApi(gallery),
     },
   };
+}
+
+function galleryFromApi(items: ApiGallery[]): ProductGalleryImage[] {
+  return items
+    .filter((item) => item.src || item.youtube_id)
+    .map((item, index) => ({
+      id: item.id || `gallery-${index + 1}`,
+      kind: item.kind === "video" || item.kind === "youtube" ? item.kind : "image",
+      src: mediaUrl(item.src ?? ""),
+      ...(item.youtube_id ? { youtubeId: item.youtube_id } : {}),
+      alt: item.alt ?? "",
+    }));
 }
 
 /** Admin calls go through the same-origin proxy. The browser never sees the tokens. */
@@ -167,9 +174,21 @@ function contentPayload(content: ProductStorefrontContent) {
     image_alt: content.imageAlt,
     quality_image_src: sitePath(stored.qualityImageSrc ?? ""),
     quality_image_alt: stored.qualityImageAlt ?? "",
+    // New files go up as `images`/`videos` parts; the API appends them after these.
     gallery: content.gallery
-      .filter((item) => item.src && !isLocalImage(item.src))
-      .map((item) => ({ id: item.id, src: sitePath(item.src), alt: item.alt })),
+      .filter((item) =>
+        item.kind === "youtube" ? Boolean(item.youtubeId) : item.src && !isLocalImage(item.src),
+      )
+      .map((item) =>
+        item.kind === "youtube"
+          ? { id: item.id, kind: "youtube", youtube_id: item.youtubeId, alt: item.alt }
+          : {
+              id: item.id,
+              kind: item.kind ?? "image",
+              src: sitePath(item.src),
+              alt: item.alt,
+            },
+      ),
     highlights: content.highlights,
     suitable_for: content.suitableFor,
     package_items: content.packageItems,
@@ -261,27 +280,61 @@ async function imageParts(draft: ProductDraft) {
     files.push(await fileFromSrc(draft.imageSrc, "image"));
     alts.push(draft.content.imageAlt || draft.title);
   }
+  const videos: File[] = [];
+  const videoAlts: string[] = [];
   for (const [index, item] of draft.content.gallery.entries()) {
-    if (!isLocalImage(item.src)) continue;
+    if (item.kind === "youtube" || !isLocalImage(item.src)) continue;
+    if (item.kind === "video") {
+      videos.push(await videoFromSrc(item.src, `video-${index + 1}`));
+      videoAlts.push(item.alt);
+      continue;
+    }
     files.push(await fileFromSrc(item.src, `gallery-${index + 1}`));
     alts.push(item.alt);
   }
   if (files.length > 12) {
     throw new MartApiError("A product can have at most 12 uploaded images.");
   }
-  return { files, alts, mainIsFile };
+  const videoBytes = videos.reduce((sum, file) => sum + file.size, 0);
+  if (videoBytes > MAX_VIDEO_UPLOAD_BYTES) {
+    throw new MartApiError(
+      "Too many new videos to upload at once. Save with up to 100 MB of new video, then add the rest.",
+    );
+  }
+  return { files, alts, videos, videoAlts, mainIsFile };
+}
+
+/** Per save. The admin proxy accepts a little more (see next.config.ts). */
+const MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024;
+
+async function videoFromSrc(src: string, name: string) {
+  const response = await fetch(src);
+  if (!response.ok) {
+    throw new MartApiError("Could not read a video. Upload it again.");
+  }
+  const blob = await response.blob();
+  const extension = blob.type === "video/webm" ? "webm" : "mp4";
+  return new File([blob], `${name}.${extension}`, {
+    type: blob.type || `video/${extension}`,
+  });
 }
 
 function formDataFor(
   payload: Record<string, unknown>,
   files: File[],
   alts: string[],
+  videos: File[] = [],
+  videoAlts: string[] = [],
 ) {
   const body = new FormData();
   body.set("payload", JSON.stringify(payload));
   body.set("image_alts", JSON.stringify(alts));
   body.set("quality_image_alt", "");
   for (const file of files) body.append("images", file);
+  if (videos.length) {
+    body.set("video_alts", JSON.stringify(videoAlts));
+    for (const file of videos) body.append("videos", file);
+  }
   return body;
 }
 
@@ -369,10 +422,10 @@ export async function logoutMart() {
 }
 
 export async function saveMartProduct(productId: string | undefined, draft: ProductDraft) {
-  const { files, alts, mainIsFile } = await imageParts(draft);
+  const { files, alts, videos, videoAlts, mainIsFile } = await imageParts(draft);
   const fields = productFields(draft, mainIsFile, Boolean(productId));
   const payload = productId ? fields : { ...fields, slug: null };
-  const body = formDataFor(payload, files, alts);
+  const body = formDataFor(payload, files, alts, videos, videoAlts);
   if (productId) {
     return sendProduct(`/api/v1/admin/products/${productId}`, "PATCH", body);
   }
@@ -394,7 +447,13 @@ const SPEC_GROUPS = new Set<string>([
   "general",
 ]);
 
-type ApiGallery = { id?: string; src?: string; alt?: string };
+type ApiGallery = {
+  id?: string;
+  kind?: string;
+  src?: string;
+  youtube_id?: string;
+  alt?: string;
+};
 type ApiSpec = { id?: string; label?: string; value?: string; group?: string };
 type ApiFaq = { id?: string; question?: string; answer?: string };
 type ApiOptionValue = { id?: string; label?: string; swatch?: string };
@@ -508,13 +567,7 @@ function contentFromApi(content: ApiContent | undefined): ProductStorefrontConte
     stockLabel: content.stock_label || base.stockLabel,
     unitLabel: content.unit_label ?? "",
     imageAlt: content.image_alt ?? "",
-    gallery: (content.gallery ?? [])
-      .filter((item) => item.src)
-      .map((item, index) => ({
-        id: item.id || `gallery-${index + 1}`,
-        src: mediaUrl(item.src ?? ""),
-        alt: item.alt ?? "",
-      })),
+    gallery: galleryFromApi(content.gallery ?? []),
     highlights: content.highlights ?? [],
     suitableFor: content.suitable_for ?? [],
     packageItems: content.package_items ?? [],

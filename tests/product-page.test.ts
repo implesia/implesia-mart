@@ -82,6 +82,24 @@ test("missing optional fields do not reject a real product", () => {
   assert.deepEqual(detail?.faqs, []);
 });
 
+test("the gallery keeps uploaded videos and YouTube links in order", () => {
+  const detail = normalizeProductDetail({
+    ...published,
+    gallery: [
+      { src: "/media/a.jpg", alt: "" },
+      { kind: "video", src: "/media/products/a.mp4", alt: "Clip" },
+      { kind: "youtube", src: "", youtube_id: "dQw4w9WgXcQ", alt: "" },
+      { kind: "youtube", src: "", youtube_id: "bad id", alt: "" },
+    ],
+  });
+  assert.deepEqual(
+    detail?.gallery.map((item) => item.kind),
+    ["image", "video", "youtube"],
+  );
+  assert.equal(detail?.gallery[2]?.youtubeId, "dQw4w9WgXcQ");
+  assert.equal(galleryControlName("Lamp", 1, "youtube"), "Lamp — ভিডিও ২");
+});
+
 test("gallery names include the product and the image number", () => {
   assert.equal(
     galleryControlName("Night upload check", 0, "image"),

@@ -15,6 +15,7 @@ import type { StoreBadge } from "@/lib/mart-api/badge-rules";
 import { cardToProduct } from "@/lib/mart-api/catalog-product";
 import { mediaUrl } from "@/lib/mart-api/media-url";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
+import { youtubeThumb } from "@/lib/mart-api/youtube";
 import {
   catalogResponseKind,
   normalizeProductDetail,
@@ -172,14 +173,23 @@ function mapDetail(
   const gallery = (
     item.gallery.length > 0
       ? item.gallery
-      : [{ src: item.image_src, alt: item.image_alt }]
+      : [{ kind: "image" as const, src: item.image_src, alt: item.image_alt }]
   )
-    .filter((image) => image.src)
-    .map((image) => ({
-      src: media(image.src),
-      alt: image.alt || item.title,
-      type: "image" as const,
-    }));
+    .filter((image) => image.src || image.youtubeId)
+    .map((image) =>
+      image.kind === "youtube"
+        ? {
+            src: youtubeThumb(image.youtubeId!),
+            alt: image.alt || item.title,
+            type: "youtube" as const,
+            youtubeId: image.youtubeId,
+          }
+        : {
+            src: media(image.src),
+            alt: image.alt || item.title,
+            type: image.kind,
+          },
+    );
   const delivery =
     item.status === "coming-soon"
       ? [

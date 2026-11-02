@@ -34,6 +34,23 @@ export async function uploadImage(file: File): Promise<string> {
   return URL.createObjectURL(file);
 }
 
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+export const VIDEO_ACCEPT = "video/mp4,video/webm,.mp4,.webm";
+
+/** Same as uploadImage, for gallery videos: kept in the browser until the form is saved. */
+export async function uploadVideo(file: File): Promise<string> {
+  const name = file.name.toLowerCase();
+  const typeOk = !file.type || VIDEO_TYPES.has(file.type);
+  if (!typeOk || !/\.(mp4|webm)$/.test(name)) {
+    throw new Error("Use an MP4 or WEBM video.");
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error("Video must be 50 MB or smaller.");
+  }
+  return URL.createObjectURL(file);
+}
+
 export function MultiImageUpload({
   inputId,
   onUploaded,

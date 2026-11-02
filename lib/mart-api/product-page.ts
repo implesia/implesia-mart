@@ -44,11 +44,11 @@ export function banglaNumber(value: number) {
 export function galleryControlName(
   title: string,
   index: number,
-  kind: "image" | "video",
+  kind: "image" | "video" | "youtube",
 ) {
   const name = title.trim() || "প্রোডাক্ট";
   const n = banglaNumber(index + 1);
-  return kind === "video" ? `${name} — ভিডিও ${n}` : `${name} — ছবি ${n}`;
+  return kind === "image" ? `${name} — ছবি ${n}` : `${name} — ভিডিও ${n}`;
 }
 
 export function directCheckoutHref(
@@ -101,7 +101,7 @@ export type StoreDetailPayload = {
   tagline: string;
   description: string;
   stock_label: string;
-  gallery: { src: string; alt: string }[];
+  gallery: StoreGalleryItem[];
   highlights: string[];
   suitable_for: string[];
   package_items: string[];
@@ -194,6 +194,16 @@ function readCard(value: unknown) {
   };
 }
 
+export type StoreGalleryItem = {
+  kind: "image" | "video" | "youtube";
+  /** Photo or video address; empty for YouTube. */
+  src: string;
+  youtubeId?: string;
+  alt: string;
+};
+
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+
 /** A 200 body that cannot satisfy this shape is an API failure, not a seed product. */
 export function normalizeProductDetail(
   body: unknown,
@@ -202,11 +212,20 @@ export function normalizeProductDetail(
   const record = asRecord(body);
   if (!card || !record) return null;
   const gallery = Array.isArray(record.gallery)
-    ? record.gallery.flatMap((item) => {
+    ? record.gallery.flatMap((item): StoreGalleryItem[] => {
         const image = asRecord(item);
-        const src = image ? text(image, "src") : "";
+        if (!image) return [];
+        const alt = text(image, "alt") || card.title;
+        const kind = text(image, "kind");
+        if (kind === "youtube") {
+          const youtubeId = text(image, "youtube_id");
+          return YOUTUBE_ID.test(youtubeId)
+            ? [{ kind: "youtube", src: "", youtubeId, alt }]
+            : [];
+        }
+        const src = text(image, "src");
         if (!src) return [];
-        return [{ src, alt: text(image!, "alt") || card.title }];
+        return [{ kind: kind === "video" ? "video" : "image", src, alt }];
       })
     : [];
   const options = Array.isArray(record.options)

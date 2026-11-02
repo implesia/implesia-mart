@@ -5,6 +5,7 @@ import { useRef, useState, type KeyboardEvent } from "react";
 
 import { badgeToneClass, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { galleryControlName } from "@/lib/mart-api/product-page";
+import { youtubeEmbed } from "@/lib/mart-api/youtube";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -115,7 +116,17 @@ export function ProductGallery({
             "aspect-square sm:aspect-4/5 lg:aspect-auto lg:h-[min(640px,70vh)]",
           )}
         >
-          {active?.type === "video" ? (
+          {active?.type === "youtube" && active.youtubeId ? (
+            <iframe
+              key={active.youtubeId}
+              src={youtubeEmbed(active.youtubeId)}
+              title={active.alt}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
+              className="absolute inset-0 h-full w-full border-0 bg-black"
+            />
+          ) : active?.type === "video" ? (
             <video
               key={active.src}
               src={active.src}
@@ -177,15 +188,13 @@ export function ProductGallery({
         >
           {images.map((item, index) => {
             const selected = index === activeIndex;
-            const name = galleryControlName(
-              title,
-              index,
-              item.type === "video" ? "video" : "image",
-            );
+            const name = galleryControlName(title, index, item.type);
             const thumb: ProductGalleryItem =
               item.type === "video"
                 ? { ...item, src: item.poster ?? "", alt: name }
                 : { ...item, alt: name };
+            // An uploaded video has no poster: its first frame is the thumbnail.
+            const frameThumb = item.type === "video" && !item.poster;
             return (
               <button
                 key={`${item.type}-${item.src}-${index}`}
@@ -209,8 +218,20 @@ export function ProductGallery({
                 onClick={() => setActiveIndex(index)}
                 onKeyDown={(event) => onThumbKeyDown(event, index)}
               >
-                <GalleryFrame item={thumb} sizes="80px" fit="cover" />
-                {item.type === "video" ? (
+                {frameThumb ? (
+                  <video
+                    src={`${item.src}#t=0.1`}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    aria-hidden
+                    tabIndex={-1}
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <GalleryFrame item={thumb} sizes="80px" fit="cover" />
+                )}
+                {item.type !== "image" ? (
                   <span className="absolute inset-0 flex items-center justify-center bg-black/35">
                     <span className="flex size-7 items-center justify-center rounded-full bg-white/95 text-[#042422] shadow-sm">
                       <MaterialIcon name="play_arrow" className="text-[20px]" />

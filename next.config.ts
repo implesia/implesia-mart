@@ -45,6 +45,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: appRoot,
   },
+  experimental: {
+    // Admin product saves carry new gallery videos (50 MB each, 100 MB per save)
+    // through the request proxy. The default cap is 10 MB.
+    proxyClientMaxBodySize: "110mb",
+  },
   images: {
     // The local API serves product photos from 127.0.0.1. The optimizer
     // refuses private addresses unless this is set.
@@ -52,6 +57,8 @@ const nextConfig: NextConfig = {
     remotePatterns: uniquePatterns([
       remotePattern("https", "lh3.googleusercontent.com"),
       remotePattern("https", "placehold.co"),
+      // Still frames for YouTube videos in product galleries.
+      { protocol: "https", hostname: "img.youtube.com", pathname: "/vi/**" },
       // The production build must allow this host even when the API URL
       // env var is absent while next.config is evaluated.
       remotePattern("https", "mart-api.implesia.com"),

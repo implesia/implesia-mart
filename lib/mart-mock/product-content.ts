@@ -16,7 +16,12 @@ import type { ProductGalleryItem } from "@/app/(client)/_data/products/product-m
 
 export type ProductGalleryImage = {
   id: string;
+  /** Missing on older items, which are photos. */
+  kind?: "image" | "video" | "youtube";
+  /** Photo or uploaded video address. Empty for YouTube. */
   src: string;
+  /** YouTube items only. */
+  youtubeId?: string;
   alt: string;
 };
 
