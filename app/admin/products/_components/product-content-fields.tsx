@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -89,6 +89,8 @@ export function ProductGalleryFields({
   const [adding, setAdding] = useState(0);
   const [addError, setAddError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const imageInput = useRef<HTMLInputElement>(null);
+  const videoInput = useRef<HTMLInputElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [link, setLink] = useState("");
   const [linkError, setLinkError] = useState("");
@@ -261,43 +263,67 @@ export function ProductGalleryFields({
                 </span>
               </span>
             </button>
+            {/* The pickers stay mounted: the menu closes as soon as focus leaves it,
+                which would unmount an input inside it before its change event. */}
+            <input
+              ref={imageInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              hidden
+              tabIndex={-1}
+              onChange={(event) => {
+                void addFiles(event.target.files, "image");
+                event.target.value = "";
+              }}
+            />
+            <input
+              ref={videoInput}
+              type="file"
+              accept={VIDEO_ACCEPT}
+              multiple
+              hidden
+              tabIndex={-1}
+              onChange={(event) => {
+                void addFiles(event.target.files, "video");
+                event.target.value = "";
+              }}
+            />
             {menuOpen ? (
               <div
                 role="menu"
                 aria-label="Add to gallery"
+                // Keep focus on the trigger so the menu is not closed by blur mid-click.
+                onMouseDown={(event) => event.preventDefault()}
                 className="absolute top-[calc(100%+0.25rem)] left-0 z-20 w-52 rounded-xl bg-white p-1 shadow-lg ring-1 ring-neutral-200"
               >
-                <label role="menuitem" className={menuItemClass}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={menuItemClass}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    imageInput.current?.click();
+                  }}
+                >
                   <MaterialIcon name="image" className="text-[18px] text-neutral-500" />
                   Image
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    multiple
-                    className="sr-only"
-                    onChange={(event) => {
-                      void addFiles(event.target.files, "image");
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-                <label role="menuitem" className={menuItemClass}>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={menuItemClass}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    videoInput.current?.click();
+                  }}
+                >
                   <MaterialIcon name="movie" className="text-[18px] text-neutral-500" />
                   <span>
                     Video
                     <span className="block text-xs text-neutral-500">MP4 or WEBM, up to 50 MB</span>
                   </span>
-                  <input
-                    type="file"
-                    accept={VIDEO_ACCEPT}
-                    multiple
-                    className="sr-only"
-                    onChange={(event) => {
-                      void addFiles(event.target.files, "video");
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
+                </button>
                 <button
                   type="button"
                   role="menuitem"

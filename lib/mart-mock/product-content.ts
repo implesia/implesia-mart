@@ -210,7 +210,8 @@ export function cleanProductContent(content: ProductStorefrontContent): ProductS
     qualityBody: content.qualityBody.trim(),
     gallery: content.gallery
       .map((item) => ({ ...item, src: item.src.trim(), alt: item.alt.trim() }))
-      .filter((item) => item.src),
+      // A YouTube item has no src; its video id is what keeps it.
+      .filter((item) => (item.kind === "youtube" ? Boolean(item.youtubeId) : item.src)),
     highlights: lines(content.highlights),
     suitableFor: lines(content.suitableFor),
     packageItems: lines(content.packageItems),
