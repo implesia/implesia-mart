@@ -17,6 +17,8 @@ export type QuoteLine = {
   /** Price before discount and the total discount % the server applied. */
   regularPrice: number;
   totalPercent: number;
+  /** Quantity tier % taken off this line's total (0 when none). */
+  quantityPercent: number;
   available: boolean;
   maxQuantity: number;
   selection: { name: string; label: string; swatch: string }[];
@@ -107,6 +109,7 @@ type ApiQuoteLine = {
   line_total: number;
   regular_price?: number;
   total_discount_percent?: number;
+  quantity_discount_percent?: number;
   available: boolean;
   max_quantity: number;
   selection?: { name: string; label: string; swatch?: string }[];
@@ -187,6 +190,7 @@ function mapQuote(body: ApiQuote): OrderQuote {
       lineTotal: item.line_total,
       regularPrice: Math.max(item.regular_price ?? 0, item.unit_price),
       totalPercent: item.total_discount_percent ?? 0,
+      quantityPercent: item.quantity_discount_percent ?? 0,
       available: item.available,
       maxQuantity: item.max_quantity,
       selection: mapSelection(item.selection),

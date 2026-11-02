@@ -77,7 +77,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 /** Optimistic price for a new quantity; the server's answer replaces it. */
 function repriced(item: CartLineResolved, quantity: number): CartLineResolved {
   if (!item.pricing) {
-    return { ...item, quantity, lineTotal: item.unitPrice * quantity };
+    return { ...item, quantity, lineTotal: item.unitPrice * quantity, quantityPercent: 0 };
   }
   const line = priceLine({
     regular: item.pricing.regularPrice,
@@ -94,6 +94,7 @@ function repriced(item: CartLineResolved, quantity: number): CartLineResolved {
     lineTotal: line.lineTotal,
     regularPrice: line.regularPrice,
     totalPercent: line.totalPercent,
+    quantityPercent: line.quantityPercent,
   };
 }
 
@@ -114,6 +115,7 @@ function applyCart(cart: ShopCart) {
     lineTotal: item.lineTotal,
     regularPrice: item.regularPrice,
     totalPercent: item.totalPercent,
+    quantityPercent: item.quantityPercent,
     pricing: item.pricing,
     imageSrc: item.imageSrc,
     imageAlt: item.title,

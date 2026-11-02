@@ -90,9 +90,15 @@ export function chooseOption(
 export type PriceView = {
   unitPrice: number;
   compareAtPrice: number | null;
+  /** unitPrice × quantity, before the quantity discount. */
+  subtotal: number;
+  /** subtotal − lineTotal (whole taka); 0 without a quantity tier. */
+  discountAmount: number;
+  /** What is charged: ceil(subtotal less the quantity %). */
   lineTotal: number;
+  /** Discount of the quantity-1 price against the regular price. */
   discountPercent: number | null;
-  /** Extra % the chosen quantity adds on top of the base discount. */
+  /** Quantity tier % taken off the line total (0 when no tier applies). */
   quantityPercent: number;
 };
 
@@ -136,10 +142,12 @@ export function priceView(
   return {
     unitPrice: line.unitPrice,
     compareAtPrice: discounted ? regular : null,
+    subtotal: line.subtotal,
+    discountAmount: line.discountAmount,
     lineTotal: line.lineTotal,
     discountPercent: discounted
       ? base.pricing
-        ? line.totalPercent
+        ? Math.min(line.basePercent, line.totalPercent)
         : Math.round(((regular - line.unitPrice) / regular) * 100)
       : null,
     quantityPercent: line.quantityPercent,

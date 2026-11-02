@@ -28,6 +28,8 @@ export type CartLine = {
   /** Price before any discount, and the total discount % the server applied. */
   regularPrice: number;
   totalPercent: number;
+  /** Quantity tier % taken off this line's total (0 when none). */
+  quantityPercent: number;
   /** Lets the cart show a new quantity's price before the server answers. */
   pricing: ProductPricing | null;
   available: boolean;
@@ -106,6 +108,7 @@ type ApiLine = {
   line_total: number;
   regular_price?: number;
   total_discount_percent?: number;
+  quantity_discount_percent?: number;
   pricing?: unknown;
   available: boolean;
   min_quantity?: number;
@@ -191,6 +194,7 @@ function mapLine(item: ApiLine): CartLine {
     lineTotal: item.line_total,
     regularPrice: Math.max(item.regular_price ?? 0, item.unit_price),
     totalPercent: item.total_discount_percent ?? 0,
+    quantityPercent: item.quantity_discount_percent ?? 0,
     pricing: readPricing(item.pricing),
     available: item.available,
     minQuantity: item.min_quantity ?? 1,

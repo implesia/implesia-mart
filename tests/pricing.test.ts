@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   derivedBase,
+  discountedTotal,
+  lineDiscount,
   parsePercent,
   parseTierRows,
   priceLine,
@@ -44,8 +46,10 @@ test("28 % base plus 2 % at eight units is 30 %", () => {
   });
   assert.equal(eight.totalPercent, 30);
   assert.equal(eight.quantityPercent, 2);
-  assert.equal(eight.unitPrice, 700);
-  assert.equal(eight.lineTotal, 5600);
+  assert.equal(eight.unitPrice, 720);
+  assert.equal(eight.subtotal, 5760);
+  assert.equal(eight.lineTotal, 5645); // 5760 less 2 % = 5644.8, rounded up
+  assert.equal(eight.discountAmount, 115);
   const two = priceLine({
     regular: 1000,
     price: 720,
@@ -54,7 +58,7 @@ test("28 % base plus 2 % at eight units is 30 %", () => {
     ...rules,
   });
   assert.equal(two.totalPercent, 28.25);
-  assert.equal(two.unitPrice, 717); // 2.5 taka rounds half up
+  assert.equal(two.lineTotal, 1437); // 1440 less 0.25 % = 1436.4, rounded up
 });
 
 test("the cap limits the total and it never reaches 100 %", () => {
@@ -67,7 +71,7 @@ test("the cap limits the total and it never reaches 100 %", () => {
     maxPercent: 29,
   });
   assert.equal(capped.totalPercent, 29);
-  assert.equal(capped.unitPrice, 710);
+  assert.equal(capped.lineTotal, 5703); // 5760 less 1 % = 5702.4
   const low = priceLine({
     regular: 1000,
     price: 720,
@@ -86,7 +90,41 @@ test("the cap limits the total and it never reaches 100 %", () => {
     maxPercent: 100,
   });
   assert.equal(greedy.totalPercent, 99.99);
-  assert.ok(greedy.unitPrice >= 0);
+  assert.equal(greedy.lineTotal, 501); // 1000 less 49.99 % = 500.1
+});
+
+const EXAMPLE: QuantityTier[] = [
+  { minQuantity: 2, extraPercent: 0.25 },
+  { minQuantity: 3, extraPercent: 0.75 },
+  { minQuantity: 4, extraPercent: 1 },
+];
+const plain = (quantity: number, tiers: QuantityTier[]) =>
+  priceLine({ regular: 700, price: 700, quantity, tiers, maxPercent: 90 });
+
+test("owner examples: the final price is rounded up to whole taka", () => {
+  assert.equal(plain(1, EXAMPLE).lineTotal, 700);
+  assert.equal(plain(2, EXAMPLE).lineTotal, 1397); // 1396.5
+  assert.equal(plain(2, EXAMPLE).discountAmount, 3);
+  assert.equal(plain(3, EXAMPLE).lineTotal, 2085); // 2084.25
+  assert.equal(plain(4, EXAMPLE).lineTotal, 2772); // exact, never 2773
+  assert.equal(plain(4, EXAMPLE).discountAmount, 28);
+  assert.equal(discountedTotal(2800, 1), 2772);
+});
+
+test("a missing quantity uses the nearest lower tier; no tiers = price × quantity", () => {
+  const gaps: QuantityTier[] = [
+    { minQuantity: 2, extraPercent: 0.25 },
+    { minQuantity: 5, extraPercent: 1 },
+  ];
+  assert.equal(plain(4, gaps).quantityPercent, 0.25);
+  assert.equal(plain(4, gaps).lineTotal, 2793);
+  assert.equal(plain(9, gaps).lineTotal, 6237);
+  assert.equal(plain(1, gaps).discountAmount, 0);
+  const none = plain(7, []);
+  assert.equal(none.quantityPercent, 0);
+  assert.equal(none.lineTotal, 4900);
+  assert.equal(none.discountAmount, 0);
+  assert.equal(lineDiscount(700, 4, 2772), 28);
 });
 
 test("older prices keep their quantity-1 price", () => {
@@ -130,10 +168,13 @@ test("price view follows the quantity with pricing", () => {
     null,
     4,
   );
-  assert.equal(view.unitPrice, 712);
+  assert.equal(view.unitPrice, 720);
   assert.equal(view.compareAtPrice, 1000);
-  assert.equal(view.discountPercent, 28.75);
-  assert.equal(view.lineTotal, 2848);
+  assert.equal(view.discountPercent, 28);
+  assert.equal(view.quantityPercent, 0.75);
+  assert.equal(view.subtotal, 2880);
+  assert.equal(view.lineTotal, 2859); // 2858.4, rounded up
+  assert.equal(view.discountAmount, 21);
 });
 
 test("admin tier rows parse, sort and reject duplicates", () => {
