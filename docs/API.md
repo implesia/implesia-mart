@@ -38,13 +38,13 @@ Notes on the tables below:
 
 | Route | Modules (see the next table for endpoints) |
 | --- | --- |
-| `/` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-related`, `cart`, `catalog`, `categories`, `category-preview`, `contact-details`, `faq`, `featured`, `footer`, `header`, `hero`, `inquiry-public`, `newsletter`, `products`, `promo`, `reviews`, `search`, `showcase`, `trust` |
+| `/` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-related`, `cart`, `catalog`, `categories`, `category-preview`, `contact-details`, `faq`, `featured`, `footer`, `header`, `hero`, `inquiry-public`, `home-media`, `newsletter`, `products`, `promo`, `reviews`, `search`, `showcase`, `trust` |
 | `/about-us` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values` |
 | `/admin` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values`, `blog-categories`, `blog-cta`, `blog-hero`, `blog-listing`, `blog-posts`, `blog-related`, `contact-details`, `contact-faq`, `contact-form`, `contact-hero`, `contact-support`, `dashboard`, `faq-callout`, `faq-categories`, `faq-help`, `faq-hero`, `faq-items`, `faq-listing`, `inquiries`, `privacy-collection`, `privacy-contents`, `privacy-hero`, `privacy-introduction`, `privacy-rights`, `privacy-sharing`, `privacy-support`, `privacy-usage`, `products`, `shipping-block`, `shipping-contents`, `shipping-faq`, `shipping-hero`, `shipping-payment`, `shipping-refund`, `shipping-returns`, `shipping-support`, `sustainability-commitment`, `sustainability-cta`, `sustainability-durability`, `sustainability-hero`, `sustainability-impact`, `sustainability-origin`, `sustainability-quality` |
 | `/admin/badges` | `badges` |
 | `/admin/cart` | `cart`, `products` |
 | `/admin/delivery` | `delivery` |
-| `/admin/home` | `categories`, `faq`, `featured`, `hero`, `newsletter`, `promo`, `reviews`, `showcase`, `trust` |
+| `/admin/home` | `categories`, `faq`, `featured`, `hero`, `home-media`, `newsletter`, `promo`, `reviews`, `showcase`, `trust` |
 | `/admin/home/hero` | `hero` |
 | `/admin/home/hero/[id]` | `hero` |
 | `/admin/inquiries` | `inquiries` |
@@ -114,6 +114,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `hero.ts` | `/api/v1/admin/home/banner`<br>`/api/v1/admin/home/banner/slides`<br>`/api/v1/admin/home/banner/slides/{id}`<br>`/api/v1/admin/home/banner/slides/{id}/move`<br>`/api/v1/home/banner` |
 | `inquiries.ts` | `/api/v1/admin/inquiries`<br>`/api/v1/admin/inquiries/counts`<br>`/api/v1/admin/inquiries/{id}` |
 | `inquiry-public.ts` | `/api/v1/inquiries` |
+| `home-media.ts` | `/api/v1/admin/home/media`<br>`/api/v1/admin/home/media/image`<br>`/api/v1/admin/home/media/video`<br>`/api/v1/home/media` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
 | `orders.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/orders`<br>`/api/v1/orders/lookup`<br>`/api/v1/orders/quote` |
 | `pricing-settings.ts` | `/api/v1/admin/pricing` |

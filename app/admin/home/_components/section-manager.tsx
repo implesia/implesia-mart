@@ -5,6 +5,7 @@ import { CategoryTiles } from "./categories-editor";
 import { HomeFaq } from "./faq-editor";
 import { FeaturedProducts } from "./featured-editor";
 import { HomeCmsHeader } from "./home-cms-header";
+import { HomeMediaEditor } from "./media-editor";
 import { HomeNewsletter } from "./newsletter-editor";
 import { HomePromo } from "./promo-editor";
 import { CustomerReviews } from "./reviews-editor";
@@ -22,6 +23,7 @@ export function HomeSectionManager({ sectionId }: { sectionId: string }) {
   if (sectionId === "reviews") return <CustomerReviews />;
   if (sectionId === "faq") return <HomeFaq />;
   if (sectionId === "promo") return <HomePromo />;
+  if (sectionId === "media") return <HomeMediaEditor />;
   if (sectionId === "newsletter") return <HomeNewsletter />;
 
   return (

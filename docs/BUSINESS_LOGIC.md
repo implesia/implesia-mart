@@ -44,6 +44,16 @@ Code: `app/admin/products/_components/product-content-fields.tsx`, `lib/mart-api
 - Empty gallery items are dropped on save (`cleanProductContent`): images/videos need a `src`, YouTube items need a `youtubeId`.
 - The main image falls back to the first gallery photo, never a video.
 
+## Home video/media section
+
+Code: `app/(client)/_components/home/media-section.tsx`, `app/admin/home/_components/media-editor.tsx`, `lib/home-media-view.ts`, `lib/mart-api/home-media.ts`.
+
+- One section, directly above the testimonials. Shown only when the API returns it (Active, heading set, and usable media for the chosen type); otherwise nothing is rendered.
+- Media type: Image (needs alt text), Video (MP4/WEBM up to 50 MB; optional thumbnail used as the poster) or YouTube (watch / youtu.be / shorts / embed link or id, stored as the id; optional thumbnail, else YouTube `hqdefault`). YouTube loads only after ▶ is pressed, from `youtube-nocookie.com`.
+- Button: optional (toggle). Needs text and a link that is a site path (`/…`, no `//` or `..`) or `https://`. `http://`, `javascript:` and others are refused in the editor and by the API. A turned-off button is never shown.
+- Saving uploads newly picked files first, then saves. The API keeps only the chosen type's files and deletes replaced or dropped ones.
+- Freshness: home page is `force-dynamic`, the fetch is `no-store` and the API sends `Cache-Control: no-store`, so a save shows on the next page load.
+
 ## SEO
 
 Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-seo-fields.tsx`.
