@@ -1,13 +1,19 @@
+import { readStoreBadges, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
-import { readVariants, type ProductVariant } from "@/lib/mart-api/variants";
+import { readPricing, type ProductPricing } from "@/lib/mart-api/pricing";
+import {
+  QUANTITY_CEILING,
+  readVariants,
+  type ProductVariant,
+} from "@/lib/mart-api/variants";
 
 const PRODUCT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
 const CATEGORY_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STATUSES = new Set(["available", "sold-out", "coming-soon"]);
 
-/** Matches the public cart cap. The server still rejects an illegal quantity. */
-export const PURCHASE_QTY_MAX = 5;
+/** Upper bound for a quantity in a link. The API checks the product's real limit. */
+export const PURCHASE_QTY_MAX = QUANTITY_CEILING;
 
 export function catalogResponseKind(status: number): "ok" | "missing" | "down" {
   if (status === 404) return "missing";
@@ -43,11 +49,11 @@ export function banglaNumber(value: number) {
 export function galleryControlName(
   title: string,
   index: number,
-  kind: "image" | "video",
+  kind: "image" | "video" | "youtube",
 ) {
   const name = title.trim() || "প্রোডাক্ট";
   const n = banglaNumber(index + 1);
-  return kind === "video" ? `${name} — ভিডিও ${n}` : `${name} — ছবি ${n}`;
+  return kind === "image" ? `${name} — ছবি ${n}` : `${name} — ভিডিও ${n}`;
 }
 
 export function directCheckoutHref(
@@ -93,13 +99,17 @@ export type StoreDetailPayload = {
   image_src: string;
   image_alt: string;
   badge: "New" | "Best Seller" | "Limited" | null;
+  badges?: StoreBadge[];
   status: "available" | "sold-out" | "coming-soon";
   featured: boolean;
   has_variants: boolean;
+  seo_title: string;
+  seo_description: string;
+  seo_keywords: string;
   tagline: string;
   description: string;
   stock_label: string;
-  gallery: { src: string; alt: string }[];
+  gallery: StoreGalleryItem[];
   highlights: string[];
   suitable_for: string[];
   package_items: string[];
@@ -116,6 +126,7 @@ export type StoreDetailPayload = {
   variants: ProductVariant[];
   min_per_order: number;
   max_per_order: number | null;
+  pricing: ProductPricing | null;
   options: {
     id: string;
     name: string;
@@ -136,6 +147,7 @@ export type StoreDetailPayload = {
     image_src: string;
     image_alt: string;
     badge: "New" | "Best Seller" | "Limited" | null;
+    badges?: StoreBadge[];
     status: "available" | "sold-out" | "coming-soon";
     featured: boolean;
     has_variants: boolean;
@@ -184,11 +196,24 @@ function readCard(value: unknown) {
     badge: BADGES.has(String(badge))
       ? (badge as "New" | "Best Seller" | "Limited")
       : null,
+    badges: readStoreBadges(record.badges),
     status: status as "available" | "sold-out" | "coming-soon",
     featured: record.featured === true,
     has_variants: record.has_variants === true,
   };
 }
+
+export type StoreGalleryItem = {
+  kind: "image" | "video" | "youtube";
+  /** Photo or video address; empty for YouTube. */
+  src: string;
+  youtubeId?: string;
+  alt: string;
+  /** Custom thumbnail for a video or YouTube item (API media path). */
+  thumbnail?: string;
+};
+
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 
 /** A 200 body that cannot satisfy this shape is an API failure, not a seed product. */
 export function normalizeProductDetail(
@@ -198,11 +223,24 @@ export function normalizeProductDetail(
   const record = asRecord(body);
   if (!card || !record) return null;
   const gallery = Array.isArray(record.gallery)
-    ? record.gallery.flatMap((item) => {
+    ? record.gallery.flatMap((item): StoreGalleryItem[] => {
         const image = asRecord(item);
-        const src = image ? text(image, "src") : "";
+        if (!image) return [];
+        const alt = text(image, "alt") || card.title;
+        const kind = text(image, "kind");
+        const thumbnail = text(image, "thumbnail");
+        const extra = thumbnail ? { thumbnail } : {};
+        if (kind === "youtube") {
+          const youtubeId = text(image, "youtube_id");
+          return YOUTUBE_ID.test(youtubeId)
+            ? [{ kind: "youtube", src: "", youtubeId, alt, ...extra }]
+            : [];
+        }
+        const src = text(image, "src");
         if (!src) return [];
-        return [{ src, alt: text(image!, "alt") || card.title }];
+        return kind === "video"
+          ? [{ kind: "video", src, alt, ...extra }]
+          : [{ kind: "image", src, alt }];
       })
     : [];
   const options = Array.isArray(record.options)
@@ -262,6 +300,9 @@ export function normalizeProductDetail(
           return slug && name && CATEGORY_SLUG.test(slug) ? [{ slug, name }] : [];
         })
       : [],
+    seo_title: text(record, "seo_title"),
+    seo_description: text(record, "seo_description"),
+    seo_keywords: text(record, "seo_keywords"),
     tagline: text(record, "tagline"),
     description: text(record, "description"),
     stock_label: text(record, "stock_label"),
@@ -284,11 +325,12 @@ export function normalizeProductDetail(
     variants: card.has_variants ? readVariants(record.variants) : [],
     min_per_order: orderLimit(record.min_per_order, 1),
     max_per_order: orderLimit(record.max_per_order, null),
+    pricing: readPricing(record.pricing),
   };
 }
 
 function orderLimit<T extends number | null>(value: unknown, fallback: T): number | T {
-  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 5
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= QUANTITY_CEILING
     ? value
     : fallback;
 }

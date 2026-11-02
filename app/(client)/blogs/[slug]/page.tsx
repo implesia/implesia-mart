@@ -11,6 +11,7 @@ import {
 } from "@/lib/mart-api/blog-posts";
 import { listPublicBlogRelated } from "@/lib/mart-api/blog-related";
 import { articleSeo } from "@/lib/blog-view";
+import { pageMetadata } from "@/lib/seo";
 
 import { BlogArticle } from "../_components/blog-article";
 
@@ -33,28 +34,14 @@ export async function generateMetadata({
   const seo = articleSeo(post);
   const images = seo.image ? [{ url: seo.image, alt: seo.imageAlt, width: 1200, height: 675 }] : [];
 
-  return {
+  return pageMetadata({
     title: seo.title,
     description: seo.description,
+    path: `/blogs/${post.slug}`,
     keywords: seo.keywords,
-    alternates: { canonical: seo.url },
-    openGraph: {
-      type: "article",
-      url: seo.url,
-      title: seo.title,
-      description: seo.description,
-      ...(images.length ? { images } : {}),
-      authors: seo.authors,
-      publishedTime: seo.publishedTime,
-      tags: seo.keywords,
-    },
-    twitter: {
-      card: images.length ? "summary_large_image" : "summary",
-      title: seo.title,
-      description: seo.description,
-      ...(seo.image ? { images: [seo.image] } : {}),
-    },
-  };
+    images,
+    article: { authors: seo.authors, publishedTime: seo.publishedTime, tags: seo.keywords },
+  });
 }
 
 export default async function BlogDetailPage({

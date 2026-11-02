@@ -1,3 +1,5 @@
+import type { StoreBadge } from "@/lib/mart-api/badge-rules";
+
 export type ProductBadge = "New" | "Best Seller" | "Limited";
 export type ProductStatus = "available" | "sold-out" | "coming-soon";
 /** A category slug. Categories are managed in the admin; "gadgets" and "fashion" are the seeded roots. */
@@ -22,6 +24,8 @@ export type Product = {
   imageSrc: string;
   imageAlt: string;
   badge?: ProductBadge;
+  /** Active badges in display order. Absent = older data; fall back to `badge`. */
+  badges?: StoreBadge[];
   status: ProductStatus;
   /** Slug of the TOP-LEVEL category (drives the fashion/gadget layouts). */
   categoryId: ProductCategoryId;
@@ -33,6 +37,8 @@ export type Product = {
   featured?: boolean;
   /** True when price and stock are per variant; `price` is then the lowest buyable price. */
   hasVariants?: boolean;
+  /** ISO time of the last change (sitemap lastmod). */
+  updatedAt?: string;
 };
 
 /** Fallback names for the seeded roots; the API's category name wins when present. */

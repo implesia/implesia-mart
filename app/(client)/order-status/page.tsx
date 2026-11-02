@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 
+import { DEFAULT_DESCRIPTION, pageMetadata } from "@/lib/seo";
+
 import { OrderStatusView } from "./_components/order-status-view";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "অর্ডার স্ট্যাটাস",
-  robots: { index: false, follow: false },
-};
+  description: DEFAULT_DESCRIPTION,
+  path: "/order-status",
+  noindex: { follow: false },
+});
 
 type OrderStatusPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

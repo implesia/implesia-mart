@@ -1,3 +1,5 @@
+import { QUANTITY_CEILING } from "@/lib/mart-api/variants";
+
 type Listener = () => void;
 
 let quantity = 1;
@@ -8,7 +10,8 @@ export function getBuyQuantity() {
 }
 
 export function setBuyQuantity(next: number) {
-  quantity = Math.min(5, Math.max(1, next));
+  // Callers clamp to the product's limits; this only keeps the value sane.
+  quantity = Math.min(QUANTITY_CEILING, Math.max(1, next));
   listeners.forEach((listener) => listener());
 }
 

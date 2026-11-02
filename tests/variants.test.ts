@@ -21,9 +21,9 @@ import {
 const ID = (n: number) => `00000000-0000-0000-0000-00000000000${n}`;
 
 const variants: ProductVariant[] = [
-  { id: ID(1), options: { size: "s", color: "red" }, label: "S / Red", price: 500, compareAtPrice: 600, available: true },
-  { id: ID(2), options: { size: "s", color: "blue" }, label: "S / Blue", price: 520, compareAtPrice: null, available: false },
-  { id: ID(3), options: { size: "m", color: "red" }, label: "M / Red", price: 700, compareAtPrice: null, available: true },
+  { id: ID(1), options: { size: "s", color: "red" }, label: "S / Red", price: 500, compareAtPrice: 600, available: true, maxQuantity: null },
+  { id: ID(2), options: { size: "s", color: "blue" }, label: "S / Blue", price: 520, compareAtPrice: null, available: false, maxQuantity: null },
+  { id: ID(3), options: { size: "m", color: "red" }, label: "M / Red", price: 700, compareAtPrice: null, available: true, maxQuantity: null },
 ];
 
 test("line key keeps one cart line per product and variant", () => {
@@ -65,9 +65,12 @@ test("picking a value moves the other groups to a buyable variant", () => {
   );
 });
 
-test("quantity is clamped to the product limits and the platform cap of 5", () => {
+test("quantity is clamped to the limits from the API (no fixed cap of 5)", () => {
   assert.equal(clampQuantity(0), 1);
-  assert.equal(clampQuantity(9), 5);
+  assert.equal(clampQuantity(9), 9);
+  assert.equal(clampQuantity(8, { max: 10 }), 8);
+  assert.equal(clampQuantity(11, { max: 10 }), 10);
+  assert.equal(clampQuantity(5000), 1000);
   assert.equal(clampQuantity(1, { min: 2 }), 2);
   assert.equal(clampQuantity(5, { max: 3 }), 3);
   assert.equal(clampQuantity(5, { min: 2, max: 3 }), 3);
@@ -75,7 +78,7 @@ test("quantity is clamped to the product limits and the platform cap of 5", () =
   assert.equal(clampQuantity(NaN, { min: 2 }), 2);
   assert.equal(clampQuantity(2.9), 2);
   assert.equal(clampQuantity(3, { max: 20 }), 3);
-  assert.equal(clampQuantity(9, { max: null }), 5);
+  assert.equal(clampQuantity(9, { max: null }), 9);
 });
 
 test("price view follows the variant and the quantity", () => {
@@ -107,7 +110,7 @@ test("purchase check blocks missing and unavailable selections", () => {
 
 test("readVariants keeps usable rows only and never reads stock", () => {
   const rows = readVariants([
-    { id: ID(1), options: { size: "s" }, label: "S", price: 100, compare_at_price: 150, available: true, quantity: 9 },
+    { id: ID(1), options: { size: "s" }, label: "S", price: 100, compare_at_price: 150, available: true, quantity: 9, max_quantity: 6 },
     { id: "", options: { size: "m" }, price: 1 },
     { id: ID(2), options: {}, price: 1 },
     { id: ID(3), options: { size: "l" }, price: "oops" },
@@ -119,6 +122,8 @@ test("readVariants keeps usable rows only and never reads stock", () => {
   assert.equal(rows[1].compareAtPrice, null);
   assert.equal(rows[1].available, false);
   assert.equal("quantity" in rows[0], false);
+  assert.equal(rows[0].maxQuantity, 6);
+  assert.equal(rows[1].maxQuantity, null);
   assert.deepEqual(readVariants("nope"), []);
 });
 

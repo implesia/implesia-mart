@@ -33,6 +33,7 @@ import {
   useFaqNav,
   useReturnFocus,
 } from "./faq-shared";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 type Draft = {
   id: string;
@@ -65,6 +66,7 @@ export function FaqItemsEditor() {
   const questionParam = params.get("question");
   const editing = questionParam !== null;
   const [notice, setNotice] = useState("");
+  const confirmDelete = useConfirmDelete();
   const { focusEdit, markReturn } = useReturnFocus(editing);
   const existing = items?.find((item) => item.id === questionParam) ?? null;
 
@@ -115,12 +117,18 @@ export function FaqItemsEditor() {
     close();
   }
 
-  async function remove(id: string) {
-    await deleteFaqItem(id);
-    setItems((current) => (current ?? []).filter((item) => item.id !== id));
-    setNotice("Removed.");
-    window.setTimeout(() => setNotice(""), 1600);
-    close();
+  function remove(id: string) {
+    void confirmDelete({
+      title: "Delete this question?",
+      description: "It will be removed from the FAQ page. This cannot be undone.",
+      successMessage: "Removed.",
+      errorMessage: "Could not remove the question.",
+      onConfirm: async () => {
+        await deleteFaqItem(id);
+        setItems((current) => (current ?? []).filter((item) => item.id !== id));
+        close();
+      },
+    });
   }
 
   async function move(index: number, direction: -1 | 1) {
@@ -260,7 +268,7 @@ function QuestionForm({
   categories: FaqCategory[];
   onClose: () => void;
   onSave: (draft: Draft) => void | Promise<void>;
-  onRemove?: () => void | Promise<void>;
+  onRemove?: () => void;
 }) {
   const initial = draftFrom(item);
   const [rawDraft, setDraft] = useState(initial);
@@ -363,7 +371,7 @@ function QuestionForm({
         {onRemove ? (
           <button
             type="button"
-            onClick={() => void onRemove()}
+            onClick={onRemove}
             className="text-sm font-medium text-red-600 hover:underline"
           >
             Remove question

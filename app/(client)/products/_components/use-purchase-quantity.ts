@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { clampQuantity, lineKey } from "@/lib/mart-api/variants";
+import { clampQuantity, lineKey, QUANTITY_CEILING } from "@/lib/mart-api/variants";
 
 import { useCart } from "../../_providers/cart-provider";
 import {
@@ -32,13 +32,15 @@ export function usePurchaseQuantity(
   const line = items.find((item) => item.key === key);
   const quantity = line?.quantity ?? clampQuantity(localQuantity, limits);
   const min = clampQuantity(1, limits);
-  const max = clampQuantity(5, limits);
+  // min(order limit, stock) from the API; the cart line's own limit once it is in the cart.
+  const max = line ? Math.max(1, line.maxQuantity) : clampQuantity(QUANTITY_CEILING, limits);
 
   return {
     quantity,
     inCart: Boolean(line),
     lineTotal: line?.lineTotal,
     atMin: quantity <= min,
+    max,
     atMax: quantity >= max,
     decrease() {
       if (line) adjustQuantity(key, -1);

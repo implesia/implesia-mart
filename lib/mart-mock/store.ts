@@ -1,3 +1,4 @@
+import type { AdminBadgeRef } from "@/lib/mart-api/badge-rules";
 import { heroSlides } from "@/app/(client)/_data/home/home";
 import {
   emptyProductContent,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/mart-mock/product-content";
 import type { ProductCategoryCrumb } from "@/app/(client)/_data/products/catalog-meta";
 import type { AdminVariant } from "@/lib/mart-api/admin-variants";
+import type { QuantityTier } from "@/lib/mart-api/pricing";
 import {
   FEATURED_PRODUCT_SLUGS,
   products,
@@ -91,6 +93,8 @@ export type AdminProduct = {
   quantity: number | null;
   status: StockStatus;
   badge: ProductBadge | null;
+  /** Admin badges in display order (API products). Absent = only the legacy `badge`. */
+  badges?: AdminBadgeRef[];
   imageSrc: string;
   featured: boolean;
   published: boolean;
@@ -101,9 +105,25 @@ export type AdminProduct = {
   maxOrderQuantity?: number | null;
   /** Variants (API products). Absent or empty = a plain product. */
   variants?: AdminVariant[];
+  /**
+   * Dynamic discount (API products). On save, `regularPrice` + `baseDiscountPercent` are sent
+   * only when set; the API then works out `price` and `compareAtPrice` itself.
+   */
+  regularPrice?: number;
+  baseDiscountPercent?: number;
+  tierMode?: "global" | "custom";
+  quantityTiers?: QuantityTier[];
+  /** Search snippet overrides (API products). "" = use the title / description. */
+  seoTitle?: string;
+  seoDescription?: string;
+  /** Comma-separated. */
+  seoKeywords?: string;
 };
 
-export type ProductDraft = Omit<AdminProduct, "slug" | "custom">;
+export type ProductDraft = Omit<AdminProduct, "slug" | "custom"> & {
+  /** A new slug when editing. Absent = keep it (a new product gets one from its name). */
+  slug?: string;
+};
 
 export type HeroAccent = "gold" | "teal" | "rose" | "ink";
 

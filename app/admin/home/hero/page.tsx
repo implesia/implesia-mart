@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { adminButtonClass, AdminLoading } from "../../_components/admin-ui";
 import { BannerSettingsEditor } from "../_components/banner-settings-editor";
 import { HomeCmsHeader } from "../_components/home-cms-header";
+import { useConfirmDelete } from "../../_components/confirm-delete";
 
 type PublishFilter = "all" | "live" | "off";
 
@@ -47,6 +48,7 @@ function HeroSlidesView() {
   const [banners, setBanners] = useState<AdminHeroSlide[] | null>(null);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const confirmDelete = useConfirmDelete();
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
   useEffect(() => {
@@ -95,14 +97,18 @@ function HeroSlidesView() {
     }
   }
 
-  async function remove(id: string) {
+  function remove(id: string) {
     setError("");
-    try {
-      await deleteHeroSlide(id);
-      setReloadKey((key) => key + 1);
-    } catch (actionError) {
-      setError(actionError instanceof MartApiError ? actionError.message : "Could not delete the slide.");
-    }
+    void confirmDelete({
+      title: "Delete this slide?",
+      description: "It will be removed from the home page hero. This cannot be undone.",
+      successMessage: "Slide deleted",
+      errorMessage: "Could not delete the slide.",
+      onConfirm: async () => {
+        await deleteHeroSlide(id);
+        setReloadKey((key) => key + 1);
+      },
+    });
   }
 
   const counts = {
@@ -184,7 +190,7 @@ function HeroSlidesView() {
                 isLast={isLast}
                 onToggle={(published) => void change(banner, published)}
                 onMove={(direction) => void move(banner.id, direction)}
-                onDelete={() => void remove(banner.id)}
+                onDelete={() => remove(banner.id)}
               />
             ))}
           </ol>
@@ -242,8 +248,6 @@ function SlideRow({
   onMove: (direction: "earlier" | "later") => void;
   onDelete: () => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
   return (
     <li className="border-t border-neutral-100 first:border-t-0">
       <div className="flex flex-col gap-3 px-4 py-4 sm:px-5 lg:flex-row lg:items-center">
@@ -295,50 +299,34 @@ function SlideRow({
           </div>
         </div>
 
-        {confirmDelete ? (
-          <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-            Delete this slide?
-            <button
-              type="button"
-              onClick={onDelete}
-              className="font-semibold underline"
-            >
-              Delete
-            </button>
-            <button type="button" onClick={() => setConfirmDelete(false)} className="font-semibold">
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div className="flex shrink-0 flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onToggle(!banner.published)}
-              className="inline-flex h-9 items-center rounded-full px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
-            >
-              {banner.published ? "Hide" : "Publish"}
-            </button>
-            <IconButton
-              label="Move earlier"
-              icon="arrow_upward"
-              disabled={!canReorder || isFirst}
-              onClick={() => onMove("earlier")}
-            />
-            <IconButton
-              label="Move later"
-              icon="arrow_downward"
-              disabled={!canReorder || isLast}
-              onClick={() => onMove("later")}
-            />
-            <Link
-              href={`/admin/home/hero/${banner.id}`}
-              className="inline-flex h-9 items-center rounded-full bg-neutral-950 px-3 text-xs font-semibold text-white hover:bg-neutral-800"
-            >
-              Edit
-            </Link>
-            <IconButton label="Delete slide" icon="delete" danger onClick={() => setConfirmDelete(true)} />
-          </div>
-        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onToggle(!banner.published)}
+            className="inline-flex h-9 items-center rounded-full px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+          >
+            {banner.published ? "Hide" : "Publish"}
+          </button>
+          <IconButton
+            label="Move earlier"
+            icon="arrow_upward"
+            disabled={!canReorder || isFirst}
+            onClick={() => onMove("earlier")}
+          />
+          <IconButton
+            label="Move later"
+            icon="arrow_downward"
+            disabled={!canReorder || isLast}
+            onClick={() => onMove("later")}
+          />
+          <Link
+            href={`/admin/home/hero/${banner.id}`}
+            className="inline-flex h-9 items-center rounded-full bg-neutral-950 px-3 text-xs font-semibold text-white hover:bg-neutral-800"
+          >
+            Edit
+          </Link>
+          <IconButton label="Delete slide" icon="delete" danger onClick={onDelete} />
+        </div>
       </div>
     </li>
   );

@@ -82,6 +82,39 @@ test("missing optional fields do not reject a real product", () => {
   assert.deepEqual(detail?.faqs, []);
 });
 
+test("the gallery keeps uploaded videos and YouTube links in order", () => {
+  const detail = normalizeProductDetail({
+    ...published,
+    gallery: [
+      { src: "/media/a.jpg", alt: "" },
+      { kind: "video", src: "/media/products/a.mp4", alt: "Clip" },
+      { kind: "youtube", src: "", youtube_id: "dQw4w9WgXcQ", alt: "" },
+      { kind: "youtube", src: "", youtube_id: "bad id", alt: "" },
+    ],
+  });
+  assert.deepEqual(
+    detail?.gallery.map((item) => item.kind),
+    ["image", "video", "youtube"],
+  );
+  assert.equal(detail?.gallery[2]?.youtubeId, "dQw4w9WgXcQ");
+  assert.equal(galleryControlName("Lamp", 1, "youtube"), "Lamp — ভিডিও ২");
+});
+
+test("custom video and YouTube thumbnails are kept; photos never get one", () => {
+  const detail = normalizeProductDetail({
+    ...published,
+    gallery: [
+      { src: "/media/a.jpg", alt: "", thumbnail: "/media/products/x.jpg" },
+      { kind: "video", src: "/media/products/a.mp4", alt: "", thumbnail: "/media/products/v.jpg" },
+      { kind: "youtube", src: "", youtube_id: "dQw4w9WgXcQ", alt: "", thumbnail: "" },
+    ],
+  });
+  assert.deepEqual(
+    detail?.gallery.map((item) => ("thumbnail" in item ? item.thumbnail : undefined)),
+    [undefined, "/media/products/v.jpg", undefined],
+  );
+});
+
 test("gallery names include the product and the image number", () => {
   assert.equal(
     galleryControlName("Night upload check", 0, "image"),
@@ -97,7 +130,8 @@ test("purchase quantity and buy-now stay inside the public contract", () => {
   assert.equal(purchaseQuantity(0), 1);
   assert.equal(purchaseQuantity(-3), 1);
   assert.equal(purchaseQuantity(Number.NaN), 1);
-  assert.equal(purchaseQuantity(9), 5);
+  assert.equal(purchaseQuantity(9), 9);
+  assert.equal(purchaseQuantity(5000), 1000);
   const href = directCheckoutHref(
     { slug: "night-upload-check", id: published.id },
     2,

@@ -29,6 +29,7 @@ import {
   useFocusWhenClosed,
   useSustainNav,
 } from "./sustain-shared";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 export function SustainabilityCommitmentEditor() {
   const [commitment, setCommitment] = useState<SustainabilityCommitment | null>(
@@ -47,7 +48,7 @@ export function SustainabilityCommitmentEditor() {
   const drawerOpen = creating || Boolean(opened);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const focusRef = useFocusWhenClosed(drawerOpen);
@@ -124,27 +125,26 @@ export function SustainabilityCommitmentEditor() {
     setEdit(null);
   }
 
-  async function remove(id: string) {
+  function remove(id: string) {
     setActionError("");
-    try {
-      await deleteSustainabilityCommitmentCard(id);
-      setCommitment((current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.filter((item) => item.id !== id),
-            }
-          : current,
-      );
-      if (selected === id) setEdit(null);
-      setConfirmId(null);
-      flash("Removed");
-    } catch (error) {
-      setConfirmId(null);
-      setActionError(
-        error instanceof Error ? error.message : "Could not remove the card.",
-      );
-    }
+    void confirmDelete({
+      title: "Delete this card?",
+      description: "It will be removed from the Sustainability page. This cannot be undone.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the card.",
+      onConfirm: async () => {
+        await deleteSustainabilityCommitmentCard(id);
+        setCommitment((current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.filter((item) => item.id !== id),
+              }
+            : current,
+        );
+        if (selected === id) setEdit(null);
+      },
+    });
   }
 
   async function persistOrder(ids: string[]) {
@@ -324,7 +324,6 @@ export function SustainabilityCommitmentEditor() {
         }))}
         selected={selected}
         savedId={savedId}
-        confirmId={confirmId}
         dragId={dragId}
         overId={overId}
         onOpen={setEdit}
@@ -332,7 +331,6 @@ export function SustainabilityCommitmentEditor() {
         onOver={setOverId}
         onDrop={dropOn}
         onMove={move}
-        onAskRemove={setConfirmId}
         onRemove={remove}
         removeLabel="Remove card"
       />

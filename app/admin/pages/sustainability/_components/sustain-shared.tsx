@@ -997,7 +997,6 @@ export function RecordList({
   items,
   selected,
   savedId,
-  confirmId,
   dragId,
   overId,
   onOpen,
@@ -1005,7 +1004,6 @@ export function RecordList({
   onOver,
   onDrop,
   onMove,
-  onAskRemove,
   onRemove,
   removeLabel,
 }: {
@@ -1018,7 +1016,6 @@ export function RecordList({
   items: ListItem[];
   selected: string | null;
   savedId: string | null;
-  confirmId: string | null;
   dragId: string | null;
   overId: string | null;
   onOpen: (id: string) => void;
@@ -1026,7 +1023,6 @@ export function RecordList({
   onOver: (id: string | null) => void;
   onDrop: (id: string) => void;
   onMove: (id: string, direction: -1 | 1) => void;
-  onAskRemove: (id: string | null) => void;
   onRemove: (id: string) => void;
   removeLabel: string;
 }) {
@@ -1172,32 +1168,12 @@ export function RecordList({
                   >
                     Edit
                   </button>
-                  {confirmId === item.id ? (
-                    <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                      Remove from the page?
-                      <button
-                        type="button"
-                        onClick={() => onRemove(item.id)}
-                        className="font-semibold underline"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onAskRemove(null)}
-                        className="font-semibold"
-                      >
-                        No
-                      </button>
-                    </span>
-                  ) : (
-                    <IconButton
-                      label={removeLabel}
-                      icon="delete"
-                      danger
-                      onClick={() => onAskRemove(item.id)}
-                    />
-                  )}
+                  <IconButton
+                    label={removeLabel}
+                    icon="delete"
+                    danger
+                    onClick={() => onRemove(item.id)}
+                  />
                 </div>
               </div>
             </li>

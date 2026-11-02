@@ -20,6 +20,7 @@ import {
 } from "@/lib/mart-mock/store";
 
 import { ChangePasswordDialog } from "./change-password-dialog";
+import { ConfirmDeleteProvider } from "./confirm-delete";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -563,6 +564,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <ConfirmDeleteProvider>
     <div className="force-light min-h-dvh bg-[#f5f6f8] text-neutral-950">
       <aside
         className={cn(
@@ -638,5 +640,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         />
       ) : null}
     </div>
+    </ConfirmDeleteProvider>
   );
 }

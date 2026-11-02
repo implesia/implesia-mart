@@ -8,6 +8,7 @@ import { listPublicFaqHelp } from "@/lib/mart-api/faq-help";
 import { listPublicFaqHero } from "@/lib/mart-api/faq-hero";
 import { listPublicFaqItems } from "@/lib/mart-api/faq-items";
 import { listPublicFaqListing } from "@/lib/mart-api/faq-listing";
+import { pageMetadata } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
@@ -17,12 +18,12 @@ import { FaqsView } from "./_components/faqs-view";
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "প্রশ্নোত্তর",
   description:
     "ইমপ্লেসিয়া মার্ট — অর্ডার, অর্ডার স্ট্যাটাস, ক্যাশ অন ডেলিভারি, ডেলিভারি চার্জ ও ৩ দিনের রিটার্ন নিয়ে সাধারণ প্রশ্নের উত্তর।",
-  alternates: { canonical: "/faqs" },
-};
+  path: "/faqs",
+});
 
 export default async function FaqsPage() {
   const [hero, categories, listing, callout, items, help, rates] = await Promise.all([

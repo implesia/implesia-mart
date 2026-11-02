@@ -294,7 +294,10 @@ export async function proxyAdmin(request: Request, path: string) {
     return rejected;
   }
 
-  const result = new NextResponse(payload, {
+  // 204/205/304 must not carry a body, or the Response constructor throws and
+  // a successful delete reaches the browser as a 500.
+  const bodyless = upstream.status === 204 || upstream.status === 205 || upstream.status === 304;
+  const result = new NextResponse(bodyless ? null : payload, {
     status: upstream.status,
     headers,
   });

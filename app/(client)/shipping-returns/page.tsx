@@ -9,6 +9,7 @@ import { listPublicShippingSupport } from "@/lib/mart-api/shipping-support";
 import { listPublicShippingReturns } from "@/lib/mart-api/shipping-returns";
 import { listPublicShippingContents } from "@/lib/mart-api/shipping-contents";
 import { listPublicShippingHero } from "@/lib/mart-api/shipping-hero";
+import { pageMetadata } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
@@ -18,12 +19,12 @@ import { ShippingReturnsView } from "./_components/shipping-returns-view";
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "শিপিং ও রিটার্ন",
   description:
     "ইমপ্লেসিয়া মার্ট — সারাদেশে ডেলিভারি, ক্যাশ অন ডেলিভারি, ৩ দিনের ইজি রিটার্ন ও রিফান্ড নীতিমালা।",
-  alternates: { canonical: "/shipping-returns" },
-};
+  path: "/shipping-returns",
+});
 
 export default async function ShippingReturnsPage() {
   const [rates, hero, contents, shipping, payment, returns, refund, support, faq] =

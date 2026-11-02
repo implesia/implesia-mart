@@ -69,6 +69,13 @@ export const HOME_CMS: CmsPage = {
       fields: ["heading", "gadgetRow", "fashionRow"],
     },
     {
+      id: "media",
+      label: "Video / media",
+      icon: "smart_display",
+      description: "Image, video, or YouTube block above the customer reviews.",
+      fields: ["heading", "media", "thumbnail", "description", "cta", "active"],
+    },
+    {
       id: "reviews",
       label: "Reviews",
       icon: "reviews",

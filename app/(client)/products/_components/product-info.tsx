@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 import { catalogProductId } from "@/lib/mart-api/catalog";
 import { directCheckoutHref } from "@/lib/mart-api/product-page";
+import { maxQuantityText, percentText, tierOffers } from "@/lib/mart-api/pricing";
 import {
   chooseOption,
   clampQuantity,
@@ -65,10 +66,15 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
   const [choices, setChoices] = useState<Record<string, string>>(initialChoices);
   const selectedVariant = hasVariants ? findVariant(variants, choices) : null;
   const check = purchaseCheck(hasVariants, selectedVariant);
-  const limits = { min: product.minPerOrder, max: product.maxPerOrder };
+  // min(order limit, stock) from the API: the chosen variant's, else the product's.
+  const limits = {
+    min: product.minPerOrder,
+    max: selectedVariant?.maxQuantity ?? product.maxPerOrder,
+  };
   const {
     quantity,
     inCart,
+    max,
     atMin,
     atMax,
     decrease,
@@ -78,6 +84,21 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
     selected,
   } = usePurchaseQuantity(product.slug, selectedVariant?.id ?? null, limits);
   const view = priceView(product, selectedVariant, quantity);
+  const offers = product.pricing
+    ? tierOffers(
+        product.pricing,
+        max,
+        selectedVariant
+          ? {
+              regular: Math.max(
+                selectedVariant.compareAtPrice ?? 0,
+                selectedVariant.price,
+              ),
+              price: selectedVariant.price,
+            }
+          : undefined,
+      )
+    : [];
   const [justAdded, setJustAdded] = useState(false);
   const [pending, setPending] = useState<"cart" | "buy" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -190,7 +211,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             </span>
             {view.discountPercent ? (
               <span className="text-sm font-bold text-[#ba1a1a]">
-                {view.discountPercent}% ছাড়
+                {percentText(view.discountPercent)}% ছাড়
               </span>
             ) : null}
           </>
@@ -199,6 +220,25 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           {availabilityLabel}
         </span>
       </div>
+
+      {offers.length > 0 && !isSoldOut && !isComingSoon ? (
+        <p
+          data-testid="product-tier-offers"
+          className="-mt-3 mb-5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-on-surface-variant sm:-mt-4 sm:mb-6 sm:text-sm"
+        >
+          {offers.map((offer) => (
+            <span
+              key={offer.quantity}
+              className={cn(
+                quantity >= offer.quantity &&
+                  "font-semibold text-[#0b5e56]",
+              )}
+            >
+              {offer.label}
+            </span>
+          ))}
+        </p>
+      ) : null}
 
       <ProductPurchaseOptions
         groups={groups}
@@ -249,7 +289,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </div>
       ) : (
         <>
-          <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
+          <div className="mb-5 flex flex-wrap items-center gap-3 sm:mb-6 sm:gap-4">
             <span
               id={`${product.slug}-qty-label`}
               className="text-sm font-semibold text-on-background"
@@ -288,6 +328,15 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
                 <MaterialIcon name="add" className="text-[18px]" />
               </button>
             </div>
+            {atMax ? (
+              <span
+                className="text-xs text-on-surface-variant"
+                data-testid="product-qty-limit"
+                aria-live="polite"
+              >
+                {maxQuantityText(max)}
+              </span>
+            ) : null}
           </div>
 
           <p
@@ -301,6 +350,11 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             <span className="font-semibold text-on-background">
               {formatPrice(view.lineTotal)}
             </span>
+            {view.quantityPercent > 0 ? (
+              <span className="ml-1 text-[#0b5e56]">
+                (পরিমাণে আরও {percentText(view.quantityPercent)}% ছাড়)
+              </span>
+            ) : null}
           </p>
 
           <div className="mb-2 hidden flex-col gap-3 lg:flex">

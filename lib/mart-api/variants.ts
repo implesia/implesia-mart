@@ -5,6 +5,8 @@
  * order from its own variant row; a price calculated here is never sent as an authority.
  */
 
+import { priceLine, type ProductPricing } from "@/lib/mart-api/pricing";
+
 export type ProductVariant = {
   id: string;
   /** Option group id -> option value id. */
@@ -13,11 +15,19 @@ export type ProductVariant = {
   price: number;
   compareAtPrice: number | null;
   available: boolean;
+  /** Most per order line: min(order limit, stock), from the API. Null = use the product's. */
+  maxQuantity: number | null;
 };
 
 export type OptionChoices = Record<string, string>;
 
-export const ORDER_QTY_CAP = 5;
+/**
+ * Upper bound the API accepts for any order limit. The real limit (Admin › Discounts, or the
+ * product's own) arrives with the product and cart data; the API checks it again.
+ */
+export const QUANTITY_CEILING = 1000;
+/** Store-wide default, used only when a response does not carry a limit. */
+export const DEFAULT_MAX_QUANTITY = 10;
 
 /** One cart line is one product, or one product and one variant. */
 export function lineKey(slug: string, variantId?: string | null) {
@@ -82,14 +92,18 @@ export type PriceView = {
   compareAtPrice: number | null;
   lineTotal: number;
   discountPercent: number | null;
+  /** Extra % the chosen quantity adds on top of the base discount. */
+  quantityPercent: number;
 };
 
 export function clampQuantity(
   quantity: number,
   limits: { min?: number; max?: number | null } = {},
 ) {
-  const min = Math.max(1, Math.min(ORDER_QTY_CAP, Math.floor(limits.min ?? 1)));
-  const ceiling = limits.max ? Math.min(ORDER_QTY_CAP, Math.floor(limits.max)) : ORDER_QTY_CAP;
+  const min = Math.max(1, Math.min(QUANTITY_CEILING, Math.floor(limits.min ?? 1)));
+  const ceiling = limits.max
+    ? Math.min(QUANTITY_CEILING, Math.floor(limits.max))
+    : QUANTITY_CEILING;
   const max = Math.max(min, ceiling);
   if (!Number.isFinite(quantity)) return min;
   return Math.max(min, Math.min(max, Math.floor(quantity)));
@@ -97,20 +111,38 @@ export function clampQuantity(
 
 /** What the page shows while the shopper picks. The API recalculates at cart and order time. */
 export function priceView(
-  base: { price: number; compareAtPrice?: number | null },
+  base: {
+    price: number;
+    compareAtPrice?: number | null;
+    /** Base %, quantity tiers and cap from the API; null keeps plain compare-at display. */
+    pricing?: ProductPricing | null;
+  },
   variant: ProductVariant | null,
   quantity: number,
 ): PriceView {
-  const unitPrice = variant ? variant.price : base.price;
+  const price = variant ? variant.price : base.price;
   const compare = variant ? variant.compareAtPrice : (base.compareAtPrice ?? null);
-  const compareAtPrice = compare != null && compare > unitPrice ? compare : null;
+  const regular = compare != null && compare > price ? compare : price;
+  const line = priceLine({
+    regular,
+    price,
+    // The saved base % belongs to the product row; a variant's is derived from its prices.
+    basePercent: variant ? null : (base.pricing?.basePercent ?? null),
+    quantity,
+    tiers: base.pricing?.tiers ?? [],
+    maxPercent: base.pricing?.maxPercent ?? 99.99,
+  });
+  const discounted = line.unitPrice < regular;
   return {
-    unitPrice,
-    compareAtPrice,
-    lineTotal: unitPrice * Math.max(1, Math.floor(quantity)),
-    discountPercent: compareAtPrice
-      ? Math.round(((compareAtPrice - unitPrice) / compareAtPrice) * 100)
+    unitPrice: line.unitPrice,
+    compareAtPrice: discounted ? regular : null,
+    lineTotal: line.lineTotal,
+    discountPercent: discounted
+      ? base.pricing
+        ? line.totalPercent
+        : Math.round(((regular - line.unitPrice) / regular) * 100)
       : null,
+    quantityPercent: line.quantityPercent,
   };
 }
 
@@ -165,6 +197,12 @@ export function readVariants(value: unknown): ProductVariant[] {
             ? compare
             : null,
         available: row.available === true,
+        maxQuantity:
+          typeof row.max_quantity === "number" &&
+          Number.isInteger(row.max_quantity) &&
+          row.max_quantity >= 0
+            ? row.max_quantity
+            : null,
       },
     ];
   });

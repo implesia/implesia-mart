@@ -63,6 +63,7 @@ import {
   useReturnFocus,
   VisibilitySwitch,
 } from "./blog-shared";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 type Draft = {
   id: string;
@@ -117,6 +118,7 @@ export function BlogPostsEditor() {
   const postParam = params.get("post");
   const editing = postParam !== null;
   const [notice, setNotice] = useState("");
+  const confirmDelete = useConfirmDelete();
   const { focusEdit, markReturn } = useReturnFocus(editing);
   const existing = posts?.find((post) => post.id === postParam) ?? null;
 
@@ -175,12 +177,18 @@ export function BlogPostsEditor() {
     close();
   }
 
-  async function remove(id: string) {
-    await deleteBlogPost(id);
-    setPosts((current) => (current ?? []).filter((post) => post.id !== id));
-    setNotice("Removed.");
-    window.setTimeout(() => setNotice(""), 1600);
-    close();
+  function remove(id: string) {
+    void confirmDelete({
+      title: "Delete this post?",
+      description: "The article will be removed from the blog. This cannot be undone.",
+      successMessage: "Removed.",
+      errorMessage: "Could not remove the article.",
+      onConfirm: async () => {
+        await deleteBlogPost(id);
+        setPosts((current) => (current ?? []).filter((post) => post.id !== id));
+        close();
+      },
+    });
   }
 
   async function move(index: number, direction: -1 | 1) {
@@ -402,7 +410,7 @@ function PostForm({
   isNew: boolean;
   onClose: () => void;
   onSave: (draft: Draft) => Promise<void>;
-  onRemove?: () => Promise<void>;
+  onRemove?: () => void;
   onReloadCategories: () => void;
 }) {
   const initial = draftFrom(post);
@@ -830,14 +838,7 @@ function PostForm({
         {onRemove ? (
           <button
             type="button"
-            onClick={() => {
-              void onRemove?.().catch((error: unknown) => {
-                setErrors({
-                  ...NO_ERRORS,
-                  form: error instanceof Error ? error.message : "Could not remove the article.",
-                });
-              });
-            }}
+            onClick={onRemove}
             className="text-sm font-medium text-red-600 hover:underline"
           >
             Remove post

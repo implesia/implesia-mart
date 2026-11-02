@@ -29,6 +29,7 @@ import {
   deleteMartProduct,
   MartApiError,
   saveMartProduct,
+  type ApiFieldError,
 } from "@/lib/mart-api/products";
 import {
   cleanProductContent,
@@ -53,7 +54,9 @@ import {
   StockStatusBadge,
 } from "../../_components/admin-ui";
 import { UnsavedChangesDialog } from "../../_components/unsaved-changes-dialog";
+import { useAdminNotify, useConfirmDelete } from "../../_components/confirm-delete";
 import { ImageField } from "../../_components/image-field";
+import { ProductSeoFields, SLUG_PATTERN } from "./product-seo-fields";
 import {
   ProductCopyFields,
   ProductDetailFields,
@@ -63,13 +66,19 @@ import { CategoryCascade } from "./category-cascade";
 import { ProductOptionsFields } from "./product-options-fields";
 import { ProductVariantsFields } from "./product-variants-fields";
 import { productPath } from "@/lib/mart-api/product-url";
-
-const BADGE_OPTIONS: { value: ProductBadge | ""; label: string }[] = [
-  { value: "", label: "None" },
-  { value: "New", label: "New" },
-  { value: "Best Seller", label: "Best seller" },
-  { value: "Limited", label: "Limited" },
-];
+import { badgeToneClass, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
+import { ProductBadgePicker } from "./product-badge-picker";
+import { QuantityTiersEditor } from "../../_components/quantity-tiers-editor";
+import { QUANTITY_CEILING } from "@/lib/mart-api/variants";
+import {
+  derivedBase,
+  parsePercent,
+  parseTierRows,
+  percentText,
+  sellingPrice,
+  tierRowsFrom,
+  type TierRow,
+} from "@/lib/mart-api/pricing";
 
 const SECTIONS = [
   { id: "product-information", label: "Product information" },
@@ -80,6 +89,7 @@ const SECTIONS = [
   { id: "product-variants", label: "Variants" },
   { id: "product-details", label: "Product details" },
   { id: "product-organization", label: "Organization" },
+  { id: "product-seo", label: "SEO" },
   { id: "product-publishing", label: "Publishing" },
 ] as const;
 
@@ -91,18 +101,32 @@ type FormState = {
   categoryId: ProductCategoryId;
   categoryRefId: string;
   categoryTrail: string;
+  /** Derived from regularPrice + baseDiscount; kept for the preview and the variant default. */
   price: string;
   compareAtPrice: string;
+  regularPrice: string;
+  baseDiscount: string;
+  tierMode: "global" | "custom";
+  tiers: TierRow[];
   quantity: string;
   status: StockStatus;
+  /** Legacy single badge; only sent when `badges` is unknown (older API data). */
   badge: ProductBadge | "";
+  /** Badges in display order. `null` = the API did not send a list for this product. */
+  badges: AdminBadgeRef[] | null;
   imageSrc: string;
   featured: boolean;
   published: boolean;
   content: ProductStorefrontContent;
   minOrder: string;
+  /** "global" = the store-wide limit (Admin › Discounts); "custom" = `maxOrder`. */
+  maxOrderMode: "global" | "custom";
   maxOrder: string;
   variants: VariantRow[];
+  slug: string;
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords: string;
 };
 
 type FieldKey =
@@ -110,10 +134,134 @@ type FieldKey =
   | "title"
   | "price"
   | "compareAtPrice"
+  | "baseDiscount"
+  | "quantityTiers"
   | "quantity"
   | "orderLimits"
-  | "variants";
+  | "variants"
+  | "slug";
 type FieldErrors = Partial<Record<FieldKey, string>>;
+
+// Field keys in the product create API's `errors` list, in the order the form shows them.
+const SERVER_FIELD_ORDER = [
+  "title",
+  "subtitle",
+  "images",
+  "regularPrice",
+  "price",
+  "compareAtPrice",
+  "baseDiscount",
+  "quantityTiers",
+  "quantity",
+  "status",
+  "orderLimits",
+  "variants",
+  "content",
+  "category",
+  "badges",
+  "seo",
+  "slug",
+  "publishing",
+  "form",
+] as const;
+
+const SERVER_FIELD_LABEL: Record<string, string> = {
+  title: "প্রোডাক্টের নাম",
+  slug: "স্লাগ",
+  subtitle: "সাবটাইটেল",
+  images: "ছবি",
+  price: "দাম",
+  compareAtPrice: "আগের দাম",
+  regularPrice: "রেগুলার দাম",
+  baseDiscount: "বেস ছাড়",
+  quantityTiers: "পরিমাণ অনুযায়ী ছাড়",
+  quantity: "স্টকের পরিমাণ",
+  status: "স্টক স্ট্যাটাস",
+  orderLimits: "অর্ডারের সীমা",
+  variants: "ভ্যারিয়েন্ট",
+  content: "প্রোডাক্টের বিস্তারিত",
+  category: "ক্যাটাগরি",
+  badges: "ব্যাজ",
+  seo: "সার্চ (SEO)",
+  publishing: "পাবলিশিং",
+  form: "ফর্ম",
+};
+
+/** Section that holds each API field; `form` problems live in the summary only. */
+const SERVER_FIELD_SECTION: Record<string, SectionId> = {
+  title: "product-information",
+  slug: "product-seo",
+  subtitle: "product-information",
+  images: "product-media",
+  price: "product-pricing",
+  compareAtPrice: "product-pricing",
+  regularPrice: "product-pricing",
+  baseDiscount: "product-pricing",
+  quantityTiers: "product-pricing",
+  quantity: "product-inventory",
+  status: "product-inventory",
+  orderLimits: "product-inventory",
+  variants: "product-variants",
+  content: "product-details",
+  category: "product-organization",
+  badges: "product-organization",
+  seo: "product-seo",
+  publishing: "product-publishing",
+};
+
+/** `${formId}-<suffix>` input to focus for an API field. */
+const SERVER_FIELD_INPUT: Record<string, string> = {
+  title: "title",
+  slug: "slug",
+  seo: "seo-title",
+  subtitle: "subtitle",
+  price: "price",
+  compareAtPrice: "price",
+  regularPrice: "price",
+  baseDiscount: "base",
+  quantity: "qty",
+  orderLimits: "min-order",
+};
+
+/** API fields whose error goes away as soon as the matching form value changes. */
+const SERVER_FIELDS_FOR: Partial<Record<keyof FormState, string[]>> = {
+  title: ["title"],
+  subtitle: ["subtitle"],
+  slug: ["slug"],
+  seoTitle: ["seo"],
+  seoDescription: ["seo"],
+  seoKeywords: ["seo"],
+  price: ["price"],
+  compareAtPrice: ["compareAtPrice"],
+  regularPrice: ["regularPrice", "price", "compareAtPrice"],
+  baseDiscount: ["baseDiscount", "price", "compareAtPrice"],
+  tierMode: ["quantityTiers"],
+  tiers: ["quantityTiers"],
+  quantity: ["quantity"],
+  status: ["status"],
+  minOrder: ["orderLimits"],
+  maxOrder: ["orderLimits"],
+  maxOrderMode: ["orderLimits"],
+  variants: ["variants", "price", "quantity"],
+  imageSrc: ["images"],
+  badges: ["badges"],
+  published: ["publishing"],
+  featured: ["publishing"],
+};
+
+const INVALID_FIELD = "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200";
+const NETWORK_TOAST =
+  "সার্ভারের সাথে যোগাযোগ করা যায়নি। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।";
+const SERVER_TOAST = "সার্ভারে একটা সমস্যা হয়েছে। একটু পরে আবার চেষ্টা করুন।";
+
+function bengaliDigits(value: number) {
+  return String(value).replace(/\d/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
+}
+
+function serverRank(field: string) {
+  const index = (SERVER_FIELD_ORDER as readonly string[]).indexOf(field);
+  return index === -1 ? SERVER_FIELD_ORDER.length : index;
+}
 
 const SIDEBAR_KEY = "implesia.admin.sidebar.collapsed";
 const SIDEBAR_EVENT = "implesia-admin-sidebar";
@@ -143,50 +291,98 @@ function toForm(product?: AdminProduct): FormState {
       categoryTrail: "",
       price: "",
       compareAtPrice: "",
+      regularPrice: "",
+      baseDiscount: "",
+      tierMode: "global",
+      tiers: [],
       quantity: "",
       status: "available",
       badge: "",
+      badges: [],
       imageSrc: "",
       featured: false,
       published: false,
       content: emptyProductContent(),
       minOrder: "1",
+      maxOrderMode: "global",
       maxOrder: "",
       variants: [],
+      slug: "",
+      seoTitle: "",
+      seoDescription: "",
+      seoKeywords: "",
     };
   }
+  const regular =
+    product.regularPrice ?? Math.max(product.compareAtPrice ?? 0, product.price);
+  const base = product.baseDiscountPercent ?? derivedBase(regular, product.price);
+  const blankPrice = !product.published && product.price === 0 && !product.variants?.length;
   return {
     title: product.title,
     subtitle: product.subtitle,
     categoryId: product.categoryId,
     categoryRefId: product.categoryRefId ?? "",
     categoryTrail: product.categoryPath?.map((node) => node.name).join(" › ") ?? "",
-    price: String(product.price),
+    // A draft saved without a price is stored as 0; show it blank so publishing asks for one.
+    price:
+      !product.published && product.price === 0 && !product.variants?.length
+        ? ""
+        : String(product.price),
     compareAtPrice:
       product.compareAtPrice == null ? "" : String(product.compareAtPrice),
+    regularPrice: blankPrice ? "" : String(regular),
+    baseDiscount: base ? percentText(base) : "",
+    tierMode: product.tierMode ?? "global",
+    tiers: tierRowsFrom(product.quantityTiers ?? []),
     quantity: product.quantity == null ? "" : String(product.quantity),
     status: product.status,
     badge: product.badge ?? "",
+    badges: product.badges ? [...product.badges] : null,
     imageSrc: product.imageSrc,
     featured: product.featured,
     published: product.published,
     content: structuredClone(product.content),
     minOrder: String(product.minOrderQuantity ?? 1),
+    maxOrderMode: product.maxOrderQuantity == null ? "global" : "custom",
     maxOrder: product.maxOrderQuantity == null ? "" : String(product.maxOrderQuantity),
     variants: rowsFromVariants(product.variants),
+    slug: product.slug,
+    seoTitle: product.seoTitle ?? "",
+    seoDescription: product.seoDescription ?? "",
+    seoKeywords: product.seoKeywords ?? "",
   };
 }
 
-function validate(form: FormState): FieldErrors {
+/** `draft` saves with only a name; `publish` also needs a category and a price. */
+type SaveIntent = "draft" | "publish";
+
+function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors {
   const errors: FieldErrors = {};
+  const publishing = intent === "publish";
   if (!form.title.trim()) errors.title = "Product name is required.";
-  if (!form.categoryRefId) errors.category = "Choose a category.";
+  if (form.slug.trim() && !SLUG_PATTERN.test(form.slug.trim())) {
+    errors.slug = "Use lowercase English letters, numbers and single hyphens, e.g. desk-lamp.";
+  }
+  if (publishing && !form.categoryRefId) errors.category = "Choose a category.";
 
   // With variants the API rolls the price and stock up from them, so the product's own are unused.
   const hasVariants = form.variants.length > 0;
   const price = Number(form.price);
-  if (!hasVariants && (!form.price.trim() || !Number.isFinite(price) || price < 0)) {
-    errors.price = "Enter a selling price of 0 or more.";
+  // A draft may leave the price blank. A price that was typed must still be valid.
+  const priceMissing = !form.price.trim();
+  if (
+    !hasVariants &&
+    ((publishing && priceMissing) ||
+      (!priceMissing && (!Number.isFinite(price) || price < 0)))
+  ) {
+    errors.price = "Enter a regular price as a whole number of taka.";
+  }
+  if (!hasVariants && parsePercent(form.baseDiscount) == null) {
+    errors.baseDiscount = "Enter a base discount from 0 to 99.99%, at most two decimals.";
+  }
+  if (form.tierMode === "custom") {
+    const tierError = parseTierRows(form.tiers).error;
+    if (tierError) errors.quantityTiers = tierError;
   }
 
   if (!hasVariants && form.compareAtPrice.trim()) {
@@ -210,11 +406,11 @@ function validate(form: FormState): FieldErrors {
 
   const min = Number(form.minOrder);
   const max = Number(form.maxOrder);
-  if (!Number.isInteger(min) || min < 1 || min > 5) {
-    errors.orderLimits = "Minimum per order must be a whole number from 1 to 5.";
-  } else if (form.maxOrder.trim()) {
-    if (!Number.isInteger(max) || max < 1 || max > 5) {
-      errors.orderLimits = "Maximum per order must be from 1 to 5, or blank for no extra limit.";
+  if (!Number.isInteger(min) || min < 1 || min > QUANTITY_CEILING) {
+    errors.orderLimits = `Minimum per order must be a whole number from 1 to ${QUANTITY_CEILING}.`;
+  } else if (form.maxOrderMode === "custom") {
+    if (!form.maxOrder.trim() || !Number.isInteger(max) || max < 1 || max > QUANTITY_CEILING) {
+      errors.orderLimits = `Custom maximum must be a whole number from 1 to ${QUANTITY_CEILING}.`;
     } else if (max < min) {
       errors.orderLimits = "Maximum per order must be at least the minimum.";
     }
@@ -230,9 +426,12 @@ function validate(form: FormState): FieldErrors {
 function firstErrorSection(errors: FieldErrors): SectionId | null {
   if (errors.title) return "product-information";
   if (errors.category) return "product-organization";
-  if (errors.price || errors.compareAtPrice) return "product-pricing";
+  if (errors.price || errors.compareAtPrice || errors.baseDiscount || errors.quantityTiers) {
+    return "product-pricing";
+  }
   if (errors.quantity || errors.orderLimits) return "product-inventory";
   if (errors.variants) return "product-variants";
+  if (errors.slug) return "product-seo";
   return null;
 }
 
@@ -242,9 +441,15 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const [form, setForm] = useState<FormState>(() => toForm(product));
   const [baseline] = useState<FormState>(() => toForm(product));
   const [showErrors, setShowErrors] = useState(false);
+  const [errorIntent, setErrorIntent] = useState<SaveIntent>("publish");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [serverErrors, setServerErrors] = useState<ApiFieldError[]>([]);
+  const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const toastSeq = useRef(0);
+  const confirmDelete = useConfirmDelete();
+  const notify = useAdminNotify();
   const [uploading, setUploading] = useState(false);
   const uploads = useRef(0);
   const [active, setActive] = useState<SectionId>("product-information");
@@ -253,7 +458,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const collapsed = useAdminSidebarCollapsed();
 
   const issues = validate(form);
-  const errors = showErrors ? issues : {};
+  const errors = showErrors ? validate(form, errorIntent) : {};
   const dirty =
     JSON.stringify({ ...form, categoryTrail: "" }) !==
     JSON.stringify({ ...baseline, categoryTrail: "" });
@@ -282,12 +487,78 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       ? Math.round(((compareNumber - priceNumber) / compareNumber) * 100)
       : null;
 
+  function serverFor(...fields: string[]) {
+    return serverErrors.filter((item) => fields.includes(item.field));
+  }
+
+  function clearServer(fields: string[]) {
+    setServerErrors((prev) =>
+      prev.some((item) => fields.includes(item.field))
+        ? prev.filter((item) => !fields.includes(item.field))
+        : prev,
+    );
+  }
+
+  /** Regular price + base % -> the quantity-1 selling price shown and saved. */
+  function setPricing(patch: { regularPrice?: string; baseDiscount?: string }) {
+    clearServer(["regularPrice", "baseDiscount", "price", "compareAtPrice"]);
+    setForm((prev) => {
+      const regularPrice = patch.regularPrice ?? prev.regularPrice;
+      const baseDiscount = patch.baseDiscount ?? prev.baseDiscount;
+      const regular = Number(regularPrice);
+      const base = parsePercent(baseDiscount);
+      const ok = regularPrice.trim() !== "" && Number.isInteger(regular) && regular >= 0;
+      // An invalid regular price is kept as typed so validation flags it.
+      const price = ok && base != null ? sellingPrice(regular, base) : null;
+      return {
+        ...prev,
+        regularPrice,
+        baseDiscount,
+        price: price == null ? regularPrice : String(price),
+        compareAtPrice: price != null && price < regular ? String(regular) : "",
+      };
+    });
+  }
+
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
+    const fields = SERVER_FIELDS_FOR[key];
+    if (fields) clearServer(fields);
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function setContent(content: ProductStorefrontContent) {
+    if (JSON.stringify(content) !== JSON.stringify(form.content)) {
+      clearServer(["content", "images"]);
+    }
     setForm((prev) => ({ ...prev, content }));
+  }
+
+  function showToast(message: string) {
+    toastSeq.current += 1;
+    setToast({ message, key: toastSeq.current });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  function focusServerField(field: string) {
+    const suffix = SERVER_FIELD_INPUT[field];
+    const input = suffix ? document.getElementById(`${formId}-${suffix}`) : null;
+    if (input && !(input as HTMLInputElement).disabled) {
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+      input.focus({ preventScroll: true });
+      return;
+    }
+    const section = SERVER_FIELD_SECTION[field];
+    if (section) {
+      scrollToSection(section);
+      document.getElementById(`${formId}-server-${field}`)?.focus({ preventScroll: true });
+      return;
+    }
+    const summary = document.getElementById(`${formId}-error-summary`);
+    summary?.scrollIntoView({ behavior: "smooth", block: "center" });
+    summary?.focus({ preventScroll: true });
   }
 
   function onUploadBusy(busy: boolean) {
@@ -377,18 +648,28 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     if (href) router.push(href);
   }
 
-  async function save(event: React.FormEvent) {
+  async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextErrors = validate(form);
+    // The pressed button decides. Enter in a field keeps the current status (hidden default button).
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const intent: SaveIntent = submitter?.value === "publish" ? "publish" : "draft";
+    const nextErrors = validate(form, intent);
     if (Object.keys(nextErrors).length > 0) {
+      setErrorIntent(intent);
       setShowErrors(true);
+      showToast(
+        intent === "draft" && nextErrors.title
+          ? "Add a product name to save the draft."
+          : "Fix the highlighted fields to publish.",
+      );
       const section = firstErrorSection(nextErrors);
       if (section) scrollToSection(section);
       return;
     }
     if (uploading || saving) return;
+    setServerErrors([]);
 
-    const price = variantMode ? (summary.price ?? 0) : Number(form.price);
+    const price = variantMode ? (summary.price ?? 0) : Number(form.price || 0);
     if (!Number.isInteger(price)) {
       setSaveError("Enter the price as a whole number of taka.");
       return;
@@ -399,6 +680,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       setSaveError("Enter the compare-at price as a whole number of taka.");
       return;
     }
+    // Regular price + base % go to the API only when changed, so saving other fields never
+    // re-rounds an older price.
+    const pricingChanged =
+      !product ||
+      form.regularPrice !== baseline.regularPrice ||
+      form.baseDiscount !== baseline.baseDiscount;
+    const tiers = parseTierRows(form.tiers).tiers ?? [];
     const quantity = variantMode
       ? summary.quantity
       : form.quantity.trim()
@@ -411,14 +699,30 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       categoryRefId: form.categoryRefId,
       price,
       compareAtPrice,
+      ...(!variantMode && pricingChanged && form.regularPrice.trim()
+        ? {
+            regularPrice: Number(form.regularPrice),
+            baseDiscountPercent: parsePercent(form.baseDiscount) ?? 0,
+          }
+        : {}),
+      tierMode: form.tierMode,
+      quantityTiers: tiers,
       quantity,
       status: form.status,
       badge: form.badge || null,
+      badges: form.badges ?? undefined,
       imageSrc: form.imageSrc.trim(),
       featured: form.featured,
-      published: form.published,
+      published: intent === "publish",
       minOrderQuantity: Number(form.minOrder),
-      maxOrderQuantity: form.maxOrder.trim() ? Number(form.maxOrder) : null,
+      maxOrderQuantity: form.maxOrderMode === "custom" ? Number(form.maxOrder) : null,
+      seoTitle: form.seoTitle.trim(),
+      seoDescription: form.seoDescription.trim(),
+      seoKeywords: form.seoKeywords.trim(),
+      // Sent only when changed; the old slug keeps redirecting to the product.
+      ...(product?.id && form.slug.trim() && form.slug.trim() !== product.slug
+        ? { slug: form.slug.trim() }
+        : {}),
       // Sent only when changed, so editing something else never rewrites variant prices or stock.
       variants: sameVariants(form.variants, baseline.variants)
         ? undefined
@@ -434,34 +738,72 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     try {
       await saveMartProduct(product?.id, draft);
       bypassLeave.current = true;
+      notify(
+        intent === "draft"
+          ? product?.published
+            ? "Moved to draft. It is no longer on the store."
+            : "Draft saved. Only admins can see it."
+          : product?.published
+            ? "Changes saved"
+            : "Product published",
+        "ok",
+      );
       router.push("/admin/products");
     } catch (error) {
       setSaving(false);
-      setSaveError(
+      if (error instanceof MartApiError && error.kind === "network") {
+        showToast(NETWORK_TOAST);
+        return;
+      }
+      if (error instanceof MartApiError && error.kind === "server") {
+        const first = error.fieldErrors[0];
+        showToast(first ? `${first.message} ${first.fix}`.trim() : SERVER_TOAST);
+        return;
+      }
+      if (error instanceof MartApiError && error.fieldErrors.length > 0) {
+        const sorted = [...error.fieldErrors].sort(
+          (a, b) => serverRank(a.field) - serverRank(b.field),
+        );
+        setServerErrors(sorted);
+        // Wait for the messages to render, then bring the first problem into view.
+        requestAnimationFrame(() => focusServerField(sorted[0].field));
+        return;
+      }
+      const message =
         error instanceof MartApiError
           ? error.message
-          : "The product could not be saved.",
-      );
+          : "The product could not be saved.";
+      setSaveError(message);
+      showToast(message);
     }
   }
 
-  async function removeProduct() {
-    if (!product?.id || saving) return;
-    setSaving(true);
-    setSaveError("");
-    try {
-      await deleteMartProduct(product.id);
-      bypassLeave.current = true;
-      router.push("/admin/products");
-    } catch (error) {
-      setSaving(false);
-      setConfirmDelete(false);
-      setSaveError(
-        error instanceof MartApiError
-          ? error.message
-          : "The product could not be deleted.",
-      );
-    }
+  function removeProduct() {
+    const id = product?.id;
+    if (!id || saving) return;
+    void confirmDelete({
+      title: "Delete this product?",
+      description: (
+        <>
+          <span className="font-semibold text-neutral-800">“{product.title}”</span>{" "}
+          will be removed from the catalog and the store. This cannot be undone.
+        </>
+      ),
+      successMessage: "Product deleted",
+      errorMessage: "The product could not be deleted.",
+      onConfirm: async () => {
+        setSaving(true);
+        setSaveError("");
+        try {
+          await deleteMartProduct(id);
+        } catch (error) {
+          setSaving(false);
+          throw error;
+        }
+        bypassLeave.current = true;
+        router.push("/admin/products");
+      },
+    });
   }
 
   const statusLine = uploading
@@ -495,6 +837,36 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           {saveError}
         </p>
       ) : null}
+      {serverErrors.length > 0 ? (
+        <div
+          id={`${formId}-error-summary`}
+          tabIndex={-1}
+          role="alert"
+          className="-mt-3 mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200 focus:outline-none"
+        >
+          <p className="flex items-center gap-2 font-semibold">
+            <MaterialIcon name="error" className="text-[18px]" />
+            {bengaliDigits(serverErrors.length)}টা সমস্যা আছে, ঠিক করে আবার চেষ্টা করুন
+          </p>
+          <ul className="mt-2 space-y-1.5 pl-6">
+            {serverErrors.map((item, index) => (
+              <li key={`${item.field}-${index}`}>
+                <button
+                  type="button"
+                  onClick={() => focusServerField(item.field)}
+                  className="text-left hover:underline focus-visible:underline focus-visible:outline-none"
+                >
+                  <span className="font-medium">
+                    {SERVER_FIELD_LABEL[item.field] ?? SERVER_FIELD_LABEL.form}:
+                  </span>{" "}
+                  {item.message}
+                </button>
+                {item.fix ? <span className="block text-xs text-red-600">{item.fix}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {product ? (
         <div className="-mt-3 mb-5 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 ring-1 ring-neutral-200">
@@ -508,7 +880,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 : "bg-neutral-100 text-neutral-600",
             )}
           >
-            {form.published ? "Live" : "Hidden"}
+            {form.published ? "Published" : "Draft"}
           </span>
           <StockStatusBadge status={form.status} />
           {form.featured ? (
@@ -522,32 +894,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             View on site
           </Link>
           {product.id ? (
-            confirmDelete ? (
-              <span className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => void removeProduct()}
-                  className="h-8 rounded-full px-3 text-xs font-semibold text-red-700 hover:bg-red-50"
-                >
-                  Delete product
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(false)}
-                  className="h-8 rounded-full px-3 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
-                >
-                  Keep
-                </button>
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                className="h-8 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
-              >
-                Delete
-              </button>
-            )
+            <button
+              type="button"
+              onClick={removeProduct}
+              className="h-8 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
+            >
+              Delete
+            </button>
           ) : null}
         </div>
       ) : null}
@@ -594,6 +947,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </div>
 
           <FormSection
+            invalid={serverFor("title", "subtitle").length > 0}
             id="product-information"
             title="Product information"
             description="Name is required. Subtitle is the short catalog line. Tagline and description are the product page copy."
@@ -608,20 +962,29 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   value={form.title}
                   onChange={(event) => setField("title", event.target.value)}
                   placeholder="Sunset projection lamp"
-                  aria-invalid={errors.title ? true : undefined}
+                  aria-invalid={
+                    errors.title || serverFor("title").length ? true : undefined
+                  }
                   aria-describedby={
-                    errors.title ? `${formId}-title-error` : undefined
+                    errors.title
+                      ? `${formId}-title-error`
+                      : serverFor("title").length
+                        ? `${formId}-server-title`
+                        : undefined
                   }
                   className={cn(
                     adminFieldClass,
                     "h-12 text-base",
-                    errors.title &&
-                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    (errors.title || serverFor("title").length > 0) && INVALID_FIELD,
                   )}
                 />
                 <FieldErrorSlot
                   id={`${formId}-title-error`}
                   message={errors.title}
+                />
+                <ServerFieldErrors
+                  id={`${formId}-server-title`}
+                  items={serverFor("title")}
                 />
               </div>
               <div>
@@ -631,7 +994,18 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   value={form.subtitle}
                   onChange={(event) => setField("subtitle", event.target.value)}
                   placeholder="Short line under the name"
-                  className={adminFieldClass}
+                  aria-invalid={serverFor("subtitle").length ? true : undefined}
+                  aria-describedby={
+                    serverFor("subtitle").length ? `${formId}-server-subtitle` : undefined
+                  }
+                  className={cn(
+                    adminFieldClass,
+                    serverFor("subtitle").length > 0 && INVALID_FIELD,
+                  )}
+                />
+                <ServerFieldErrors
+                  id={`${formId}-server-subtitle`}
+                  items={serverFor("subtitle")}
                 />
               </div>
               <ProductCopyFields
@@ -643,20 +1017,25 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("images").length > 0}
             id="product-media"
             title="Media"
             description="The main image is the catalog thumbnail. Gallery images are the product page photos. JPG, PNG, WEBP, GIF, or AVIF, up to 5 MB."
           >
+            <p className="mb-1.5 text-sm font-medium text-neutral-700">Main image</p>
             <ImageField
               label=""
+              variant="tile"
+              tileSize="lg"
               value={form.imageSrc}
               onChange={(imageSrc) => setField("imageSrc", imageSrc)}
               confirmRemove
               onBusy={onUploadBusy}
             />
+            <ServerFieldErrors id={`${formId}-server-images`} items={serverFor("images")} />
             {!form.imageSrc ? (
               <p className="mt-2 text-sm text-neutral-500">
-                Add a product image before saving.
+                Add a product image before publishing. A draft can be saved without one.
               </p>
             ) : null}
             <div className="mt-3">
@@ -672,6 +1051,12 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 placeholder="Used as the image description on the product page"
                 className={adminFieldClass}
               />
+              {form.imageSrc && !form.content.imageAlt.trim() ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Empty: the product name is used. A short description of the photo helps
+                  image search and screen readers.
+                </p>
+              ) : null}
             </div>
             <ProductGalleryFields
               content={form.content}
@@ -681,9 +1066,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={
+              serverFor("price", "compareAtPrice", "regularPrice", "baseDiscount", "quantityTiers")
+                .length > 0
+            }
             id="product-pricing"
             title="Pricing"
-            description="Selling price is required. Compare-at is optional and must be at least the selling price. Amounts are in taka."
+            description="Enter the regular price and a base discount %. The selling price is worked out for you. Quantity discounts add more on top. Amounts are in taka."
           >
             {variantMode ? (
               <p
@@ -697,81 +1086,67 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <FieldLabel htmlFor={`${formId}-price`}>
-                  Selling price <RequiredMark />
+                  Regular price <RequiredMark />
                 </FieldLabel>
                 <input
                   id={`${formId}-price`}
-                  inputMode="decimal"
-                  value={shownPrice}
+                  inputMode="numeric"
+                  value={variantMode ? shownPrice : form.regularPrice}
                   disabled={variantMode}
-                  onChange={(event) => setField("price", event.target.value)}
-                  placeholder="999"
-                  aria-invalid={errors.price ? true : undefined}
-                  aria-describedby={
-                    errors.price ? `${formId}-price-error` : undefined
+                  onChange={(event) => setPricing({ regularPrice: event.target.value })}
+                  placeholder="1000"
+                  aria-invalid={
+                    errors.price || serverFor("price", "regularPrice").length ? true : undefined
                   }
+                  aria-describedby={errors.price ? `${formId}-price-error` : undefined}
                   className={cn(
                     adminFieldClass,
-                    errors.price &&
-                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    (errors.price || serverFor("price", "regularPrice").length > 0) &&
+                      INVALID_FIELD,
                   )}
                 />
-                <FieldErrorSlot
-                  id={`${formId}-price-error`}
-                  message={errors.price}
+                <FieldErrorSlot id={`${formId}-price-error`} message={errors.price} />
+                <ServerFieldErrors
+                  id={`${formId}-server-price`}
+                  items={serverFor("price", "regularPrice", "compareAtPrice")}
                 />
               </div>
               <div>
-                <FieldLabel htmlFor={`${formId}-compare`}>
-                  Compare-at price
-                </FieldLabel>
+                <FieldLabel htmlFor={`${formId}-base`}>Base discount %</FieldLabel>
                 <input
-                  id={`${formId}-compare`}
+                  id={`${formId}-base`}
                   inputMode="decimal"
-                  value={variantMode ? "" : form.compareAtPrice}
+                  value={variantMode ? "" : form.baseDiscount}
                   disabled={variantMode}
-                  onChange={(event) =>
-                    setField("compareAtPrice", event.target.value)
+                  onChange={(event) => setPricing({ baseDiscount: event.target.value })}
+                  placeholder="0"
+                  aria-invalid={
+                    errors.baseDiscount || serverFor("baseDiscount").length ? true : undefined
                   }
-                  placeholder="Optional"
-                  aria-invalid={errors.compareAtPrice ? true : undefined}
-                  aria-describedby={
-                    errors.compareAtPrice
-                      ? `${formId}-compare-error`
-                      : `${formId}-compare-hint`
-                  }
+                  aria-describedby={`${formId}-base-hint`}
                   className={cn(
                     adminFieldClass,
-                    errors.compareAtPrice &&
-                      "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                    (errors.baseDiscount || serverFor("baseDiscount").length > 0) && INVALID_FIELD,
                   )}
                 />
-                <FieldErrorSlot
-                  id={`${formId}-compare-error`}
-                  message={errors.compareAtPrice}
+                <FieldErrorSlot id={`${formId}-base-error`} message={errors.baseDiscount} />
+                <ServerFieldErrors
+                  id={`${formId}-server-baseDiscount`}
+                  items={serverFor("baseDiscount")}
                 />
-                {!errors.compareAtPrice &&
-                priceReady &&
-                compareReady &&
-                compareNumber > priceNumber ? (
+                {!variantMode && priceReady && !errors.baseDiscount ? (
                   <p
-                    id={`${formId}-compare-hint`}
+                    id={`${formId}-base-hint`}
                     className="mt-1.5 text-xs text-neutral-500"
+                    data-testid="selling-price-preview"
                   >
-                    Selling price {formatTaka(priceNumber)} is {discount}% below
-                    the compare-at price of {formatTaka(compareNumber)}.
-                  </p>
-                ) : null}
-                {!errors.compareAtPrice &&
-                priceReady &&
-                compareReady &&
-                compareNumber === priceNumber ? (
-                  <p
-                    id={`${formId}-compare-hint`}
-                    className="mt-1.5 text-xs text-neutral-500"
-                  >
-                    Compare-at matches the selling price, so there is no higher
-                    price to show.
+                    Selling price{" "}
+                    <span className="font-semibold text-neutral-900 tabular-nums">
+                      {formatTaka(priceNumber)}
+                    </span>
+                    {discount != null
+                      ? ` (${percentText(parsePercent(form.baseDiscount) ?? 0)}% off ${formatTaka(compareNumber)})`
+                      : ""}
                   </p>
                 ) : null}
               </div>
@@ -795,9 +1170,61 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 </p>
               </div>
             </div>
+            <fieldset className="mt-5 border-t border-neutral-100 pt-4">
+              <legend className="text-sm font-medium text-neutral-800">
+                Quantity discounts
+              </legend>
+              <p className="mt-1 text-xs text-neutral-500">
+                Buying more pieces adds an extra % on the regular price, on top of the base
+                discount.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2" role="radiogroup">
+                {(
+                  [
+                    ["global", "Use store-wide tiers (Settings › Pricing)"],
+                    ["custom", "Custom tiers for this product"],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <label
+                    key={mode}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-neutral-700 ring-1",
+                      form.tierMode === mode
+                        ? "ring-2 ring-primary"
+                        : "ring-neutral-200 hover:bg-neutral-50",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${formId}-tier-mode`}
+                      value={mode}
+                      checked={form.tierMode === mode}
+                      onChange={() => setField("tierMode", mode)}
+                      className="accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {form.tierMode === "custom" ? (
+                <div className="mt-3">
+                  <QuantityTiersEditor
+                    id={`${formId}-tiers`}
+                    rows={form.tiers}
+                    onChange={(rows) => setField("tiers", rows)}
+                    error={errors.quantityTiers}
+                  />
+                </div>
+              ) : null}
+              <ServerFieldErrors
+                id={`${formId}-server-quantityTiers`}
+                items={serverFor("quantityTiers")}
+              />
+            </fieldset>
           </FormSection>
 
           <FormSection
+            invalid={serverFor("quantity", "status", "orderLimits").length > 0}
             id="product-inventory"
             title="Inventory"
             description="Stock status is the availability label. Quantity is optional: leave it blank for made to order."
@@ -826,6 +1253,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   ),
                 )}
               </div>
+              <ServerFieldErrors id={`${formId}-server-status`} items={serverFor("status")} />
               <p className="mt-2 text-xs text-neutral-500">
                 {form.status === "available"
                   ? "In stock. Catalog products with this status can be added to cart."
@@ -843,20 +1271,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 disabled={variantMode}
                 onChange={(event) => setField("quantity", event.target.value)}
                 placeholder="Blank = made to order"
-                aria-invalid={errors.quantity ? true : undefined}
+                aria-invalid={errors.quantity || serverFor("quantity").length ? true : undefined}
                 aria-describedby={
                   errors.quantity ? `${formId}-qty-error` : `${formId}-qty-hint`
                 }
                 className={cn(
                   adminFieldClass,
-                  errors.quantity &&
-                    "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                  (errors.quantity || serverFor("quantity").length > 0) && INVALID_FIELD,
                 )}
               />
               <FieldErrorSlot
                 id={`${formId}-qty-error`}
                 message={errors.quantity}
               />
+              <ServerFieldErrors id={`${formId}-server-quantity`} items={serverFor("quantity")} />
               {!errors.quantity ? (
                 <p
                   id={`${formId}-qty-hint`}
@@ -882,12 +1310,11 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                     inputMode="numeric"
                     value={form.minOrder}
                     onChange={(event) => setField("minOrder", event.target.value)}
-                    aria-invalid={errors.orderLimits ? true : undefined}
+                    aria-invalid={errors.orderLimits || serverFor("orderLimits").length ? true : undefined}
                     aria-describedby={`${formId}-order-limits-hint`}
                     className={cn(
                       adminFieldClass,
-                      errors.orderLimits &&
-                        "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                      (errors.orderLimits || serverFor("orderLimits").length > 0) && INVALID_FIELD,
                     )}
                   />
                 </div>
@@ -896,29 +1323,64 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   <input
                     id={`${formId}-max-order`}
                     inputMode="numeric"
-                    value={form.maxOrder}
-                    placeholder="No extra limit"
+                    value={form.maxOrderMode === "custom" ? form.maxOrder : ""}
+                    placeholder="Store-wide limit"
+                    disabled={form.maxOrderMode !== "custom"}
                     onChange={(event) => setField("maxOrder", event.target.value)}
-                    aria-invalid={errors.orderLimits ? true : undefined}
+                    aria-invalid={errors.orderLimits || serverFor("orderLimits").length ? true : undefined}
                     aria-describedby={`${formId}-order-limits-hint`}
                     className={cn(
                       adminFieldClass,
-                      errors.orderLimits &&
-                        "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-200",
+                      "disabled:bg-neutral-50 disabled:text-neutral-400",
+                      (errors.orderLimits || serverFor("orderLimits").length > 0) && INVALID_FIELD,
                     )}
                   />
                 </div>
+              </div>
+              <div
+                className="mt-2 flex flex-wrap gap-2"
+                role="radiogroup"
+                aria-label="Maximum per order"
+                data-testid="max-order-mode"
+              >
+                {(
+                  [
+                    ["global", "Use store-wide limit (Admin › Discounts)"],
+                    ["custom", "Custom maximum for this product"],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <label
+                    key={mode}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-neutral-700 ring-1",
+                      form.maxOrderMode === mode
+                        ? "ring-2 ring-primary"
+                        : "ring-neutral-200 hover:bg-neutral-50",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${formId}-max-order-mode`}
+                      value={mode}
+                      checked={form.maxOrderMode === mode}
+                      onChange={() => setField("maxOrderMode", mode)}
+                      className="accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
               </div>
               <FieldErrorSlot
                 id={`${formId}-order-limits-error`}
                 message={errors.orderLimits}
               />
+              <ServerFieldErrors id={`${formId}-server-orderLimits`} items={serverFor("orderLimits")} />
               <p
                 id={`${formId}-order-limits-hint`}
                 className="mt-1.5 text-xs text-neutral-500"
               >
-                Units a customer can put in one cart line. The store allows 5 at most; the API checks these
-                limits again at cart and order time.
+                Units a customer can put in one cart line. Without a custom maximum the store-wide
+                limit applies; stock still caps it. The API checks these limits at cart and order time.
               </p>
             </div>
             <div className="mt-4">
@@ -953,10 +1415,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("variants").length > 0}
             id="product-variants"
             title="Variants"
             description="Price, stock, and SKU for each combination of options."
           >
+            <ServerFieldErrors
+              id={`${formId}-server-variants`}
+              items={serverFor("variants")}
+              boxed
+            />
             <ProductVariantsFields
               formId={formId}
               groups={form.content.options}
@@ -969,10 +1437,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("content").length > 0}
             id="product-details"
             title="Product details"
             description="Content for the product page: highlights, the details tab, specifications, and questions. Reviews stay as they are."
           >
+            <ServerFieldErrors
+              id={`${formId}-server-content`}
+              items={serverFor("content")}
+              boxed
+            />
             <ProductDetailFields
               formId={formId}
               content={form.content}
@@ -982,9 +1456,10 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
+            invalid={serverFor("category", "badges").length > 0}
             id="product-organization"
             title="Organization"
-            description="Category is required. Badge is optional."
+            description="Category is required. Badges are optional."
           >
             <div>
               <p className="mb-1.5 text-sm font-medium text-neutral-700">
@@ -992,8 +1467,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               </p>
               <CategoryCascade
                 value={form.categoryRefId}
-                error={errors.category}
+                error={errors.category ?? serverFor("category")[0]?.message}
                 onChange={(id, trail) => {
+                  if (id !== form.categoryRefId) clearServer(["category"]);
                   setForm((current) =>
                     current.categoryRefId === id && current.categoryTrail === trail
                       ? current
@@ -1001,34 +1477,57 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   );
                 }}
               />
+              <ServerFieldErrors
+                id={`${formId}-server-category`}
+                items={errors.category ? [] : serverFor("category")}
+                fixOnly
+              />
               <p className="mt-1.5 text-xs text-neutral-500">
                 Pick a category, then a subcategory if there is one. The product shows up under every
                 level above the one you choose.
               </p>
             </div>
             <div className="mt-4">
-              <p className="mb-1.5 text-sm font-medium text-neutral-700">
-                Badge
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {BADGE_OPTIONS.map((option) => (
-                  <button
-                    key={option.label}
-                    type="button"
-                    aria-pressed={form.badge === option.value}
-                    onClick={() => setField("badge", option.value)}
-                    className={cn(
-                      "h-9 rounded-full px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      form.badge === option.value
-                        ? "bg-neutral-950 text-white"
-                        : "bg-[#f5f6f8] text-neutral-600 hover:bg-neutral-200",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+              <ProductBadgePicker
+                value={form.badges ?? []}
+                initial={baseline.badges ?? []}
+                onChange={(next) => setField("badges", next)}
+              />
+              <ServerFieldErrors id={`${formId}-server-badges`} items={serverFor("badges")} />
             </div>
+          </FormSection>
+
+          <FormSection
+            invalid={Boolean(errors.slug) || serverFor("slug", "seo").length > 0}
+            id="product-seo"
+            title="SEO"
+            description="How the product shows in Google and in shared links. Leave empty to use the name and description."
+          >
+            <ProductSeoFields
+              formId={formId}
+              value={{
+                slug: form.slug,
+                seoTitle: form.seoTitle,
+                seoDescription: form.seoDescription,
+                seoKeywords: form.seoKeywords,
+              }}
+              onChange={(key, value) => setField(key, value)}
+              fallback={{
+                title: form.title,
+                description: form.content.description,
+                subtitle: form.subtitle,
+                tagline: form.content.tagline,
+              }}
+              productId={product?.id}
+              slugError={errors.slug}
+              slugInvalid={serverFor("slug").length > 0}
+              serverSlugErrors={
+                <ServerFieldErrors id={`${formId}-server-slug`} items={serverFor("slug")} />
+              }
+              serverSeoErrors={
+                <ServerFieldErrors id={`${formId}-server-seo`} items={serverFor("seo")} />
+              }
+            />
           </FormSection>
         </div>
 
@@ -1058,11 +1557,26 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <StockStatusBadge status={form.status} />
-                {form.badge ? (
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
-                    {form.badge}
-                  </span>
-                ) : null}
+                {form.badges === null ? (
+                  form.badge ? (
+                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                      {form.badge}
+                    </span>
+                  ) : null
+                ) : (
+                  form.badges.map((badge) => (
+                    <span
+                      key={badge.id}
+                      className={cn(
+                        "max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase",
+                        badgeToneClass(badge.tone),
+                        !badge.isActive && "opacity-50",
+                      )}
+                    >
+                      {badge.name}
+                    </span>
+                  ))
+                )}
               </div>
               <p className="text-base font-semibold text-neutral-950">
                 {form.title.trim() || "Product name"}
@@ -1089,21 +1603,32 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </section>
 
           <FormSection
+            invalid={serverFor("publishing").length > 0}
             id="product-publishing"
             title="Publishing"
-            description="Live and Hidden are the catalog states. Featured adds a label in the product list."
+            description="Draft and Published are the catalog states. Featured adds a label in the product list."
           >
             <div className="space-y-2">
-              <Toggle
-                label="Published"
-                hint={
-                  form.published
-                    ? "Customers can see this product."
-                    : "Hidden from the store until you publish it."
-                }
-                checked={form.published}
-                onChange={(checked) => setField("published", checked)}
-              />
+              <div className="flex items-start justify-between gap-3 rounded-xl px-1 py-1">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-neutral-800">Status</p>
+                  <p className="text-xs text-neutral-500">
+                    {form.published
+                      ? "Customers can see this product. Move to draft to hide it."
+                      : "Only admins can see a draft. Publish to show it on the store."}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
+                    form.published
+                      ? "bg-emerald-50 text-emerald-800"
+                      : "bg-neutral-100 text-neutral-600",
+                  )}
+                >
+                  {form.published ? "Published" : "Draft"}
+                </span>
+              </div>
               <Toggle
                 label="Featured"
                 hint="Shows a Featured label in the product list."
@@ -1111,6 +1636,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 onChange={(checked) => setField("featured", checked)}
               />
             </div>
+            <ServerFieldErrors id={`${formId}-server-publishing`} items={serverFor("publishing")} />
             <p className="mt-4 border-t border-neutral-100 pt-3 text-sm font-medium text-neutral-800">
               Setup {setupDone} of 4
             </p>
@@ -1145,6 +1671,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         )}
       >
         <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
+          {/* Enter in a field submits with this one, so it never changes the product's status. */}
+          <button
+            type="submit"
+            name="intent"
+            value={product?.published ? "publish" : "draft"}
+            disabled={saving || uploading}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="hidden"
+          />
           <button
             type="button"
             onClick={() => requestLeave("/admin/products")}
@@ -1160,10 +1696,21 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </p>
           <button
             type="submit"
+            name="intent"
+            value="draft"
+            disabled={saving || uploading}
+            className={adminButtonClass.secondary}
+          >
+            {product?.published ? "Move to draft" : product ? "Save draft" : "Save as Draft"}
+          </button>
+          <button
+            type="submit"
+            name="intent"
+            value="publish"
             disabled={saving || uploading}
             className={adminButtonClass.primary}
           >
-            {saving ? "Saving…" : product ? "Save changes" : "Create product"}
+            {saving ? "Saving…" : product?.published ? "Save changes" : "Publish"}
           </button>
         </div>
       </div>
@@ -1171,6 +1718,22 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       {leaveHref ? (
         <UnsavedChangesDialog onStay={() => setLeaveHref(null)} onDiscard={confirmLeave} />
       ) : null}
+
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex justify-center px-4"
+      >
+        {toast ? (
+          <p
+            key={toast.key}
+            className="flex max-w-xl items-center gap-2 rounded-full bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-xl"
+          >
+            <MaterialIcon name="error" className="shrink-0 text-[18px]" />
+            {toast.message}
+          </p>
+        ) : null}
+      </div>
     </form>
   );
 }
@@ -1179,17 +1742,22 @@ function FormSection({
   id,
   title,
   description,
+  invalid = false,
   children,
 }: {
   id: string;
   title: string;
   description: string;
+  invalid?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <section
       id={id}
-      className="scroll-mt-32 rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5"
+      className={cn(
+        "scroll-mt-32 rounded-2xl bg-white p-4 ring-1 sm:p-5",
+        invalid ? "ring-red-300" : "ring-neutral-200/90",
+      )}
     >
       <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
       <p className="mt-1 text-sm leading-relaxed text-neutral-500">
@@ -1242,6 +1810,38 @@ function FieldErrorSlot({ id, message }: { id: string; message?: string }) {
   return (
     <div id={id}>
       <FieldError message={message} />
+    </div>
+  );
+}
+
+/** Problems the API reported for one field: the message, then how to fix it, in red. */
+function ServerFieldErrors({
+  id,
+  items,
+  boxed = false,
+  fixOnly = false,
+}: {
+  id: string;
+  items: ApiFieldError[];
+  boxed?: boolean;
+  fixOnly?: boolean;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div
+      id={id}
+      tabIndex={-1}
+      className={cn(
+        "space-y-1 focus:outline-none",
+        boxed ? "mb-4 rounded-xl bg-red-50 px-3 py-2.5 ring-1 ring-red-200" : "mt-1.5",
+      )}
+    >
+      {items.map((item, index) => (
+        <p key={`${item.field}-${index}`} className="text-sm text-red-700">
+          {fixOnly ? null : <span className="block font-medium">{item.message}</span>}
+          {item.fix ? <span className="block text-xs text-red-600">{item.fix}</span> : null}
+        </p>
+      ))}
     </div>
   );
 }

@@ -14,6 +14,9 @@ export type QuoteLine = {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  /** Price before discount and the total discount % the server applied. */
+  regularPrice: number;
+  totalPercent: number;
   available: boolean;
   maxQuantity: number;
   selection: { name: string; label: string; swatch: string }[];
@@ -41,6 +44,11 @@ export type MartOrderItem = {
   quantity: number;
   lineTotal: number;
   selection: { name: string; label: string; swatch: string }[];
+  /** Discount snapshot from order time. Null on orders placed before it was recorded. */
+  regularPrice: number | null;
+  basePercent: number | null;
+  quantityPercent: number | null;
+  totalPercent: number | null;
 };
 
 export type MartOrder = {
@@ -97,6 +105,8 @@ type ApiQuoteLine = {
   unit_price: number;
   quantity: number;
   line_total: number;
+  regular_price?: number;
+  total_discount_percent?: number;
   available: boolean;
   max_quantity: number;
   selection?: { name: string; label: string; swatch?: string }[];
@@ -124,6 +134,10 @@ type ApiOrderItem = {
   quantity: number;
   line_total: number;
   selection?: { name: string; label: string; swatch?: string }[];
+  regular_price?: number | null;
+  base_discount_percent?: number | null;
+  quantity_discount_percent?: number | null;
+  total_discount_percent?: number | null;
 };
 
 type ApiOrder = {
@@ -171,6 +185,8 @@ function mapQuote(body: ApiQuote): OrderQuote {
       unitPrice: item.unit_price,
       quantity: item.quantity,
       lineTotal: item.line_total,
+      regularPrice: Math.max(item.regular_price ?? 0, item.unit_price),
+      totalPercent: item.total_discount_percent ?? 0,
       available: item.available,
       maxQuantity: item.max_quantity,
       selection: mapSelection(item.selection),
@@ -219,6 +235,10 @@ function mapOrder(body: ApiOrder): MartOrder {
       quantity: item.quantity,
       lineTotal: item.line_total,
       selection: mapSelection(item.selection),
+      regularPrice: item.regular_price ?? null,
+      basePercent: item.base_discount_percent ?? null,
+      quantityPercent: item.quantity_discount_percent ?? null,
+      totalPercent: item.total_discount_percent ?? null,
     })),
   };
 }

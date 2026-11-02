@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 
-import { getStoreProduct, getStoreProductById } from "@/lib/mart-api/catalog";
+import {
+  getStoreDeliveryRates,
+  getStoreProduct,
+  getStoreProductById,
+} from "@/lib/mart-api/catalog";
 import { getPublicSiteContact } from "@/lib/mart-api/site-contact";
 import { parseProductRef, productPath } from "@/lib/mart-api/product-url";
-import { absoluteUrl, SITE_NAME } from "@/lib/seo";
+import { productJsonLd, STORE_CURRENCY } from "@/lib/product-structured-data";
+import { absoluteUrl, pageMetadata, productSeo, SITE_NAME } from "@/lib/seo";
 
 import { JsonLd } from "../../_components/common/json-ld";
 import { SiteContactProvider } from "../../_providers/site-contact-provider";
@@ -42,38 +47,18 @@ export async function generateMetadata({
   const { ref } = await params;
   const product = await resolveProduct(ref);
 
-  const url = productPath(product);
-  const keywords = [product.title, product.subtitle, product.tagline].filter(
-    (value): value is string => Boolean(value),
-  );
+  const seo = productSeo(product);
 
-  return {
-    title: product.title,
-    description: product.description,
-    keywords,
-    alternates: { canonical: url },
-    openGraph: {
-      type: "website",
-      url,
-      title: product.title,
-      description: product.description,
-      images: product.imageSrc
-        ? [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }]
-        : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: product.title,
-      description: product.description,
-      images: product.imageSrc ? [product.imageSrc] : undefined,
-    },
-  };
-}
-
-function availability(status: string) {
-  if (status === "coming-soon") return "https://schema.org/PreOrder";
-  if (status === "sold-out") return "https://schema.org/OutOfStock";
-  return "https://schema.org/InStock";
+  return pageMetadata({
+    title: seo.title,
+    description: seo.description,
+    path: productPath(product),
+    keywords: seo.keywords,
+    product: { price: product.price, currency: STORE_CURRENCY },
+    images: product.imageSrc
+      ? [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }]
+      : undefined,
+  });
 }
 
 export default async function ProductDetailsPage({
@@ -82,26 +67,24 @@ export default async function ProductDetailsPage({
   params: Promise<{ ref: string }>;
 }) {
   const { ref } = await params;
-  const [product, contact] = await Promise.all([resolveProduct(ref), getPublicSiteContact()]);
+  const [product, contact, rates] = await Promise.all([
+    resolveProduct(ref),
+    getPublicSiteContact(),
+    getStoreDeliveryRates(),
+  ]);
 
   const productUrl = absoluteUrl(productPath(product));
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.title,
-    description: product.description,
-    image: product.imageSrc ? [absoluteUrl(product.imageSrc)] : undefined,
-    sku: product.id,
-    brand: { "@type": "Brand", name: SITE_NAME },
-    offers: {
-      "@type": "Offer",
-      url: productUrl,
-      priceCurrency: "BDT",
-      price: product.price,
-      availability: availability(product.status),
-      itemCondition: "https://schema.org/NewCondition",
-    },
-  };
+  const seo = productSeo(product);
+  const structuredProduct = productJsonLd({
+    product,
+    name: seo.name,
+    description: seo.description,
+    url: productUrl,
+    brand: SITE_NAME,
+    rates,
+    now: new Date(),
+    toAbsolute: absoluteUrl,
+  });
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -115,7 +98,7 @@ export default async function ProductDetailsPage({
 
   return (
     <>
-      <JsonLd data={productJsonLd} />
+      <JsonLd data={structuredProduct} />
       <JsonLd data={breadcrumbJsonLd} />
       <SiteContactProvider contact={contact}>
         <ProductDetailLayout product={product} />

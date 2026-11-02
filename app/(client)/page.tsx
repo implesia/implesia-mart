@@ -5,6 +5,7 @@ import { FaqSection } from "./_components/home/faq-section";
 import { FeaturedProductsSection } from "./_components/home/featured-products-section";
 import { HeroSection } from "./_components/home/hero-section";
 import { HomeTrustStrip } from "./_components/home/home-trust-strip";
+import { HomeMediaSection } from "./_components/home/media-section";
 import { PromoBannerSection } from "./_components/home/promo-banner-section";
 import { NewsletterSection } from "./_components/home/newsletter-section";
 import { TestimonialsSection } from "./_components/home/testimonials-section";
@@ -19,26 +20,23 @@ import {
   listPublicNewsletter,
 } from "@/lib/mart-api/newsletter";
 import { listPublicPromo } from "@/lib/mart-api/promo";
+import { listPublicHomeMedia } from "@/lib/mart-api/home-media";
 import { featuredForStore, listPublicFeatured } from "@/lib/mart-api/featured";
 import { FALLBACK_REVIEWS, listPublicReviews } from "@/lib/mart-api/reviews";
 import { listPublicShowcase, showcaseForStore } from "@/lib/mart-api/showcase";
 import { FALLBACK_TRUST, listPublicTrustBenefits } from "@/lib/mart-api/trust";
-import { DEFAULT_DESCRIPTION, DEFAULT_TITLE } from "@/lib/seo";
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, pageMetadata } from "@/lib/seo";
 
 // Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: { absolute: DEFAULT_TITLE },
+export const metadata: Metadata = pageMetadata({
+  title: DEFAULT_TITLE,
+  absoluteTitle: true,
   description: DEFAULT_DESCRIPTION,
-  alternates: { canonical: "/" },
-  openGraph: {
-    url: "/",
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-  },
-};
+  path: "/",
+});
 
 export default async function HomePage() {
   const [
@@ -52,6 +50,7 @@ export default async function HomePage() {
     faq,
     newsletter,
     promo,
+    media,
   ] = await Promise.all([
     loadStoreCatalog(),
     listPublicHeroSlides(),
@@ -63,6 +62,7 @@ export default async function HomePage() {
     listPublicFaq(),
     listPublicNewsletter(),
     listPublicPromo(),
+    listPublicHomeMedia(),
   ]);
   const heroSettings = await getPublicHeroSettings();
   const products = catalog.products;
@@ -126,6 +126,7 @@ export default async function HomePage() {
             products={products}
           />
         ) : null}
+        <HomeMediaSection section={media} />
         <TestimonialsSection section={reviews ?? FALLBACK_REVIEWS} />
         <FaqSection section={faqSection} />
         <NewsletterSection section={newsletter ?? FALLBACK_NEWSLETTER} />

@@ -33,6 +33,7 @@ import {
 import { FormCloseGuard } from "../../../_components/form-close-guard";
 import { findCmsPage } from "../../../_config/cms";
 import { SingleImageField } from "./single-image-field";
+import { useConfirmDelete } from "../../../_components/confirm-delete";
 
 const ICONS: { name: string; label: string }[] = [
   { name: "design_services", label: "Design" },
@@ -61,7 +62,7 @@ export function AboutDressesEditor() {
   const drawerOpen = creating || Boolean(editing);
   const missing = dresses !== null && Boolean(dressId && !creating && !editing);
   const [notice, setNotice] = useState("");
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const page = findCmsPage("about");
 
   useEffect(() => {
@@ -112,20 +113,20 @@ export function AboutDressesEditor() {
     openDress(null);
   }
 
-  async function removeDress(id: string) {
+  function removeDress(id: string) {
     if (!dresses) return;
     setLoadError("");
-    try {
-      await deleteAboutDress(id);
-      setDresses(dresses.filter((item) => item.id !== id));
-      if (dressId === id) openDress(null);
-      setConfirmId(null);
-      flash("Removed");
-    } catch (error) {
-      setLoadError(
-        error instanceof MartApiError ? error.message : "Could not remove the custom dress.",
-      );
-    }
+    void confirmDelete({
+      title: "Delete this custom dress?",
+      description: "It will be removed from the About page. This cannot be undone.",
+      successMessage: "Removed",
+      errorMessage: "Could not remove the custom dress.",
+      onConfirm: async () => {
+        await deleteAboutDress(id);
+        setDresses(dresses.filter((item) => item.id !== id));
+        if (dressId === id) openDress(null);
+      },
+    });
   }
 
   async function applyOrder(ids: string[]) {
@@ -373,32 +374,12 @@ export function AboutDressesEditor() {
                       >
                         Edit
                       </button>
-                      {confirmId === dress.id ? (
-                        <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
-                          Remove this block?
-                          <button
-                            type="button"
-                            onClick={() => removeDress(dress.id)}
-                            className="font-semibold underline"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmId(null)}
-                            className="font-semibold"
-                          >
-                            No
-                          </button>
-                        </span>
-                      ) : (
-                        <IconButton
-                          label={`Remove ${dress.title.trim() || "custom dress"}`}
-                          icon="delete"
-                          danger
-                          onClick={() => setConfirmId(dress.id)}
-                        />
-                      )}
+                      <IconButton
+                        label={`Remove ${dress.title.trim() || "custom dress"}`}
+                        icon="delete"
+                        danger
+                        onClick={() => removeDress(dress.id)}
+                      />
                     </div>
                   </div>
                 </li>

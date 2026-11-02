@@ -1,3 +1,4 @@
+import type { ProductPricing } from "@/lib/mart-api/pricing";
 import type { ProductVariant } from "@/lib/mart-api/variants";
 import {
   getProductGalleryItems,
@@ -38,6 +39,8 @@ export type ProductSpecItem = {
 export type ProductDetail = Product & {
   slug: string;
   breadcrumbs: { label: string; href?: string }[];
+  /** Search snippet overrides from the admin ("" / [] = use the title and description). */
+  seo?: { title: string; description: string; keywords: string[] };
   gallery: ProductGalleryItem[];
   tagline: string;
   rating?: { value: number; count: number };
@@ -55,6 +58,8 @@ export type ProductDetail = Product & {
   /** Order limits per line, from the API. */
   minPerOrder?: number;
   maxPerOrder?: number | null;
+  /** Base %, quantity tiers and cap from the API (display only; the API prices orders). */
+  pricing?: ProductPricing | null;
   materialDetails?: ProductSpecItem[];
   delivery: { icon: string; title: string; description: string }[];
   details: {

@@ -18,10 +18,12 @@ export type ProductVideoItem = {
 };
 
 export type ProductGalleryItem = {
+  /** Image or video address. For YouTube, the still frame. */
   src: string;
   alt: string;
-  type: "image" | "video";
+  type: "image" | "video" | "youtube";
   poster?: string;
+  youtubeId?: string;
 };
 
 export type ProductMedia = {

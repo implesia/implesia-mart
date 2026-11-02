@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import { Separator } from "@/components/ui/separator";
+import { maxQuantityText, percentText } from "@/lib/mart-api/pricing";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -80,6 +81,18 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                           .join(" · ")}
                       </p>
                     ) : null}
+                    {item.regularPrice > item.unitPrice ? (
+                      <p className="mt-0.5 text-xs text-neutral-500">
+                        {formatCartMoney(item.unitPrice)} / পিস{" "}
+                        <span className="line-through">
+                          <span className="sr-only">আগের দাম </span>
+                          {formatCartMoney(item.regularPrice)}
+                        </span>{" "}
+                        <span className="font-semibold text-[#ba1a1a]">
+                          {percentText(item.totalPercent)}% ছাড়
+                        </span>
+                      </p>
+                    ) : null}
                     {item.available ? null : (
                       <p className="mt-0.5 text-xs text-red-500">
                         এখন কেনা যাচ্ছে না
@@ -134,6 +147,14 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                     {formatCartMoney(item.lineTotal)}
                   </span>
                 </div>
+                {item.available && item.quantity >= item.maxQuantity ? (
+                  <p
+                    className="mt-1 text-xs text-neutral-500"
+                    data-testid="checkout-qty-limit"
+                  >
+                    {maxQuantityText(item.maxQuantity)}
+                  </p>
+                ) : null}
               </div>
             </div>
           ))}

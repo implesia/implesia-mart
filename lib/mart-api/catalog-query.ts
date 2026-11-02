@@ -11,6 +11,7 @@ import {
   type ProductStatus,
 } from "@/app/(client)/_data/products/catalog-meta";
 
+import { readStoreBadges, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { isPublicCatalogCard } from "@/lib/mart-api/catalog-rules";
 
 export const CATALOG_PAGE_SIZE = 12;
@@ -50,9 +51,12 @@ export type PublicCatalogCard = {
   imageSrc: string;
   imageAlt: string;
   badge?: ProductBadge;
+  badges?: StoreBadge[];
   status: ProductStatus;
   featured: boolean;
   hasVariants: boolean;
+  /** ISO time of the product's last change (sitemap lastmod); absent on older API responses. */
+  updatedAt?: string;
 };
 
 export type InterpretedCatalog = {
@@ -262,10 +266,16 @@ function readCard(value: unknown): PublicCatalogCard | null {
     imageSrc: typeof record.image_src === "string" ? record.image_src : "",
     imageAlt: typeof record.image_alt === "string" ? record.image_alt : title.trim(),
     badge: BADGES.has(badge as ProductBadge) ? (badge as ProductBadge) : undefined,
+    badges: readStoreBadges(record.badges),
     status: status as ProductStatus,
     featured: record.featured === true,
     hasVariants: record.has_variants === true,
+    ...(validIsoDate(record.updated_at) ? { updatedAt: record.updated_at } : {}),
   };
+}
+
+function validIsoDate(value: unknown): value is string {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
 /** A published list payload. `null` means the body is not a catalog response. */

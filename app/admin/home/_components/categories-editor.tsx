@@ -43,6 +43,7 @@ import { FormCloseGuard } from "../../_components/form-close-guard";
 import { ImageField } from "../../_components/image-field";
 import { HomeCmsHeader } from "./home-cms-header";
 import { SectionCopyForm } from "./section-copy-form";
+import { useConfirmDelete } from "../../_components/confirm-delete";
 
 export function CategoryTiles() {
   const params = useSearchParams();
@@ -61,14 +62,13 @@ export function CategoryTiles() {
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmDelete = useConfirmDelete();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [resolved, setResolved] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "hidden">("all");
   const [pendingParent, setPendingParent] = useState<string | null>(null);
-  const [reassignTo, setReassignTo] = useState("");
   const focusId = useRef<string | null>(null);
   const labelId = useId();
   const tiles = useMemo(() => section?.tiles ?? [], [section]);
@@ -192,19 +192,40 @@ export function CategoryTiles() {
     }
   }
 
-  async function remove(id: string) {
+  function remove(tile: CategoryTile) {
     if (!section) return;
     setLoadError("");
-    try {
-      await deleteCategory(id, reassignTo || null);
-      if (selected === id) setEdit(null);
-      setConfirmId(null);
-      setReassignTo("");
-      flash("Removed");
-      await refresh();
-    } catch (error) {
-      setLoadError(error instanceof MartApiError ? error.message : "Could not remove the category.");
-    }
+    const id = tile.id;
+    const needsTarget = tile.childCount > 0 || tile.productCount > 0;
+    const target = { current: "" };
+    const excluded = selfAndDescendantIds(tiles, id);
+    const options = treeRows
+      .filter((row) => !excluded.has(row.item.id))
+      .map(({ item, depth }) => ({ id: item.id, label: `${"\u00a0\u00a0".repeat(depth)}${item.label}` }));
+    void confirmDelete({
+      title: "Delete this category?",
+      description: needsTarget ? (
+        <ReassignField
+          id={`reassign-${id}`}
+          tile={tile}
+          options={options}
+          onChange={(value) => {
+            target.current = value;
+          }}
+        />
+      ) : (
+        "It will be removed from the store. This cannot be undone."
+      ),
+      validate: () =>
+        needsTarget && !target.current ? "Choose where to move them first." : null,
+      successMessage: "Removed",
+      errorMessage: "Could not remove the category.",
+      onConfirm: async () => {
+        await deleteCategory(id, target.current || null);
+        if (selected === id) setEdit(null);
+        await refresh();
+      },
+    });
   }
 
   async function applyOrder(next: { parentId: string | null; ids: string[] } | null) {
@@ -503,55 +524,7 @@ export function CategoryTiles() {
                     <button type="button" onClick={() => setEdit(tile.id)} className={adminButtonClass.quiet}>
                       Edit
                     </button>
-                    {confirmId === tile.id ? (
-                      <span className="flex flex-wrap items-center gap-1 rounded-2xl bg-red-50 px-2 py-1 text-xs text-red-700">
-                        {tile.childCount > 0 || tile.productCount > 0 ? (
-                          <>
-                            <label htmlFor={`reassign-${tile.id}`}>
-                              This category has {tile.childCount} subcategor{tile.childCount === 1 ? "y" : "ies"} and{" "}
-                              {tile.productCount} product{tile.productCount === 1 ? "" : "s"}. Move them to:
-                            </label>
-                            <select
-                              id={`reassign-${tile.id}`}
-                              value={reassignTo}
-                              onChange={(event) => setReassignTo(event.target.value)}
-                              className="max-w-48 rounded-md border border-red-200 bg-white px-1 py-1"
-                            >
-                              <option value="">Choose a category</option>
-                              {treeRows
-                                .filter((row) => !selfAndDescendantIds(tiles, tile.id).has(row.item.id))
-                                .map(({ item, depth: rowDepth }) => (
-                                  <option key={item.id} value={item.id}>
-                                    {`${"\u00a0\u00a0".repeat(rowDepth)}${item.label}`}
-                                  </option>
-                                ))}
-                            </select>
-                          </>
-                        ) : (
-                          "Remove this category?"
-                        )}
-                        <button
-                          type="button"
-                          disabled={(tile.childCount > 0 || tile.productCount > 0) && !reassignTo}
-                          onClick={() => void remove(tile.id)}
-                          className="font-semibold underline disabled:opacity-40"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setConfirmId(null);
-                            setReassignTo("");
-                          }}
-                          className="font-semibold"
-                        >
-                          No
-                        </button>
-                      </span>
-                    ) : (
-                      <IconButton label="Remove category" icon="delete" danger onClick={() => setConfirmId(tile.id)} />
-                    )}
+                    <IconButton label="Remove category" icon="delete" danger onClick={() => remove(tile)} />
                   </div>
                 </div>
               </li>
@@ -722,6 +695,44 @@ function draftFrom(tile: CategoryTile): CategoryDraft {
     metaTitle: tile.metaTitle,
     metaDescription: tile.metaDescription,
   };
+}
+
+function ReassignField({
+  id,
+  tile,
+  options,
+  onChange,
+}: {
+  id: string;
+  tile: CategoryTile;
+  options: { id: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  const [value, setValue] = useState("");
+  return (
+    <span className="flex flex-col gap-2">
+      <label htmlFor={id}>
+        This category has {tile.childCount} subcategor{tile.childCount === 1 ? "y" : "ies"} and{" "}
+        {tile.productCount} product{tile.productCount === 1 ? "" : "s"}. Move them to:
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => {
+          setValue(event.target.value);
+          onChange(event.target.value);
+        }}
+        className="h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-950 outline-none focus:border-primary focus:ring-3 focus:ring-primary/25"
+      >
+        <option value="">Choose a category</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
 }
 
 function IconButton({

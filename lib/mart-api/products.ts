@@ -1,8 +1,15 @@
+import { readAdminBadgeRef, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
+import {
+  parseBulkDeleteResult,
+  type ProductBulkDeleteResult,
+} from "@/lib/mart-api/product-bulk-delete";
 import { publicRequestInit } from "@/lib/mart-api/public-request";
+import { readTiers } from "@/lib/mart-api/pricing";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
 import {
   emptyProductContent,
+  type ProductGalleryImage,
   type ProductStorefrontContent,
 } from "@/lib/mart-mock/product-content";
 import {
@@ -19,11 +26,38 @@ type ApiErrorBody = {
   error?: { message?: string; details?: unknown };
 };
 
+/** One problem from the product create API: `{field, message, fix}`, field = form field key. */
+export type ApiFieldError = { field: string; message: string; fix: string };
+
+/** `network`: the API was not reached. `server`: it answered 5xx. `request`: any other failure. */
+export type MartApiErrorKind = "network" | "server" | "request";
+
 export class MartApiError extends Error {
-  constructor(message: string) {
+  readonly kind: MartApiErrorKind;
+  readonly fieldErrors: ApiFieldError[];
+
+  constructor(
+    message: string,
+    options: { kind?: MartApiErrorKind; fieldErrors?: ApiFieldError[] } = {},
+  ) {
     super(message);
     this.name = "MartApiError";
+    this.kind = options.kind ?? "request";
+    this.fieldErrors = options.fieldErrors ?? [];
   }
+}
+
+/** The `errors` list of the product create API, or `[]` when the body has another shape. */
+export function readFieldErrors(body: unknown): ApiFieldError[] {
+  if (!body || typeof body !== "object") return [];
+  const list = (body as { errors?: unknown }).errors;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const { field, message, fix } = item as Record<string, unknown>;
+    if (typeof field !== "string" || typeof message !== "string" || !message.trim()) return [];
+    return [{ field, message, fix: typeof fix === "string" ? fix : "" }];
+  });
 }
 
 export type SavedProduct = {
@@ -32,7 +66,7 @@ export type SavedProduct = {
   image_src: string;
   content?: {
     image_alt?: string;
-    gallery?: { id?: string; src?: string; alt?: string }[];
+    gallery?: ApiGallery[];
   };
 };
 
@@ -50,15 +84,22 @@ export function withSavedMedia(draft: ProductDraft, saved: SavedProduct): Produc
     content: {
       ...draft.content,
       imageAlt: saved.content?.image_alt || draft.content.imageAlt,
-      gallery: gallery
-        .filter((item) => item.src)
-        .map((item, index) => ({
-          id: item.id || `gallery-${index + 1}`,
-          src: mediaUrl(item.src ?? ""),
-          alt: item.alt ?? "",
-        })),
+      gallery: galleryFromApi(gallery),
     },
   };
+}
+
+function galleryFromApi(items: ApiGallery[]): ProductGalleryImage[] {
+  return items
+    .filter((item) => item.src || item.youtube_id)
+    .map((item, index) => ({
+      id: item.id || `gallery-${index + 1}`,
+      kind: item.kind === "video" || item.kind === "youtube" ? item.kind : "image",
+      src: mediaUrl(item.src ?? ""),
+      ...(item.youtube_id ? { youtubeId: item.youtube_id } : {}),
+      ...(item.thumbnail ? { thumbnail: mediaUrl(item.thumbnail) } : {}),
+      alt: item.alt ?? "",
+    }));
 }
 
 /** Admin calls go through the same-origin proxy. The browser never sees the tokens. */
@@ -73,7 +114,7 @@ export async function authorizedFetch(path: string, init?: RequestInit) {
       credentials: "same-origin",
     });
   } catch {
-    throw new MartApiError("Could not reach the API.");
+    throw new MartApiError("Could not reach the API.", { kind: "network" });
   }
   if (response.status === 401 && !path.includes("/auth/change-password")) clearSession();
   return response;
@@ -89,7 +130,7 @@ export async function publicFetch(path: string, init?: RequestInit) {
   }
 }
 
-async function readError(response: Response, fallback: string) {
+export async function readError(response: Response, fallback: string) {
   try {
     const body = (await response.json()) as ApiErrorBody;
     if (body.error?.message) return body.error.message;
@@ -129,6 +170,11 @@ type StoredContent = ProductStorefrontContent & {
   qualityImageAlt?: string;
 };
 
+/** A new thumbnail goes up as a `thumbnails` part; the payload keeps only a saved one. */
+function savedThumbnail(src: string | undefined) {
+  return src && !isLocalImage(src) ? sitePath(src) : "";
+}
+
 function contentPayload(content: ProductStorefrontContent) {
   const stored = content as StoredContent;
   return {
@@ -139,9 +185,28 @@ function contentPayload(content: ProductStorefrontContent) {
     image_alt: content.imageAlt,
     quality_image_src: sitePath(stored.qualityImageSrc ?? ""),
     quality_image_alt: stored.qualityImageAlt ?? "",
+    // New files go up as `images`/`videos` parts; the API appends them after these.
     gallery: content.gallery
-      .filter((item) => item.src && !isLocalImage(item.src))
-      .map((item) => ({ id: item.id, src: sitePath(item.src), alt: item.alt })),
+      .filter((item) =>
+        item.kind === "youtube" ? Boolean(item.youtubeId) : item.src && !isLocalImage(item.src),
+      )
+      .map((item) =>
+        item.kind === "youtube"
+          ? {
+              id: item.id,
+              kind: "youtube",
+              youtube_id: item.youtubeId,
+              alt: item.alt,
+              thumbnail: savedThumbnail(item.thumbnail),
+            }
+          : {
+              id: item.id,
+              kind: item.kind ?? "image",
+              src: sitePath(item.src),
+              alt: item.alt,
+              ...(item.kind === "video" ? { thumbnail: savedThumbnail(item.thumbnail) } : {}),
+            },
+      ),
     highlights: content.highlights,
     suitable_for: content.suitableFor,
     package_items: content.packageItems,
@@ -197,19 +262,51 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
     title: draft.title,
     subtitle: draft.subtitle,
     // The assigned category node; the API derives the legacy root slug from it.
-    ...(draft.categoryRefId ? { category_id: draft.categoryRefId } : { category: draft.categoryId }),
+    // A draft may not have a category yet; then none is sent.
+    ...(draft.categoryRefId
+      ? { category_id: draft.categoryRefId }
+      : draft.categoryId
+        ? { category: draft.categoryId }
+        : {}),
     ...(rolledUp
       ? {}
-      : {
-          price: draft.price,
-          compare_at_price: draft.compareAtPrice,
-          quantity: draft.quantity,
-        }),
+      : draft.regularPrice !== undefined
+        ? {
+            // The API works out price and compare_at_price from these.
+            regular_price: draft.regularPrice,
+            base_discount_percent: draft.baseDiscountPercent ?? 0,
+            quantity: draft.quantity,
+          }
+        : {
+            price: draft.price,
+            compare_at_price: draft.compareAtPrice,
+            quantity: draft.quantity,
+          }),
+    ...(draft.tierMode
+      ? {
+          tier_mode: draft.tierMode,
+          tiers: (draft.quantityTiers ?? []).map((tier) => ({
+            min_quantity: tier.minQuantity,
+            extra_percent: tier.extraPercent,
+          })),
+        }
+      : {}),
     min_order_quantity: draft.minOrderQuantity ?? 1,
     max_order_quantity: draft.maxOrderQuantity ?? null,
+    ...(draft.seoTitle !== undefined
+      ? {
+          seo_title: draft.seoTitle,
+          seo_description: draft.seoDescription ?? "",
+          seo_keywords: draft.seoKeywords ?? "",
+        }
+      : {}),
+    ...(updating && draft.slug ? { slug: draft.slug } : {}),
     ...variantFields,
     status: draft.status,
-    badge: draft.badge,
+    // `badge_ids` when the form knows the badge list; the API derives `badge` from it.
+    ...(draft.badges !== undefined
+      ? { badge_ids: draft.badges.map((badge) => badge.id) }
+      : { badge: draft.badge }),
     image_src: sendMainFile ? "" : sitePath(draft.imageSrc),
     featured: draft.featured,
     published: draft.published,
@@ -225,27 +322,75 @@ async function imageParts(draft: ProductDraft) {
     files.push(await fileFromSrc(draft.imageSrc, "image"));
     alts.push(draft.content.imageAlt || draft.title);
   }
+  const videos: File[] = [];
+  const videoAlts: string[] = [];
+  const thumbnails: File[] = [];
+  // Each thumbnail names its item: a saved item's id, or "video:<n>" for a video uploaded now.
+  const thumbnailTargets: string[] = [];
   for (const [index, item] of draft.content.gallery.entries()) {
-    if (!isLocalImage(item.src)) continue;
+    if (item.kind !== "image" && item.kind && item.thumbnail && isLocalImage(item.thumbnail)) {
+      const newVideo = item.kind === "video" && isLocalImage(item.src);
+      thumbnails.push(await fileFromSrc(item.thumbnail, `thumbnail-${index + 1}`));
+      thumbnailTargets.push(newVideo ? `video:${videos.length}` : item.id);
+    }
+    if (item.kind === "youtube" || !isLocalImage(item.src)) continue;
+    if (item.kind === "video") {
+      videos.push(await videoFromSrc(item.src, `video-${index + 1}`));
+      videoAlts.push(item.alt);
+      continue;
+    }
     files.push(await fileFromSrc(item.src, `gallery-${index + 1}`));
     alts.push(item.alt);
   }
   if (files.length > 12) {
     throw new MartApiError("A product can have at most 12 uploaded images.");
   }
-  return { files, alts, mainIsFile };
+  const videoBytes = videos.reduce((sum, file) => sum + file.size, 0);
+  if (videoBytes > MAX_VIDEO_UPLOAD_BYTES) {
+    throw new MartApiError(
+      "Too many new videos to upload at once. Save with up to 100 MB of new video, then add the rest.",
+    );
+  }
+  return { files, alts, videos, videoAlts, thumbnails, thumbnailTargets, mainIsFile };
+}
+
+/** Per save. The admin proxy accepts a little more (see next.config.ts). */
+const MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024;
+
+async function videoFromSrc(src: string, name: string) {
+  const response = await fetch(src);
+  if (!response.ok) {
+    throw new MartApiError("Could not read a video. Upload it again.");
+  }
+  const blob = await response.blob();
+  const extension = blob.type === "video/webm" ? "webm" : "mp4";
+  return new File([blob], `${name}.${extension}`, {
+    type: blob.type || `video/${extension}`,
+  });
 }
 
 function formDataFor(
   payload: Record<string, unknown>,
   files: File[],
   alts: string[],
+  videos: File[] = [],
+  videoAlts: string[] = [],
+  thumbnails: File[] = [],
+  thumbnailTargets: string[] = [],
 ) {
   const body = new FormData();
   body.set("payload", JSON.stringify(payload));
   body.set("image_alts", JSON.stringify(alts));
   body.set("quality_image_alt", "");
   for (const file of files) body.append("images", file);
+  if (videos.length) {
+    body.set("video_alts", JSON.stringify(videoAlts));
+    for (const file of videos) body.append("videos", file);
+  }
+  if (thumbnails.length) {
+    body.set("thumbnail_targets", JSON.stringify(thumbnailTargets));
+    for (const file of thumbnails) body.append("thumbnails", file);
+  }
   return body;
 }
 
@@ -254,7 +399,20 @@ async function sendProduct(path: string, method: "POST" | "PATCH", body: FormDat
   if (response.status === 401) {
     throw new MartApiError("Sign in again to manage products.");
   }
-  if (!response.ok) throw new MartApiError(await readError(response, "The product could not be saved."));
+  if (!response.ok) {
+    const kind = response.status >= 500 ? "server" : "request";
+    let body: unknown = null;
+    try {
+      body = await response.clone().json();
+    } catch {
+      /* Not JSON (a proxy or gateway page). */
+    }
+    const fieldErrors = readFieldErrors(body);
+    if (fieldErrors.length > 0) {
+      throw new MartApiError(fieldErrors[0].message, { kind, fieldErrors });
+    }
+    throw new MartApiError(await readError(response, "The product could not be saved."), { kind });
+  }
   return (await response.json()) as SavedProduct;
 }
 
@@ -320,10 +478,11 @@ export async function logoutMart() {
 }
 
 export async function saveMartProduct(productId: string | undefined, draft: ProductDraft) {
-  const { files, alts, mainIsFile } = await imageParts(draft);
+  const { files, alts, videos, videoAlts, thumbnails, thumbnailTargets, mainIsFile } =
+    await imageParts(draft);
   const fields = productFields(draft, mainIsFile, Boolean(productId));
   const payload = productId ? fields : { ...fields, slug: null };
-  const body = formDataFor(payload, files, alts);
+  const body = formDataFor(payload, files, alts, videos, videoAlts, thumbnails, thumbnailTargets);
   if (productId) {
     return sendProduct(`/api/v1/admin/products/${productId}`, "PATCH", body);
   }
@@ -345,7 +504,14 @@ const SPEC_GROUPS = new Set<string>([
   "general",
 ]);
 
-type ApiGallery = { id?: string; src?: string; alt?: string };
+type ApiGallery = {
+  id?: string;
+  kind?: string;
+  src?: string;
+  youtube_id?: string;
+  alt?: string;
+  thumbnail?: string;
+};
 type ApiSpec = { id?: string; label?: string; value?: string; group?: string };
 type ApiFaq = { id?: string; question?: string; answer?: string };
 type ApiOptionValue = { id?: string; label?: string; swatch?: string };
@@ -384,7 +550,7 @@ type ApiCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
-  category_id?: string;
+  category_id?: string | null;
   category_slug?: string;
   category_name?: string;
   category_path?: { id?: string; slug: string; name: string }[];
@@ -393,13 +559,21 @@ type ApiCard = {
   quantity: number | null;
   status: StockStatus;
   badge: AdminProduct["badge"];
+  badges?: unknown[];
   image_src: string;
   featured: boolean;
   published: boolean;
   content?: ApiContent;
   min_order_quantity?: number;
   max_order_quantity?: number | null;
+  seo_title?: string;
+  seo_description?: string;
+  seo_keywords?: string;
   variants?: ApiVariant[];
+  regular_price?: number;
+  base_discount_percent?: number;
+  tier_mode?: "global" | "custom";
+  tiers?: unknown;
 };
 
 type ApiVariant = {
@@ -458,13 +632,7 @@ function contentFromApi(content: ApiContent | undefined): ProductStorefrontConte
     stockLabel: content.stock_label || base.stockLabel,
     unitLabel: content.unit_label ?? "",
     imageAlt: content.image_alt ?? "",
-    gallery: (content.gallery ?? [])
-      .filter((item) => item.src)
-      .map((item, index) => ({
-        id: item.id || `gallery-${index + 1}`,
-        src: mediaUrl(item.src ?? ""),
-        alt: item.alt ?? "",
-      })),
+    gallery: galleryFromApi(content.gallery ?? []),
     highlights: content.highlights ?? [],
     suitableFor: content.suitable_for ?? [],
     packageItems: content.package_items ?? [],
@@ -512,7 +680,7 @@ function cardToProduct(item: ApiCard): AdminProduct {
     title: item.title,
     subtitle: item.subtitle,
     categoryId: item.category,
-    categoryRefId: item.category_id,
+    categoryRefId: item.category_id ?? undefined,
     categoryName: item.category_name,
     categoryPath: (item.category_path ?? []).map(({ slug, name }) => ({ slug, name })),
     price: item.price,
@@ -520,6 +688,12 @@ function cardToProduct(item: ApiCard): AdminProduct {
     quantity: item.quantity,
     status: item.status,
     badge: item.badge,
+    badges: Array.isArray(item.badges)
+      ? item.badges.flatMap((badge) => {
+          const ref = readAdminBadgeRef(badge);
+          return ref ? [ref] : ([] as AdminBadgeRef[]);
+        })
+      : undefined,
     imageSrc: mediaUrl(item.image_src),
     featured: item.featured,
     published: item.published,
@@ -527,6 +701,9 @@ function cardToProduct(item: ApiCard): AdminProduct {
     content: contentFromApi(item.content),
     minOrderQuantity: item.min_order_quantity ?? 1,
     maxOrderQuantity: item.max_order_quantity ?? null,
+    seoTitle: item.seo_title ?? "",
+    seoDescription: item.seo_description ?? "",
+    seoKeywords: item.seo_keywords ?? "",
     variants: (item.variants ?? []).map((variant) => ({
       id: variant.id,
       options: variant.options,
@@ -536,6 +713,14 @@ function cardToProduct(item: ApiCard): AdminProduct {
       quantity: variant.quantity,
       isActive: variant.is_active,
     })),
+    ...(typeof item.regular_price === "number"
+      ? {
+          regularPrice: item.regular_price,
+          baseDiscountPercent: item.base_discount_percent ?? 0,
+          tierMode: item.tier_mode === "custom" ? "custom" : "global",
+          quantityTiers: readTiers(item.tiers),
+        }
+      : {}),
   };
 }
 
@@ -611,6 +796,19 @@ export async function patchMartProduct(
   if (!response.ok) {
     throw new MartApiError(await readError(response, "The product could not be updated."));
   }
+}
+
+/** Deletes several products. Each one follows the single-delete rules; some may be skipped. */
+export async function bulkDeleteMartProducts(ids: string[]): Promise<ProductBulkDeleteResult> {
+  const response = await apiFetch("/api/v1/admin/products/bulk", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "The products could not be deleted."));
+  }
+  return parseBulkDeleteResult(await response.json().catch(() => null));
 }
 
 export async function deleteMartProduct(id: string) {

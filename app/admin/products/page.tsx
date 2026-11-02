@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { categoryLabel } from "@/app/(client)/_data/products/catalog-meta";
@@ -11,6 +11,8 @@ import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import { listAdminCategories, type CategoryTile } from "@/lib/mart-api/categories";
 import { categoryChips, categoryTrail } from "@/lib/mart-api/category-tree";
 import {
+  deleteMartProduct,
+  bulkDeleteMartProducts,
   listMartProducts,
   MartApiError,
   patchMartProduct,
@@ -21,6 +23,12 @@ import {
   type AdminProduct,
   type StockStatus,
 } from "@/lib/mart-mock/store";
+import {
+  bulkDeleteMessage,
+  MAX_BULK_DELETE,
+  selectAllState,
+  type ProductBulkDeleteResult,
+} from "@/lib/mart-api/product-bulk-delete";
 import { cn } from "@/lib/utils";
 
 import {
@@ -31,6 +39,7 @@ import {
   adminButtonClass,
   STOCK_STATUS_TONE,
 } from "../_components/admin-ui";
+import { useAdminNotify, useConfirmDelete } from "../_components/confirm-delete";
 
 const PAGE_SIZE = 10;
 const STOCK_FILTERS: StockStatus[] = ["available", "sold-out", "coming-soon"];
@@ -92,7 +101,15 @@ function ProductsView() {
   const [settledKey, setSettledKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
+  // Picks belong to one page of one filter; a new page or filter starts empty.
+  const [selection, setSelection] = useState<{ key: string; ids: Set<string> }>({
+    key: "",
+    ids: new Set(),
+  });
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [categories, setCategories] = useState<CategoryTile[]>([]);
+  const confirmDelete = useConfirmDelete();
+  const notify = useAdminNotify();
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +144,7 @@ function ProductsView() {
     page,
   ]);
   const loading = settledKey !== requestKey;
+  const selectionKey = `${filterKey}|${page}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -180,6 +198,9 @@ function ProductsView() {
     setError("");
     try {
       await patchMartProduct(product.id, patch);
+      if (patch.published !== undefined) {
+        notify(patch.published ? "Product published" : "Moved to draft", "ok");
+      }
       const result = await listMartProducts({
         q: debouncedQuery,
         category,
@@ -192,14 +213,144 @@ function ProductsView() {
       });
       setList(result);
     } catch (updateError) {
-      setError(
+      const message =
         updateError instanceof MartApiError
           ? updateError.message
-          : "The product could not be updated.",
-      );
+          : "The product could not be updated.";
+      setError(message);
+      if (patch.published !== undefined) notify(message, "error");
     } finally {
       setPendingId(null);
     }
+  }
+
+  function removeRow(product: AdminProduct) {
+    const id = product.id;
+    if (!id || pendingId) return;
+    void confirmDelete({
+      title: "Delete this product?",
+      description: (
+        <>
+          <span className="font-semibold text-neutral-800">“{product.title}”</span>{" "}
+          will be removed from the catalog and the store. This cannot be undone.
+        </>
+      ),
+      successMessage: "Product deleted",
+      errorMessage: "The product could not be deleted.",
+      onConfirm: async () => {
+        setPendingId(id);
+        setError("");
+        try {
+          await deleteMartProduct(id);
+        } finally {
+          setPendingId(null);
+        }
+        // The delete succeeded. A failed refresh only leaves a stale row behind.
+        const lastOnPage = (list?.items.length ?? 0) === 1 && page > 0;
+        if (lastOnPage) {
+          setPageState({ key: filterKey, page: page - 1 });
+          return;
+        }
+        try {
+          setList(
+            await listMartProducts({
+              q: debouncedQuery,
+              category,
+              status,
+              visibility,
+              minPrice,
+              maxPrice,
+              sort,
+              page: page + 1,
+            }),
+          );
+        } catch {
+          setList((current) =>
+            current
+              ? { ...current, items: current.items.filter((item) => item.id !== id) }
+              : current,
+          );
+        }
+      },
+    });
+  }
+
+  function toggleSelected(id: string, on: boolean) {
+    setSelection((current) => {
+      const ids = new Set(current.key === selectionKey ? current.ids : []);
+      if (on) ids.add(id);
+      else ids.delete(id);
+      return { key: selectionKey, ids };
+    });
+  }
+
+  function setPageSelected(ids: string[], on: boolean) {
+    setSelection({ key: selectionKey, ids: new Set(on ? ids : []) });
+  }
+
+  function removeSelected(ids: string[]) {
+    if (!ids.length || bulkBusy || pendingId) return;
+    if (ids.length > MAX_BULK_DELETE) {
+      notify(`Delete at most ${MAX_BULK_DELETE} products at a time.`, "error");
+      return;
+    }
+    let outcome: ProductBulkDeleteResult | null = null;
+    void confirmDelete({
+      title: `Delete ${ids.length} product${ids.length === 1 ? "" : "s"}?`,
+      description:
+        "The selected products will be removed from the catalog and the store. This cannot be undone.",
+      confirmLabel: "Delete selected",
+      successMessage: () => (outcome ? bulkDeleteMessage(outcome) : "Products deleted"),
+      errorMessage: "The products could not be deleted.",
+      onConfirm: async () => {
+        setBulkBusy(true);
+        setError("");
+        let result: ProductBulkDeleteResult;
+        try {
+          result = await bulkDeleteMartProducts(ids);
+        } finally {
+          setBulkBusy(false);
+        }
+        outcome = result;
+        setSelection({ key: selectionKey, ids: new Set() });
+        if (result.deleted > 0) {
+          // A failed refresh only leaves stale rows behind; drop the deleted ones locally.
+          const gone = new Set(result.deletedIds);
+          const pageEmptied = (list?.items ?? []).every((item) => gone.has(item.id ?? ""));
+          if (pageEmptied && page > 0) {
+            setPageState({ key: filterKey, page: page - 1 });
+          } else {
+            try {
+              setList(
+                await listMartProducts({
+                  q: debouncedQuery,
+                  category,
+                  status,
+                  visibility,
+                  minPrice,
+                  maxPrice,
+                  sort,
+                  page: page + 1,
+                }),
+              );
+            } catch {
+              setList((current) =>
+                current
+                  ? { ...current, items: current.items.filter((item) => !gone.has(item.id ?? "")) }
+                  : current,
+              );
+            }
+          }
+        }
+        if (result.deleted === 0) {
+          throw new MartApiError(
+            result.failed.length
+              ? "The selected products could not be deleted."
+              : "The selected products were already removed.",
+          );
+        }
+      },
+    });
   }
 
   function hrefWith(patch: Record<string, string | null>) {
@@ -219,6 +370,11 @@ function ProductsView() {
   if (loading && !list) return <ProductsSkeleton />;
 
   const rows = list?.items ?? [];
+  const rowIds = rows.flatMap((item) => (item.id ? [item.id] : []));
+  const picked = selection.key === selectionKey ? selection.ids : new Set<string>();
+  const selectedIds = rowIds.filter((id) => picked.has(id));
+  const pageSelection = selectAllState(rowIds, picked);
+  const selectDisabled = bulkBusy || loading;
   const total = list?.total ?? 0;
   const pageCount = list?.pages ?? 0;
   const metrics = list?.metrics ?? { total: 0, live: 0, hidden: 0, soldOut: 0 };
@@ -276,16 +432,16 @@ function ProductsView() {
         />
         <Metric
           href={hrefWith({ visibility: "live", status: null })}
-          label="Live"
+          label="Published"
           value={String(metrics.live)}
           hint="Published on the store"
           active={visibility === "live"}
         />
         <Metric
           href={hrefWith({ visibility: "hidden", status: null })}
-          label="Hidden"
+          label="Drafts"
           value={String(metrics.hidden)}
-          hint="Saved, not on the store"
+          hint="Admin only, not on the store"
           active={visibility === "hidden"}
         />
         <Metric
@@ -387,15 +543,15 @@ function ProductsView() {
                 ]}
               />
               <FilterSelect
-                label="Visibility"
+                label="Status"
                 value={visibility ?? ""}
                 onChange={(value) =>
                   setParam("visibility", isVisibility(value) ? value : null)
                 }
                 options={[
-                  { id: "", label: "Live and hidden" },
-                  { id: "live", label: "Live" },
-                  { id: "hidden", label: "Hidden" },
+                  { id: "", label: "Published and draft" },
+                  { id: "live", label: "Published" },
+                  { id: "hidden", label: "Draft" },
                 ]}
               />
               <FilterAmount
@@ -462,6 +618,39 @@ function ProductsView() {
           </ul>
         ) : null}
 
+        {selectedIds.length > 0 ? (
+          <div
+            role="region"
+            aria-label="Selected products"
+            className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 bg-admin-subtle px-4 py-2.5 sm:px-5"
+          >
+            <p className="text-sm font-medium text-neutral-800" aria-live="polite">
+              {selectedIds.length} টা selected
+            </p>
+            <span className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPageSelected(rowIds, false)}
+                disabled={bulkBusy}
+                className={adminButtonClass.quiet}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => removeSelected(selectedIds)}
+                disabled={bulkBusy || Boolean(pendingId)}
+                className={cn(
+                  adminButtonClass.secondary,
+                  "text-red-700 hover:bg-red-50 focus-visible:ring-red-300",
+                )}
+              >
+                <MaterialIcon name="delete" className="text-[18px]" />
+                {bulkBusy ? "Deleting…" : "Delete selected"}
+              </button>
+            </span>
+          </div>
+        ) : null}
         {error ? (
           <p className="border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">
             {error}
@@ -482,15 +671,27 @@ function ProductsView() {
           />
         ) : (
           <>
+            <label className="flex items-center gap-3 border-b border-neutral-100 px-4 py-2 text-xs font-medium text-neutral-600 lg:hidden">
+              <SelectAllBox
+                state={pageSelection}
+                disabled={selectDisabled || rowIds.length === 0}
+                onChange={(on) => setPageSelected(rowIds, on)}
+              />
+              Select all on this page
+            </label>
             <ul className="divide-y divide-neutral-100 lg:hidden">
               {rows.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   index={page * PAGE_SIZE + index + 1}
-                  pending={pendingId === product.id}
+                  selected={picked.has(product.id ?? "")}
+                  selectDisabled={selectDisabled}
+                  onSelect={(on) => product.id && toggleSelected(product.id, on)}
+                  pending={pendingId === product.id || (bulkBusy && picked.has(product.id ?? ""))}
                   onStock={(status) => updateRow(product, { status })}
                   onPublished={(published) => updateRow(product, { published })}
+                  onDelete={() => removeRow(product)}
                 />
               ))}
             </ul>
@@ -499,10 +700,17 @@ function ProductsView() {
                 <caption className="sr-only">Products</caption>
                 <thead className="text-xs text-neutral-500">
                   <tr>
-                    <th className="w-10 border-b border-neutral-200 bg-admin-subtle px-2 py-3 text-right font-medium xl:sticky xl:left-0 xl:z-20 xl:w-12 xl:px-4">
+                    <th className="w-11 border-b border-neutral-200 bg-admin-subtle py-3 pr-1 pl-3 font-medium xl:sticky xl:left-0 xl:z-20 xl:w-11 xl:pl-4">
+                      <SelectAllBox
+                        state={pageSelection}
+                        disabled={selectDisabled || rowIds.length === 0}
+                        onChange={(on) => setPageSelected(rowIds, on)}
+                      />
+                    </th>
+                    <th className="w-10 border-b border-neutral-200 bg-admin-subtle px-2 py-3 text-right font-medium xl:sticky xl:left-11 xl:z-20 xl:w-12 xl:px-4">
                       #
                     </th>
-                    <th className="border-b border-neutral-200 bg-admin-subtle px-3 py-3 font-medium xl:sticky xl:left-12 xl:z-20 xl:min-w-64 xl:border-r xl:px-4">
+                    <th className="border-b border-neutral-200 bg-admin-subtle px-3 py-3 font-medium xl:sticky xl:left-23 xl:z-20 xl:min-w-64 xl:border-r xl:px-4">
                       Product
                     </th>
                     <th className="w-[7.25rem] border-b border-neutral-200 bg-admin-subtle px-3 py-3 font-medium xl:px-4">
@@ -520,6 +728,9 @@ function ProductsView() {
                     <th className="w-[7.5rem] border-b border-neutral-200 bg-admin-subtle px-3 py-3 font-medium xl:px-4">
                       Published
                     </th>
+                    <th className="w-14 border-b border-neutral-200 bg-admin-subtle px-2 py-3 font-medium xl:px-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -528,11 +739,15 @@ function ProductsView() {
                       key={product.id}
                       product={product}
                       index={page * PAGE_SIZE + index + 1}
-                      pending={pendingId === product.id}
+                      selected={picked.has(product.id ?? "")}
+                      selectDisabled={selectDisabled}
+                      onSelect={(on) => product.id && toggleSelected(product.id, on)}
+                      pending={pendingId === product.id || (bulkBusy && picked.has(product.id ?? ""))}
                       onStock={(next) => updateRow(product, { status: next })}
                       onPublished={(published) =>
                         updateRow(product, { published })
                       }
+                      onDelete={() => removeRow(product)}
                     />
                   ))}
                 </tbody>
@@ -626,7 +841,7 @@ function ActiveFilters({
       : null,
     status ? { key: "status", label: ADMIN_STOCK_STATUS_LABEL[status] } : null,
     visibility
-      ? { key: "visibility", label: visibility === "live" ? "Live" : "Hidden" }
+      ? { key: "visibility", label: visibility === "live" ? "Published" : "Draft" }
       : null,
     minPrice
       ? { key: "min", label: `Min ${formatTaka(Number(minPrice) || 0)}` }
@@ -752,15 +967,23 @@ function FilterAmount({
 function ProductRow({
   product,
   index,
+  selected,
+  selectDisabled,
+  onSelect,
   pending,
   onStock,
   onPublished,
+  onDelete,
 }: {
   product: AdminProduct;
   index: number;
+  selected: boolean;
+  selectDisabled: boolean;
+  onSelect: (selected: boolean) => void;
   pending: boolean;
   onStock: (status: StockStatus) => void;
   onPublished: (published: boolean) => void;
+  onDelete: () => void;
 }) {
   const router = useRouter();
   const href = `/admin/products/${product.id}`;
@@ -772,9 +995,20 @@ function ProductRow({
       onClick={() => router.push(href)}
     >
       <td
+        className={cn(pinned, "py-3 pr-1 pl-3 xl:left-0 xl:pl-4")}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <RowSelectBox
+          title={product.title}
+          checked={selected}
+          disabled={selectDisabled}
+          onChange={onSelect}
+        />
+      </td>
+      <td
         className={cn(
           pinned,
-          "px-2 py-3 text-right text-xs tabular-nums text-neutral-500 xl:left-0 xl:px-4",
+          "px-2 py-3 text-right text-xs tabular-nums text-neutral-500 xl:left-11 xl:px-4",
         )}
       >
         {index}
@@ -782,7 +1016,7 @@ function ProductRow({
       <td
         className={cn(
           pinned,
-          "min-w-0 overflow-hidden px-3 py-3 xl:left-12 xl:min-w-64 xl:border-r xl:border-neutral-200 xl:px-4",
+          "min-w-0 overflow-hidden px-3 py-3 xl:left-23 xl:min-w-64 xl:border-r xl:border-neutral-200 xl:px-4",
         )}
       >
         <span className="flex min-w-0 items-center gap-3">
@@ -830,6 +1064,9 @@ function ProductRow({
           onChange={onPublished}
         />
       </td>
+      <td className="border-b border-neutral-100 px-2 py-3 text-right xl:px-3">
+        <DeleteProductButton product={product} pending={pending} onDelete={onDelete} />
+      </td>
     </tr>
   );
 }
@@ -837,15 +1074,23 @@ function ProductRow({
 function ProductCard({
   product,
   index,
+  selected,
+  selectDisabled,
+  onSelect,
   pending,
   onStock,
   onPublished,
+  onDelete,
 }: {
   product: AdminProduct;
   index: number;
+  selected: boolean;
+  selectDisabled: boolean;
+  onSelect: (selected: boolean) => void;
   pending: boolean;
   onStock: (status: StockStatus) => void;
   onPublished: (published: boolean) => void;
+  onDelete: () => void;
 }) {
   const href = `/admin/products/${product.id}`;
   return (
@@ -871,15 +1116,110 @@ function ProductCard({
           </span>
         </span>
       </Link>
-      <span className="mt-3 flex items-center justify-between gap-3 pl-[3.25rem]">
-        <StockSelect product={product} pending={pending} onChange={onStock} />
-        <PublishSwitch
-          product={product}
-          pending={pending}
-          onChange={onPublished}
-        />
+      <span className="mt-3 flex items-center justify-between gap-3">
+        <span className="flex w-[3.25rem] shrink-0 justify-center">
+          <RowSelectBox
+            title={product.title}
+            checked={selected}
+            disabled={selectDisabled}
+            onChange={onSelect}
+          />
+        </span>
+        <span className="mr-auto">
+          <StockSelect product={product} pending={pending} onChange={onStock} />
+        </span>
+        <span className="flex items-center gap-1">
+          <PublishSwitch
+            product={product}
+            pending={pending}
+            onChange={onPublished}
+          />
+          <DeleteProductButton product={product} pending={pending} onDelete={onDelete} />
+        </span>
       </span>
     </li>
+  );
+}
+
+const SELECT_BOX_CLASS =
+  "size-4 cursor-pointer rounded accent-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40";
+
+function SelectAllBox({
+  state,
+  disabled,
+  onChange,
+}: {
+  state: "none" | "some" | "all";
+  disabled: boolean;
+  onChange: (selected: boolean) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = state === "some";
+  }, [state]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      aria-label="Select all products on this page"
+      checked={state === "all"}
+      disabled={disabled}
+      // A partly picked page selects the rest; a full page clears.
+      onChange={() => onChange(state !== "all")}
+      className={SELECT_BOX_CLASS}
+    />
+  );
+}
+
+function RowSelectBox({
+  title,
+  checked,
+  disabled,
+  onChange,
+}: {
+  title: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (selected: boolean) => void;
+}) {
+  return (
+    <input
+      type="checkbox"
+      aria-label={`Select ${title}`}
+      checked={checked}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.checked)}
+      onClick={(event) => event.stopPropagation()}
+      className={SELECT_BOX_CLASS}
+    />
+  );
+}
+
+function DeleteProductButton({
+  product,
+  pending,
+  onDelete,
+}: {
+  product: AdminProduct;
+  pending: boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Delete ${product.title}`}
+      title="Delete"
+      disabled={pending}
+      onClick={(event) => {
+        // The table row opens the product on click; a delete must not navigate.
+        event.preventDefault();
+        event.stopPropagation();
+        onDelete();
+      }}
+      className="inline-grid size-9 place-items-center rounded-full text-neutral-500 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-40"
+    >
+      <MaterialIcon name="delete" className="text-[20px]" />
+    </button>
   );
 }
 
@@ -964,7 +1304,9 @@ function PublishSwitch({
       role="switch"
       aria-checked={product.published}
       aria-label={
-        product.published ? `Hide ${product.title}` : `Publish ${product.title}`
+        product.published
+          ? `Move ${product.title} to draft`
+          : `Publish ${product.title}`
       }
       disabled={pending}
       onClick={(event) => {
@@ -988,11 +1330,13 @@ function PublishSwitch({
       </span>
       <span
         className={cn(
-          "text-xs font-medium",
-          product.published ? "text-neutral-800" : "text-neutral-500",
+          "rounded-full px-2 py-0.5 text-xs font-semibold",
+          product.published
+            ? "bg-emerald-50 text-emerald-800"
+            : "bg-neutral-100 text-neutral-600",
         )}
       >
-        {product.published ? "Live" : "Hidden"}
+        {product.published ? "Published" : "Draft"}
       </span>
     </button>
   );

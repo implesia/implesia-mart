@@ -7,15 +7,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { badgeToneClass, CARD_BADGE_LIMIT, visibleBadges } from "@/lib/mart-api/badge-rules";
 import { cardAction } from "@/lib/mart-api/card-action";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
-import {
-  categoryLabel,
-  type Product,
-  type ProductBadge,
-} from "../../_data/products/catalog-meta";
+import { categoryLabel, type Product } from "../../_data/products/catalog-meta";
 import { useCart } from "../../_providers/cart-provider";
 import { productPath } from "@/lib/mart-api/product-url";
 
@@ -36,12 +33,6 @@ function formatPrice(value: number) {
 const CART_BUTTON =
   "h-11 w-full gap-0 rounded-lg bg-primary-ink text-sm font-semibold text-white shadow-sm sm:rounded-xl hover:bg-on-primary-fixed-variant active:bg-on-primary-fixed-variant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink motion-reduce:transition-none transition-colors duration-200";
 
-const BADGE_LABEL: Record<ProductBadge, string> = {
-  New: "New",
-  "Best Seller": "Best Seller",
-  Limited: "Limited",
-};
-
 export function ProductCard({ product, priority = false }: ProductCardProps) {
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
@@ -51,6 +42,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const productId = isCatalogProductId(product.id) ? product.id : undefined;
   const isComingSoon = product.status === "coming-soon";
   const isSoldOut = product.status === "sold-out";
+  // A status pill takes one of the card's badge slots so the corner never gets crowded.
+  const badges = visibleBadges(product.badges, product.badge).slice(
+    0,
+    isComingSoon || isSoldOut ? CARD_BADGE_LIMIT - 1 : CARD_BADGE_LIMIT,
+  );
   const isFashion = product.categoryId === "fashion";
   const action = cardAction(product);
 
@@ -131,18 +127,18 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             <span className="rounded-full bg-on-surface/85 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white backdrop-blur-sm sm:px-2.5 sm:py-1 sm:text-[10px]">
               Sold out
             </span>
-          ) : product.badge ? (
+          ) : null}
+          {badges.map((badge) => (
             <span
+              key={badge.slug}
               className={cn(
-                "rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-wide uppercase shadow-sm sm:px-2.5 sm:py-1 sm:text-[10px]",
-                product.badge === "Best Seller"
-                  ? "bg-warm-gold text-on-surface"
-                  : "bg-primary text-on-primary",
+                "max-w-full truncate rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-wide uppercase shadow-sm sm:px-2.5 sm:py-1 sm:text-[10px]",
+                badgeToneClass(badge.tone),
               )}
             >
-              {BADGE_LABEL[product.badge]}
+              {badge.name}
             </span>
-          ) : null}
+          ))}
         </div>
 
         {discountPct && !isComingSoon && !isSoldOut ? (

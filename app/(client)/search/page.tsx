@@ -9,6 +9,7 @@ import {
   searchHref,
   type SearchResults,
 } from "@/lib/mart-api/search";
+import { DEFAULT_DESCRIPTION, pageMetadata } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
 import { CatalogUnavailable } from "../products/_components/catalog-unavailable";
@@ -36,11 +37,13 @@ function readPage(raw: string | undefined) {
 
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
   const q = cleanSearchQuery(first((await searchParams)?.q));
-  return {
+  return pageMetadata({
     title: q ? `“${q}” - খোঁজার ফল` : "খুঁজুন",
+    description: DEFAULT_DESCRIPTION,
+    path: "/search",
     // Result pages are endless and thin: keep them out of the index, let crawlers follow links.
-    robots: { index: false, follow: true },
-  };
+    noindex: { follow: true },
+  });
 }
 
 async function load(q: string, page: number): Promise<SearchResults | null> {

@@ -1,5 +1,8 @@
 "use client";
 
+import Image from "next/image";
+import { useId, useRef, useState, type ReactNode } from "react";
+
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
   blankFaq,
@@ -18,7 +21,14 @@ import {
   adminFieldClass,
   FieldLabel,
 } from "../../_components/admin-ui";
-import { ImageField } from "../../_components/image-field";
+import { youtubeId, youtubeThumb } from "@/lib/mart-api/youtube";
+
+import {
+  ImageField,
+  uploadImage,
+  uploadVideo,
+  VIDEO_ACCEPT,
+} from "../../_components/image-field";
 
 export function ProductCopyFields({
   formId,
@@ -64,6 +74,8 @@ export function ProductCopyFields({
   );
 }
 
+const MAX_GALLERY = 12;
+
 export function ProductGalleryFields({
   content,
   onChange,
@@ -73,6 +85,17 @@ export function ProductGalleryFields({
   onChange: (content: ProductStorefrontContent) => void;
   onBusy: (busy: boolean) => void;
 }) {
+  const addId = useId();
+  const [adding, setAdding] = useState(0);
+  const [addError, setAddError] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const imageInput = useRef<HTMLInputElement>(null);
+  const videoInput = useRef<HTMLInputElement>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [link, setLink] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const full = content.gallery.length >= MAX_GALLERY;
+
   function update(index: number, patch: Partial<ProductGalleryImage>) {
     onChange({
       ...content,
@@ -82,96 +105,467 @@ export function ProductGalleryFields({
     });
   }
 
+  function append(items: ProductGalleryImage[]) {
+    const room = MAX_GALLERY - content.gallery.length;
+    if (items.length > room) {
+      setAddError(`A product can have at most ${MAX_GALLERY} gallery items.`);
+    }
+    if (room > 0 && items.length) {
+      onChange({ ...content, gallery: [...content.gallery, ...items.slice(0, room)] });
+    }
+  }
+
+  // Same upload as each tile (kept in the browser until Save), several files at once.
+  async function addFiles(list: FileList | null, kind: "image" | "video") {
+    const files = Array.from(list ?? []);
+    setMenuOpen(false);
+    if (files.length === 0) return;
+    setAddError("");
+    setAdding(files.length);
+    onBusy(true);
+    try {
+      const upload = kind === "video" ? uploadVideo : uploadImage;
+      const results = await Promise.allSettled(files.map(upload));
+      append(
+        results.flatMap((result) =>
+          result.status === "fulfilled"
+            ? [{ ...blankGalleryImage(), kind, src: result.value }]
+            : [],
+        ),
+      );
+      const failed = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failed) {
+        setAddError(
+          failed.reason instanceof Error
+            ? failed.reason.message
+            : "Upload failed. Try again.",
+        );
+      }
+    } finally {
+      setAdding(0);
+      onBusy(false);
+    }
+  }
+
+  function addLink() {
+    const id = youtubeId(link);
+    if (!id) {
+      setLinkError(
+        "Not a YouTube video link. Paste a youtube.com/watch, youtu.be, or Shorts link.",
+      );
+      return;
+    }
+    setAddError("");
+    append([{ ...blankGalleryImage(), kind: "youtube", youtubeId: id }]);
+    setLink("");
+    setLinkError("");
+    setLinkOpen(false);
+  }
+
+  function remove(item: ProductGalleryImage) {
+    if (item.src.startsWith("blob:")) URL.revokeObjectURL(item.src);
+    if (item.thumbnail?.startsWith("blob:")) URL.revokeObjectURL(item.thumbnail);
+    onChange({
+      ...content,
+      gallery: content.gallery.filter((row) => row.id !== item.id),
+    });
+  }
+
+  const menuItemClass =
+    "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-100 focus-within:bg-neutral-100 focus-visible:bg-neutral-100 focus-visible:outline-none";
+
   return (
     <div className="mt-5 border-t border-neutral-100 pt-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold text-neutral-950">Gallery</h3>
-          <p className="mt-1 text-sm text-neutral-500">
-            These photos appear on the product page. The catalog image above is
-            the thumbnail. An existing product video stays first and is not
-            edited here.
-          </p>
+      <h3 className="text-sm font-semibold text-neutral-950">Gallery</h3>
+      <p className="mt-1 text-sm text-neutral-500">
+        Photos and videos appear on the product page. The catalog image above is
+        the thumbnail. An existing product video stays first and is not
+        edited here.
+      </p>
+      <ul className="mt-4 flex flex-wrap gap-3" aria-label="Gallery photos">
+        {content.gallery.map((item, index) => {
+          const overlay = (
+            <>
+              <TileButton
+                label={`Move item ${index + 1} earlier`}
+                icon="chevron_left"
+                disabled={index === 0}
+                onClick={() =>
+                  onChange({
+                    ...content,
+                    gallery: move(content.gallery, index, index - 1),
+                  })
+                }
+              />
+              <TileButton
+                label={`Move item ${index + 1} later`}
+                icon="chevron_right"
+                disabled={index === content.gallery.length - 1}
+                onClick={() =>
+                  onChange({
+                    ...content,
+                    gallery: move(content.gallery, index, index + 1),
+                  })
+                }
+              />
+            </>
+          );
+          return (
+            <li key={item.id} className="w-28">
+              {item.kind === "video" || item.kind === "youtube" ? (
+                <VideoTile item={item} overlay={overlay} onRemove={() => remove(item)} />
+              ) : (
+                <ImageField
+                  label=""
+                  variant="tile"
+                  value={item.src}
+                  onChange={(src) => update(index, { src })}
+                  onRemove={() => remove(item)}
+                  overlay={overlay}
+                  onBusy={onBusy}
+                />
+              )}
+              <input
+                value={item.alt}
+                onChange={(event) => update(index, { alt: event.target.value })}
+                placeholder="Description"
+                aria-label={`Item ${index + 1} description`}
+                className="mt-1.5 h-8 w-full rounded-lg bg-white px-2 text-xs text-neutral-800 ring-1 ring-neutral-200 placeholder:text-neutral-400 focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+              {!item.alt.trim() ? (
+                <p className="mt-1 text-[11px] leading-tight text-neutral-500">
+                  Empty: the product name is used.
+                </p>
+              ) : null}
+              {item.kind === "video" || item.kind === "youtube" ? (
+                <ThumbnailControls
+                  item={item}
+                  index={index}
+                  onChange={(thumbnail) => update(index, { thumbnail })}
+                  onError={setAddError}
+                />
+              ) : null}
+            </li>
+          );
+        })}
+        {full ? null : (
+          <li
+            className="relative w-28"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setMenuOpen(false);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setMenuOpen(false);
+            }}
+          >
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              disabled={adding > 0}
+              onClick={() => setMenuOpen((open) => !open)}
+              className="grid size-28 place-items-center rounded-xl border border-dashed border-neutral-300 bg-[#f7f8fa] text-center text-neutral-500 hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none disabled:opacity-60"
+            >
+              <span>
+                <MaterialIcon name="add" className="text-[22px]" />
+                <span className="block text-xs font-medium">
+                  {adding > 0 ? "Uploading…" : "Add"}
+                </span>
+              </span>
+            </button>
+            {/* The pickers stay mounted: the menu closes as soon as focus leaves it,
+                which would unmount an input inside it before its change event. */}
+            <input
+              ref={imageInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              hidden
+              tabIndex={-1}
+              onChange={(event) => {
+                void addFiles(event.target.files, "image");
+                event.target.value = "";
+              }}
+            />
+            <input
+              ref={videoInput}
+              type="file"
+              accept={VIDEO_ACCEPT}
+              multiple
+              hidden
+              tabIndex={-1}
+              onChange={(event) => {
+                void addFiles(event.target.files, "video");
+                event.target.value = "";
+              }}
+            />
+            {menuOpen ? (
+              <div
+                role="menu"
+                aria-label="Add to gallery"
+                // Keep focus on the trigger so the menu is not closed by blur mid-click.
+                onMouseDown={(event) => event.preventDefault()}
+                className="absolute top-[calc(100%+0.25rem)] left-0 z-20 w-52 rounded-xl bg-white p-1 shadow-lg ring-1 ring-neutral-200"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={menuItemClass}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    imageInput.current?.click();
+                  }}
+                >
+                  <MaterialIcon name="image" className="text-[18px] text-neutral-500" />
+                  Image
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={menuItemClass}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    videoInput.current?.click();
+                  }}
+                >
+                  <MaterialIcon name="movie" className="text-[18px] text-neutral-500" />
+                  <span>
+                    Video
+                    <span className="block text-xs text-neutral-500">MP4 or WEBM, up to 50 MB</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={menuItemClass}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setLinkOpen(true);
+                    setLinkError("");
+                  }}
+                >
+                  <MaterialIcon name="smart_display" className="text-[18px] text-neutral-500" />
+                  YouTube link
+                </button>
+              </div>
+            ) : null}
+          </li>
+        )}
+      </ul>
+      {linkOpen ? (
+        <div className="mt-3 max-w-xl">
+          <FieldLabel htmlFor={addId}>YouTube link</FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            <input
+              id={addId}
+              type="url"
+              inputMode="url"
+              autoFocus
+              value={link}
+              placeholder="https://www.youtube.com/watch?v=…"
+              aria-invalid={linkError ? true : undefined}
+              aria-describedby={linkError ? `${addId}-error` : undefined}
+              onChange={(event) => {
+                setLink(event.target.value);
+                if (linkError) setLinkError("");
+              }}
+              onKeyDown={(event) => {
+                // Enter adds the link; it must not submit the product form.
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addLink();
+                }
+              }}
+              className={cn(adminFieldClass, "min-w-0 flex-1")}
+            />
+            <button type="button" onClick={addLink} className={adminButtonClass.secondary}>
+              Add video
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLinkOpen(false);
+                setLink("");
+                setLinkError("");
+              }}
+              className="h-10 rounded-full px-3 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+            >
+              Cancel
+            </button>
+          </div>
+          {linkError ? (
+            <p id={`${addId}-error`} className="mt-1.5 text-xs text-red-700">
+              {linkError}
+            </p>
+          ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() =>
-            onChange({
-              ...content,
-              gallery: [...content.gallery, blankGalleryImage()],
-            })
-          }
-          className={adminButtonClass.secondary}
-        >
-          Add photo
-        </button>
-      </div>
+      ) : null}
+      {addError ? <p className="mt-1.5 text-xs text-red-700">{addError}</p> : null}
       {content.gallery.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">
+        <p className="mt-2 text-xs text-neutral-500">
           No gallery photos. The product page uses the catalog image.
         </p>
-      ) : (
-        <ul className="mt-4 space-y-4">
-          {content.gallery.map((item, index) => (
-            <li
-              key={item.id}
-              className="rounded-2xl bg-[#f7f8fa] p-3 ring-1 ring-neutral-200"
-            >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-neutral-500">
-                  Photo {index + 1}
-                </p>
-                <RowActions
-                  label={`gallery photo ${index + 1}`}
-                  disableUp={index === 0}
-                  disableDown={index === content.gallery.length - 1}
-                  onUp={() =>
-                    onChange({
-                      ...content,
-                      gallery: move(content.gallery, index, index - 1),
-                    })
-                  }
-                  onDown={() =>
-                    onChange({
-                      ...content,
-                      gallery: move(content.gallery, index, index + 1),
-                    })
-                  }
-                  onRemove={() =>
-                    onChange({
-                      ...content,
-                      gallery: content.gallery.filter(
-                        (row) => row.id !== item.id,
-                      ),
-                    })
-                  }
-                />
-              </div>
-              <ImageField
-                compact
-                label=""
-                value={item.src}
-                onChange={(src) => update(index, { src })}
-                onBusy={onBusy}
-              />
-              <label className="mt-3 block">
-                <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                  Photo description
-                </span>
-                <input
-                  value={item.alt}
-                  onChange={(event) =>
-                    update(index, { alt: event.target.value })
-                  }
-                  placeholder="What is in this photo"
-                  className={adminFieldClass}
-                />
-              </label>
-            </li>
-          ))}
-        </ul>
-      )}
+      ) : null}
     </div>
+  );
+}
+
+/** Uploaded video or YouTube link: a still frame with a play mark, same size as a photo tile. */
+function VideoTile({
+  item,
+  overlay,
+  onRemove,
+}: {
+  item: ProductGalleryImage;
+  overlay: ReactNode;
+  onRemove: () => void;
+}) {
+  const youtube = item.kind === "youtube" && item.youtubeId;
+  return (
+    <div className="group relative size-28 overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-neutral-200">
+      {item.thumbnail ? (
+        <Image
+          src={item.thumbnail}
+          alt=""
+          fill
+          unoptimized={item.thumbnail.startsWith("blob:")}
+          sizes="112px"
+          className="object-cover"
+        />
+      ) : youtube ? (
+        <Image
+          src={youtubeThumb(item.youtubeId!)}
+          alt=""
+          fill
+          sizes="112px"
+          className="object-cover"
+        />
+      ) : (
+        <video
+          src={item.src}
+          muted
+          playsInline
+          preload="metadata"
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+      <span className="pointer-events-none absolute inset-0 grid place-items-center">
+        <span className="grid size-8 place-items-center rounded-full bg-white/95 text-neutral-900 shadow">
+          <MaterialIcon name="play_arrow" className="text-[20px]" />
+        </span>
+      </span>
+      <span className="pointer-events-none absolute right-1.5 bottom-1.5 rounded bg-black/60 px-1 text-[10px] font-semibold text-white">
+        {youtube ? "YouTube" : "Video"}
+      </span>
+      <button
+        type="button"
+        aria-label={youtube ? "Remove YouTube video" : "Remove video"}
+        onClick={onRemove}
+        className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-white/95 text-neutral-700 shadow ring-1 ring-neutral-200 transition-opacity hover:text-red-600 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:opacity-0 sm:group-hover:opacity-100"
+      >
+        <MaterialIcon name="close" className="text-[16px]" />
+      </button>
+      <div className="absolute bottom-1.5 left-1.5 flex gap-1 transition-opacity focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+        {overlay}
+      </div>
+    </div>
+  );
+}
+
+/** Optional custom thumbnail for a video or YouTube item. Without one the default frame stays. */
+function ThumbnailControls({
+  item,
+  index,
+  onChange,
+  onError,
+}: {
+  item: ProductGalleryImage;
+  index: number;
+  onChange: (thumbnail: string) => void;
+  onError: (message: string) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+
+  async function pick(file: File | undefined) {
+    if (!file) return;
+    try {
+      const src = await uploadImage(file);
+      if (item.thumbnail?.startsWith("blob:")) URL.revokeObjectURL(item.thumbnail);
+      onError("");
+      onChange(src);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Upload failed. Try again.");
+    }
+  }
+
+  function clear() {
+    if (item.thumbnail?.startsWith("blob:")) URL.revokeObjectURL(item.thumbnail);
+    onChange("");
+  }
+
+  const linkClass =
+    "rounded text-[11px] font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none";
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        hidden
+        tabIndex={-1}
+        onChange={(event) => {
+          void pick(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        className={linkClass}
+        aria-label={`${item.thumbnail ? "Change" : "Add"} thumbnail for item ${index + 1}`}
+        onClick={() => input.current?.click()}
+      >
+        {item.thumbnail ? "Change thumbnail" : "Add thumbnail"}
+      </button>
+      {item.thumbnail ? (
+        <button
+          type="button"
+          className="rounded text-[11px] font-medium text-neutral-500 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+          aria-label={`Remove thumbnail for item ${index + 1}`}
+          onClick={clear}
+        >
+          Remove
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function TileButton({
+  label,
+  icon,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="grid size-6 place-items-center rounded-full bg-white/95 text-neutral-700 shadow ring-1 ring-neutral-200 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
+    >
+      <MaterialIcon name={icon} className="text-[16px]" />
+    </button>
   );
 }
 

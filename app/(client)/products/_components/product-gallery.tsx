@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useRef, useState, type KeyboardEvent } from "react";
 
+import { badgeToneClass, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { galleryControlName } from "@/lib/mart-api/product-page";
+import { youtubeEmbed } from "@/lib/mart-api/youtube";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -44,7 +46,7 @@ function GalleryFrame({
   return (
     <Image
       src={item.src}
-      alt={fit === "cover" ? "" : item.alt}
+      alt={item.alt}
       fill
       className={cn(
         "object-center",
@@ -65,19 +67,32 @@ function GalleryFrame({
 export function ProductGallery({
   title,
   badge,
-  images,
+  badges = [],
+  images: items,
 }: {
   title: string;
+  /** Status pill (coming soon / sold out), shown first. */
   badge?: string;
+  /** Admin badges, in display order. */
+  badges?: StoreBadge[];
   images: ProductGalleryItem[];
 }) {
+  // Every image gets a text alternative (thumbnails and video covers too): the admin's
+  // alt text, else the product title.
+  const images = items.map((item) => (item.alt?.trim() ? item : { ...item, alt: title }));
   const [activeIndex, setActiveIndex] = useState(0);
+  // The item whose custom thumbnail was pressed; the player replaces the thumbnail.
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const thumbs = useRef<Array<HTMLButtonElement | null>>([]);
   const active = images[activeIndex] ?? images[0];
+  const playable = active?.type === "video" || active?.type === "youtube";
+  const showPoster = playable && Boolean(active?.poster) && playingIndex !== activeIndex;
+  const autoplay = playable && playingIndex === activeIndex;
 
   function select(index: number) {
     const next = (index + images.length) % images.length;
     setActiveIndex(next);
+    setPlayingIndex(null);
     thumbs.current[next]?.focus();
   }
 
@@ -110,12 +125,43 @@ export function ProductGallery({
             "aspect-square sm:aspect-4/5 lg:aspect-auto lg:h-[min(640px,70vh)]",
           )}
         >
-          {active?.type === "video" ? (
+          {showPoster && active ? (
+            <button
+              type="button"
+              onClick={() => setPlayingIndex(activeIndex)}
+              aria-label={`${active.alt} — ভিডিও চালান`}
+              className="group absolute inset-0 h-full w-full bg-black focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[#0b5e56]"
+            >
+              <GalleryFrame
+                key={active.poster}
+                item={{ ...active, src: active.poster ?? "" }}
+                priority={activeIndex === 0}
+                sizes="(max-width: 1024px) 100vw, 55vw"
+                fit="cover"
+              />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/25 transition-colors group-hover:bg-black/35">
+                <span className="flex size-16 items-center justify-center rounded-full bg-white/95 text-[#042422] shadow-lg sm:size-20">
+                  <MaterialIcon name="play_arrow" className="text-[40px] sm:text-[48px]" />
+                </span>
+              </span>
+            </button>
+          ) : active?.type === "youtube" && active.youtubeId ? (
+            <iframe
+              key={active.youtubeId}
+              src={`${youtubeEmbed(active.youtubeId)}${autoplay ? "&autoplay=1" : ""}`}
+              title={active.alt}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
+              className="absolute inset-0 h-full w-full border-0 bg-black"
+            />
+          ) : active?.type === "video" ? (
             <video
               key={active.src}
               src={active.src}
               poster={active.poster}
               controls
+              autoPlay={autoplay}
               playsInline
               muted
               loop
@@ -135,11 +181,24 @@ export function ProductGallery({
             <FailedImage label={`${title} — ছবি নেই`} />
           )}
 
-          {badge ? (
-            <div className="pointer-events-none absolute top-3 left-3 z-10 sm:top-4 sm:left-4">
-              <span className="rounded-full bg-warm-gold px-2.5 py-1 text-[10px] font-semibold tracking-wide text-[#042422] shadow-md sm:px-3 sm:text-xs">
-                {badge}
-              </span>
+          {badge || badges.length > 0 ? (
+            <div className="pointer-events-none absolute top-3 left-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5 sm:top-4 sm:left-4 sm:max-w-[calc(100%-2rem)]">
+              {badge ? (
+                <span className="rounded-full bg-warm-gold px-2.5 py-1 text-[10px] font-semibold tracking-wide text-[#042422] shadow-md sm:px-3 sm:text-xs">
+                  {badge}
+                </span>
+              ) : null}
+              {badges.map((item) => (
+                <span
+                  key={item.slug}
+                  className={cn(
+                    "max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-md sm:px-3 sm:text-xs",
+                    badgeToneClass(item.tone),
+                  )}
+                >
+                  {item.name}
+                </span>
+              ))}
             </div>
           ) : null}
         </div>
@@ -159,15 +218,13 @@ export function ProductGallery({
         >
           {images.map((item, index) => {
             const selected = index === activeIndex;
-            const name = galleryControlName(
-              title,
-              index,
-              item.type === "video" ? "video" : "image",
-            );
+            const name = galleryControlName(title, index, item.type);
             const thumb: ProductGalleryItem =
               item.type === "video"
                 ? { ...item, src: item.poster ?? "", alt: name }
                 : { ...item, alt: name };
+            // An uploaded video has no poster: its first frame is the thumbnail.
+            const frameThumb = item.type === "video" && !item.poster;
             return (
               <button
                 key={`${item.type}-${item.src}-${index}`}
@@ -188,11 +245,26 @@ export function ProductGallery({
                     ? "border-2 border-primary ring-1 ring-primary/30"
                     : "border-outline-variant/30 hover:border-primary/60",
                 )}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  setActiveIndex(index);
+                  setPlayingIndex(null);
+                }}
                 onKeyDown={(event) => onThumbKeyDown(event, index)}
               >
-                <GalleryFrame item={thumb} sizes="80px" fit="cover" />
-                {item.type === "video" ? (
+                {frameThumb ? (
+                  <video
+                    src={`${item.src}#t=0.1`}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    aria-hidden
+                    tabIndex={-1}
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <GalleryFrame item={thumb} sizes="80px" fit="cover" />
+                )}
+                {item.type !== "image" ? (
                   <span className="absolute inset-0 flex items-center justify-center bg-black/35">
                     <span className="flex size-7 items-center justify-center rounded-full bg-white/95 text-[#042422] shadow-sm">
                       <MaterialIcon name="play_arrow" className="text-[20px]" />

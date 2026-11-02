@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,23 @@ export async function uploadImage(file: File): Promise<string> {
   }
   if (file.size > MAX_BYTES) {
     throw new Error("Image must be 5 MB or smaller.");
+  }
+  return URL.createObjectURL(file);
+}
+
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+export const VIDEO_ACCEPT = "video/mp4,video/webm,.mp4,.webm";
+
+/** Same as uploadImage, for gallery videos: kept in the browser until the form is saved. */
+export async function uploadVideo(file: File): Promise<string> {
+  const name = file.name.toLowerCase();
+  const typeOk = !file.type || VIDEO_TYPES.has(file.type);
+  if (!typeOk || !/\.(mp4|webm)$/.test(name)) {
+    throw new Error("Use an MP4 or WEBM video.");
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error("Video must be 50 MB or smaller.");
   }
   return URL.createObjectURL(file);
 }
@@ -159,6 +176,9 @@ export function ImageField({
   compact = false,
   confirmRemove = false,
   variant = "default",
+  tileSize = "md",
+  onRemove,
+  overlay,
   onBusy,
   error: outerError,
   inputId: givenId,
@@ -168,7 +188,14 @@ export function ImageField({
   label?: string;
   compact?: boolean;
   confirmRemove?: boolean;
-  variant?: "default" | "thumb";
+  /** `tile`: a small square thumbnail (Shopify style). Click to pick, hover for ×. */
+  variant?: "default" | "thumb" | "tile";
+  /** Tile only: `md` is 112px, `lg` (a main image) is 144px. */
+  tileSize?: "md" | "lg";
+  /** Tile only: what × does. Defaults to clearing the image. */
+  onRemove?: () => void;
+  /** Tile only: extra controls shown on hover in the bottom corner (e.g. reorder). */
+  overlay?: ReactNode;
   onBusy?: (busy: boolean) => void;
   /** A problem with this image from the form (required, rejected by the API). */
   error?: string;
@@ -213,6 +240,141 @@ export function ImageField({
   // One message at a time: a file the browser rejected first, else the form's own problem.
   const message = error || outerError || "";
   const errorId = message ? `${inputId}-error` : undefined;
+
+  function remove() {
+    setConfirmingRemove(false);
+    releasePreview(value);
+    if (onRemove) onRemove();
+    else onChange("");
+  }
+
+  if (variant === "tile") {
+    const box = tileSize === "lg" ? "size-36" : "size-28";
+    return (
+      <div className={cn("shrink-0", tileSize === "lg" ? "w-36" : "w-28")}>
+        {label ? <FieldLabel htmlFor={inputId}>{label}</FieldLabel> : null}
+        <div
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={(event) => {
+            event.preventDefault();
+            if (event.currentTarget.contains(event.relatedTarget as Node | null))
+              return;
+            setDragging(false);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            void upload(event.dataTransfer.files?.[0]);
+          }}
+          className={cn(
+            "group relative overflow-hidden rounded-xl bg-[#f7f8fa]",
+            box,
+            value
+              ? "ring-1 ring-neutral-200"
+              : "border border-dashed border-neutral-300 hover:border-primary",
+            message && "ring-1 ring-red-600",
+            dragging && "ring-2 ring-primary",
+          )}
+        >
+          <label
+            htmlFor={inputId}
+            title={value ? "Replace image" : "Add image"}
+            className="absolute inset-0 cursor-pointer focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
+          >
+            {value ? (
+              <Image
+                src={value}
+                alt=""
+                fill
+                unoptimized={value.startsWith("blob:") || value.startsWith("data:")}
+                sizes={tileSize === "lg" ? "144px" : "112px"}
+                className="object-cover"
+              />
+            ) : (
+              <span className="grid h-full place-items-center text-center text-neutral-500 group-hover:text-primary">
+                <span>
+                  <MaterialIcon name="add" className="text-[22px]" />
+                  <span className="block text-xs font-medium">Add image</span>
+                </span>
+              </span>
+            )}
+            <input
+              id={inputId}
+              type="file"
+              accept={ACCEPT}
+              className="sr-only"
+              disabled={uploading}
+              aria-label={value ? "Replace image" : "Add image"}
+              aria-invalid={message ? true : undefined}
+              aria-describedby={errorId}
+              onChange={(event) => {
+                void upload(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
+          </label>
+          {value || onRemove ? (
+            <button
+              type="button"
+              aria-label="Remove image"
+              onClick={() => (confirmRemove && value ? setConfirmingRemove(true) : remove())}
+              className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-white/95 text-neutral-700 shadow ring-1 ring-neutral-200 transition-opacity hover:text-red-600 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:opacity-0 sm:group-hover:opacity-100"
+            >
+              <MaterialIcon name="close" className="text-[16px]" />
+            </button>
+          ) : null}
+          {overlay ? (
+            <div className="absolute bottom-1.5 left-1.5 flex gap-1 transition-opacity focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+              {overlay}
+            </div>
+          ) : null}
+          {confirmingRemove ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-white/95 p-2 text-center">
+              <p className="text-xs font-medium text-neutral-800">Remove image?</p>
+              <span className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={remove}
+                  className="h-7 rounded-full px-2.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+                >
+                  Remove
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingRemove(false)}
+                  className="h-7 rounded-full px-2.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+                >
+                  Keep
+                </button>
+              </span>
+            </div>
+          ) : null}
+          {dragging ? (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center bg-primary/80 text-center text-xs font-semibold text-white">
+              Drop to upload
+            </div>
+          ) : null}
+          {uploading ? (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/45 text-center text-xs font-semibold text-white">
+              Uploading…
+            </div>
+          ) : null}
+        </div>
+        {message ? (
+          <p id={errorId} className="mt-1.5 text-xs text-red-700">
+            {message}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div>

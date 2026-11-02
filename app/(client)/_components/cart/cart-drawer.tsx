@@ -16,11 +16,11 @@ import { cn } from "@/lib/utils";
 
 import {
   formatCartMoney,
-  MAX_CART_QTY,
   offeredDeliveryLabel,
 } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
+import { maxQuantityText, percentText } from "@/lib/mart-api/pricing";
 import { productPath } from "@/lib/mart-api/product-url";
 
 export function CartDrawer() {
@@ -118,6 +118,21 @@ export function CartDrawer() {
                         ) : null}
                         <p className="mt-0.5 text-label-sm text-outline">
                           {formatCartMoney(item.unitPrice)} / পিস
+                          {item.regularPrice && item.regularPrice > item.unitPrice ? (
+                            <>
+                              {" "}
+                              <span className="line-through">
+                                <span className="sr-only">আগের দাম </span>
+                                {formatCartMoney(item.regularPrice)}
+                              </span>{" "}
+                              <span
+                                data-cart-discount=""
+                                className="font-semibold text-[#ba1a1a]"
+                              >
+                                {percentText(item.totalPercent ?? 0)}% ছাড়
+                              </span>
+                            </>
+                          ) : null}
                         </p>
                         {item.available ? null : (
                           <p
@@ -164,7 +179,7 @@ export function CartDrawer() {
                           type="button"
                           className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
                           onClick={() => adjustQuantity(item.key, 1)}
-                          disabled={item.quantity >= Math.min(MAX_CART_QTY, item.maxQuantity)}
+                          disabled={item.quantity >= item.maxQuantity}
                           aria-label={`${item.title} এর পরিমাণ বাড়ান`}
                         >
                           <MaterialIcon name="add" className="text-[16px]" />
@@ -174,6 +189,14 @@ export function CartDrawer() {
                         {formatCartMoney(item.lineTotal)}
                       </span>
                     </div>
+                    {item.available && item.quantity >= item.maxQuantity ? (
+                      <p
+                        className="mt-1 text-xs text-on-surface-variant"
+                        data-testid="cart-qty-limit"
+                      >
+                        {maxQuantityText(item.maxQuantity)}
+                      </p>
+                    ) : null}
                   </div>
                 </li>
               ))}

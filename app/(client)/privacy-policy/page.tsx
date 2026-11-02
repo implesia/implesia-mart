@@ -8,6 +8,7 @@ import { listPublicPrivacyRights } from "@/lib/mart-api/privacy-rights";
 import { listPublicPrivacySharing } from "@/lib/mart-api/privacy-sharing";
 import { listPublicPrivacySupport } from "@/lib/mart-api/privacy-support";
 import { listPublicPrivacyUsage } from "@/lib/mart-api/privacy-usage";
+import { pageMetadata } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
@@ -17,12 +18,12 @@ import { PrivacyPolicyView } from "./_components/privacy-policy-view";
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "গোপনীয়তা নীতি",
   description:
     "ইমপ্লেসিয়া মার্ট — অর্ডারের নাম, ফোন ও ঠিকানা কীভাবে সংগ্রহ, ব্যবহার ও সুরক্ষিত রাখা হয়।",
-  alternates: { canonical: "/privacy-policy" },
-};
+  path: "/privacy-policy",
+});
 
 export default async function PrivacyPolicyPage() {
   const [hero, contents, introduction, collection, usage, sharing, rights, support] =

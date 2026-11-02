@@ -4,7 +4,7 @@ import { listPublicBlogCategories } from "@/lib/mart-api/blog-categories";
 import { listPublicBlogHero } from "@/lib/mart-api/blog-hero";
 import { listPublicBlogListing } from "@/lib/mart-api/blog-listing";
 import { fetchPublicBlogPosts } from "@/lib/mart-api/blog-posts";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, pageMetadata } from "@/lib/seo";
 
 import { Container } from "../../_components/common/container";
 import { JsonLd } from "../../_components/common/json-ld";
@@ -20,12 +20,11 @@ const TITLE = "Blog";
 const DESCRIPTION =
   "Implesia Mart blog: gadget guides and dress tips.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: "/blogs" },
-  openGraph: { url: "/blogs", title: TITLE, description: DESCRIPTION },
-};
+  path: "/blogs",
+});
 
 const breadcrumbJsonLd = {
   "@context": "https://schema.org",

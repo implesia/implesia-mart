@@ -2,15 +2,18 @@ import type { Metadata } from "next";
 
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import { purchaseQuantity } from "@/lib/mart-api/product-page";
+import { DEFAULT_DESCRIPTION, pageMetadata } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { CheckoutView } from "./_components/checkout-view";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "চেকআউট",
-  robots: { index: false, follow: false },
-};
+  description: DEFAULT_DESCRIPTION,
+  path: "/checkout",
+  noindex: { follow: false },
+});
 
 type CheckoutPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

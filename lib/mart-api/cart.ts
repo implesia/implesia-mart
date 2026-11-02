@@ -1,4 +1,6 @@
 import { cartItemBody } from "@/lib/mart-api/cart-body";
+import { readPricing, type ProductPricing } from "@/lib/mart-api/pricing";
+import { DEFAULT_MAX_QUANTITY } from "@/lib/mart-api/variants";
 import {
   MART_API_URL,
   MartApiError,
@@ -23,6 +25,11 @@ export type CartLine = {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  /** Price before any discount, and the total discount % the server applied. */
+  regularPrice: number;
+  totalPercent: number;
+  /** Lets the cart show a new quantity's price before the server answers. */
+  pricing: ProductPricing | null;
   available: boolean;
   /** Order limits for this line (the configured cap, never the stock). */
   minQuantity: number;
@@ -97,6 +104,9 @@ type ApiLine = {
   unit_price: number;
   quantity: number;
   line_total: number;
+  regular_price?: number;
+  total_discount_percent?: number;
+  pricing?: unknown;
   available: boolean;
   min_quantity?: number;
   max_quantity?: number;
@@ -179,9 +189,12 @@ function mapLine(item: ApiLine): CartLine {
     unitPrice: item.unit_price,
     quantity: item.quantity,
     lineTotal: item.line_total,
+    regularPrice: Math.max(item.regular_price ?? 0, item.unit_price),
+    totalPercent: item.total_discount_percent ?? 0,
+    pricing: readPricing(item.pricing),
     available: item.available,
     minQuantity: item.min_quantity ?? 1,
-    maxQuantity: item.max_quantity ?? 5,
+    maxQuantity: item.max_quantity ?? DEFAULT_MAX_QUANTITY,
     selection: (item.selection ?? []).map((choice) => ({
       name: choice.name,
       label: choice.label,

@@ -11,9 +11,11 @@ import type {
   ProductCategoryId,
   ProductStatus,
 } from "@/app/(client)/_data/products/catalog-meta";
+import type { StoreBadge } from "@/lib/mart-api/badge-rules";
 import { cardToProduct } from "@/lib/mart-api/catalog-product";
 import { mediaUrl } from "@/lib/mart-api/media-url";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
+import { youtubeThumb } from "@/lib/mart-api/youtube";
 import {
   catalogResponseKind,
   normalizeProductDetail,
@@ -112,6 +114,7 @@ type ApiCard = {
   image_src: string;
   image_alt: string;
   badge: ProductBadge | null;
+  badges?: StoreBadge[];
   status: ProductStatus;
   featured: boolean;
   has_variants?: boolean;
@@ -152,6 +155,7 @@ function mapCard(item: ApiCard): Product {
     imageSrc,
     imageAlt: item.image_alt || item.title,
     badge: item.badge ?? undefined,
+    badges: item.badges,
     status: item.status,
     categoryId: item.category,
     categorySlug: item.category_slug || item.category,
@@ -169,14 +173,27 @@ function mapDetail(
   const gallery = (
     item.gallery.length > 0
       ? item.gallery
-      : [{ src: item.image_src, alt: item.image_alt }]
+      : [{ kind: "image" as const, src: item.image_src, alt: item.image_alt }]
   )
-    .filter((image) => image.src)
-    .map((image) => ({
-      src: media(image.src),
-      alt: image.alt || item.title,
-      type: "image" as const,
-    }));
+    .filter((image) => image.src || image.youtubeId)
+    .map((image) => {
+      // A custom thumbnail replaces the default still (YouTube hqdefault / first video frame).
+      const poster = "thumbnail" in image && image.thumbnail ? media(image.thumbnail) : "";
+      return image.kind === "youtube"
+        ? {
+            src: poster || youtubeThumb(image.youtubeId!),
+            alt: image.alt || item.title,
+            type: "youtube" as const,
+            youtubeId: image.youtubeId,
+            ...(poster ? { poster } : {}),
+          }
+        : {
+            src: media(image.src),
+            alt: image.alt || item.title,
+            type: image.kind,
+            ...(poster ? { poster } : {}),
+          };
+    });
   const delivery =
     item.status === "coming-soon"
       ? [
@@ -207,6 +224,14 @@ function mapDetail(
       { label: item.title },
     ],
     categoryPath: item.category_path,
+    seo: {
+      title: item.seo_title,
+      description: item.seo_description,
+      keywords: item.seo_keywords
+        .split(",")
+        .map((word) => word.trim())
+        .filter(Boolean),
+    },
     gallery: gallery.filter((image) => image.src),
     tagline: item.tagline,
     stockLabel: item.stock_label,
@@ -219,6 +244,7 @@ function mapDetail(
     variants: item.variants,
     minPerOrder: item.min_per_order,
     maxPerOrder: item.max_per_order,
+    pricing: item.pricing,
     purchaseOptions: (item.options ?? [])
       .filter((group) => group.values.length > 0)
       .map((group) => ({
@@ -399,7 +425,7 @@ async function loadStoreProduct(path: string): Promise<ProductDetail | null> {
   return mapDetail(detail, await getStoreDeliveryRates());
 }
 
-/** Legacy slug lookup. The page redirects to the canonical id URL. */
+/** Legacy slug lookup (current or old slug). The page redirects to the canonical id URL. */
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
     const safeSlug = normalizeProductSlug(slug);
@@ -407,7 +433,9 @@ export const getStoreProduct = cache(
     const product = await loadStoreProduct(
       `/api/v1/products/by-slug/${encodeURIComponent(safeSlug)}`,
     );
-    return product && product.slug === safeSlug ? product : null;
+    // The API also answers for a slug the product used before its slug was edited
+    // (the response carries the current slug); the page 308s to the id URL either way.
+    return product;
   },
 );
 
