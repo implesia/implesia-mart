@@ -166,6 +166,7 @@ export function ProductGalleryFields({
 
   function remove(item: ProductGalleryImage) {
     if (item.src.startsWith("blob:")) URL.revokeObjectURL(item.src);
+    if (item.thumbnail?.startsWith("blob:")) URL.revokeObjectURL(item.thumbnail);
     onChange({
       ...content,
       gallery: content.gallery.filter((row) => row.id !== item.id),
@@ -233,6 +234,14 @@ export function ProductGalleryFields({
                 aria-label={`Item ${index + 1} description`}
                 className="mt-1.5 h-8 w-full rounded-lg bg-white px-2 text-xs text-neutral-800 ring-1 ring-neutral-200 placeholder:text-neutral-400 focus:ring-2 focus:ring-primary/40 focus:outline-none"
               />
+              {item.kind === "video" || item.kind === "youtube" ? (
+                <ThumbnailControls
+                  item={item}
+                  index={index}
+                  onChange={(thumbnail) => update(index, { thumbnail })}
+                  onError={setAddError}
+                />
+              ) : null}
             </li>
           );
         })}
@@ -413,7 +422,16 @@ function VideoTile({
   const youtube = item.kind === "youtube" && item.youtubeId;
   return (
     <div className="group relative size-28 overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-neutral-200">
-      {youtube ? (
+      {item.thumbnail ? (
+        <Image
+          src={item.thumbnail}
+          alt=""
+          fill
+          unoptimized={item.thumbnail.startsWith("blob:")}
+          sizes="112px"
+          className="object-cover"
+        />
+      ) : youtube ? (
         <Image
           src={youtubeThumb(item.youtubeId!)}
           alt=""
@@ -450,6 +468,74 @@ function VideoTile({
       <div className="absolute bottom-1.5 left-1.5 flex gap-1 transition-opacity focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
         {overlay}
       </div>
+    </div>
+  );
+}
+
+/** Optional custom thumbnail for a video or YouTube item. Without one the default frame stays. */
+function ThumbnailControls({
+  item,
+  index,
+  onChange,
+  onError,
+}: {
+  item: ProductGalleryImage;
+  index: number;
+  onChange: (thumbnail: string) => void;
+  onError: (message: string) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+
+  async function pick(file: File | undefined) {
+    if (!file) return;
+    try {
+      const src = await uploadImage(file);
+      if (item.thumbnail?.startsWith("blob:")) URL.revokeObjectURL(item.thumbnail);
+      onError("");
+      onChange(src);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Upload failed. Try again.");
+    }
+  }
+
+  function clear() {
+    if (item.thumbnail?.startsWith("blob:")) URL.revokeObjectURL(item.thumbnail);
+    onChange("");
+  }
+
+  const linkClass =
+    "rounded text-[11px] font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none";
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        hidden
+        tabIndex={-1}
+        onChange={(event) => {
+          void pick(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        className={linkClass}
+        aria-label={`${item.thumbnail ? "Change" : "Add"} thumbnail for item ${index + 1}`}
+        onClick={() => input.current?.click()}
+      >
+        {item.thumbnail ? "Change thumbnail" : "Add thumbnail"}
+      </button>
+      {item.thumbnail ? (
+        <button
+          type="button"
+          className="rounded text-[11px] font-medium text-neutral-500 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+          aria-label={`Remove thumbnail for item ${index + 1}`}
+          onClick={clear}
+        >
+          Remove
+        </button>
+      ) : null}
     </div>
   );
 }

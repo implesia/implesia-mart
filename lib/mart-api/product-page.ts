@@ -200,6 +200,8 @@ export type StoreGalleryItem = {
   src: string;
   youtubeId?: string;
   alt: string;
+  /** Custom thumbnail for a video or YouTube item (API media path). */
+  thumbnail?: string;
 };
 
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -217,15 +219,19 @@ export function normalizeProductDetail(
         if (!image) return [];
         const alt = text(image, "alt") || card.title;
         const kind = text(image, "kind");
+        const thumbnail = text(image, "thumbnail");
+        const extra = thumbnail ? { thumbnail } : {};
         if (kind === "youtube") {
           const youtubeId = text(image, "youtube_id");
           return YOUTUBE_ID.test(youtubeId)
-            ? [{ kind: "youtube", src: "", youtubeId, alt }]
+            ? [{ kind: "youtube", src: "", youtubeId, alt, ...extra }]
             : [];
         }
         const src = text(image, "src");
         if (!src) return [];
-        return [{ kind: kind === "video" ? "video" : "image", src, alt }];
+        return kind === "video"
+          ? [{ kind: "video", src, alt, ...extra }]
+          : [{ kind: "image", src, alt }];
       })
     : [];
   const options = Array.isArray(record.options)

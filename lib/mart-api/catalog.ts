@@ -176,20 +176,24 @@ function mapDetail(
       : [{ kind: "image" as const, src: item.image_src, alt: item.image_alt }]
   )
     .filter((image) => image.src || image.youtubeId)
-    .map((image) =>
-      image.kind === "youtube"
+    .map((image) => {
+      // A custom thumbnail replaces the default still (YouTube hqdefault / first video frame).
+      const poster = "thumbnail" in image && image.thumbnail ? media(image.thumbnail) : "";
+      return image.kind === "youtube"
         ? {
-            src: youtubeThumb(image.youtubeId!),
+            src: poster || youtubeThumb(image.youtubeId!),
             alt: image.alt || item.title,
             type: "youtube" as const,
             youtubeId: image.youtubeId,
+            ...(poster ? { poster } : {}),
           }
         : {
             src: media(image.src),
             alt: image.alt || item.title,
             type: image.kind,
-          },
-    );
+            ...(poster ? { poster } : {}),
+          };
+    });
   const delivery =
     item.status === "coming-soon"
       ? [

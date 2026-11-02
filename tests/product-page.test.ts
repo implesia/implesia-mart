@@ -100,6 +100,21 @@ test("the gallery keeps uploaded videos and YouTube links in order", () => {
   assert.equal(galleryControlName("Lamp", 1, "youtube"), "Lamp — ভিডিও ২");
 });
 
+test("custom video and YouTube thumbnails are kept; photos never get one", () => {
+  const detail = normalizeProductDetail({
+    ...published,
+    gallery: [
+      { src: "/media/a.jpg", alt: "", thumbnail: "/media/products/x.jpg" },
+      { kind: "video", src: "/media/products/a.mp4", alt: "", thumbnail: "/media/products/v.jpg" },
+      { kind: "youtube", src: "", youtube_id: "dQw4w9WgXcQ", alt: "", thumbnail: "" },
+    ],
+  });
+  assert.deepEqual(
+    detail?.gallery.map((item) => ("thumbnail" in item ? item.thumbnail : undefined)),
+    [undefined, "/media/products/v.jpg", undefined],
+  );
+});
+
 test("gallery names include the product and the image number", () => {
   assert.equal(
     galleryControlName("Night upload check", 0, "image"),

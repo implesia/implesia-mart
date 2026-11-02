@@ -78,12 +78,18 @@ export function ProductGallery({
   images: ProductGalleryItem[];
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  // The item whose custom thumbnail was pressed; the player replaces the thumbnail.
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const thumbs = useRef<Array<HTMLButtonElement | null>>([]);
   const active = images[activeIndex] ?? images[0];
+  const playable = active?.type === "video" || active?.type === "youtube";
+  const showPoster = playable && Boolean(active?.poster) && playingIndex !== activeIndex;
+  const autoplay = playable && playingIndex === activeIndex;
 
   function select(index: number) {
     const next = (index + images.length) % images.length;
     setActiveIndex(next);
+    setPlayingIndex(null);
     thumbs.current[next]?.focus();
   }
 
@@ -116,10 +122,30 @@ export function ProductGallery({
             "aspect-square sm:aspect-4/5 lg:aspect-auto lg:h-[min(640px,70vh)]",
           )}
         >
-          {active?.type === "youtube" && active.youtubeId ? (
+          {showPoster && active ? (
+            <button
+              type="button"
+              onClick={() => setPlayingIndex(activeIndex)}
+              aria-label={`${active.alt} — ভিডিও চালান`}
+              className="group absolute inset-0 h-full w-full bg-black focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[#0b5e56]"
+            >
+              <GalleryFrame
+                key={active.poster}
+                item={{ ...active, src: active.poster ?? "" }}
+                priority={activeIndex === 0}
+                sizes="(max-width: 1024px) 100vw, 55vw"
+                fit="cover"
+              />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/25 transition-colors group-hover:bg-black/35">
+                <span className="flex size-16 items-center justify-center rounded-full bg-white/95 text-[#042422] shadow-lg sm:size-20">
+                  <MaterialIcon name="play_arrow" className="text-[40px] sm:text-[48px]" />
+                </span>
+              </span>
+            </button>
+          ) : active?.type === "youtube" && active.youtubeId ? (
             <iframe
               key={active.youtubeId}
-              src={youtubeEmbed(active.youtubeId)}
+              src={`${youtubeEmbed(active.youtubeId)}${autoplay ? "&autoplay=1" : ""}`}
               title={active.alt}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -132,6 +158,7 @@ export function ProductGallery({
               src={active.src}
               poster={active.poster}
               controls
+              autoPlay={autoplay}
               playsInline
               muted
               loop
@@ -215,7 +242,10 @@ export function ProductGallery({
                     ? "border-2 border-primary ring-1 ring-primary/30"
                     : "border-outline-variant/30 hover:border-primary/60",
                 )}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  setActiveIndex(index);
+                  setPlayingIndex(null);
+                }}
                 onKeyDown={(event) => onThumbKeyDown(event, index)}
               >
                 {frameThumb ? (

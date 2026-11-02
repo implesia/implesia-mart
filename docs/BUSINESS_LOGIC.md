@@ -36,6 +36,9 @@ Code: `app/admin/products/_components/product-content-fields.tsx`, `lib/mart-api
 - Images: JPG, PNG, WEBP or GIF, up to 5 MB. AVIF is refused before upload ("Use a JPG, PNG, WEBP, or GIF image.").
 - Videos: MP4 or WEBM, up to 50 MB each (API limit). At most 100 MB of new video per save; above that the save stops with "Too many new videos to upload at once…".
 - YouTube: a YouTube link or 11-character id; saved as the id. The thumbnail shown is YouTube's `hqdefault` image.
+- Custom thumbnail (videos and YouTube only): "Add thumbnail" / "Change thumbnail" / "Remove" under the tile, same image rules as photos. New thumbnails go up as `thumbnails` files with `thumbnail_targets` (the item id, or `video:<n>` for a video uploaded in the same save); a removed one is sent as an empty `thumbnail` and the API deletes the file.
+- Storefront: a video/YouTube item with a custom thumbnail shows that image with a ▶ button and starts playing when pressed. Without one, YouTube uses `hqdefault` and a video its first frame, as before.
+- Freshness: product pages are `force-dynamic` and every API fetch is `no-store`; media URLs are unique per upload. Admin changes appear on the next page load.
 - Save: existing gallery items are sent in the JSON payload and new files as multipart parts; the API appends new uploads after existing items, so order can change after save.
 - Empty gallery items are dropped on save (`cleanProductContent`): images/videos need a `src`, YouTube items need a `youtubeId`.
 - The main image falls back to the first gallery photo, never a video.

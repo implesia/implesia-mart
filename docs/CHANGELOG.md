@@ -4,6 +4,12 @@ Newest first. Every task adds an entry: date, what changed, files touched, and a
 
 ## 2026-11-02 (summary of today's work)
 
+- **Custom thumbnails for gallery videos and YouTube items.**
+  - Admin: each video/YouTube tile has "Add thumbnail", "Change thumbnail" and "Remove". The image stays in the browser until Save and goes up as a `thumbnails` part with `thumbnail_targets`.
+  - Storefront product page: a video/YouTube item with a custom thumbnail shows it with a ▶ button; pressing it starts the player (YouTube with `autoplay=1`, video with `autoPlay`). Without a custom thumbnail nothing changes (YouTube hqdefault / first video frame).
+  - Cache: product pages are `force-dynamic` and fetch with `cache: "no-store"`; media URLs are unique per upload. Admin changes show on the next page load, no revalidation needed.
+  - Files: `app/admin/products/_components/product-content-fields.tsx`, `app/(client)/products/_components/product-gallery.tsx`, `lib/mart-api/products.ts`, `lib/mart-api/catalog.ts`, `lib/mart-api/product-page.ts`, `lib/mart-mock/product-content.ts`, `tests/product-page.test.ts`.
+  - Backend: needs `thumbnail` on gallery items and the `thumbnails` / `thumbnail_targets` parts (backend repo, same day).
 - **Docs**: added `docs/AI_INSTRUCTIONS.md`, `PROJECT_OVERVIEW.md`, `BUSINESS_LOGIC.md`, `API.md`, `CHANGELOG.md`, `TODO.md`; `AGENTS.md` now points to `docs/AI_INSTRUCTIONS.md`; README starts with the same pointer.
 - **Fix: admin Gallery "+ Add" → Image / Video did nothing** (`179fea3`).
   - Cause: the file inputs sat inside the menu. Pressing an option moved focus, the menu closed on blur and unmounted the input before the file picker could open.

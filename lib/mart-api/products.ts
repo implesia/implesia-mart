@@ -96,6 +96,7 @@ function galleryFromApi(items: ApiGallery[]): ProductGalleryImage[] {
       kind: item.kind === "video" || item.kind === "youtube" ? item.kind : "image",
       src: mediaUrl(item.src ?? ""),
       ...(item.youtube_id ? { youtubeId: item.youtube_id } : {}),
+      ...(item.thumbnail ? { thumbnail: mediaUrl(item.thumbnail) } : {}),
       alt: item.alt ?? "",
     }));
 }
@@ -168,6 +169,11 @@ type StoredContent = ProductStorefrontContent & {
   qualityImageAlt?: string;
 };
 
+/** A new thumbnail goes up as a `thumbnails` part; the payload keeps only a saved one. */
+function savedThumbnail(src: string | undefined) {
+  return src && !isLocalImage(src) ? sitePath(src) : "";
+}
+
 function contentPayload(content: ProductStorefrontContent) {
   const stored = content as StoredContent;
   return {
@@ -185,12 +191,19 @@ function contentPayload(content: ProductStorefrontContent) {
       )
       .map((item) =>
         item.kind === "youtube"
-          ? { id: item.id, kind: "youtube", youtube_id: item.youtubeId, alt: item.alt }
+          ? {
+              id: item.id,
+              kind: "youtube",
+              youtube_id: item.youtubeId,
+              alt: item.alt,
+              thumbnail: savedThumbnail(item.thumbnail),
+            }
           : {
               id: item.id,
               kind: item.kind ?? "image",
               src: sitePath(item.src),
               alt: item.alt,
+              ...(item.kind === "video" ? { thumbnail: savedThumbnail(item.thumbnail) } : {}),
             },
       ),
     highlights: content.highlights,
@@ -286,7 +299,15 @@ async function imageParts(draft: ProductDraft) {
   }
   const videos: File[] = [];
   const videoAlts: string[] = [];
+  const thumbnails: File[] = [];
+  // Each thumbnail names its item: a saved item's id, or "video:<n>" for a video uploaded now.
+  const thumbnailTargets: string[] = [];
   for (const [index, item] of draft.content.gallery.entries()) {
+    if (item.kind !== "image" && item.kind && item.thumbnail && isLocalImage(item.thumbnail)) {
+      const newVideo = item.kind === "video" && isLocalImage(item.src);
+      thumbnails.push(await fileFromSrc(item.thumbnail, `thumbnail-${index + 1}`));
+      thumbnailTargets.push(newVideo ? `video:${videos.length}` : item.id);
+    }
     if (item.kind === "youtube" || !isLocalImage(item.src)) continue;
     if (item.kind === "video") {
       videos.push(await videoFromSrc(item.src, `video-${index + 1}`));
@@ -305,7 +326,7 @@ async function imageParts(draft: ProductDraft) {
       "Too many new videos to upload at once. Save with up to 100 MB of new video, then add the rest.",
     );
   }
-  return { files, alts, videos, videoAlts, mainIsFile };
+  return { files, alts, videos, videoAlts, thumbnails, thumbnailTargets, mainIsFile };
 }
 
 /** Per save. The admin proxy accepts a little more (see next.config.ts). */
@@ -329,6 +350,8 @@ function formDataFor(
   alts: string[],
   videos: File[] = [],
   videoAlts: string[] = [],
+  thumbnails: File[] = [],
+  thumbnailTargets: string[] = [],
 ) {
   const body = new FormData();
   body.set("payload", JSON.stringify(payload));
@@ -338,6 +361,10 @@ function formDataFor(
   if (videos.length) {
     body.set("video_alts", JSON.stringify(videoAlts));
     for (const file of videos) body.append("videos", file);
+  }
+  if (thumbnails.length) {
+    body.set("thumbnail_targets", JSON.stringify(thumbnailTargets));
+    for (const file of thumbnails) body.append("thumbnails", file);
   }
   return body;
 }
@@ -426,10 +453,11 @@ export async function logoutMart() {
 }
 
 export async function saveMartProduct(productId: string | undefined, draft: ProductDraft) {
-  const { files, alts, videos, videoAlts, mainIsFile } = await imageParts(draft);
+  const { files, alts, videos, videoAlts, thumbnails, thumbnailTargets, mainIsFile } =
+    await imageParts(draft);
   const fields = productFields(draft, mainIsFile, Boolean(productId));
   const payload = productId ? fields : { ...fields, slug: null };
-  const body = formDataFor(payload, files, alts, videos, videoAlts);
+  const body = formDataFor(payload, files, alts, videos, videoAlts, thumbnails, thumbnailTargets);
   if (productId) {
     return sendProduct(`/api/v1/admin/products/${productId}`, "PATCH", body);
   }
@@ -457,6 +485,7 @@ type ApiGallery = {
   src?: string;
   youtube_id?: string;
   alt?: string;
+  thumbnail?: string;
 };
 type ApiSpec = { id?: string; label?: string; value?: string; group?: string };
 type ApiFaq = { id?: string; question?: string; answer?: string };

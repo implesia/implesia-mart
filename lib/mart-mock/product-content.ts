@@ -22,6 +22,8 @@ export type ProductGalleryImage = {
   src: string;
   /** YouTube items only. */
   youtubeId?: string;
+  /** Videos and YouTube items only: optional custom thumbnail (saved URL or blob: until Save). */
+  thumbnail?: string;
   alt: string;
 };
 
