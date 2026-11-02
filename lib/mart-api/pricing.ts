@@ -4,9 +4,13 @@
  * Mirrors the backend's pricing service (app/services/pricing_service.py): the API prices the
  * cart, the quote and the order itself and never takes a price from the browser.
  *
- * total % = min(base % + extra % for the quantity, max %, 99.99 %)
- * unit    = quantity-1 price - round(regular × (total % − base %) / 100), half up, whole taka
- * Percentages are handled as whole hundredths (2800 = 28 %) so there is no float drift.
+ * tier %   = extra % of the nearest tier at or below the quantity (0 when none),
+ *            capped so base % + tier % <= min(max %, 99.99 %)
+ * total    = selling price × quantity
+ * final    = ceil(total − total × tier % / 100)   (whole taka, always rounded UP)
+ * discount = total − final
+ * Percentages are handled as whole hundredths (2800 = 28 %) and the maths stays in integers,
+ * so there is no float drift (an exact 2772 never becomes 2773).
  */
 
 export type QuantityTier = { minQuantity: number; extraPercent: number };
@@ -24,7 +28,13 @@ export type PricedLine = {
   basePercent: number;
   quantityPercent: number;
   totalPercent: number;
+  /** Quantity-1 selling price (before the quantity discount). */
   unitPrice: number;
+  /** unitPrice × quantity, before the quantity discount. */
+  subtotal: number;
+  /** subtotal − lineTotal, whole taka. */
+  discountAmount: number;
+  /** What is charged: ceil(subtotal less the quantity %). */
   lineTotal: number;
 };
 
@@ -113,6 +123,18 @@ export function derivedBase(regular: number, price: number) {
   return fromHundredths(divRound((regular - price) * 10000, regular));
 }
 
+/** `total` less `percent` %, rounded UP to whole taka (integer maths). */
+export function discountedTotal(total: number, percent: number) {
+  const keep = 10000 - hundredths(percent);
+  if (total <= 0 || keep >= 10000) return Math.max(total, 0);
+  return Math.max(Math.ceil((total * keep) / 10000), 0);
+}
+
+/** Taka a line saves through its quantity discount (0 when none). */
+export function lineDiscount(unitPrice: number, quantity: number, lineTotal: number) {
+  return Math.max(unitPrice * quantity - lineTotal, 0);
+}
+
 /** Selling price for a regular price and a discount %. */
 export function sellingPrice(regular: number, percent: number) {
   return Math.max(divRound(regular * (10000 - hundredths(percent)), 10000), 0);
@@ -137,18 +159,21 @@ export function priceLine(input: {
     cap,
   );
   const unit = Math.max(
-    total >= base
-      ? input.price - divRound(regular * (total - base), 10000)
-      : sellingPrice(regular, fromHundredths(total)),
+    total >= base ? input.price : sellingPrice(regular, fromHundredths(total)),
     0,
   );
+  const extra = Math.max(total - base, 0);
+  const subtotal = unit * quantity;
+  const lineTotal = discountedTotal(subtotal, fromHundredths(extra));
   return {
     regularPrice: regular,
     basePercent: fromHundredths(base),
-    quantityPercent: fromHundredths(Math.max(total - base, 0)),
+    quantityPercent: fromHundredths(extra),
     totalPercent: fromHundredths(total),
     unitPrice: unit,
-    lineTotal: unit * quantity,
+    subtotal,
+    discountAmount: subtotal - lineTotal,
+    lineTotal,
   };
 }
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import { Separator } from "@/components/ui/separator";
-import { maxQuantityText, percentText } from "@/lib/mart-api/pricing";
+import { lineDiscount, maxQuantityText, percentText } from "@/lib/mart-api/pricing";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -89,8 +89,16 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                           {formatCartMoney(item.regularPrice)}
                         </span>{" "}
                         <span className="font-semibold text-[#ba1a1a]">
-                          {percentText(item.totalPercent)}% ছাড়
+                          {percentText(item.totalPercent - item.quantityPercent)}% ছাড়
                         </span>
+                      </p>
+                    ) : null}
+                    {item.quantityPercent ? (
+                      <p className="mt-0.5 text-xs text-[#0b5e56]">
+                        পরিমাণে {percentText(item.quantityPercent)}% ছাড়: −
+                        {formatCartMoney(
+                          lineDiscount(item.unitPrice, item.quantity, item.lineTotal),
+                        )}
                       </p>
                     ) : null}
                     {item.available ? null : (

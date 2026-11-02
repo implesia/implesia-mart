@@ -347,14 +347,19 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             {quantity > 1
               ? `${quantity} × ${formatPrice(view.unitPrice)} = `
               : "মোট: "}
+            {view.quantityPercent > 0 ? (
+              <>
+                {formatPrice(view.subtotal)}
+                <span className="ml-1 text-[#0b5e56]">
+                  − {formatPrice(view.discountAmount)} ({percentText(view.quantityPercent)}% ছাড়)
+                </span>
+                <span className="mx-1">=</span>
+                শেষ দাম{" "}
+              </>
+            ) : null}
             <span className="font-semibold text-on-background">
               {formatPrice(view.lineTotal)}
             </span>
-            {view.quantityPercent > 0 ? (
-              <span className="ml-1 text-[#0b5e56]">
-                (পরিমাণে আরও {percentText(view.quantityPercent)}% ছাড়)
-              </span>
-            ) : null}
           </p>
 
           <div className="mb-2 hidden flex-col gap-3 lg:flex">

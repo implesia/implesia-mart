@@ -20,7 +20,7 @@ import {
 } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
-import { maxQuantityText, percentText } from "@/lib/mart-api/pricing";
+import { lineDiscount, maxQuantityText, percentText } from "@/lib/mart-api/pricing";
 import { productPath } from "@/lib/mart-api/product-url";
 
 export function CartDrawer() {
@@ -129,11 +129,22 @@ export function CartDrawer() {
                                 data-cart-discount=""
                                 className="font-semibold text-[#ba1a1a]"
                               >
-                                {percentText(item.totalPercent ?? 0)}% ছাড়
+                                {percentText(
+                                  (item.totalPercent ?? 0) - (item.quantityPercent ?? 0),
+                                )}
+                                % ছাড়
                               </span>
                             </>
                           ) : null}
                         </p>
+                        {item.quantityPercent ? (
+                          <p className="mt-0.5 text-label-sm text-[#0b5e56]">
+                            পরিমাণে {percentText(item.quantityPercent)}% ছাড়: −
+                            {formatCartMoney(
+                              lineDiscount(item.unitPrice, item.quantity, item.lineTotal),
+                            )}
+                          </p>
+                        ) : null}
                         {item.available ? null : (
                           <p
                             role="status"

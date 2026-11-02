@@ -20,6 +20,8 @@ export type CartLineResolved = {
   /** Price before discount and the total discount % (from the server). */
   regularPrice?: number;
   totalPercent?: number;
+  /** Quantity tier % taken off the line total (0 when none). */
+  quantityPercent?: number;
   /** Base %, tiers and cap, so a quantity change shows its price at once. */
   pricing?: ProductPricing | null;
   imageSrc: string;
