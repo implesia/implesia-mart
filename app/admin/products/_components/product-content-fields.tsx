@@ -234,6 +234,11 @@ export function ProductGalleryFields({
                 aria-label={`Item ${index + 1} description`}
                 className="mt-1.5 h-8 w-full rounded-lg bg-white px-2 text-xs text-neutral-800 ring-1 ring-neutral-200 placeholder:text-neutral-400 focus:ring-2 focus:ring-primary/40 focus:outline-none"
               />
+              {!item.alt.trim() ? (
+                <p className="mt-1 text-[11px] leading-tight text-neutral-500">
+                  Empty: the product name is used.
+                </p>
+              ) : null}
               {item.kind === "video" || item.kind === "youtube" ? (
                 <ThumbnailControls
                   item={item}

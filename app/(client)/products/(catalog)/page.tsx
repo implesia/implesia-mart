@@ -60,9 +60,19 @@ export async function generateMetadata({
     : undefined;
   const title = current?.label ?? catalogTitle(search);
   const description = current?.metaDescription || current?.description || DESCRIPTION;
-  const canonical = current ? `/products?category=${current.slug}` : "/products";
+  // Self-canonical per page (category + page only; sort, filters and search fold into it).
+  const params = new URLSearchParams();
+  if (current) params.set("category", current.slug);
+  if (search.page > 1) params.set("page", String(search.page));
+  const query = params.toString();
+  const canonical = query ? `/products?${query}` : "/products";
+  const pageTitle = current?.metaTitle || title;
 
-  return pageMetadata({ title: current?.metaTitle || title, description, path: canonical });
+  return pageMetadata({
+    title: search.page > 1 ? `${pageTitle} — পৃষ্ঠা ${search.page.toLocaleString("bn-BD")}` : pageTitle,
+    description,
+    path: canonical,
+  });
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
@@ -78,6 +88,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   }
   const trail = search.category && categoryTree ? categoryTrail(categoryTree, search.category) : [];
   const title = trail[trail.length - 1]?.label ?? catalogTitle(search);
+  // proxy.ts already answers an out-of-range page with a real 307; this is the fallback
+  // (after the loading shell has streamed it can only be a meta refresh).
   if (!result.unavailable && result.pages > 0 && search.page > result.pages) {
     redirect(catalogHref({ ...search, page: result.pages }));
   }

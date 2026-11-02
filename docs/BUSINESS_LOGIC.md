@@ -53,6 +53,12 @@ Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-se
 - `htmlLimitedBots: /.*/` makes metadata render in `<head>` for every user agent (no streamed metadata in `<body>`).
 - Product title = SEO title or product title; description = SEO description or the product description trimmed to ~160 characters; keywords = SEO keywords or the defaults. A trailing "| Implesia Mart" is removed before the site template adds it. The JSON-LD uses the same name and description.
 - Admin limits: SEO title max 120 (counter warns above 60 incl. the brand suffix), meta description max 320 (counter vs 160), keywords max 500, slug `^[a-z0-9]+(-[a-z0-9]+)*$`, editable only on an existing product. Canonical product URLs stay `/products/<id>`; a slug (current or old) 308-redirects there.
+- Site verification: `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` / `NEXT_PUBLIC_BING_SITE_VERIFICATION` (build-time) add the verification meta tags; unset = no tag.
+- Sitemap: static pages, categories with published products (`/products?category=<slug>`), published products (`/products/<id>`, with images) and blog posts. `lastModified` only from real dates (API `updated_at`, blog publish date); none for static pages. Catalog API down → 5xx + log; category/blog API down → that section is left out + log.
+- Product JSON-LD: `Product` with `Offer` (or `AggregateOffer` + one `Offer` per option), `priceValidUntil` = today + 365 days, shipping = highest enabled delivery charge, country BD, return policy 3 days / free / by mail. These are assumptions in `lib/product-structured-data.ts` (`RETURN_POLICY`, `PRICE_VALID_DAYS`); change them there if the shipping-returns policy changes. No ratings until real reviews exist.
+- Catalog canonical: `/products` with only `category` and `page` (>1). A page past the last one 307-redirects (from `proxy.ts`) to the last page with the same filters; page counts change, so the redirect is temporary.
+- Image alt: an empty gallery/main image description falls back to the product title on the storefront; the admin form says so.
+- HSTS (`max-age=31536000`, this host only, no preload) is sent by `proxy.ts` on HTTPS responses.
 
 ## Delete and bulk delete
 

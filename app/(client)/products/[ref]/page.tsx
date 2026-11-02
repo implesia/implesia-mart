@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 
-import { getStoreProduct, getStoreProductById } from "@/lib/mart-api/catalog";
+import {
+  getStoreDeliveryRates,
+  getStoreProduct,
+  getStoreProductById,
+} from "@/lib/mart-api/catalog";
 import { getPublicSiteContact } from "@/lib/mart-api/site-contact";
 import { parseProductRef, productPath } from "@/lib/mart-api/product-url";
+import { productJsonLd, STORE_CURRENCY } from "@/lib/product-structured-data";
 import { absoluteUrl, pageMetadata, productSeo, SITE_NAME } from "@/lib/seo";
 
 import { JsonLd } from "../../_components/common/json-ld";
@@ -49,16 +54,11 @@ export async function generateMetadata({
     description: seo.description,
     path: productPath(product),
     keywords: seo.keywords,
+    product: { price: product.price, currency: STORE_CURRENCY },
     images: product.imageSrc
       ? [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }]
       : undefined,
   });
-}
-
-function availability(status: string) {
-  if (status === "coming-soon") return "https://schema.org/PreOrder";
-  if (status === "sold-out") return "https://schema.org/OutOfStock";
-  return "https://schema.org/InStock";
 }
 
 export default async function ProductDetailsPage({
@@ -67,27 +67,24 @@ export default async function ProductDetailsPage({
   params: Promise<{ ref: string }>;
 }) {
   const { ref } = await params;
-  const [product, contact] = await Promise.all([resolveProduct(ref), getPublicSiteContact()]);
+  const [product, contact, rates] = await Promise.all([
+    resolveProduct(ref),
+    getPublicSiteContact(),
+    getStoreDeliveryRates(),
+  ]);
 
   const productUrl = absoluteUrl(productPath(product));
   const seo = productSeo(product);
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
+  const structuredProduct = productJsonLd({
+    product,
     name: seo.name,
     description: seo.description,
-    image: product.imageSrc ? [absoluteUrl(product.imageSrc)] : undefined,
-    sku: product.id,
-    brand: { "@type": "Brand", name: SITE_NAME },
-    offers: {
-      "@type": "Offer",
-      url: productUrl,
-      priceCurrency: "BDT",
-      price: product.price,
-      availability: availability(product.status),
-      itemCondition: "https://schema.org/NewCondition",
-    },
-  };
+    url: productUrl,
+    brand: SITE_NAME,
+    rates,
+    now: new Date(),
+    toAbsolute: absoluteUrl,
+  });
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -101,7 +98,7 @@ export default async function ProductDetailsPage({
 
   return (
     <>
-      <JsonLd data={productJsonLd} />
+      <JsonLd data={structuredProduct} />
       <JsonLd data={breadcrumbJsonLd} />
       <SiteContactProvider contact={contact}>
         <ProductDetailLayout product={product} />

@@ -111,6 +111,8 @@ type PageMetadataOptions = {
   keywords?: string[];
   /** Blog posts: og:type article with these fields. */
   article?: { authors?: string[]; publishedTime?: string; tags?: string[] };
+  /** Product pages: og:type product with product:price:amount / product:price:currency. */
+  product?: { price: number; currency: string };
 };
 
 /**
@@ -118,10 +120,13 @@ type PageMetadataOptions = {
  * (og:url / og:title / twitter:title per page on top of the shared defaults).
  */
 export function pageMetadata(options: PageMetadataOptions): Metadata {
-  const { description, path, absoluteTitle, noindex, keywords, article } = options;
+  const { description, path, absoluteTitle, noindex, keywords, article, product } = options;
   const title = absoluteTitle ? options.title : withoutBrandSuffix(options.title);
   const shareTitle = absoluteTitle ? title : brandedTitle(title);
   const images = options.images?.length ? options.images : [DEFAULT_SHARE_IMAGE];
+  // Next rejects og:type "product" (not in its list), so a product page drops the
+  // default og:type and sends og:type + product:price:* through `other`.
+  const { type: defaultType, ...ogDefaults } = OPEN_GRAPH_DEFAULTS;
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
@@ -130,13 +135,23 @@ export function pageMetadata(options: PageMetadataOptions): Metadata {
       ? { robots: { index: false, follow: noindex.follow } }
       : { alternates: { canonical: path } }),
     openGraph: {
-      ...OPEN_GRAPH_DEFAULTS,
+      ...ogDefaults,
+      ...(product ? {} : { type: defaultType }),
       url: path,
       title: shareTitle,
       description,
       images,
       ...(article ? { ...article, type: "article" as const } : {}),
     },
+    ...(product
+      ? {
+          other: {
+            "og:type": "product",
+            "product:price:amount": String(product.price),
+            "product:price:currency": product.currency,
+          },
+        }
+      : {}),
     twitter: {
       card: "summary_large_image",
       title: shareTitle,
@@ -146,9 +161,30 @@ export function pageMetadata(options: PageMetadataOptions): Metadata {
   };
 }
 
+/**
+ * Search Console / Bing Webmaster verification tags, only for the tokens that are set
+ * (`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, `NEXT_PUBLIC_BING_SITE_VERIFICATION`, read at build time).
+ */
+export function siteVerification(
+  env: { google?: string; bing?: string } = {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    bing: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
+  },
+): Metadata["verification"] | undefined {
+  const google = env.google?.trim();
+  const bing = env.bing?.trim();
+  if (!google && !bing) return undefined;
+  return {
+    ...(google ? { google } : {}),
+    ...(bing ? { other: { "msvalidate.01": bing } } : {}),
+  };
+}
+
 /** Resolves a site-relative path to a fully-qualified absolute URL. */
 export function absoluteUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
+  // The home page canonical renders without a trailing slash; keep every reference identical.
+  if (path === "/" || path === "") return SITE_URL;
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 

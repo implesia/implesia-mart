@@ -55,6 +55,8 @@ export type PublicCatalogCard = {
   status: ProductStatus;
   featured: boolean;
   hasVariants: boolean;
+  /** ISO time of the product's last change (sitemap lastmod); absent on older API responses. */
+  updatedAt?: string;
 };
 
 export type InterpretedCatalog = {
@@ -268,7 +270,12 @@ function readCard(value: unknown): PublicCatalogCard | null {
     status: status as ProductStatus,
     featured: record.featured === true,
     hasVariants: record.has_variants === true,
+    ...(validIsoDate(record.updated_at) ? { updatedAt: record.updated_at } : {}),
   };
+}
+
+function validIsoDate(value: unknown): value is string {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
 /** A published list payload. `null` means the body is not a catalog response. */

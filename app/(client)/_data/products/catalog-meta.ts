@@ -37,6 +37,8 @@ export type Product = {
   featured?: boolean;
   /** True when price and stock are per variant; `price` is then the lowest buyable price. */
   hasVariants?: boolean;
+  /** ISO time of the last change (sitemap lastmod). */
+  updatedAt?: string;
 };
 
 /** Fallback names for the seeded roots; the API's category name wins when present. */

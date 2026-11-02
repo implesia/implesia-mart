@@ -1051,6 +1051,12 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 placeholder="Used as the image description on the product page"
                 className={adminFieldClass}
               />
+              {form.imageSrc && !form.content.imageAlt.trim() ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Empty: the product name is used. A short description of the photo helps
+                  image search and screen readers.
+                </p>
+              ) : null}
             </div>
             <ProductGalleryFields
               content={form.content}

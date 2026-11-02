@@ -22,5 +22,6 @@ export function cardToProduct(card: PublicCatalogCard): Product {
     categoryName: card.categoryName || undefined,
     featured: card.featured,
     hasVariants: card.hasVariants,
+    ...(card.updatedAt ? { updatedAt: card.updatedAt } : {}),
   };
 }

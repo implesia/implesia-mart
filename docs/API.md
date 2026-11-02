@@ -31,6 +31,8 @@ Notes on the tables below:
 | Product pricing fields | `regular_price`, `base_discount_percent`, `tier_mode`, `tiers` in the create/update payload |
 | Product page (storefront) | `GET /api/v1/products/by-slug/{slug}` or `GET /api/v1/products/{id}` (an old slug also resolves; the page then 308-redirects to `/products/{id}`) |
 | Product SEO fields | `seo_title`, `seo_description`, `seo_keywords` in the create/update payload and in `AdminProductRead` / `PublicProductDetail`; `slug` on update (409 `{errors:[{field:"slug"}]}` when taken) |
+| Sitemap lastmod | `updated_at` on `GET /api/v1/products` cards and on `GET /api/v1/categories/tree` nodes (`app/sitemap.ts`); delivery rates from `GET /api/v1/delivery` feed the product JSON-LD shipping |
+| Out-of-range catalog page | `proxy.ts` → `GET /api/v1/products?…&page=1` (same filters) to read `pages`; 3 s timeout, any error = no redirect |
 
 ## Page → lib/mart-api modules
 

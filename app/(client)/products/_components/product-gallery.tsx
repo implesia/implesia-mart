@@ -46,7 +46,7 @@ function GalleryFrame({
   return (
     <Image
       src={item.src}
-      alt={fit === "cover" ? "" : item.alt}
+      alt={item.alt}
       fill
       className={cn(
         "object-center",
@@ -68,7 +68,7 @@ export function ProductGallery({
   title,
   badge,
   badges = [],
-  images,
+  images: items,
 }: {
   title: string;
   /** Status pill (coming soon / sold out), shown first. */
@@ -77,6 +77,9 @@ export function ProductGallery({
   badges?: StoreBadge[];
   images: ProductGalleryItem[];
 }) {
+  // Every image gets a text alternative (thumbnails and video covers too): the admin's
+  // alt text, else the product title.
+  const images = items.map((item) => (item.alt?.trim() ? item : { ...item, alt: title }));
   const [activeIndex, setActiveIndex] = useState(0);
   // The item whose custom thumbnail was pressed; the player replaces the thumbnail.
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
