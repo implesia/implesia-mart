@@ -1,3 +1,5 @@
+AI বা নতুন developer: কাজ শুরুর আগে docs/AI_INSTRUCTIONS.md পড়ুন।
+
 # Implesia Mart
 
 Bangla storefront for trending gadgets and handmade dresses. Prices are in BDT. Checkout is cash on delivery.
