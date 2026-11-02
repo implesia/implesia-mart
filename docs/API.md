@@ -29,7 +29,8 @@ Notes on the tables below:
 | Badge picker | `GET /api/v1/admin/badges` |
 | Discount settings and max quantity per order (`/admin/pricing`) | `GET` / `PUT /api/v1/admin/pricing` (`pricing-settings.ts`, `max_quantity_per_order`) |
 | Product pricing fields | `regular_price`, `base_discount_percent`, `tier_mode`, `tiers` in the create/update payload |
-| Product page (storefront) | `GET /api/v1/products/by-slug/{slug}` or `GET /api/v1/products/{id}` |
+| Product page (storefront) | `GET /api/v1/products/by-slug/{slug}` or `GET /api/v1/products/{id}` (an old slug also resolves; the page then 308-redirects to `/products/{id}`) |
+| Product SEO fields | `seo_title`, `seo_description`, `seo_keywords` in the create/update payload and in `AdminProductRead` / `PublicProductDetail`; `slug` on update (409 `{errors:[{field:"slug"}]}` when taken) |
 
 ## Page → lib/mart-api modules
 

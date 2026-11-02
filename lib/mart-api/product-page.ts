@@ -103,6 +103,9 @@ export type StoreDetailPayload = {
   status: "available" | "sold-out" | "coming-soon";
   featured: boolean;
   has_variants: boolean;
+  seo_title: string;
+  seo_description: string;
+  seo_keywords: string;
   tagline: string;
   description: string;
   stock_label: string;
@@ -297,6 +300,9 @@ export function normalizeProductDetail(
           return slug && name && CATEGORY_SLUG.test(slug) ? [{ slug, name }] : [];
         })
       : [],
+    seo_title: text(record, "seo_title"),
+    seo_description: text(record, "seo_description"),
+    seo_keywords: text(record, "seo_keywords"),
     tagline: text(record, "tagline"),
     description: text(record, "description"),
     stock_label: text(record, "stock_label"),

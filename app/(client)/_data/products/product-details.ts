@@ -39,6 +39,8 @@ export type ProductSpecItem = {
 export type ProductDetail = Product & {
   slug: string;
   breadcrumbs: { label: string; href?: string }[];
+  /** Search snippet overrides from the admin ("" / [] = use the title and description). */
+  seo?: { title: string; description: string; keywords: string[] };
   gallery: ProductGalleryItem[];
   tagline: string;
   rating?: { value: number; count: number };

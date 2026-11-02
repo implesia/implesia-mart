@@ -293,6 +293,14 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
       : {}),
     min_order_quantity: draft.minOrderQuantity ?? 1,
     max_order_quantity: draft.maxOrderQuantity ?? null,
+    ...(draft.seoTitle !== undefined
+      ? {
+          seo_title: draft.seoTitle,
+          seo_description: draft.seoDescription ?? "",
+          seo_keywords: draft.seoKeywords ?? "",
+        }
+      : {}),
+    ...(updating && draft.slug ? { slug: draft.slug } : {}),
     ...variantFields,
     status: draft.status,
     // `badge_ids` when the form knows the badge list; the API derives `badge` from it.
@@ -558,6 +566,9 @@ type ApiCard = {
   content?: ApiContent;
   min_order_quantity?: number;
   max_order_quantity?: number | null;
+  seo_title?: string;
+  seo_description?: string;
+  seo_keywords?: string;
   variants?: ApiVariant[];
   regular_price?: number;
   base_discount_percent?: number;
@@ -690,6 +701,9 @@ function cardToProduct(item: ApiCard): AdminProduct {
     content: contentFromApi(item.content),
     minOrderQuantity: item.min_order_quantity ?? 1,
     maxOrderQuantity: item.max_order_quantity ?? null,
+    seoTitle: item.seo_title ?? "",
+    seoDescription: item.seo_description ?? "",
+    seoKeywords: item.seo_keywords ?? "",
     variants: (item.variants ?? []).map((variant) => ({
       id: variant.id,
       options: variant.options,

@@ -6,6 +6,7 @@ import { listPublicContactFaq } from "@/lib/mart-api/contact-faq";
 import { listPublicContactForm } from "@/lib/mart-api/contact-form";
 import { FALLBACK_CONTACT_HERO, listPublicContactHero } from "@/lib/mart-api/contact-hero";
 import { listPublicContactSupport } from "@/lib/mart-api/contact-support";
+import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../_components/common/container";
@@ -23,12 +24,12 @@ import { ContactToaster } from "./_components/contact-toast";
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "যোগাযোগ",
   description:
     "ইমপ্লেসিয়া মার্ট — কল, হোয়াটসঅ্যাপ বা ইমেইলে অর্ডার, ডেলিভারি ও প্রোডাক্ট নিয়ে যোগাযোগ করুন।",
-  alternates: { canonical: "/contact-us" },
-};
+  path: "/contact-us",
+});
 
 export default async function ContactUsPage() {
   const [heroData, form, details, support, faq] = await Promise.all([

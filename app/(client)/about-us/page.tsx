@@ -8,6 +8,7 @@ import { FALLBACK_ABOUT_MISSION, listPublicAboutMission } from "@/lib/mart-api/a
 import { FALLBACK_ABOUT_VALUES, listPublicAboutValues } from "@/lib/mart-api/about-values";
 import { FALLBACK_ABOUT_STEPS, listPublicAboutSteps } from "@/lib/mart-api/about-steps";
 import { FALLBACK_ABOUT_CTA, listPublicAboutCta } from "@/lib/mart-api/about-cta";
+import { pageMetadata } from "@/lib/seo";
 
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { AboutHero } from "./_components/about-hero";
@@ -23,12 +24,12 @@ import { TrustBadges } from "./_components/trust-badges";
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "আমাদের সম্পর্কে",
   description:
     "ইমপ্লেসিয়া মার্ট — ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি গর্জিয়াস ড্রেস, ক্যাশ অন ডেলিভারিতে সারাদেশে।",
-  alternates: { canonical: "/about-us" },
-};
+  path: "/about-us",
+});
 
 export default async function AboutUsPage() {
   const [hero, stats, stories, dresses, mission, values, steps, cta] = await Promise.all([

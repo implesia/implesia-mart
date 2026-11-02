@@ -113,9 +113,17 @@ export type AdminProduct = {
   baseDiscountPercent?: number;
   tierMode?: "global" | "custom";
   quantityTiers?: QuantityTier[];
+  /** Search snippet overrides (API products). "" = use the title / description. */
+  seoTitle?: string;
+  seoDescription?: string;
+  /** Comma-separated. */
+  seoKeywords?: string;
 };
 
-export type ProductDraft = Omit<AdminProduct, "slug" | "custom">;
+export type ProductDraft = Omit<AdminProduct, "slug" | "custom"> & {
+  /** A new slug when editing. Absent = keep it (a new product gets one from its name). */
+  slug?: string;
+};
 
 export type HeroAccent = "gold" | "teal" | "rose" | "ink";
 

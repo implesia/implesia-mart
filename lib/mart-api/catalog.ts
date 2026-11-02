@@ -224,6 +224,14 @@ function mapDetail(
       { label: item.title },
     ],
     categoryPath: item.category_path,
+    seo: {
+      title: item.seo_title,
+      description: item.seo_description,
+      keywords: item.seo_keywords
+        .split(",")
+        .map((word) => word.trim())
+        .filter(Boolean),
+    },
     gallery: gallery.filter((image) => image.src),
     tagline: item.tagline,
     stockLabel: item.stock_label,
@@ -417,7 +425,7 @@ async function loadStoreProduct(path: string): Promise<ProductDetail | null> {
   return mapDetail(detail, await getStoreDeliveryRates());
 }
 
-/** Legacy slug lookup. The page redirects to the canonical id URL. */
+/** Legacy slug lookup (current or old slug). The page redirects to the canonical id URL. */
 export const getStoreProduct = cache(
   async (slug: string): Promise<ProductDetail | null> => {
     const safeSlug = normalizeProductSlug(slug);
@@ -425,7 +433,9 @@ export const getStoreProduct = cache(
     const product = await loadStoreProduct(
       `/api/v1/products/by-slug/${encodeURIComponent(safeSlug)}`,
     );
-    return product && product.slug === safeSlug ? product : null;
+    // The API also answers for a slug the product used before its slug was edited
+    // (the response carries the current slug); the page 308s to the id URL either way.
+    return product;
   },
 );
 

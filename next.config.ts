@@ -42,6 +42,12 @@ function uniquePatterns(patterns: RemotePattern[]) {
 const nextConfig: NextConfig = {
   /* Don't advertise the framework in response headers. */
   poweredByHeader: false,
+  // Render <title>/<meta> in <head> for every visitor. By default, metadata from an
+  // async generateMetadata (product, category and blog pages) is streamed into the
+  // body for any user agent outside the built-in "HTML-limited bots" list, and
+  // Googlebot is not on it. Matching every UA turns streaming metadata off
+  // (docs: generate-metadata "Streaming metadata"); the page waits for its metadata.
+  htmlLimitedBots: /.*/,
   turbopack: {
     root: appRoot,
   },

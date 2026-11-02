@@ -44,6 +44,16 @@ Code: `app/admin/products/_components/product-content-fields.tsx`, `lib/mart-api
 - Empty gallery items are dropped on save (`cleanProductContent`): images/videos need a `src`, YouTube items need a `youtubeId`.
 - The main image falls back to the first gallery photo, never a video.
 
+## SEO
+
+Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-seo-fields.tsx`.
+
+- Every page builds its metadata with `pageMetadata()`: own canonical, `og:url`, `og:title`, `og:description` and twitter tags on top of `OPEN_GRAPH_DEFAULTS` (site name, `bn_BD`, default share image). The root layout sets no canonical or `og:url`.
+- Not indexed (robots tag, no canonical): checkout and order-status (`noindex, nofollow`), search (`noindex, follow`), 404 (`noindex`), admin.
+- `htmlLimitedBots: /.*/` makes metadata render in `<head>` for every user agent (no streamed metadata in `<body>`).
+- Product title = SEO title or product title; description = SEO description or the product description trimmed to ~160 characters; keywords = SEO keywords or the defaults. A trailing "| Implesia Mart" is removed before the site template adds it. The JSON-LD uses the same name and description.
+- Admin limits: SEO title max 120 (counter warns above 60 incl. the brand suffix), meta description max 320 (counter vs 160), keywords max 500, slug `^[a-z0-9]+(-[a-z0-9]+)*$`, editable only on an existing product. Canonical product URLs stay `/products/<id>`; a slug (current or old) 308-redirects there.
+
 ## Delete and bulk delete
 
 - Single delete uses the shared confirm modal (`app/admin/_components/confirm-delete.tsx`).

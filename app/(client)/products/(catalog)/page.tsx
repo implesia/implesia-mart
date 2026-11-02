@@ -9,7 +9,7 @@ import {
   catalogTitle,
   readCatalogSearch,
 } from "@/lib/mart-api/catalog-query";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, pageMetadata } from "@/lib/seo";
 
 import { Container } from "../../_components/common/container";
 import { JsonLd } from "../../_components/common/json-ld";
@@ -62,16 +62,7 @@ export async function generateMetadata({
   const description = current?.metaDescription || current?.description || DESCRIPTION;
   const canonical = current ? `/products?category=${current.slug}` : "/products";
 
-  return {
-    title: current?.metaTitle || title,
-    description,
-    alternates: { canonical },
-    openGraph: {
-      url: canonical,
-      title: current?.metaTitle || title,
-      description,
-    },
-  };
+  return pageMetadata({ title: current?.metaTitle || title, description, path: canonical });
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {

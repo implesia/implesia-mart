@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 /**
  * Centralized SEO constants so metadata, sitemap, robots and JSON-LD
  * all agree on the same site identity instead of hardcoding strings
@@ -22,6 +24,127 @@ export const DEFAULT_KEYWORDS = [
   "কাস্টম ড্রেস",
   "ক্যাশ অন ডেলিভারি",
 ];
+
+export type ShareImage = {
+  url: string;
+  width?: number;
+  height?: number;
+  alt?: string;
+};
+
+/** The generated share card (app/opengraph-image.tsx). */
+export const DEFAULT_SHARE_IMAGE: ShareImage = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: "Implesia Mart — Trending Gadgets & Handmade Custom Dresses",
+};
+
+/**
+ * Open Graph fields every page shares. A page's own `openGraph` replaces the
+ * root one entirely (no deep merge), so pages spread this in.
+ */
+export const OPEN_GRAPH_DEFAULTS = {
+  type: "website" as const,
+  siteName: SITE_NAME,
+  locale: "bn_BD",
+  images: [DEFAULT_SHARE_IMAGE],
+};
+
+/** "Title | Implesia Mart", as the root title template renders it. */
+export function brandedTitle(title: string): string {
+  return `${title} | ${SITE_NAME}`;
+}
+
+/** Drops a trailing "| Implesia Mart" so the title template adds it only once. */
+export function withoutBrandSuffix(title: string): string {
+  const trimmed = title.replace(/(?:\s*[|\-–—]\s*Implesia\s+Mart)+\s*$/i, "").trim();
+  return trimmed || title.trim();
+}
+
+/** One line, at most `max` characters, cut at a word boundary with "…". */
+export function trimDescription(text: string, max = 160): string {
+  const line = text.replace(/\s+/g, " ").trim();
+  if (line.length <= max) return line;
+  const cut = line.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,.;:।-]+$/, "")}…`;
+}
+
+type ProductSeoSource = {
+  title: string;
+  description: string;
+  subtitle?: string;
+  tagline?: string;
+  seo?: { title: string; description: string; keywords: string[] };
+};
+
+/**
+ * Search title, description and keywords for a product: the admin's SEO fields
+ * when set, else the product title and its description cut to ~160 characters.
+ */
+export function productSeo(product: ProductSeoSource) {
+  const name = withoutBrandSuffix(product.title);
+  const title = withoutBrandSuffix(product.seo?.title.trim() || product.title);
+  const description =
+    product.seo?.description.trim() ||
+    trimDescription(product.description || product.tagline || product.subtitle || name);
+  const keywords = product.seo?.keywords.length
+    ? product.seo.keywords
+    : [name, product.subtitle, product.tagline].filter((value): value is string =>
+        Boolean(value?.trim()),
+      );
+  return { name, title, description, keywords };
+}
+
+type PageMetadataOptions = {
+  /** Page title without the site name (the root template adds it). */
+  title: string;
+  description: string;
+  /** Site-relative path: the canonical URL and og:url. */
+  path: string;
+  /** Use `title` as is (no "| Implesia Mart" suffix). */
+  absoluteTitle?: boolean;
+  /** Pages that must stay out of search: no canonical, robots noindex. */
+  noindex?: { follow: boolean };
+  images?: ShareImage[];
+  keywords?: string[];
+  /** Blog posts: og:type article with these fields. */
+  article?: { authors?: string[]; publishedTime?: string; tags?: string[] };
+};
+
+/**
+ * Metadata for one page: title, description, canonical, and share cards
+ * (og:url / og:title / twitter:title per page on top of the shared defaults).
+ */
+export function pageMetadata(options: PageMetadataOptions): Metadata {
+  const { description, path, absoluteTitle, noindex, keywords, article } = options;
+  const title = absoluteTitle ? options.title : withoutBrandSuffix(options.title);
+  const shareTitle = absoluteTitle ? title : brandedTitle(title);
+  const images = options.images?.length ? options.images : [DEFAULT_SHARE_IMAGE];
+  return {
+    title: absoluteTitle ? { absolute: title } : title,
+    description,
+    ...(keywords?.length ? { keywords } : {}),
+    ...(noindex
+      ? { robots: { index: false, follow: noindex.follow } }
+      : { alternates: { canonical: path } }),
+    openGraph: {
+      ...OPEN_GRAPH_DEFAULTS,
+      url: path,
+      title: shareTitle,
+      description,
+      images,
+      ...(article ? { ...article, type: "article" as const } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: shareTitle,
+      description,
+      images: images.map((image) => image.url),
+    },
+  };
+}
 
 /** Resolves a site-relative path to a fully-qualified absolute URL. */
 export function absoluteUrl(path: string): string {

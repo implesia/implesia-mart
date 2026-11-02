@@ -56,6 +56,7 @@ import {
 import { UnsavedChangesDialog } from "../../_components/unsaved-changes-dialog";
 import { useAdminNotify, useConfirmDelete } from "../../_components/confirm-delete";
 import { ImageField } from "../../_components/image-field";
+import { ProductSeoFields, SLUG_PATTERN } from "./product-seo-fields";
 import {
   ProductCopyFields,
   ProductDetailFields,
@@ -88,6 +89,7 @@ const SECTIONS = [
   { id: "product-variants", label: "Variants" },
   { id: "product-details", label: "Product details" },
   { id: "product-organization", label: "Organization" },
+  { id: "product-seo", label: "SEO" },
   { id: "product-publishing", label: "Publishing" },
 ] as const;
 
@@ -121,6 +123,10 @@ type FormState = {
   maxOrderMode: "global" | "custom";
   maxOrder: string;
   variants: VariantRow[];
+  slug: string;
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords: string;
 };
 
 type FieldKey =
@@ -132,13 +138,13 @@ type FieldKey =
   | "quantityTiers"
   | "quantity"
   | "orderLimits"
-  | "variants";
+  | "variants"
+  | "slug";
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
 // Field keys in the product create API's `errors` list, in the order the form shows them.
 const SERVER_FIELD_ORDER = [
   "title",
-  "slug",
   "subtitle",
   "images",
   "regularPrice",
@@ -153,13 +159,15 @@ const SERVER_FIELD_ORDER = [
   "content",
   "category",
   "badges",
+  "seo",
+  "slug",
   "publishing",
   "form",
 ] as const;
 
 const SERVER_FIELD_LABEL: Record<string, string> = {
   title: "প্রোডাক্টের নাম",
-  slug: "প্রোডাক্টের নাম",
+  slug: "স্লাগ",
   subtitle: "সাবটাইটেল",
   images: "ছবি",
   price: "দাম",
@@ -174,6 +182,7 @@ const SERVER_FIELD_LABEL: Record<string, string> = {
   content: "প্রোডাক্টের বিস্তারিত",
   category: "ক্যাটাগরি",
   badges: "ব্যাজ",
+  seo: "সার্চ (SEO)",
   publishing: "পাবলিশিং",
   form: "ফর্ম",
 };
@@ -181,7 +190,7 @@ const SERVER_FIELD_LABEL: Record<string, string> = {
 /** Section that holds each API field; `form` problems live in the summary only. */
 const SERVER_FIELD_SECTION: Record<string, SectionId> = {
   title: "product-information",
-  slug: "product-information",
+  slug: "product-seo",
   subtitle: "product-information",
   images: "product-media",
   price: "product-pricing",
@@ -196,13 +205,15 @@ const SERVER_FIELD_SECTION: Record<string, SectionId> = {
   content: "product-details",
   category: "product-organization",
   badges: "product-organization",
+  seo: "product-seo",
   publishing: "product-publishing",
 };
 
 /** `${formId}-<suffix>` input to focus for an API field. */
 const SERVER_FIELD_INPUT: Record<string, string> = {
   title: "title",
-  slug: "title",
+  slug: "slug",
+  seo: "seo-title",
   subtitle: "subtitle",
   price: "price",
   compareAtPrice: "price",
@@ -214,8 +225,12 @@ const SERVER_FIELD_INPUT: Record<string, string> = {
 
 /** API fields whose error goes away as soon as the matching form value changes. */
 const SERVER_FIELDS_FOR: Partial<Record<keyof FormState, string[]>> = {
-  title: ["title", "slug"],
+  title: ["title"],
   subtitle: ["subtitle"],
+  slug: ["slug"],
+  seoTitle: ["seo"],
+  seoDescription: ["seo"],
+  seoKeywords: ["seo"],
   price: ["price"],
   compareAtPrice: ["compareAtPrice"],
   regularPrice: ["regularPrice", "price", "compareAtPrice"],
@@ -292,6 +307,10 @@ function toForm(product?: AdminProduct): FormState {
       maxOrderMode: "global",
       maxOrder: "",
       variants: [],
+      slug: "",
+      seoTitle: "",
+      seoDescription: "",
+      seoKeywords: "",
     };
   }
   const regular =
@@ -327,6 +346,10 @@ function toForm(product?: AdminProduct): FormState {
     maxOrderMode: product.maxOrderQuantity == null ? "global" : "custom",
     maxOrder: product.maxOrderQuantity == null ? "" : String(product.maxOrderQuantity),
     variants: rowsFromVariants(product.variants),
+    slug: product.slug,
+    seoTitle: product.seoTitle ?? "",
+    seoDescription: product.seoDescription ?? "",
+    seoKeywords: product.seoKeywords ?? "",
   };
 }
 
@@ -337,6 +360,9 @@ function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors 
   const errors: FieldErrors = {};
   const publishing = intent === "publish";
   if (!form.title.trim()) errors.title = "Product name is required.";
+  if (form.slug.trim() && !SLUG_PATTERN.test(form.slug.trim())) {
+    errors.slug = "Use lowercase English letters, numbers and single hyphens, e.g. desk-lamp.";
+  }
   if (publishing && !form.categoryRefId) errors.category = "Choose a category.";
 
   // With variants the API rolls the price and stock up from them, so the product's own are unused.
@@ -405,6 +431,7 @@ function firstErrorSection(errors: FieldErrors): SectionId | null {
   }
   if (errors.quantity || errors.orderLimits) return "product-inventory";
   if (errors.variants) return "product-variants";
+  if (errors.slug) return "product-seo";
   return null;
 }
 
@@ -631,7 +658,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       setErrorIntent(intent);
       setShowErrors(true);
       showToast(
-        intent === "draft"
+        intent === "draft" && nextErrors.title
           ? "Add a product name to save the draft."
           : "Fix the highlighted fields to publish.",
       );
@@ -689,6 +716,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       published: intent === "publish",
       minOrderQuantity: Number(form.minOrder),
       maxOrderQuantity: form.maxOrderMode === "custom" ? Number(form.maxOrder) : null,
+      seoTitle: form.seoTitle.trim(),
+      seoDescription: form.seoDescription.trim(),
+      seoKeywords: form.seoKeywords.trim(),
+      // Sent only when changed; the old slug keeps redirecting to the product.
+      ...(product?.id && form.slug.trim() && form.slug.trim() !== product.slug
+        ? { slug: form.slug.trim() }
+        : {}),
       // Sent only when changed, so editing something else never rewrites variant prices or stock.
       variants: sameVariants(form.variants, baseline.variants)
         ? undefined
@@ -913,7 +947,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </div>
 
           <FormSection
-            invalid={serverFor("title", "slug", "subtitle").length > 0}
+            invalid={serverFor("title", "subtitle").length > 0}
             id="product-information"
             title="Product information"
             description="Name is required. Subtitle is the short catalog line. Tagline and description are the product page copy."
@@ -929,19 +963,19 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   onChange={(event) => setField("title", event.target.value)}
                   placeholder="Sunset projection lamp"
                   aria-invalid={
-                    errors.title || serverFor("title", "slug").length ? true : undefined
+                    errors.title || serverFor("title").length ? true : undefined
                   }
                   aria-describedby={
                     errors.title
                       ? `${formId}-title-error`
-                      : serverFor("title", "slug").length
+                      : serverFor("title").length
                         ? `${formId}-server-title`
                         : undefined
                   }
                   className={cn(
                     adminFieldClass,
                     "h-12 text-base",
-                    (errors.title || serverFor("title", "slug").length > 0) && INVALID_FIELD,
+                    (errors.title || serverFor("title").length > 0) && INVALID_FIELD,
                   )}
                 />
                 <FieldErrorSlot
@@ -950,7 +984,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 />
                 <ServerFieldErrors
                   id={`${formId}-server-title`}
-                  items={serverFor("title", "slug")}
+                  items={serverFor("title")}
                 />
               </div>
               <div>
@@ -1455,6 +1489,39 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               />
               <ServerFieldErrors id={`${formId}-server-badges`} items={serverFor("badges")} />
             </div>
+          </FormSection>
+
+          <FormSection
+            invalid={Boolean(errors.slug) || serverFor("slug", "seo").length > 0}
+            id="product-seo"
+            title="SEO"
+            description="How the product shows in Google and in shared links. Leave empty to use the name and description."
+          >
+            <ProductSeoFields
+              formId={formId}
+              value={{
+                slug: form.slug,
+                seoTitle: form.seoTitle,
+                seoDescription: form.seoDescription,
+                seoKeywords: form.seoKeywords,
+              }}
+              onChange={(key, value) => setField(key, value)}
+              fallback={{
+                title: form.title,
+                description: form.content.description,
+                subtitle: form.subtitle,
+                tagline: form.content.tagline,
+              }}
+              productId={product?.id}
+              slugError={errors.slug}
+              slugInvalid={serverFor("slug").length > 0}
+              serverSlugErrors={
+                <ServerFieldErrors id={`${formId}-server-slug`} items={serverFor("slug")} />
+              }
+              serverSeoErrors={
+                <ServerFieldErrors id={`${formId}-server-seo`} items={serverFor("seo")} />
+              }
+            />
           </FormSection>
         </div>
 

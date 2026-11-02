@@ -5,7 +5,9 @@ import localFont from "next/font/local";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_KEYWORDS,
+  DEFAULT_SHARE_IMAGE,
   DEFAULT_TITLE,
+  OPEN_GRAPH_DEFAULTS,
   SITE_NAME,
   SITE_URL,
 } from "@/lib/seo";
@@ -40,33 +42,28 @@ export const metadata: Metadata = {
   keywords: DEFAULT_KEYWORDS,
   applicationName: SITE_NAME,
   category: "e-commerce",
-  alternates: {
-    canonical: "/",
-  },
+  // No root canonical / og:url: each indexable page sets its own (pageMetadata),
+  // so pages without one (checkout, search, 404, admin) don't point at "/".
   openGraph: {
-    type: "website",
-    url: "/",
-    siteName: SITE_NAME,
+    ...OPEN_GRAPH_DEFAULTS,
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
-    locale: "bn_BD",
   },
   twitter: {
     card: "summary_large_image",
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
+    images: [DEFAULT_SHARE_IMAGE.url],
   },
   icons: {
     icon: [{ url: "/favicon.ico", type: "image/png" }],
     shortcut: [{ url: "/favicon.ico", type: "image/png" }],
     apple: [{ url: "/favicon.ico", type: "image/png" }],
   },
+  // Indexing is the default, so only the preview limits are set here. A page
+  // that must not be indexed (404, checkout, admin) then has one robots tag.
   robots: {
-    index: true,
-    follow: true,
     googleBot: {
-      index: true,
-      follow: true,
       "max-image-preview": "large",
       "max-snippet": -1,
       "max-video-preview": -1,

@@ -5,7 +5,7 @@ import { cache } from "react";
 import { getStoreProduct, getStoreProductById } from "@/lib/mart-api/catalog";
 import { getPublicSiteContact } from "@/lib/mart-api/site-contact";
 import { parseProductRef, productPath } from "@/lib/mart-api/product-url";
-import { absoluteUrl, SITE_NAME } from "@/lib/seo";
+import { absoluteUrl, pageMetadata, productSeo, SITE_NAME } from "@/lib/seo";
 
 import { JsonLd } from "../../_components/common/json-ld";
 import { SiteContactProvider } from "../../_providers/site-contact-provider";
@@ -42,32 +42,17 @@ export async function generateMetadata({
   const { ref } = await params;
   const product = await resolveProduct(ref);
 
-  const url = productPath(product);
-  const keywords = [product.title, product.subtitle, product.tagline].filter(
-    (value): value is string => Boolean(value),
-  );
+  const seo = productSeo(product);
 
-  return {
-    title: product.title,
-    description: product.description,
-    keywords,
-    alternates: { canonical: url },
-    openGraph: {
-      type: "website",
-      url,
-      title: product.title,
-      description: product.description,
-      images: product.imageSrc
-        ? [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }]
-        : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: product.title,
-      description: product.description,
-      images: product.imageSrc ? [product.imageSrc] : undefined,
-    },
-  };
+  return pageMetadata({
+    title: seo.title,
+    description: seo.description,
+    path: productPath(product),
+    keywords: seo.keywords,
+    images: product.imageSrc
+      ? [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }]
+      : undefined,
+  });
 }
 
 function availability(status: string) {
@@ -85,11 +70,12 @@ export default async function ProductDetailsPage({
   const [product, contact] = await Promise.all([resolveProduct(ref), getPublicSiteContact()]);
 
   const productUrl = absoluteUrl(productPath(product));
+  const seo = productSeo(product);
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: product.title,
-    description: product.description,
+    name: seo.name,
+    description: seo.description,
     image: product.imageSrc ? [absoluteUrl(product.imageSrc)] : undefined,
     sku: product.id,
     brand: { "@type": "Brand", name: SITE_NAME },

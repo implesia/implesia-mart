@@ -28,6 +28,7 @@ import {
   FALLBACK_SUSTAINABILITY_CTA,
   listPublicSustainabilityCta,
 } from "@/lib/mart-api/sustainability-cta";
+import { pageMetadata } from "@/lib/seo";
 
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { SustainabilityCommitment } from "./_components/sustainability-commitment";
@@ -42,12 +43,12 @@ import { SustainabilityQuality } from "./_components/sustainability-quality";
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "সাসটেইনেবিলিটি",
   description:
     "ইমপ্লেসিয়া মার্ট — কোয়ালিটি চেক করা গ্যাজেট ও হাতে তৈরি গর্জিয়াস ড্রেস, দায়িত্বশীল প্যাকেজিং ও ৩ দিন রিটার্ন।",
-  alternates: { canonical: "/sustainability" },
-};
+  path: "/sustainability",
+});
 
 export default async function SustainabilityPage() {
   const [hero, impact, origin, commitment, quality, durability, cta] =
