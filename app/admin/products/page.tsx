@@ -32,7 +32,7 @@ import {
   adminButtonClass,
   STOCK_STATUS_TONE,
 } from "../_components/admin-ui";
-import { useConfirmDelete } from "../_components/confirm-delete";
+import { useAdminNotify, useConfirmDelete } from "../_components/confirm-delete";
 
 const PAGE_SIZE = 10;
 const STOCK_FILTERS: StockStatus[] = ["available", "sold-out", "coming-soon"];
@@ -96,6 +96,7 @@ function ProductsView() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryTile[]>([]);
   const confirmDelete = useConfirmDelete();
+  const notify = useAdminNotify();
 
   useEffect(() => {
     let cancelled = false;
@@ -183,6 +184,9 @@ function ProductsView() {
     setError("");
     try {
       await patchMartProduct(product.id, patch);
+      if (patch.published !== undefined) {
+        notify(patch.published ? "Product published" : "Moved to draft", "ok");
+      }
       const result = await listMartProducts({
         q: debouncedQuery,
         category,
@@ -195,11 +199,12 @@ function ProductsView() {
       });
       setList(result);
     } catch (updateError) {
-      setError(
+      const message =
         updateError instanceof MartApiError
           ? updateError.message
-          : "The product could not be updated.",
-      );
+          : "The product could not be updated.";
+      setError(message);
+      if (patch.published !== undefined) notify(message, "error");
     } finally {
       setPendingId(null);
     }
@@ -330,16 +335,16 @@ function ProductsView() {
         />
         <Metric
           href={hrefWith({ visibility: "live", status: null })}
-          label="Live"
+          label="Published"
           value={String(metrics.live)}
           hint="Published on the store"
           active={visibility === "live"}
         />
         <Metric
           href={hrefWith({ visibility: "hidden", status: null })}
-          label="Hidden"
+          label="Drafts"
           value={String(metrics.hidden)}
-          hint="Saved, not on the store"
+          hint="Admin only, not on the store"
           active={visibility === "hidden"}
         />
         <Metric
@@ -441,15 +446,15 @@ function ProductsView() {
                 ]}
               />
               <FilterSelect
-                label="Visibility"
+                label="Status"
                 value={visibility ?? ""}
                 onChange={(value) =>
                   setParam("visibility", isVisibility(value) ? value : null)
                 }
                 options={[
-                  { id: "", label: "Live and hidden" },
-                  { id: "live", label: "Live" },
-                  { id: "hidden", label: "Hidden" },
+                  { id: "", label: "Published and draft" },
+                  { id: "live", label: "Published" },
+                  { id: "hidden", label: "Draft" },
                 ]}
               />
               <FilterAmount
@@ -685,7 +690,7 @@ function ActiveFilters({
       : null,
     status ? { key: "status", label: ADMIN_STOCK_STATUS_LABEL[status] } : null,
     visibility
-      ? { key: "visibility", label: visibility === "live" ? "Live" : "Hidden" }
+      ? { key: "visibility", label: visibility === "live" ? "Published" : "Draft" }
       : null,
     minPrice
       ? { key: "min", label: `Min ${formatTaka(Number(minPrice) || 0)}` }
@@ -1061,7 +1066,9 @@ function PublishSwitch({
       role="switch"
       aria-checked={product.published}
       aria-label={
-        product.published ? `Hide ${product.title}` : `Publish ${product.title}`
+        product.published
+          ? `Move ${product.title} to draft`
+          : `Publish ${product.title}`
       }
       disabled={pending}
       onClick={(event) => {
@@ -1085,11 +1092,13 @@ function PublishSwitch({
       </span>
       <span
         className={cn(
-          "text-xs font-medium",
-          product.published ? "text-neutral-800" : "text-neutral-500",
+          "rounded-full px-2 py-0.5 text-xs font-semibold",
+          product.published
+            ? "bg-emerald-50 text-emerald-800"
+            : "bg-neutral-100 text-neutral-600",
         )}
       >
-        {product.published ? "Live" : "Hidden"}
+        {product.published ? "Published" : "Draft"}
       </span>
     </button>
   );

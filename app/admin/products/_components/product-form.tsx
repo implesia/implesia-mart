@@ -54,7 +54,7 @@ import {
   StockStatusBadge,
 } from "../../_components/admin-ui";
 import { UnsavedChangesDialog } from "../../_components/unsaved-changes-dialog";
-import { useConfirmDelete } from "../../_components/confirm-delete";
+import { useAdminNotify, useConfirmDelete } from "../../_components/confirm-delete";
 import { ImageField } from "../../_components/image-field";
 import {
   ProductCopyFields,
@@ -259,7 +259,11 @@ function toForm(product?: AdminProduct): FormState {
     categoryId: product.categoryId,
     categoryRefId: product.categoryRefId ?? "",
     categoryTrail: product.categoryPath?.map((node) => node.name).join(" › ") ?? "",
-    price: String(product.price),
+    // A draft saved without a price is stored as 0; show it blank so publishing asks for one.
+    price:
+      !product.published && product.price === 0 && !product.variants?.length
+        ? ""
+        : String(product.price),
     compareAtPrice:
       product.compareAtPrice == null ? "" : String(product.compareAtPrice),
     quantity: product.quantity == null ? "" : String(product.quantity),
@@ -276,15 +280,25 @@ function toForm(product?: AdminProduct): FormState {
   };
 }
 
-function validate(form: FormState): FieldErrors {
+/** `draft` saves with only a name; `publish` also needs a category and a price. */
+type SaveIntent = "draft" | "publish";
+
+function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors {
   const errors: FieldErrors = {};
+  const publishing = intent === "publish";
   if (!form.title.trim()) errors.title = "Product name is required.";
-  if (!form.categoryRefId) errors.category = "Choose a category.";
+  if (publishing && !form.categoryRefId) errors.category = "Choose a category.";
 
   // With variants the API rolls the price and stock up from them, so the product's own are unused.
   const hasVariants = form.variants.length > 0;
   const price = Number(form.price);
-  if (!hasVariants && (!form.price.trim() || !Number.isFinite(price) || price < 0)) {
+  // A draft may leave the price blank. A price that was typed must still be valid.
+  const priceMissing = !form.price.trim();
+  if (
+    !hasVariants &&
+    ((publishing && priceMissing) ||
+      (!priceMissing && (!Number.isFinite(price) || price < 0)))
+  ) {
     errors.price = "Enter a selling price of 0 or more.";
   }
 
@@ -341,6 +355,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const [form, setForm] = useState<FormState>(() => toForm(product));
   const [baseline] = useState<FormState>(() => toForm(product));
   const [showErrors, setShowErrors] = useState(false);
+  const [errorIntent, setErrorIntent] = useState<SaveIntent>("publish");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [serverErrors, setServerErrors] = useState<ApiFieldError[]>([]);
@@ -348,6 +363,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const toastSeq = useRef(0);
   const confirmDelete = useConfirmDelete();
+  const notify = useAdminNotify();
   const [uploading, setUploading] = useState(false);
   const uploads = useRef(0);
   const [active, setActive] = useState<SectionId>("product-information");
@@ -356,7 +372,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
   const collapsed = useAdminSidebarCollapsed();
 
   const issues = validate(form);
-  const errors = showErrors ? issues : {};
+  const errors = showErrors ? validate(form, errorIntent) : {};
   const dirty =
     JSON.stringify({ ...form, categoryTrail: "" }) !==
     JSON.stringify({ ...baseline, categoryTrail: "" });
@@ -525,11 +541,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     if (href) router.push(href);
   }
 
-  async function save(event: React.FormEvent) {
+  async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextErrors = validate(form);
+    // The pressed button decides. Enter in a field keeps the current status (hidden default button).
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const intent: SaveIntent = submitter?.value === "publish" ? "publish" : "draft";
+    const nextErrors = validate(form, intent);
     if (Object.keys(nextErrors).length > 0) {
+      setErrorIntent(intent);
       setShowErrors(true);
+      showToast(
+        intent === "draft"
+          ? "Add a product name to save the draft."
+          : "Fix the highlighted fields to publish.",
+      );
       const section = firstErrorSection(nextErrors);
       if (section) scrollToSection(section);
       return;
@@ -537,7 +562,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     if (uploading || saving) return;
     setServerErrors([]);
 
-    const price = variantMode ? (summary.price ?? 0) : Number(form.price);
+    const price = variantMode ? (summary.price ?? 0) : Number(form.price || 0);
     if (!Number.isInteger(price)) {
       setSaveError("Enter the price as a whole number of taka.");
       return;
@@ -566,7 +591,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       badges: form.badges ?? undefined,
       imageSrc: form.imageSrc.trim(),
       featured: form.featured,
-      published: form.published,
+      published: intent === "publish",
       minOrderQuantity: Number(form.minOrder),
       maxOrderQuantity: form.maxOrder.trim() ? Number(form.maxOrder) : null,
       // Sent only when changed, so editing something else never rewrites variant prices or stock.
@@ -584,6 +609,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     try {
       await saveMartProduct(product?.id, draft);
       bypassLeave.current = true;
+      notify(
+        intent === "draft"
+          ? product?.published
+            ? "Moved to draft. It is no longer on the store."
+            : "Draft saved. Only admins can see it."
+          : product?.published
+            ? "Changes saved"
+            : "Product published",
+        "ok",
+      );
       router.push("/admin/products");
     } catch (error) {
       setSaving(false);
@@ -605,11 +640,12 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         requestAnimationFrame(() => focusServerField(sorted[0].field));
         return;
       }
-      setSaveError(
+      const message =
         error instanceof MartApiError
           ? error.message
-          : "The product could not be saved.",
-      );
+          : "The product could not be saved.";
+      setSaveError(message);
+      showToast(message);
     }
   }
 
@@ -715,7 +751,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 : "bg-neutral-100 text-neutral-600",
             )}
           >
-            {form.published ? "Live" : "Hidden"}
+            {form.published ? "Published" : "Draft"}
           </span>
           <StockStatusBadge status={form.status} />
           {form.featured ? (
@@ -1324,19 +1360,29 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             invalid={serverFor("publishing").length > 0}
             id="product-publishing"
             title="Publishing"
-            description="Live and Hidden are the catalog states. Featured adds a label in the product list."
+            description="Draft and Published are the catalog states. Featured adds a label in the product list."
           >
             <div className="space-y-2">
-              <Toggle
-                label="Published"
-                hint={
-                  form.published
-                    ? "Customers can see this product."
-                    : "Hidden from the store until you publish it."
-                }
-                checked={form.published}
-                onChange={(checked) => setField("published", checked)}
-              />
+              <div className="flex items-start justify-between gap-3 rounded-xl px-1 py-1">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-neutral-800">Status</p>
+                  <p className="text-xs text-neutral-500">
+                    {form.published
+                      ? "Customers can see this product. Move to draft to hide it."
+                      : "Only admins can see a draft. Publish to show it on the store."}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
+                    form.published
+                      ? "bg-emerald-50 text-emerald-800"
+                      : "bg-neutral-100 text-neutral-600",
+                  )}
+                >
+                  {form.published ? "Published" : "Draft"}
+                </span>
+              </div>
               <Toggle
                 label="Featured"
                 hint="Shows a Featured label in the product list."
@@ -1379,6 +1425,16 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         )}
       >
         <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
+          {/* Enter in a field submits with this one, so it never changes the product's status. */}
+          <button
+            type="submit"
+            name="intent"
+            value={product?.published ? "publish" : "draft"}
+            disabled={saving || uploading}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="hidden"
+          />
           <button
             type="button"
             onClick={() => requestLeave("/admin/products")}
@@ -1394,10 +1450,21 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </p>
           <button
             type="submit"
+            name="intent"
+            value="draft"
+            disabled={saving || uploading}
+            className={adminButtonClass.secondary}
+          >
+            {product?.published ? "Move to draft" : product ? "Save draft" : "Save as Draft"}
+          </button>
+          <button
+            type="submit"
+            name="intent"
+            value="publish"
             disabled={saving || uploading}
             className={adminButtonClass.primary}
           >
-            {saving ? "Saving…" : product ? "Save changes" : "Create product"}
+            {saving ? "Saving…" : product?.published ? "Save changes" : "Publish"}
           </button>
         </div>
       </div>

@@ -225,7 +225,12 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
     title: draft.title,
     subtitle: draft.subtitle,
     // The assigned category node; the API derives the legacy root slug from it.
-    ...(draft.categoryRefId ? { category_id: draft.categoryRefId } : { category: draft.categoryId }),
+    // A draft may not have a category yet; then none is sent.
+    ...(draft.categoryRefId
+      ? { category_id: draft.categoryRefId }
+      : draft.categoryId
+        ? { category: draft.categoryId }
+        : {}),
     ...(rolledUp
       ? {}
       : {
@@ -428,7 +433,7 @@ type ApiCard = {
   title: string;
   subtitle: string;
   category: ProductCategoryId;
-  category_id?: string;
+  category_id?: string | null;
   category_slug?: string;
   category_name?: string;
   category_path?: { id?: string; slug: string; name: string }[];
@@ -557,7 +562,7 @@ function cardToProduct(item: ApiCard): AdminProduct {
     title: item.title,
     subtitle: item.subtitle,
     categoryId: item.category,
-    categoryRefId: item.category_id,
+    categoryRefId: item.category_id ?? undefined,
     categoryName: item.category_name,
     categoryPath: (item.category_path ?? []).map(({ slug, name }) => ({ slug, name })),
     price: item.price,

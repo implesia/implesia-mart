@@ -48,11 +48,15 @@ export type ConfirmDeleteOptions = {
 
 type ConfirmDelete = (options: ConfirmDeleteOptions) => Promise<boolean>;
 
+/** Shows a short success ("ok") or failure ("error") toast from the admin-wide provider. */
+export type AdminNotify = (message: string, tone: "ok" | "error") => void;
+
 type Pending = ConfirmDeleteOptions & { resolve: (deleted: boolean) => void };
 type Toast = { message: string; tone: "ok" | "error"; key: number };
 
 const ConfirmDeleteContext = createContext<ConfirmDelete | null>(null);
 const ConfirmDeleteOpenContext = createContext(false);
+const AdminNotifyContext = createContext<AdminNotify | null>(null);
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -63,6 +67,18 @@ export function useConfirmDelete(): ConfirmDelete {
     throw new Error("useConfirmDelete must be used inside <ConfirmDeleteProvider>.");
   }
   return confirm;
+}
+
+/**
+ * The same toast the delete modal uses. It lives in the admin layout, so a
+ * message shown just before navigating stays on screen on the next page.
+ */
+export function useAdminNotify(): AdminNotify {
+  const notify = useContext(AdminNotifyContext);
+  if (!notify) {
+    throw new Error("useAdminNotify must be used inside <ConfirmDeleteProvider>.");
+  }
+  return notify;
 }
 
 /**
@@ -142,6 +158,7 @@ export function ConfirmDeleteProvider({ children }: { children: ReactNode }) {
 
   return (
     <ConfirmDeleteContext.Provider value={confirmDelete}>
+      <AdminNotifyContext.Provider value={notify}>
       <ConfirmDeleteOpenContext.Provider value={pending !== null}>
       {children}
       {pending ? (
@@ -182,6 +199,7 @@ export function ConfirmDeleteProvider({ children }: { children: ReactNode }) {
           )
         : null}
       </ConfirmDeleteOpenContext.Provider>
+      </AdminNotifyContext.Provider>
     </ConfirmDeleteContext.Provider>
   );
 }
