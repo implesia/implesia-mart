@@ -1,4 +1,8 @@
 import { readAdminBadgeRef, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
+import {
+  parseBulkDeleteResult,
+  type ProductBulkDeleteResult,
+} from "@/lib/mart-api/product-bulk-delete";
 import { publicRequestInit } from "@/lib/mart-api/public-request";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
@@ -720,6 +724,19 @@ export async function patchMartProduct(
   if (!response.ok) {
     throw new MartApiError(await readError(response, "The product could not be updated."));
   }
+}
+
+/** Deletes several products. Each one follows the single-delete rules; some may be skipped. */
+export async function bulkDeleteMartProducts(ids: string[]): Promise<ProductBulkDeleteResult> {
+  const response = await apiFetch("/api/v1/admin/products/bulk", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "The products could not be deleted."));
+  }
+  return parseBulkDeleteResult(await response.json().catch(() => null));
 }
 
 export async function deleteMartProduct(id: string) {

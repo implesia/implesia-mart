@@ -42,7 +42,8 @@ export type ConfirmDeleteOptions = {
   onConfirm: () => Promise<unknown> | unknown;
   /** Checked when Delete is pressed. Return a message to keep the modal open and show it. */
   validate?: () => string | null;
-  successMessage?: string;
+  /** A function is read after the delete settles, so it can name what happened. */
+  successMessage?: string | (() => string);
   errorMessage?: string;
 };
 
@@ -144,7 +145,11 @@ export function ConfirmDeleteProvider({ children }: { children: ReactNode }) {
     try {
       await current.onConfirm();
       close(true);
-      notify(current.successMessage ?? "Deleted", "ok");
+      const message =
+        typeof current.successMessage === "function"
+          ? current.successMessage()
+          : current.successMessage;
+      notify(message ?? "Deleted", "ok");
     } catch (error) {
       close(false);
       notify(
