@@ -27,6 +27,8 @@ Notes on the tables below:
 | Delete one | `DELETE /api/v1/admin/products/{id}` |
 | Delete selected | `DELETE /api/v1/admin/products/bulk` (`bulkDeleteMartProducts`) |
 | Badge picker | `GET /api/v1/admin/badges` |
+| Discount settings (`/admin/pricing`) | `GET` / `PUT /api/v1/admin/pricing` (`pricing-settings.ts`) |
+| Product pricing fields | `regular_price`, `base_discount_percent`, `tier_mode`, `tiers` in the create/update payload |
 | Product page (storefront) | `GET /api/v1/products/by-slug/{slug}` or `GET /api/v1/products/{id}` |
 
 ## Page → lib/mart-api modules
@@ -111,6 +113,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `inquiry-public.ts` | `/api/v1/inquiries` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
 | `orders.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/orders`<br>`/api/v1/orders/lookup`<br>`/api/v1/orders/quote` |
+| `pricing-settings.ts` | `/api/v1/admin/pricing` |
 | `privacy-collection.ts` | `/api/v1/admin/pages/privacy/collection`<br>`/api/v1/pages/privacy/collection` |
 | `privacy-contents.ts` | `/api/v1/admin/pages/privacy/contents`<br>`/api/v1/pages/privacy/contents` |
 | `privacy-hero.ts` | `/api/v1/admin/pages/privacy/hero`<br>`/api/v1/pages/privacy/hero` |

@@ -236,6 +236,7 @@ function mapDetail(
     variants: item.variants,
     minPerOrder: item.min_per_order,
     maxPerOrder: item.max_per_order,
+    pricing: item.pricing,
     purchaseOptions: (item.options ?? [])
       .filter((group) => group.values.length > 0)
       .map((group) => ({

@@ -1,5 +1,6 @@
 import { readStoreBadges, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
+import { readPricing, type ProductPricing } from "@/lib/mart-api/pricing";
 import { readVariants, type ProductVariant } from "@/lib/mart-api/variants";
 
 const PRODUCT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -118,6 +119,7 @@ export type StoreDetailPayload = {
   variants: ProductVariant[];
   min_per_order: number;
   max_per_order: number | null;
+  pricing: ProductPricing | null;
   options: {
     id: string;
     name: string;
@@ -313,6 +315,7 @@ export function normalizeProductDetail(
     variants: card.has_variants ? readVariants(record.variants) : [],
     min_per_order: orderLimit(record.min_per_order, 1),
     max_per_order: orderLimit(record.max_per_order, null),
+    pricing: readPricing(record.pricing),
   };
 }
 

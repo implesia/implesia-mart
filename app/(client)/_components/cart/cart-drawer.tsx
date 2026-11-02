@@ -21,6 +21,7 @@ import {
 } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
+import { percentText } from "@/lib/mart-api/pricing";
 import { productPath } from "@/lib/mart-api/product-url";
 
 export function CartDrawer() {
@@ -118,6 +119,21 @@ export function CartDrawer() {
                         ) : null}
                         <p className="mt-0.5 text-label-sm text-outline">
                           {formatCartMoney(item.unitPrice)} / পিস
+                          {item.regularPrice && item.regularPrice > item.unitPrice ? (
+                            <>
+                              {" "}
+                              <span className="line-through">
+                                <span className="sr-only">আগের দাম </span>
+                                {formatCartMoney(item.regularPrice)}
+                              </span>{" "}
+                              <span
+                                data-cart-discount=""
+                                className="font-semibold text-[#ba1a1a]"
+                              >
+                                {percentText(item.totalPercent ?? 0)}% ছাড়
+                              </span>
+                            </>
+                          ) : null}
                         </p>
                         {item.available ? null : (
                           <p

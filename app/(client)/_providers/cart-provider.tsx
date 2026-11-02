@@ -19,6 +19,7 @@ import {
   type ShopCart,
 } from "@/lib/mart-api/cart";
 import { MartApiError } from "@/lib/mart-api/products";
+import { priceLine } from "@/lib/mart-api/pricing";
 import { lineKey } from "@/lib/mart-api/variants";
 
 import { optionSummary } from "../products/_components/purchase-selection";
@@ -73,6 +74,29 @@ const EMPTY_PRICING: CartPricing = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+/** Optimistic price for a new quantity; the server's answer replaces it. */
+function repriced(item: CartLineResolved, quantity: number): CartLineResolved {
+  if (!item.pricing) {
+    return { ...item, quantity, lineTotal: item.unitPrice * quantity };
+  }
+  const line = priceLine({
+    regular: item.pricing.regularPrice,
+    price: item.pricing.sellingPrice,
+    basePercent: item.pricing.basePercent,
+    quantity,
+    tiers: item.pricing.tiers,
+    maxPercent: item.pricing.maxPercent,
+  });
+  return {
+    ...item,
+    quantity,
+    unitPrice: line.unitPrice,
+    lineTotal: line.lineTotal,
+    regularPrice: line.regularPrice,
+    totalPercent: line.totalPercent,
+  };
+}
+
 function applyCart(cart: ShopCart) {
   const items: CartLineResolved[] = cart.items.map((item) => ({
     id: item.productId,
@@ -88,6 +112,9 @@ function applyCart(cart: ShopCart) {
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.lineTotal,
+    regularPrice: item.regularPrice,
+    totalPercent: item.totalPercent,
+    pricing: item.pricing,
     imageSrc: item.imageSrc,
     imageAlt: item.title,
   }));
@@ -309,7 +336,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       publish(
         itemsRef.current.map((item) =>
           item.key === key
-            ? { ...item, quantity: next, lineTotal: item.unitPrice * next }
+            ? repriced(item, next)
             : item,
         ),
       );

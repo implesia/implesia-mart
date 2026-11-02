@@ -67,6 +67,16 @@ import { ProductVariantsFields } from "./product-variants-fields";
 import { productPath } from "@/lib/mart-api/product-url";
 import { badgeToneClass, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
 import { ProductBadgePicker } from "./product-badge-picker";
+import { QuantityTiersEditor } from "../../_components/quantity-tiers-editor";
+import {
+  derivedBase,
+  parsePercent,
+  parseTierRows,
+  percentText,
+  sellingPrice,
+  tierRowsFrom,
+  type TierRow,
+} from "@/lib/mart-api/pricing";
 
 const SECTIONS = [
   { id: "product-information", label: "Product information" },
@@ -88,8 +98,13 @@ type FormState = {
   categoryId: ProductCategoryId;
   categoryRefId: string;
   categoryTrail: string;
+  /** Derived from regularPrice + baseDiscount; kept for the preview and the variant default. */
   price: string;
   compareAtPrice: string;
+  regularPrice: string;
+  baseDiscount: string;
+  tierMode: "global" | "custom";
+  tiers: TierRow[];
   quantity: string;
   status: StockStatus;
   /** Legacy single badge; only sent when `badges` is unknown (older API data). */
@@ -110,6 +125,8 @@ type FieldKey =
   | "title"
   | "price"
   | "compareAtPrice"
+  | "baseDiscount"
+  | "quantityTiers"
   | "quantity"
   | "orderLimits"
   | "variants";
@@ -121,8 +138,11 @@ const SERVER_FIELD_ORDER = [
   "slug",
   "subtitle",
   "images",
+  "regularPrice",
   "price",
   "compareAtPrice",
+  "baseDiscount",
+  "quantityTiers",
   "quantity",
   "status",
   "orderLimits",
@@ -141,6 +161,9 @@ const SERVER_FIELD_LABEL: Record<string, string> = {
   images: "ছবি",
   price: "দাম",
   compareAtPrice: "আগের দাম",
+  regularPrice: "রেগুলার দাম",
+  baseDiscount: "বেস ছাড়",
+  quantityTiers: "পরিমাণ অনুযায়ী ছাড়",
   quantity: "স্টকের পরিমাণ",
   status: "স্টক স্ট্যাটাস",
   orderLimits: "অর্ডারের সীমা",
@@ -160,6 +183,9 @@ const SERVER_FIELD_SECTION: Record<string, SectionId> = {
   images: "product-media",
   price: "product-pricing",
   compareAtPrice: "product-pricing",
+  regularPrice: "product-pricing",
+  baseDiscount: "product-pricing",
+  quantityTiers: "product-pricing",
   quantity: "product-inventory",
   status: "product-inventory",
   orderLimits: "product-inventory",
@@ -176,7 +202,9 @@ const SERVER_FIELD_INPUT: Record<string, string> = {
   slug: "title",
   subtitle: "subtitle",
   price: "price",
-  compareAtPrice: "compare",
+  compareAtPrice: "price",
+  regularPrice: "price",
+  baseDiscount: "base",
   quantity: "qty",
   orderLimits: "min-order",
 };
@@ -187,6 +215,10 @@ const SERVER_FIELDS_FOR: Partial<Record<keyof FormState, string[]>> = {
   subtitle: ["subtitle"],
   price: ["price"],
   compareAtPrice: ["compareAtPrice"],
+  regularPrice: ["regularPrice", "price", "compareAtPrice"],
+  baseDiscount: ["baseDiscount", "price", "compareAtPrice"],
+  tierMode: ["quantityTiers"],
+  tiers: ["quantityTiers"],
   quantity: ["quantity"],
   status: ["status"],
   minOrder: ["orderLimits"],
@@ -240,6 +272,10 @@ function toForm(product?: AdminProduct): FormState {
       categoryTrail: "",
       price: "",
       compareAtPrice: "",
+      regularPrice: "",
+      baseDiscount: "",
+      tierMode: "global",
+      tiers: [],
       quantity: "",
       status: "available",
       badge: "",
@@ -253,6 +289,10 @@ function toForm(product?: AdminProduct): FormState {
       variants: [],
     };
   }
+  const regular =
+    product.regularPrice ?? Math.max(product.compareAtPrice ?? 0, product.price);
+  const base = product.baseDiscountPercent ?? derivedBase(regular, product.price);
+  const blankPrice = !product.published && product.price === 0 && !product.variants?.length;
   return {
     title: product.title,
     subtitle: product.subtitle,
@@ -266,6 +306,10 @@ function toForm(product?: AdminProduct): FormState {
         : String(product.price),
     compareAtPrice:
       product.compareAtPrice == null ? "" : String(product.compareAtPrice),
+    regularPrice: blankPrice ? "" : String(regular),
+    baseDiscount: base ? percentText(base) : "",
+    tierMode: product.tierMode ?? "global",
+    tiers: tierRowsFrom(product.quantityTiers ?? []),
     quantity: product.quantity == null ? "" : String(product.quantity),
     status: product.status,
     badge: product.badge ?? "",
@@ -299,7 +343,14 @@ function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors 
     ((publishing && priceMissing) ||
       (!priceMissing && (!Number.isFinite(price) || price < 0)))
   ) {
-    errors.price = "Enter a selling price of 0 or more.";
+    errors.price = "Enter a regular price as a whole number of taka.";
+  }
+  if (!hasVariants && parsePercent(form.baseDiscount) == null) {
+    errors.baseDiscount = "Enter a base discount from 0 to 99.99%, at most two decimals.";
+  }
+  if (form.tierMode === "custom") {
+    const tierError = parseTierRows(form.tiers).error;
+    if (tierError) errors.quantityTiers = tierError;
   }
 
   if (!hasVariants && form.compareAtPrice.trim()) {
@@ -343,7 +394,9 @@ function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors 
 function firstErrorSection(errors: FieldErrors): SectionId | null {
   if (errors.title) return "product-information";
   if (errors.category) return "product-organization";
-  if (errors.price || errors.compareAtPrice) return "product-pricing";
+  if (errors.price || errors.compareAtPrice || errors.baseDiscount || errors.quantityTiers) {
+    return "product-pricing";
+  }
   if (errors.quantity || errors.orderLimits) return "product-inventory";
   if (errors.variants) return "product-variants";
   return null;
@@ -411,6 +464,27 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         ? prev.filter((item) => !fields.includes(item.field))
         : prev,
     );
+  }
+
+  /** Regular price + base % -> the quantity-1 selling price shown and saved. */
+  function setPricing(patch: { regularPrice?: string; baseDiscount?: string }) {
+    clearServer(["regularPrice", "baseDiscount", "price", "compareAtPrice"]);
+    setForm((prev) => {
+      const regularPrice = patch.regularPrice ?? prev.regularPrice;
+      const baseDiscount = patch.baseDiscount ?? prev.baseDiscount;
+      const regular = Number(regularPrice);
+      const base = parsePercent(baseDiscount);
+      const ok = regularPrice.trim() !== "" && Number.isInteger(regular) && regular >= 0;
+      // An invalid regular price is kept as typed so validation flags it.
+      const price = ok && base != null ? sellingPrice(regular, base) : null;
+      return {
+        ...prev,
+        regularPrice,
+        baseDiscount,
+        price: price == null ? regularPrice : String(price),
+        compareAtPrice: price != null && price < regular ? String(regular) : "",
+      };
+    });
   }
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -573,6 +647,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       setSaveError("Enter the compare-at price as a whole number of taka.");
       return;
     }
+    // Regular price + base % go to the API only when changed, so saving other fields never
+    // re-rounds an older price.
+    const pricingChanged =
+      !product ||
+      form.regularPrice !== baseline.regularPrice ||
+      form.baseDiscount !== baseline.baseDiscount;
+    const tiers = parseTierRows(form.tiers).tiers ?? [];
     const quantity = variantMode
       ? summary.quantity
       : form.quantity.trim()
@@ -585,6 +666,14 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       categoryRefId: form.categoryRefId,
       price,
       compareAtPrice,
+      ...(!variantMode && pricingChanged && form.regularPrice.trim()
+        ? {
+            regularPrice: Number(form.regularPrice),
+            baseDiscountPercent: parsePercent(form.baseDiscount) ?? 0,
+          }
+        : {}),
+      tierMode: form.tierMode,
+      quantityTiers: tiers,
       quantity,
       status: form.status,
       badge: form.badge || null,
@@ -931,10 +1020,13 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
-            invalid={serverFor("price", "compareAtPrice").length > 0}
+            invalid={
+              serverFor("price", "compareAtPrice", "regularPrice", "baseDiscount", "quantityTiers")
+                .length > 0
+            }
             id="product-pricing"
             title="Pricing"
-            description="Selling price is required. Compare-at is optional and must be at least the selling price. Amounts are in taka."
+            description="Enter the regular price and a base discount %. The selling price is worked out for you. Quantity discounts add more on top. Amounts are in taka."
           >
             {variantMode ? (
               <p
@@ -948,81 +1040,67 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <FieldLabel htmlFor={`${formId}-price`}>
-                  Selling price <RequiredMark />
+                  Regular price <RequiredMark />
                 </FieldLabel>
                 <input
                   id={`${formId}-price`}
-                  inputMode="decimal"
-                  value={shownPrice}
+                  inputMode="numeric"
+                  value={variantMode ? shownPrice : form.regularPrice}
                   disabled={variantMode}
-                  onChange={(event) => setField("price", event.target.value)}
-                  placeholder="999"
-                  aria-invalid={errors.price || serverFor("price").length ? true : undefined}
-                  aria-describedby={
-                    errors.price ? `${formId}-price-error` : undefined
+                  onChange={(event) => setPricing({ regularPrice: event.target.value })}
+                  placeholder="1000"
+                  aria-invalid={
+                    errors.price || serverFor("price", "regularPrice").length ? true : undefined
                   }
+                  aria-describedby={errors.price ? `${formId}-price-error` : undefined}
                   className={cn(
                     adminFieldClass,
-                    (errors.price || serverFor("price").length > 0) && INVALID_FIELD,
+                    (errors.price || serverFor("price", "regularPrice").length > 0) &&
+                      INVALID_FIELD,
                   )}
                 />
-                <FieldErrorSlot
-                  id={`${formId}-price-error`}
-                  message={errors.price}
+                <FieldErrorSlot id={`${formId}-price-error`} message={errors.price} />
+                <ServerFieldErrors
+                  id={`${formId}-server-price`}
+                  items={serverFor("price", "regularPrice", "compareAtPrice")}
                 />
-                <ServerFieldErrors id={`${formId}-server-price`} items={serverFor("price")} />
               </div>
               <div>
-                <FieldLabel htmlFor={`${formId}-compare`}>
-                  Compare-at price
-                </FieldLabel>
+                <FieldLabel htmlFor={`${formId}-base`}>Base discount %</FieldLabel>
                 <input
-                  id={`${formId}-compare`}
+                  id={`${formId}-base`}
                   inputMode="decimal"
-                  value={variantMode ? "" : form.compareAtPrice}
+                  value={variantMode ? "" : form.baseDiscount}
                   disabled={variantMode}
-                  onChange={(event) =>
-                    setField("compareAtPrice", event.target.value)
+                  onChange={(event) => setPricing({ baseDiscount: event.target.value })}
+                  placeholder="0"
+                  aria-invalid={
+                    errors.baseDiscount || serverFor("baseDiscount").length ? true : undefined
                   }
-                  placeholder="Optional"
-                  aria-invalid={errors.compareAtPrice || serverFor("compareAtPrice").length ? true : undefined}
-                  aria-describedby={
-                    errors.compareAtPrice
-                      ? `${formId}-compare-error`
-                      : `${formId}-compare-hint`
-                  }
+                  aria-describedby={`${formId}-base-hint`}
                   className={cn(
                     adminFieldClass,
-                    (errors.compareAtPrice || serverFor("compareAtPrice").length > 0) && INVALID_FIELD,
+                    (errors.baseDiscount || serverFor("baseDiscount").length > 0) && INVALID_FIELD,
                   )}
                 />
-                <FieldErrorSlot
-                  id={`${formId}-compare-error`}
-                  message={errors.compareAtPrice}
+                <FieldErrorSlot id={`${formId}-base-error`} message={errors.baseDiscount} />
+                <ServerFieldErrors
+                  id={`${formId}-server-baseDiscount`}
+                  items={serverFor("baseDiscount")}
                 />
-                <ServerFieldErrors id={`${formId}-server-compareAtPrice`} items={serverFor("compareAtPrice")} />
-                {!errors.compareAtPrice &&
-                priceReady &&
-                compareReady &&
-                compareNumber > priceNumber ? (
+                {!variantMode && priceReady && !errors.baseDiscount ? (
                   <p
-                    id={`${formId}-compare-hint`}
+                    id={`${formId}-base-hint`}
                     className="mt-1.5 text-xs text-neutral-500"
+                    data-testid="selling-price-preview"
                   >
-                    Selling price {formatTaka(priceNumber)} is {discount}% below
-                    the compare-at price of {formatTaka(compareNumber)}.
-                  </p>
-                ) : null}
-                {!errors.compareAtPrice &&
-                priceReady &&
-                compareReady &&
-                compareNumber === priceNumber ? (
-                  <p
-                    id={`${formId}-compare-hint`}
-                    className="mt-1.5 text-xs text-neutral-500"
-                  >
-                    Compare-at matches the selling price, so there is no higher
-                    price to show.
+                    Selling price{" "}
+                    <span className="font-semibold text-neutral-900 tabular-nums">
+                      {formatTaka(priceNumber)}
+                    </span>
+                    {discount != null
+                      ? ` (${percentText(parsePercent(form.baseDiscount) ?? 0)}% off ${formatTaka(compareNumber)})`
+                      : ""}
                   </p>
                 ) : null}
               </div>
@@ -1046,6 +1124,57 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 </p>
               </div>
             </div>
+            <fieldset className="mt-5 border-t border-neutral-100 pt-4">
+              <legend className="text-sm font-medium text-neutral-800">
+                Quantity discounts
+              </legend>
+              <p className="mt-1 text-xs text-neutral-500">
+                Buying more pieces adds an extra % on the regular price, on top of the base
+                discount.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2" role="radiogroup">
+                {(
+                  [
+                    ["global", "Use store-wide tiers (Settings › Pricing)"],
+                    ["custom", "Custom tiers for this product"],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <label
+                    key={mode}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-neutral-700 ring-1",
+                      form.tierMode === mode
+                        ? "ring-2 ring-primary"
+                        : "ring-neutral-200 hover:bg-neutral-50",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${formId}-tier-mode`}
+                      value={mode}
+                      checked={form.tierMode === mode}
+                      onChange={() => setField("tierMode", mode)}
+                      className="accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {form.tierMode === "custom" ? (
+                <div className="mt-3">
+                  <QuantityTiersEditor
+                    id={`${formId}-tiers`}
+                    rows={form.tiers}
+                    onChange={(rows) => setField("tiers", rows)}
+                    error={errors.quantityTiers}
+                  />
+                </div>
+              ) : null}
+              <ServerFieldErrors
+                id={`${formId}-server-quantityTiers`}
+                items={serverFor("quantityTiers")}
+              />
+            </fieldset>
           </FormSection>
 
           <FormSection

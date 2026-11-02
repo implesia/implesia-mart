@@ -42,6 +42,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/badges", label: "Badges", icon: "sell" },
       { href: "/admin/cart", label: "Cart", icon: "shopping_cart" },
       { href: "/admin/delivery", label: "Delivery charges", icon: "local_shipping" },
+      { href: "/admin/pricing", label: "Discounts", icon: "percent" },
     ],
   },
   {
@@ -170,6 +171,7 @@ export function isWideAdminPath(pathname: string) {
     pathname.startsWith("/admin/products/") ||
     pathname === "/admin/cart" ||
     pathname === "/admin/delivery" ||
+    pathname === "/admin/pricing" ||
     pathname === "/admin/badges"
   ) {
     return true;

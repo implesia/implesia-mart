@@ -1,3 +1,4 @@
+import type { ProductPricing } from "@/lib/mart-api/pricing";
 import type { ProductVariant } from "@/lib/mart-api/variants";
 import {
   getProductGalleryItems,
@@ -55,6 +56,8 @@ export type ProductDetail = Product & {
   /** Order limits per line, from the API. */
   minPerOrder?: number;
   maxPerOrder?: number | null;
+  /** Base %, quantity tiers and cap from the API (display only; the API prices orders). */
+  pricing?: ProductPricing | null;
   materialDetails?: ProductSpecItem[];
   delivery: { icon: string; title: string; description: string }[];
   details: {

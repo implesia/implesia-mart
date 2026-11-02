@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { getOrder, patchOrder, type MartOrder } from "@/lib/mart-api/orders";
 import { MartApiError } from "@/lib/mart-api/products";
+import { percentText } from "@/lib/mart-api/pricing";
 import {
   formatTaka,
   ORDER_STATUSES,
@@ -295,6 +296,17 @@ export default function AdminOrderDetailPage() {
                       <span className="mt-1 block text-xs text-neutral-600">
                         {formatTaka(item.unitPrice)} × {item.quantity}
                       </span>
+                      {item.totalPercent ? (
+                        <span
+                          className="mt-0.5 block text-xs text-neutral-500"
+                          data-testid="order-item-discount"
+                        >
+                          Regular {formatTaka(item.regularPrice ?? item.unitPrice)} · base{" "}
+                          {percentText(item.basePercent ?? 0)}% + quantity{" "}
+                          {percentText(item.quantityPercent ?? 0)}% ={" "}
+                          {percentText(item.totalPercent)}% off
+                        </span>
+                      ) : null}
                     </span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums text-neutral-950">
                       {formatTaka(item.lineTotal)}

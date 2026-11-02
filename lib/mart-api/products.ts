@@ -4,6 +4,7 @@ import {
   type ProductBulkDeleteResult,
 } from "@/lib/mart-api/product-bulk-delete";
 import { publicRequestInit } from "@/lib/mart-api/public-request";
+import { readTiers } from "@/lib/mart-api/pricing";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
 import {
@@ -269,11 +270,27 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
         : {}),
     ...(rolledUp
       ? {}
-      : {
-          price: draft.price,
-          compare_at_price: draft.compareAtPrice,
-          quantity: draft.quantity,
-        }),
+      : draft.regularPrice !== undefined
+        ? {
+            // The API works out price and compare_at_price from these.
+            regular_price: draft.regularPrice,
+            base_discount_percent: draft.baseDiscountPercent ?? 0,
+            quantity: draft.quantity,
+          }
+        : {
+            price: draft.price,
+            compare_at_price: draft.compareAtPrice,
+            quantity: draft.quantity,
+          }),
+    ...(draft.tierMode
+      ? {
+          tier_mode: draft.tierMode,
+          tiers: (draft.quantityTiers ?? []).map((tier) => ({
+            min_quantity: tier.minQuantity,
+            extra_percent: tier.extraPercent,
+          })),
+        }
+      : {}),
     min_order_quantity: draft.minOrderQuantity ?? 1,
     max_order_quantity: draft.maxOrderQuantity ?? null,
     ...variantFields,
@@ -542,6 +559,10 @@ type ApiCard = {
   min_order_quantity?: number;
   max_order_quantity?: number | null;
   variants?: ApiVariant[];
+  regular_price?: number;
+  base_discount_percent?: number;
+  tier_mode?: "global" | "custom";
+  tiers?: unknown;
 };
 
 type ApiVariant = {
@@ -678,6 +699,14 @@ function cardToProduct(item: ApiCard): AdminProduct {
       quantity: variant.quantity,
       isActive: variant.is_active,
     })),
+    ...(typeof item.regular_price === "number"
+      ? {
+          regularPrice: item.regular_price,
+          baseDiscountPercent: item.base_discount_percent ?? 0,
+          tierMode: item.tier_mode === "custom" ? "custom" : "global",
+          quantityTiers: readTiers(item.tiers),
+        }
+      : {}),
   };
 }
 

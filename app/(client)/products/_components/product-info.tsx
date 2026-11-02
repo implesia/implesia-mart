@@ -10,11 +10,13 @@ import { cn } from "@/lib/utils";
 
 import { catalogProductId } from "@/lib/mart-api/catalog";
 import { directCheckoutHref } from "@/lib/mart-api/product-page";
+import { percentText, tierOffers } from "@/lib/mart-api/pricing";
 import {
   chooseOption,
   clampQuantity,
   defaultChoices,
   findVariant,
+  ORDER_QTY_CAP,
   priceView,
   purchaseCheck,
   valueIsOffered,
@@ -78,6 +80,21 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
     selected,
   } = usePurchaseQuantity(product.slug, selectedVariant?.id ?? null, limits);
   const view = priceView(product, selectedVariant, quantity);
+  const offers = product.pricing
+    ? tierOffers(
+        product.pricing,
+        clampQuantity(ORDER_QTY_CAP, limits),
+        selectedVariant
+          ? {
+              regular: Math.max(
+                selectedVariant.compareAtPrice ?? 0,
+                selectedVariant.price,
+              ),
+              price: selectedVariant.price,
+            }
+          : undefined,
+      )
+    : [];
   const [justAdded, setJustAdded] = useState(false);
   const [pending, setPending] = useState<"cart" | "buy" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -190,7 +207,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             </span>
             {view.discountPercent ? (
               <span className="text-sm font-bold text-[#ba1a1a]">
-                {view.discountPercent}% ছাড়
+                {percentText(view.discountPercent)}% ছাড়
               </span>
             ) : null}
           </>
@@ -199,6 +216,25 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
           {availabilityLabel}
         </span>
       </div>
+
+      {offers.length > 0 && !isSoldOut && !isComingSoon ? (
+        <p
+          data-testid="product-tier-offers"
+          className="-mt-3 mb-5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-on-surface-variant sm:-mt-4 sm:mb-6 sm:text-sm"
+        >
+          {offers.map((offer) => (
+            <span
+              key={offer.quantity}
+              className={cn(
+                quantity >= offer.quantity &&
+                  "font-semibold text-[#0b5e56]",
+              )}
+            >
+              {offer.label}
+            </span>
+          ))}
+        </p>
+      ) : null}
 
       <ProductPurchaseOptions
         groups={groups}
@@ -301,6 +337,11 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             <span className="font-semibold text-on-background">
               {formatPrice(view.lineTotal)}
             </span>
+            {view.quantityPercent > 0 ? (
+              <span className="ml-1 text-[#0b5e56]">
+                (পরিমাণে আরও {percentText(view.quantityPercent)}% ছাড়)
+              </span>
+            ) : null}
           </p>
 
           <div className="mb-2 hidden flex-col gap-3 lg:flex">

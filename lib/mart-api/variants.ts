@@ -5,6 +5,8 @@
  * order from its own variant row; a price calculated here is never sent as an authority.
  */
 
+import { priceLine, type ProductPricing } from "@/lib/mart-api/pricing";
+
 export type ProductVariant = {
   id: string;
   /** Option group id -> option value id. */
@@ -82,6 +84,8 @@ export type PriceView = {
   compareAtPrice: number | null;
   lineTotal: number;
   discountPercent: number | null;
+  /** Extra % the chosen quantity adds on top of the base discount. */
+  quantityPercent: number;
 };
 
 export function clampQuantity(
@@ -97,20 +101,38 @@ export function clampQuantity(
 
 /** What the page shows while the shopper picks. The API recalculates at cart and order time. */
 export function priceView(
-  base: { price: number; compareAtPrice?: number | null },
+  base: {
+    price: number;
+    compareAtPrice?: number | null;
+    /** Base %, quantity tiers and cap from the API; null keeps plain compare-at display. */
+    pricing?: ProductPricing | null;
+  },
   variant: ProductVariant | null,
   quantity: number,
 ): PriceView {
-  const unitPrice = variant ? variant.price : base.price;
+  const price = variant ? variant.price : base.price;
   const compare = variant ? variant.compareAtPrice : (base.compareAtPrice ?? null);
-  const compareAtPrice = compare != null && compare > unitPrice ? compare : null;
+  const regular = compare != null && compare > price ? compare : price;
+  const line = priceLine({
+    regular,
+    price,
+    // The saved base % belongs to the product row; a variant's is derived from its prices.
+    basePercent: variant ? null : (base.pricing?.basePercent ?? null),
+    quantity,
+    tiers: base.pricing?.tiers ?? [],
+    maxPercent: base.pricing?.maxPercent ?? 99.99,
+  });
+  const discounted = line.unitPrice < regular;
   return {
-    unitPrice,
-    compareAtPrice,
-    lineTotal: unitPrice * Math.max(1, Math.floor(quantity)),
-    discountPercent: compareAtPrice
-      ? Math.round(((compareAtPrice - unitPrice) / compareAtPrice) * 100)
+    unitPrice: line.unitPrice,
+    compareAtPrice: discounted ? regular : null,
+    lineTotal: line.lineTotal,
+    discountPercent: discounted
+      ? base.pricing
+        ? line.totalPercent
+        : Math.round(((regular - line.unitPrice) / regular) * 100)
       : null,
+    quantityPercent: line.quantityPercent,
   };
 }
 

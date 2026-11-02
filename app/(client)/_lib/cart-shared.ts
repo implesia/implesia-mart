@@ -1,3 +1,5 @@
+import type { ProductPricing } from "@/lib/mart-api/pricing";
+
 export const MAX_CART_QTY = 5;
 
 export type CartLineResolved = {
@@ -16,6 +18,11 @@ export type CartLineResolved = {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  /** Price before discount and the total discount % (from the server). */
+  regularPrice?: number;
+  totalPercent?: number;
+  /** Base %, tiers and cap, so a quantity change shows its price at once. */
+  pricing?: ProductPricing | null;
   imageSrc: string;
   imageAlt: string;
 };

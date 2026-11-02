@@ -9,6 +9,7 @@ Open items found in the code and in recent work. Remove an item when it is done.
 - **Upload size limit in production**: the BFF accepts bodies up to 110 MB (`proxyClientMaxBodySize` in `next.config.ts`) and the form allows up to 100 MB of new video per save. Confirm the production proxy / Cloudflare Workers request limit accepts that size.
 - **Prettier drift**: some existing files are not Prettier-formatted. Format them in a separate, formatting-only commit.
 - **Image format text**: the product form description says "JPG, PNG, WEBP, GIF, or AVIF", but AVIF is refused on save (the API accepts JPEG, PNG, WEBP, GIF only). Fix the text.
+- **Quantity cap vs discount tiers**: lines are capped at 5 pieces (`ORDER_QTY_CAP`), so the 6/7/8+ tiers are hidden. Raising it needs a backend change too.
 - **Gallery order after save**: new uploads are appended after existing items by the API, so the order arranged in the form can change after save.
 
 ## Code comments

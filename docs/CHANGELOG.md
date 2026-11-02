@@ -2,6 +2,15 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Dynamic discounts (regular price + base % + quantity tiers).**
+  - Admin product form: Pricing now takes **Regular price** and **Base discount %** and shows the selling price live; "Quantity discounts" chooses store-wide tiers or custom tiers (add/remove rows). Regular price/base are sent (`regular_price`, `base_discount_percent`) only when changed, so saving other fields never re-rounds an older price.
+  - New **Admin › Discounts** page (`/admin/pricing`): store-wide tiers on/off, max %, tier editor and a worked example.
+  - Product page: changing the quantity shows the unit price, the total % and the line total at once, regular price struck through; compact tiers such as "৫টি কিনলে ২৯% ছাড়" (only quantities that can be bought).
+  - Cart drawer and checkout summary: unit price, struck regular price and "x% ছাড়"; a quantity change reprices instantly from the line's `pricing` block, then the API's numbers replace it.
+  - Admin order page: each line shows the stored snapshot (regular, base + quantity = total %).
+  - Display maths in `lib/mart-api/pricing.ts` mirrors the backend; the API always prices the cart and order. Product pages stay `no-store`.
+  - Files: `lib/mart-api/pricing.ts`, `lib/mart-api/pricing-settings.ts`, `lib/mart-api/variants.ts`, `lib/mart-api/products.ts`, `lib/mart-api/product-page.ts`, `lib/mart-api/catalog.ts`, `lib/mart-api/cart.ts`, `lib/mart-api/orders.ts`, `lib/mart-mock/store.ts`, `app/(client)/_data/products/product-details.ts`, `app/(client)/products/_components/product-info.tsx`, `app/(client)/_lib/cart-shared.ts`, `app/(client)/_providers/cart-provider.tsx`, `app/(client)/_components/cart/cart-drawer.tsx`, `app/(client)/checkout/_components/checkout-order-summary.tsx`, `app/admin/products/_components/product-form.tsx`, `app/admin/_components/quantity-tiers-editor.tsx`, `app/admin/pricing/page.tsx`, `app/admin/_config/nav.ts`, `app/admin/orders/[number]/page.tsx`, `tests/pricing.test.ts`.
+  - Backend: needs migration `0086`, `/api/v1/admin/pricing` and the new product/cart/quote/order fields (backend repo, same day).
 ## 2026-11-02 (summary of today's work)
 
 - **Home page Showcase fixes.**

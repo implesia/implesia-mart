@@ -60,4 +60,6 @@ Code: `app/admin/products/_components/product-content-fields.tsx`, `lib/mart-api
 
 - A guest stores only the cart token (`implesia.cart.guest.v1`) in the browser; the API holds lines, prices and delivery rates and identifies the cart by the `X-Cart-Token` header.
 - Checkout sends product ids, quantities and a delivery-zone hint; the API sets price, stock, shipping and total.
+- Prices and discounts: a product has a regular price and a base %; quantity tiers add an extra % (on the regular price) when more pieces are in one line. `total % = min(base + extra, max %, 99.99 %)`. The API sends a `pricing` block on the product page and on each cart line; `lib/mart-api/pricing.ts` uses it only to show prices instantly. The cart, quote and order totals always come from the API.
+- Only reachable tiers are shown (a line is capped at 5 pieces, `ORDER_QTY_CAP`).
 - Order lookup needs the order number and phone; the browser may remember the number locally.
