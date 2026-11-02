@@ -8,6 +8,7 @@ import {
   priceLine,
   readPricing,
   sellingPrice,
+  maxQuantityText,
   tierOffers,
   type QuantityTier,
 } from "@/lib/mart-api/pricing";
@@ -110,6 +111,9 @@ test("reads the API block and lists reachable tiers in Bangla", () => {
   assert.equal(offers.at(-1)?.label, "৮টি কিনলে ৩০% ছাড়");
   assert.equal(offers[0].label, "২টি কিনলে ২৮.২৫% ছাড়");
   assert.equal(tierOffers(pricing, 5).length, 4);
+  // With a limit of 10 every default tier, up to 8 pieces = 30 %, is reachable.
+  assert.equal(tierOffers(pricing, 10).length, 7);
+  assert.equal(maxQuantityText(10), "সর্বোচ্চ ১০টি নেওয়া যাবে");
   assert.equal(readPricing({ regular_price: "x" }), null);
 });
 

@@ -16,12 +16,11 @@ import { cn } from "@/lib/utils";
 
 import {
   formatCartMoney,
-  MAX_CART_QTY,
   offeredDeliveryLabel,
 } from "../../_lib/cart-shared";
 import { useCart } from "../../_providers/cart-provider";
 import { MaterialIcon } from "../common/material-icon";
-import { percentText } from "@/lib/mart-api/pricing";
+import { maxQuantityText, percentText } from "@/lib/mart-api/pricing";
 import { productPath } from "@/lib/mart-api/product-url";
 
 export function CartDrawer() {
@@ -180,7 +179,7 @@ export function CartDrawer() {
                           type="button"
                           className="flex size-11 items-center justify-center text-on-surface focus-visible:outline-2 focus-visible:outline-[#0b5e56] disabled:opacity-40"
                           onClick={() => adjustQuantity(item.key, 1)}
-                          disabled={item.quantity >= Math.min(MAX_CART_QTY, item.maxQuantity)}
+                          disabled={item.quantity >= item.maxQuantity}
                           aria-label={`${item.title} এর পরিমাণ বাড়ান`}
                         >
                           <MaterialIcon name="add" className="text-[16px]" />
@@ -190,6 +189,14 @@ export function CartDrawer() {
                         {formatCartMoney(item.lineTotal)}
                       </span>
                     </div>
+                    {item.available && item.quantity >= item.maxQuantity ? (
+                      <p
+                        className="mt-1 text-xs text-on-surface-variant"
+                        data-testid="cart-qty-limit"
+                      >
+                        {maxQuantityText(item.maxQuantity)}
+                      </p>
+                    ) : null}
                   </div>
                 </li>
               ))}

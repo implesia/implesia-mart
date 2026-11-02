@@ -68,6 +68,7 @@ import { productPath } from "@/lib/mart-api/product-url";
 import { badgeToneClass, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
 import { ProductBadgePicker } from "./product-badge-picker";
 import { QuantityTiersEditor } from "../../_components/quantity-tiers-editor";
+import { QUANTITY_CEILING } from "@/lib/mart-api/variants";
 import {
   derivedBase,
   parsePercent,
@@ -116,6 +117,8 @@ type FormState = {
   published: boolean;
   content: ProductStorefrontContent;
   minOrder: string;
+  /** "global" = the store-wide limit (Admin › Discounts); "custom" = `maxOrder`. */
+  maxOrderMode: "global" | "custom";
   maxOrder: string;
   variants: VariantRow[];
 };
@@ -223,6 +226,7 @@ const SERVER_FIELDS_FOR: Partial<Record<keyof FormState, string[]>> = {
   status: ["status"],
   minOrder: ["orderLimits"],
   maxOrder: ["orderLimits"],
+  maxOrderMode: ["orderLimits"],
   variants: ["variants", "price", "quantity"],
   imageSrc: ["images"],
   badges: ["badges"],
@@ -285,6 +289,7 @@ function toForm(product?: AdminProduct): FormState {
       published: false,
       content: emptyProductContent(),
       minOrder: "1",
+      maxOrderMode: "global",
       maxOrder: "",
       variants: [],
     };
@@ -319,6 +324,7 @@ function toForm(product?: AdminProduct): FormState {
     published: product.published,
     content: structuredClone(product.content),
     minOrder: String(product.minOrderQuantity ?? 1),
+    maxOrderMode: product.maxOrderQuantity == null ? "global" : "custom",
     maxOrder: product.maxOrderQuantity == null ? "" : String(product.maxOrderQuantity),
     variants: rowsFromVariants(product.variants),
   };
@@ -374,11 +380,11 @@ function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors 
 
   const min = Number(form.minOrder);
   const max = Number(form.maxOrder);
-  if (!Number.isInteger(min) || min < 1 || min > 5) {
-    errors.orderLimits = "Minimum per order must be a whole number from 1 to 5.";
-  } else if (form.maxOrder.trim()) {
-    if (!Number.isInteger(max) || max < 1 || max > 5) {
-      errors.orderLimits = "Maximum per order must be from 1 to 5, or blank for no extra limit.";
+  if (!Number.isInteger(min) || min < 1 || min > QUANTITY_CEILING) {
+    errors.orderLimits = `Minimum per order must be a whole number from 1 to ${QUANTITY_CEILING}.`;
+  } else if (form.maxOrderMode === "custom") {
+    if (!form.maxOrder.trim() || !Number.isInteger(max) || max < 1 || max > QUANTITY_CEILING) {
+      errors.orderLimits = `Custom maximum must be a whole number from 1 to ${QUANTITY_CEILING}.`;
     } else if (max < min) {
       errors.orderLimits = "Maximum per order must be at least the minimum.";
     }
@@ -682,7 +688,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       featured: form.featured,
       published: intent === "publish",
       minOrderQuantity: Number(form.minOrder),
-      maxOrderQuantity: form.maxOrder.trim() ? Number(form.maxOrder) : null,
+      maxOrderQuantity: form.maxOrderMode === "custom" ? Number(form.maxOrder) : null,
       // Sent only when changed, so editing something else never rewrites variant prices or stock.
       variants: sameVariants(form.variants, baseline.variants)
         ? undefined
@@ -1277,17 +1283,52 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   <input
                     id={`${formId}-max-order`}
                     inputMode="numeric"
-                    value={form.maxOrder}
-                    placeholder="No extra limit"
+                    value={form.maxOrderMode === "custom" ? form.maxOrder : ""}
+                    placeholder="Store-wide limit"
+                    disabled={form.maxOrderMode !== "custom"}
                     onChange={(event) => setField("maxOrder", event.target.value)}
                     aria-invalid={errors.orderLimits || serverFor("orderLimits").length ? true : undefined}
                     aria-describedby={`${formId}-order-limits-hint`}
                     className={cn(
                       adminFieldClass,
+                      "disabled:bg-neutral-50 disabled:text-neutral-400",
                       (errors.orderLimits || serverFor("orderLimits").length > 0) && INVALID_FIELD,
                     )}
                   />
                 </div>
+              </div>
+              <div
+                className="mt-2 flex flex-wrap gap-2"
+                role="radiogroup"
+                aria-label="Maximum per order"
+                data-testid="max-order-mode"
+              >
+                {(
+                  [
+                    ["global", "Use store-wide limit (Admin › Discounts)"],
+                    ["custom", "Custom maximum for this product"],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <label
+                    key={mode}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm text-neutral-700 ring-1",
+                      form.maxOrderMode === mode
+                        ? "ring-2 ring-primary"
+                        : "ring-neutral-200 hover:bg-neutral-50",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${formId}-max-order-mode`}
+                      value={mode}
+                      checked={form.maxOrderMode === mode}
+                      onChange={() => setField("maxOrderMode", mode)}
+                      className="accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
               </div>
               <FieldErrorSlot
                 id={`${formId}-order-limits-error`}
@@ -1298,8 +1339,8 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 id={`${formId}-order-limits-hint`}
                 className="mt-1.5 text-xs text-neutral-500"
               >
-                Units a customer can put in one cart line. The store allows 5 at most; the API checks these
-                limits again at cart and order time.
+                Units a customer can put in one cart line. Without a custom maximum the store-wide
+                limit applies; stock still caps it. The API checks these limits at cart and order time.
               </p>
             </div>
             <div className="mt-4">

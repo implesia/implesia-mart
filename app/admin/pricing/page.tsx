@@ -12,6 +12,7 @@ import {
 } from "@/lib/mart-api/pricing";
 import {
   getAdminPricingSettings,
+  parseQuantityLimit,
   saveAdminPricingSettings,
   type PricingSettings,
 } from "@/lib/mart-api/pricing-settings";
@@ -22,12 +23,13 @@ import { cn } from "@/lib/utils";
 import { adminFieldClass } from "../_components/admin-ui";
 import { QuantityTiersEditor } from "../_components/quantity-tiers-editor";
 
-type Draft = { enabled: boolean; cap: string; rows: TierRow[] };
+type Draft = { enabled: boolean; cap: string; maxQuantity: string; rows: TierRow[] };
 
 function toDraft(settings: PricingSettings): Draft {
   return {
     enabled: settings.tiersEnabled,
     cap: percentText(settings.maxDiscountPercent),
+    maxQuantity: String(settings.maxQuantityPerOrder),
     rows: tierRowsFrom(settings.tiers),
   };
 }
@@ -69,9 +71,12 @@ export default function AdminPricingPage() {
     draft && (cap == null || !draft.cap.trim())
       ? "Enter a maximum discount from 0 to 99.99%."
       : undefined;
+  const maxQuantity = draft ? parseQuantityLimit(draft.maxQuantity) : null;
+  const maxQuantityError =
+    draft && maxQuantity == null ? "Enter a whole number from 1 to 1000." : undefined;
   const parsed = draft ? parseTierRows(draft.rows) : null;
   const tierError = parsed?.error ?? undefined;
-  const invalid = Boolean(capError || tierError);
+  const invalid = Boolean(capError || maxQuantityError || tierError);
   const dirty =
     stored != null &&
     draft != null &&
@@ -86,13 +91,15 @@ export default function AdminPricingPage() {
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (!draft || invalid || saving || cap == null || !parsed?.tiers) return;
+    if (!draft || invalid || saving || cap == null || maxQuantity == null || !parsed?.tiers)
+      return;
     setSaving(true);
     setError(null);
     try {
       const next = await saveAdminPricingSettings({
         tiersEnabled: draft.enabled,
         maxDiscountPercent: cap,
+        maxQuantityPerOrder: maxQuantity,
         tiers: parsed.tiers,
       });
       setStored(next);
@@ -222,6 +229,31 @@ export default function AdminPricingPage() {
                 {capError ?? "Base + quantity discount is capped here. It can never reach 100%."}
               </p>
             </div>
+            <div>
+              <label
+                htmlFor="pricing-max-quantity"
+                className="text-sm font-medium text-neutral-800"
+              >
+                সর্বোচ্চ quantity প্রতি অর্ডার
+              </label>
+              <input
+                id="pricing-max-quantity"
+                inputMode="numeric"
+                value={draft.maxQuantity}
+                onChange={(event) => edit({ maxQuantity: event.target.value })}
+                aria-invalid={maxQuantityError ? true : undefined}
+                className={cn(adminFieldClass, "mt-1.5", maxQuantityError && "border-red-400")}
+              />
+              <p
+                className={cn(
+                  "mt-1.5 text-xs",
+                  maxQuantityError ? "text-red-700" : "text-neutral-500",
+                )}
+              >
+                {maxQuantityError ??
+                  "Most pieces of one product per order. A product can set its own limit; stock still applies. Tiers above the limit cannot be reached."}
+              </p>
+            </div>
             <QuantityTiersEditor
               id="pricing-tiers"
               rows={draft.rows}
@@ -244,7 +276,15 @@ export default function AdminPricingPage() {
               </thead>
               <tbody>
                 {example.map((line, index) => (
-                  <tr key={exampleQuantities[index]} className="border-t border-neutral-200/70">
+                  <tr
+                    key={exampleQuantities[index]}
+                    className={cn(
+                      "border-t border-neutral-200/70",
+                      maxQuantity != null &&
+                        exampleQuantities[index] > maxQuantity &&
+                        "text-neutral-400 line-through",
+                    )}
+                  >
                     <td className="py-1.5">{exampleQuantities[index]}</td>
                     <td className="py-1.5">{percentText(line.totalPercent)}%</td>
                     <td className="py-1.5 text-right">{formatTaka(line.unitPrice)}</td>

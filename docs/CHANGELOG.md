@@ -2,6 +2,14 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Admin-configurable max quantity per order (replaces the hardcoded 5).**
+  - Admin › Discounts (`/admin/pricing`): new field "সর্বোচ্চ quantity প্রতি অর্ডার" (default 10, 1–1000, Save is disabled while invalid); the worked example greys out quantities above the limit.
+  - Admin product form: under Order limits, "Use store-wide limit" (sends `max_order_quantity: null`) or "Custom maximum for this product" (enables the Maximum field, 1–1000).
+  - Product page, mobile buy bar, cart drawer and checkout: the quantity goes up to the API's maximum (min(limit, stock); per option via `variants[].max_quantity`). At the maximum + is disabled and "সর্বোচ্চ Nটি নেওয়া যাবে" is shown (product page, cart drawer, checkout).
+  - Tier offers list only quantities that can be bought, so "৮টি কিনলে ৩০% ছাড়" appears with the default limit of 10.
+  - Removed the hardcoded 5 (`ORDER_QTY_CAP`, `MAX_CART_QTY`); `QUANTITY_CEILING = 1000` and `DEFAULT_MAX_QUANTITY = 10` live in `lib/mart-api/variants.ts`. Product pages are `no-store`, so admin changes show on the next load.
+  - Files: `lib/mart-api/variants.ts`, `lib/mart-api/pricing.ts`, `lib/mart-api/pricing-settings.ts`, `lib/mart-api/cart.ts`, `lib/mart-api/product-page.ts`, `app/(client)/_lib/cart-shared.ts`, `app/(client)/products/_components/buy-quantity-store.ts`, `app/(client)/products/_components/use-purchase-quantity.ts`, `app/(client)/products/_components/product-info.tsx`, `app/(client)/products/_components/product-mobile-buy-bar.tsx`, `app/(client)/products/_components/product-whatsapp-button.tsx`, `app/(client)/_components/cart/cart-drawer.tsx`, `app/(client)/checkout/_components/checkout-order-summary.tsx`, `app/admin/pricing/page.tsx`, `app/admin/products/_components/product-form.tsx`, `tests/variants.test.ts`, `tests/product-page.test.ts`, `tests/pricing.test.ts`.
+  - Backend: needs migration `0087`, `max_quantity_per_order` on `/api/v1/admin/pricing` and `variants[].max_quantity` (backend repo, same day).
 - **Dynamic discounts (regular price + base % + quantity tiers).**
   - Admin product form: Pricing now takes **Regular price** and **Base discount %** and shows the selling price live; "Quantity discounts" chooses store-wide tiers or custom tiers (add/remove rows). Regular price/base are sent (`regular_price`, `base_discount_percent`) only when changed, so saving other fields never re-rounds an older price.
   - New **Admin › Discounts** page (`/admin/pricing`): store-wide tiers on/off, max %, tier editor and a worked example.

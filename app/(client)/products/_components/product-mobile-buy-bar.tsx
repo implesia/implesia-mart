@@ -38,7 +38,7 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
     selected,
   } = usePurchaseQuantity(product.slug, variant?.id ?? null, {
     min: product.minPerOrder,
-    max: product.maxPerOrder,
+    max: variant?.maxQuantity ?? product.maxPerOrder,
   });
   const view = priceView(product, variant, quantity);
   const [pending, setPending] = useState<"cart" | "buy" | null>(null);

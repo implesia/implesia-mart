@@ -130,7 +130,8 @@ test("purchase quantity and buy-now stay inside the public contract", () => {
   assert.equal(purchaseQuantity(0), 1);
   assert.equal(purchaseQuantity(-3), 1);
   assert.equal(purchaseQuantity(Number.NaN), 1);
-  assert.equal(purchaseQuantity(9), 5);
+  assert.equal(purchaseQuantity(9), 9);
+  assert.equal(purchaseQuantity(5000), 1000);
   const href = directCheckoutHref(
     { slug: "night-upload-check", id: published.id },
     2,

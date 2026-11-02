@@ -1,15 +1,19 @@
 import { readStoreBadges, type StoreBadge } from "@/lib/mart-api/badge-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import { readPricing, type ProductPricing } from "@/lib/mart-api/pricing";
-import { readVariants, type ProductVariant } from "@/lib/mart-api/variants";
+import {
+  QUANTITY_CEILING,
+  readVariants,
+  type ProductVariant,
+} from "@/lib/mart-api/variants";
 
 const PRODUCT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
 const CATEGORY_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STATUSES = new Set(["available", "sold-out", "coming-soon"]);
 
-/** Matches the public cart cap. The server still rejects an illegal quantity. */
-export const PURCHASE_QTY_MAX = 5;
+/** Upper bound for a quantity in a link. The API checks the product's real limit. */
+export const PURCHASE_QTY_MAX = QUANTITY_CEILING;
 
 export function catalogResponseKind(status: number): "ok" | "missing" | "down" {
   if (status === 404) return "missing";
@@ -320,7 +324,7 @@ export function normalizeProductDetail(
 }
 
 function orderLimit<T extends number | null>(value: unknown, fallback: T): number | T {
-  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 5
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= QUANTITY_CEILING
     ? value
     : fallback;
 }

@@ -48,7 +48,7 @@ export function ProductWhatsAppButton({
   const { variant, check } = useSelectedVariant(product);
   const { quantity } = usePurchaseQuantity(product.slug, variant?.id ?? null, {
     min: product.minPerOrder,
-    max: product.maxPerOrder,
+    max: variant?.maxQuantity ?? product.maxPerOrder,
   });
   const number = whatsappNumber(useSiteContact().whatsapp);
   const view = priceView(product, variant, quantity);

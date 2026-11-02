@@ -1,5 +1,6 @@
 import { cartItemBody } from "@/lib/mart-api/cart-body";
 import { readPricing, type ProductPricing } from "@/lib/mart-api/pricing";
+import { DEFAULT_MAX_QUANTITY } from "@/lib/mart-api/variants";
 import {
   MART_API_URL,
   MartApiError,
@@ -193,7 +194,7 @@ function mapLine(item: ApiLine): CartLine {
     pricing: readPricing(item.pricing),
     available: item.available,
     minQuantity: item.min_quantity ?? 1,
-    maxQuantity: item.max_quantity ?? 5,
+    maxQuantity: item.max_quantity ?? DEFAULT_MAX_QUANTITY,
     selection: (item.selection ?? []).map((choice) => ({
       name: choice.name,
       label: choice.label,

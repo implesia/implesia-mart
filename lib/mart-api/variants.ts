@@ -15,11 +15,19 @@ export type ProductVariant = {
   price: number;
   compareAtPrice: number | null;
   available: boolean;
+  /** Most per order line: min(order limit, stock), from the API. Null = use the product's. */
+  maxQuantity: number | null;
 };
 
 export type OptionChoices = Record<string, string>;
 
-export const ORDER_QTY_CAP = 5;
+/**
+ * Upper bound the API accepts for any order limit. The real limit (Admin › Discounts, or the
+ * product's own) arrives with the product and cart data; the API checks it again.
+ */
+export const QUANTITY_CEILING = 1000;
+/** Store-wide default, used only when a response does not carry a limit. */
+export const DEFAULT_MAX_QUANTITY = 10;
 
 /** One cart line is one product, or one product and one variant. */
 export function lineKey(slug: string, variantId?: string | null) {
@@ -92,8 +100,10 @@ export function clampQuantity(
   quantity: number,
   limits: { min?: number; max?: number | null } = {},
 ) {
-  const min = Math.max(1, Math.min(ORDER_QTY_CAP, Math.floor(limits.min ?? 1)));
-  const ceiling = limits.max ? Math.min(ORDER_QTY_CAP, Math.floor(limits.max)) : ORDER_QTY_CAP;
+  const min = Math.max(1, Math.min(QUANTITY_CEILING, Math.floor(limits.min ?? 1)));
+  const ceiling = limits.max
+    ? Math.min(QUANTITY_CEILING, Math.floor(limits.max))
+    : QUANTITY_CEILING;
   const max = Math.max(min, ceiling);
   if (!Number.isFinite(quantity)) return min;
   return Math.max(min, Math.min(max, Math.floor(quantity)));
@@ -187,6 +197,12 @@ export function readVariants(value: unknown): ProductVariant[] {
             ? compare
             : null,
         available: row.available === true,
+        maxQuantity:
+          typeof row.max_quantity === "number" &&
+          Number.isInteger(row.max_quantity) &&
+          row.max_quantity >= 0
+            ? row.max_quantity
+            : null,
       },
     ];
   });

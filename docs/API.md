@@ -27,7 +27,7 @@ Notes on the tables below:
 | Delete one | `DELETE /api/v1/admin/products/{id}` |
 | Delete selected | `DELETE /api/v1/admin/products/bulk` (`bulkDeleteMartProducts`) |
 | Badge picker | `GET /api/v1/admin/badges` |
-| Discount settings (`/admin/pricing`) | `GET` / `PUT /api/v1/admin/pricing` (`pricing-settings.ts`) |
+| Discount settings and max quantity per order (`/admin/pricing`) | `GET` / `PUT /api/v1/admin/pricing` (`pricing-settings.ts`, `max_quantity_per_order`) |
 | Product pricing fields | `regular_price`, `base_discount_percent`, `tier_mode`, `tiers` in the create/update payload |
 | Product page (storefront) | `GET /api/v1/products/by-slug/{slug}` or `GET /api/v1/products/{id}` |
 

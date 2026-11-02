@@ -193,6 +193,11 @@ export function tierOffers(
     );
 }
 
+/** "সর্বোচ্চ ৮টি নেওয়া যাবে": shown next to a quantity selector at its limit. */
+export function maxQuantityText(maxQuantity: number) {
+  return `সর্বোচ্চ ${bangla(String(maxQuantity))}টি নেওয়া যাবে`;
+}
+
 /** A typed percent: blank = 0; 0–99.99 with at most two decimals, else null. */
 export function parsePercent(value: string): number | null {
   const text = value.trim();

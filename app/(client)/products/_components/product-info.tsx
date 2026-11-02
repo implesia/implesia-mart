@@ -10,13 +10,12 @@ import { cn } from "@/lib/utils";
 
 import { catalogProductId } from "@/lib/mart-api/catalog";
 import { directCheckoutHref } from "@/lib/mart-api/product-page";
-import { percentText, tierOffers } from "@/lib/mart-api/pricing";
+import { maxQuantityText, percentText, tierOffers } from "@/lib/mart-api/pricing";
 import {
   chooseOption,
   clampQuantity,
   defaultChoices,
   findVariant,
-  ORDER_QTY_CAP,
   priceView,
   purchaseCheck,
   valueIsOffered,
@@ -67,10 +66,15 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
   const [choices, setChoices] = useState<Record<string, string>>(initialChoices);
   const selectedVariant = hasVariants ? findVariant(variants, choices) : null;
   const check = purchaseCheck(hasVariants, selectedVariant);
-  const limits = { min: product.minPerOrder, max: product.maxPerOrder };
+  // min(order limit, stock) from the API: the chosen variant's, else the product's.
+  const limits = {
+    min: product.minPerOrder,
+    max: selectedVariant?.maxQuantity ?? product.maxPerOrder,
+  };
   const {
     quantity,
     inCart,
+    max,
     atMin,
     atMax,
     decrease,
@@ -83,7 +87,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
   const offers = product.pricing
     ? tierOffers(
         product.pricing,
-        clampQuantity(ORDER_QTY_CAP, limits),
+        max,
         selectedVariant
           ? {
               regular: Math.max(
@@ -285,7 +289,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
         </div>
       ) : (
         <>
-          <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
+          <div className="mb-5 flex flex-wrap items-center gap-3 sm:mb-6 sm:gap-4">
             <span
               id={`${product.slug}-qty-label`}
               className="text-sm font-semibold text-on-background"
@@ -324,6 +328,15 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
                 <MaterialIcon name="add" className="text-[18px]" />
               </button>
             </div>
+            {atMax ? (
+              <span
+                className="text-xs text-on-surface-variant"
+                data-testid="product-qty-limit"
+                aria-live="polite"
+              >
+                {maxQuantityText(max)}
+              </span>
+            ) : null}
           </div>
 
           <p

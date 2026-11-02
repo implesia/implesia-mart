@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import { Separator } from "@/components/ui/separator";
-import { percentText } from "@/lib/mart-api/pricing";
+import { maxQuantityText, percentText } from "@/lib/mart-api/pricing";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -147,6 +147,14 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                     {formatCartMoney(item.lineTotal)}
                   </span>
                 </div>
+                {item.available && item.quantity >= item.maxQuantity ? (
+                  <p
+                    className="mt-1 text-xs text-neutral-500"
+                    data-testid="checkout-qty-limit"
+                  >
+                    {maxQuantityText(item.maxQuantity)}
+                  </p>
+                ) : null}
               </div>
             </div>
           ))}

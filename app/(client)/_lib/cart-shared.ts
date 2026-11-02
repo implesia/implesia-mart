@@ -1,6 +1,5 @@
 import type { ProductPricing } from "@/lib/mart-api/pricing";
-
-export const MAX_CART_QTY = 5;
+import { QUANTITY_CEILING } from "@/lib/mart-api/variants";
 
 export type CartLineResolved = {
   id: string;
@@ -46,10 +45,10 @@ export function clampCartQty(
   value: number,
   limits: { min?: number; max?: number | null } = {},
 ) {
-  const min = Math.max(1, Math.min(MAX_CART_QTY, Math.floor(limits.min ?? 1)));
+  const min = Math.max(1, Math.min(QUANTITY_CEILING, Math.floor(limits.min ?? 1)));
   const ceiling = limits.max
-    ? Math.min(MAX_CART_QTY, Math.floor(limits.max))
-    : MAX_CART_QTY;
+    ? Math.min(QUANTITY_CEILING, Math.floor(limits.max))
+    : QUANTITY_CEILING;
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(Math.max(min, ceiling), Math.floor(value)));
 }
