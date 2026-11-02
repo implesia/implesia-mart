@@ -903,7 +903,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             <ServerFieldErrors id={`${formId}-server-images`} items={serverFor("images")} />
             {!form.imageSrc ? (
               <p className="mt-2 text-sm text-neutral-500">
-                Add a product image before saving.
+                Add a product image before publishing. A draft can be saved without one.
               </p>
             ) : null}
             <div className="mt-3">
