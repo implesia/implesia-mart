@@ -1,3 +1,5 @@
+import { normalizePhone } from "@/lib/contact/contact-rules";
+
 export type CheckoutShippingValues = {
   name: string;
   email: string;
@@ -12,7 +14,7 @@ export function validateShipping(shipping: CheckoutShippingValues) {
   const errors: Partial<Record<keyof CheckoutShippingValues, string>> = {};
 
   if (!shipping.name.trim()) errors.name = "নাম লিখুন";
-  if (!/^01\d{9}$/.test(shipping.phone.trim())) {
+  if (!normalizePhone(shipping.phone)) {
     errors.phone = "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)";
   }
   if (shipping.email.trim()) {

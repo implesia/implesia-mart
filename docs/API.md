@@ -56,15 +56,16 @@ Notes on the tables below:
 | `/admin/site/contact` | `site-contact` |
 | `/admin/site/footer` | `contact-details`, `footer` |
 | `/admin/site/header` | `header` |
+| `/admin/site/payment` | `payment-settings` |
 | `/blogs` | `blog-categories`, `blog-hero`, `blog-listing`, `blog-posts` |
 | `/blogs/[slug]` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-posts`, `blog-related` |
-| `/checkout` | `cart`, `delivery`, `orders` |
+| `/checkout` | `cart`, `delivery`, `orders`, `payment-settings` |
 | `/contact-us` | `contact-details`, `contact-faq`, `contact-form`, `contact-hero`, `contact-support`, `inquiry-public` |
 | `/faqs` | `delivery`, `faq-callout`, `faq-categories`, `faq-help`, `faq-hero`, `faq-items`, `faq-listing` |
 | `/order-status` | `orders` |
 | `/privacy-policy` | `privacy-collection`, `privacy-contents`, `privacy-hero`, `privacy-introduction`, `privacy-rights`, `privacy-sharing`, `privacy-support`, `privacy-usage` |
 | `/products` | `catalog`, `categories` |
-| `/products/[ref]` | `catalog`, `site-contact` |
+| `/products/[ref]` | `catalog`, `payment-settings`, `site-contact` |
 | `/search` | `search` |
 | `/shipping-returns` | `catalog`, `shipping-block`, `shipping-contents`, `shipping-faq`, `shipping-hero`, `shipping-payment`, `shipping-refund`, `shipping-returns`, `shipping-support` |
 | `/sustainability` | `sustainability-commitment`, `sustainability-cta`, `sustainability-durability`, `sustainability-hero`, `sustainability-impact`, `sustainability-origin`, `sustainability-quality` |
@@ -117,6 +118,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `home-media.ts` | `/api/v1/admin/home/media`<br>`/api/v1/admin/home/media/image`<br>`/api/v1/admin/home/media/video`<br>`/api/v1/home/media` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
 | `orders.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/orders`<br>`/api/v1/orders/lookup`<br>`/api/v1/orders/quote` |
+| `payment-settings.ts` | `/api/v1/admin/site/payment`<br>`/api/v1/admin/site/payment/qr`<br>`/api/v1/site/payment` |
 | `pricing-settings.ts` | `/api/v1/admin/pricing` |
 | `privacy-collection.ts` | `/api/v1/admin/pages/privacy/collection`<br>`/api/v1/pages/privacy/collection` |
 | `privacy-contents.ts` | `/api/v1/admin/pages/privacy/contents`<br>`/api/v1/pages/privacy/contents` |
@@ -148,3 +150,10 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `sustainability-origin.ts` | `/api/v1/admin/pages/sustainability/origin`<br>`/api/v1/pages/sustainability/origin` |
 | `sustainability-quality.ts` | `/api/v1/admin/pages/sustainability/quality`<br>`/api/v1/pages/sustainability/quality` |
 | `trust.ts` | `/api/v1/admin/home/trust`<br>`/api/v1/admin/home/trust/order`<br>`/api/v1/admin/home/trust/{id}`<br>`/api/v1/home/trust` |
+
+## Bangla QR payment fields
+
+- `GET /api/v1/site/payment` (public, `no-store`): `{ bangla_qr_src, bangla_qr_enabled }`.
+- Admin: `GET /api/v1/admin/site/payment`, `POST /api/v1/admin/site/payment/qr` (multipart field `image`), `DELETE /api/v1/admin/site/payment/qr`; all through `/api/proxy`.
+- `POST /api/v1/orders/quote` → `bangla_qr_options: [{ percent, advance, due }]` (empty when no QR or total 0).
+- `POST /api/v1/orders` accepts `payment_method` (`cod` | `bangla_qr`), `advance_percent` (25/50/75/100, Bangla QR only) and `payment_reference` (Bangla QR only). Order reads return `payment_method`, `advance_percent`, `advance_amount`, `due_amount`; admin reads and the create response also return `payment_reference`.

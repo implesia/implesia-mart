@@ -547,6 +547,16 @@ export const SITE_CMS: CmsPage[] = [
     description: "Phone, WhatsApp and email used across the whole storefront.",
     sections: [],
   },
+  {
+    id: "payment",
+    label: "Payment QR",
+    icon: "qr_code_2",
+    href: "/admin/site/payment",
+    publicPath: "/checkout",
+    api: "site/payment",
+    description: "Bangla QR image for the product pages and the checkout.",
+    sections: [],
+  },
 ];
 
 export const ALL_CMS_PAGES: CmsPage[] = [HOME_CMS, ...PAGE_CMS, ...SITE_CMS];

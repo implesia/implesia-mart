@@ -3,6 +3,13 @@ import type { DeliveryZone } from "@/lib/mart-api/delivery";
 import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
 import { MartApiError, authorizedFetch, mediaUrl, publicFetch } from "@/lib/mart-api/products";
 import type { OrderStatus } from "@/lib/mart-mock/store";
+import {
+  advanceOptionsFrom,
+  buildPaymentPayload,
+  type AdvanceOption,
+  type AdvancePercent,
+  type PaymentMethod,
+} from "@/lib/payment";
 
 export type QuoteLine = {
   productId: string;
@@ -32,6 +39,8 @@ export type OrderQuote = {
   total: number;
   deliveryZone: DeliveryZone;
   deliveryAvailable: boolean;
+  /** Bangla QR advance choices for this total; empty when no QR is set. */
+  banglaQrOptions: AdvanceOption[];
 };
 
 export type MartOrderItem = {
@@ -58,7 +67,12 @@ export type MartOrder = {
   number: string;
   source: "cart" | "direct";
   status: OrderStatus;
-  paymentMethod: "cod";
+  paymentMethod: PaymentMethod;
+  advancePercent: number | null;
+  advanceAmount: number;
+  dueAmount: number;
+  /** Bangla QR transaction ID / sender number ("" for COD). */
+  paymentReference: string;
   anonymous: boolean;
   customerName: string;
   phone: string;
@@ -123,6 +137,7 @@ type ApiQuote = {
   total: number;
   delivery_zone: DeliveryZone;
   delivery_available?: boolean;
+  bangla_qr_options?: unknown;
 };
 
 type ApiOrderItem = {
@@ -148,7 +163,11 @@ type ApiOrder = {
   number: string;
   source: "cart" | "direct";
   status: OrderStatus;
-  payment_method: "cod";
+  payment_method: PaymentMethod;
+  advance_percent?: number | null;
+  advance_amount?: number;
+  due_amount?: number;
+  payment_reference?: string;
   anonymous: boolean;
   customer_name: string;
   phone: string;
@@ -176,6 +195,23 @@ function mapSelection(selection: { name: string; label: string; swatch?: string 
   }));
 }
 
+/** Payment fields of an order; older orders (no due sent) owe the whole total. */
+function paymentFrom(body: {
+  payment_method: PaymentMethod;
+  advance_percent?: number | null;
+  advance_amount?: number;
+  due_amount?: number;
+  total: number;
+}) {
+  const advanceAmount = body.advance_amount ?? 0;
+  return {
+    paymentMethod: body.payment_method === "bangla_qr" ? ("bangla_qr" as const) : ("cod" as const),
+    advancePercent: body.advance_percent ?? null,
+    advanceAmount,
+    dueAmount: body.due_amount ?? Math.max(body.total - advanceAmount, 0),
+  };
+}
+
 function mapQuote(body: ApiQuote): OrderQuote {
   return {
     items: body.items.map((item) => ({
@@ -201,6 +237,7 @@ function mapQuote(body: ApiQuote): OrderQuote {
     total: body.total,
     deliveryZone: body.delivery_zone,
     deliveryAvailable: body.delivery_available !== false,
+    banglaQrOptions: advanceOptionsFrom(body.bangla_qr_options),
   };
 }
 
@@ -210,7 +247,8 @@ function mapOrder(body: ApiOrder): MartOrder {
     number: body.number,
     source: body.source,
     status: body.status,
-    paymentMethod: body.payment_method,
+    ...paymentFrom(body),
+    paymentReference: body.payment_reference ?? "",
     anonymous: body.anonymous,
     customerName: body.customer_name,
     phone: body.phone,
@@ -285,6 +323,7 @@ export async function placeOrder(
     area: string;
     address: string;
     notes: string;
+    payment?: { method: PaymentMethod; advancePercent?: AdvancePercent | null; reference?: string };
   },
 ) {
   const response = await publicFetch("/api/v1/orders", {
@@ -302,6 +341,7 @@ export async function placeOrder(
       area: input.area.trim(),
       address: input.address.trim(),
       notes: input.notes.trim(),
+      ...buildPaymentPayload(input.payment ?? { method: "cod" }),
     }),
   });
   if (!response.ok) throw new MartApiError(await readError(response, "Could not place the order."));
@@ -389,7 +429,10 @@ export type PublicOrder = {
   total: number;
   courierName: string;
   trackingNumber: string;
-  paymentMethod: "cod";
+  paymentMethod: PaymentMethod;
+  advancePercent: number | null;
+  advanceAmount: number;
+  dueAmount: number;
   items: PublicOrderItem[];
   createdAt: string;
 };
@@ -416,7 +459,10 @@ type ApiPublicOrder = {
   total: number;
   courier_name: string;
   tracking_number: string;
-  payment_method: "cod";
+  payment_method: PaymentMethod;
+  advance_percent?: number | null;
+  advance_amount?: number;
+  due_amount?: number;
   items: ApiPublicOrderItem[];
   created_at: string;
 };
@@ -433,7 +479,7 @@ function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
     total: body.total,
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
-    paymentMethod: body.payment_method,
+    ...paymentFrom(body),
     createdAt: body.created_at,
     items: body.items.map((item) => ({
       title: item.title,

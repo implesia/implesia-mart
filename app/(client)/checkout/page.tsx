@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
+import { getPublicPaymentSettings } from "@/lib/mart-api/payment-settings";
 import { purchaseQuantity } from "@/lib/mart-api/product-page";
 import { DEFAULT_DESCRIPTION, pageMetadata } from "@/lib/seo";
 
 import { Container } from "../_components/common/container";
+import { PaymentQrProvider } from "../_providers/payment-qr-provider";
 import { ProductBreadcrumbs } from "../products/_components/product-breadcrumbs";
 import { CheckoutView } from "./_components/checkout-view";
 
@@ -36,6 +38,7 @@ export default async function CheckoutPage({
   const rawVariant = Array.isArray(sp.variant) ? sp.variant[0] : sp.variant;
   const variantId =
     rawVariant && isCatalogProductId(rawVariant) ? rawVariant : undefined;
+  const payment = await getPublicPaymentSettings();
 
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
@@ -46,12 +49,14 @@ export default async function CheckoutPage({
           />
         </div>
       </Container>
-      <CheckoutView
-        seedSlug={productSlug}
-        seedQty={quantity}
-        seedProductId={productId}
-        seedVariantId={variantId}
-      />
+      <PaymentQrProvider qrSrc={payment.qrSrc}>
+        <CheckoutView
+          seedSlug={productSlug}
+          seedQty={quantity}
+          seedProductId={productId}
+          seedVariantId={variantId}
+        />
+      </PaymentQrProvider>
     </main>
   );
 }

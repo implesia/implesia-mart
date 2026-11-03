@@ -30,6 +30,7 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
     pricingMessage,
     changeQuantity,
     removeLine,
+    advanceChoice,
   } = useCheckoutForm();
   const items = quote?.items ?? [];
 
@@ -231,6 +232,23 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
             {formatCartMoney(zoneKnown ? grandTotal : (quote?.subtotal ?? 0))}
           </span>
         </div>
+        {advanceChoice && zoneKnown ? (
+          <div
+            className={cn(
+              "grid gap-1.5 rounded-xl bg-primary/5 px-3.5 py-3 text-sm ring-1 ring-primary/20",
+              pricingBusy && "opacity-50",
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-neutral-700">এখন Bangla QR-এ অগ্রিম ({advanceChoice.percent}%)</span>
+              <span className="font-semibold text-neutral-950">{formatCartMoney(advanceChoice.advance)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-neutral-700">ডেলিভারিতে বাকি (ক্যাশ)</span>
+              <span className="font-semibold text-neutral-950">{formatCartMoney(advanceChoice.due)}</span>
+            </div>
+          </div>
+        ) : null}
         {pricingMessage ? (
           <p className="text-center text-xs text-red-500">{pricingMessage}</p>
         ) : null}
