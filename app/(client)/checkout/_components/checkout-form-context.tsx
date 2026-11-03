@@ -31,6 +31,12 @@ import {
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import { purchaseQuantity } from "@/lib/mart-api/product-page";
 import { MartApiError } from "@/lib/mart-api/products";
+import {
+  paymentReferenceError,
+  type AdvanceOption,
+  type AdvancePercent,
+  type PaymentMethod,
+} from "@/lib/payment";
 
 import {
   validateShipping,
@@ -38,6 +44,7 @@ import {
 } from "../_lib/validate-shipping";
 import { readBuySelection } from "../../products/_components/purchase-selection";
 import { useCart } from "../../_providers/cart-provider";
+import { usePaymentQr } from "../../_providers/payment-qr-provider";
 
 type OrderSource = "cart" | "direct";
 
@@ -54,7 +61,19 @@ type CheckoutFormContextValue = {
     key: K,
     value: CheckoutShippingValues[K],
   ) => void;
-  paymentMethod: "cod";
+  paymentMethod: PaymentMethod;
+  setPaymentMethod: (method: PaymentMethod) => void;
+  /** The store's Bangla QR image, or null (then the Bangla QR method is hidden). */
+  qrSrc: string | null;
+  /** Server-computed choices for the current total (empty: Bangla QR not offered). */
+  banglaQrOptions: AdvanceOption[];
+  advancePercent: AdvancePercent | null;
+  setAdvancePercent: (percent: AdvancePercent) => void;
+  /** The chosen option's server amounts, or null. */
+  advanceChoice: AdvanceOption | null;
+  paymentReference: string;
+  setPaymentReference: (value: string) => void;
+  paymentErrors: { percent?: string; reference?: string };
   errors: Partial<Record<keyof CheckoutShippingValues, string>>;
   status: "idle" | "submitting" | "success" | "error";
   errorMessage: string | null;
@@ -99,6 +118,7 @@ const emptyQuote: OrderQuote = {
   total: 0,
   deliveryZone: "outside",
   deliveryAvailable: false,
+  banglaQrOptions: [],
 };
 
 function messageFrom(error: unknown) {
@@ -122,6 +142,11 @@ export function CheckoutFormProvider({
   seedVariantId?: string;
 }) {
   const { reloadCart } = useCart();
+  const qrSrc = usePaymentQr();
+  const [chosenMethod, setChosenMethod] = useState<PaymentMethod>("cod");
+  const [advancePercent, setAdvancePercentState] = useState<AdvancePercent | null>(null);
+  const [paymentReference, setPaymentReferenceState] = useState("");
+  const [paymentErrors, setPaymentErrors] = useState<{ percent?: string; reference?: string }>({});
   const [shipping, setShipping] =
     useState<CheckoutShippingValues>(initialShipping);
   const [rates, setRates] = useState<DeliveryRates | null>(null);
@@ -395,6 +420,31 @@ export function CheckoutFormProvider({
     [refreshQuote, reloadCart, shipping.district, shipping.area, source],
   );
 
+  const banglaQrOptions = useMemo(
+    () => (qrSrc ? (quote?.banglaQrOptions ?? []) : []),
+    [qrSrc, quote],
+  );
+  // Bangla QR falls back to COD while it is not offered (no QR, or nothing to pay yet).
+  const paymentMethod: PaymentMethod =
+    chosenMethod === "bangla_qr" && banglaQrOptions.length > 0 ? "bangla_qr" : "cod";
+  const advanceChoice =
+    paymentMethod === "bangla_qr"
+      ? (banglaQrOptions.find((option) => option.percent === advancePercent) ?? null)
+      : null;
+
+  const setPaymentMethod = useCallback((method: PaymentMethod) => {
+    setChosenMethod(method);
+    setPaymentErrors({});
+  }, []);
+  const setAdvancePercent = useCallback((percent: AdvancePercent) => {
+    setAdvancePercentState(percent);
+    setPaymentErrors((prev) => (prev.percent ? { ...prev, percent: undefined } : prev));
+  }, []);
+  const setPaymentReference = useCallback((value: string) => {
+    setPaymentReferenceState(value);
+    setPaymentErrors((prev) => (prev.reference ? { ...prev, reference: undefined } : prev));
+  }, []);
+
   const resetStatus = useCallback(() => {
     setStatus("idle");
     setErrorMessage(null);
@@ -403,7 +453,14 @@ export function CheckoutFormProvider({
   const submitOrder = useCallback(async () => {
     const nextErrors = validateShipping(shipping);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
+    const nextPaymentErrors: { percent?: string; reference?: string } = {};
+    if (paymentMethod === "bangla_qr") {
+      if (!advanceChoice) nextPaymentErrors.percent = "কত শতাংশ অগ্রিম দেবেন বেছে নিন।";
+      const referenceError = paymentReferenceError(paymentReference);
+      if (referenceError) nextPaymentErrors.reference = referenceError;
+    }
+    setPaymentErrors(nextPaymentErrors);
+    if (Object.keys(nextErrors).length > 0 || Object.keys(nextPaymentErrors).length > 0) {
       setStatus("error");
       setErrorMessage("অনুগ্রহ করে প্রয়োজনীয় তথ্যগুলো সঠিকভাবে পূরণ করুন।");
       return false;
@@ -438,6 +495,10 @@ export function CheckoutFormProvider({
         deliveryZone: pickedZone.current ? quote.deliveryZone : undefined,
         address: shipping.address,
         notes: shipping.notes,
+        payment:
+          paymentMethod === "bangla_qr"
+            ? { method: "bangla_qr", advancePercent, reference: paymentReference }
+            : { method: "cod" },
       });
       if (source === "cart") await reloadCart();
       setOrderNumber(order.number);
@@ -448,7 +509,16 @@ export function CheckoutFormProvider({
       setErrorMessage(messageFrom(error));
       return false;
     }
-  }, [quote, reloadCart, shipping, source]);
+  }, [
+    advanceChoice,
+    advancePercent,
+    paymentMethod,
+    paymentReference,
+    quote,
+    reloadCart,
+    shipping,
+    source,
+  ]);
 
   const canSubmit = Boolean(
     quote &&
@@ -465,7 +535,16 @@ export function CheckoutFormProvider({
     () => ({
       shipping,
       setShippingField,
-      paymentMethod: "cod",
+      paymentMethod,
+      setPaymentMethod,
+      qrSrc,
+      banglaQrOptions,
+      advancePercent,
+      setAdvancePercent,
+      advanceChoice,
+      paymentReference,
+      setPaymentReference,
+      paymentErrors,
       errors,
       status,
       errorMessage,
@@ -488,6 +567,16 @@ export function CheckoutFormProvider({
     }),
     [
       shipping,
+      paymentMethod,
+      setPaymentMethod,
+      qrSrc,
+      banglaQrOptions,
+      advancePercent,
+      setAdvancePercent,
+      advanceChoice,
+      paymentReference,
+      setPaymentReference,
+      paymentErrors,
       zoneKnown,
       setShippingField,
       errors,

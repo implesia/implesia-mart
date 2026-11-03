@@ -6,6 +6,7 @@ export const checkoutCopy = {
   shippingHint: "সঠিক মোবাইল ও ঠিকানা দিলে ডেলিভারি সহজ হয়।",
   paymentTitle: "পেমেন্ট পদ্ধতি",
   paymentHint: "এখন শুধু ক্যাশ অন ডেলিভারি চালু আছে।",
+  paymentHintQr: "ক্যাশ অন ডেলিভারি, অথবা Bangla QR-এ অগ্রিম দিয়ে বাকিটা ডেলিভারিতে।",
   summaryTitle: "অর্ডার সামারি",
   placeOrder: "অর্ডার কনফার্ম করুন",
   sslNote: "ক্যাশ অন ডেলিভারি · হাতে পেয়ে টাকা দিন",

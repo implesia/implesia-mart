@@ -21,8 +21,10 @@ import {
   valueIsOffered,
 } from "@/lib/mart-api/variants";
 
+import { BanglaQrCard } from "../../_components/common/bangla-qr";
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
+import { usePaymentQr } from "../../_providers/payment-qr-provider";
 import { setBuyQuantity } from "./buy-quantity-store";
 import { ProductPurchaseOptions } from "./product-purchase-options";
 import { ProductWhatsAppButton } from "./product-whatsapp-button";
@@ -49,6 +51,7 @@ const TRUST_BADGES = [
 
 export function ProductInfo({ product }: { product: ProductDetail }) {
   const router = useRouter();
+  const qrSrc = usePaymentQr();
   const groups = useMemo(
     () => product.purchaseOptions ?? [],
     [product.purchaseOptions],
@@ -390,6 +393,7 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
             layout="full"
             className="mb-2 mt-3 lg:mt-0"
           />
+          {qrSrc ? <BanglaQrCard src={qrSrc} className="mb-2 mt-2" /> : null}
         </>
       )}
 

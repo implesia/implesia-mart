@@ -7,12 +7,14 @@ import {
   getStoreProduct,
   getStoreProductById,
 } from "@/lib/mart-api/catalog";
+import { getPublicPaymentSettings } from "@/lib/mart-api/payment-settings";
 import { getPublicSiteContact } from "@/lib/mart-api/site-contact";
 import { parseProductRef, productPath } from "@/lib/mart-api/product-url";
 import { productJsonLd, STORE_CURRENCY } from "@/lib/product-structured-data";
 import { absoluteUrl, pageMetadata, productSeo, SITE_NAME } from "@/lib/seo";
 
 import { JsonLd } from "../../_components/common/json-ld";
+import { PaymentQrProvider } from "../../_providers/payment-qr-provider";
 import { SiteContactProvider } from "../../_providers/site-contact-provider";
 import { ProductDetailLayout } from "../_components/product-detail-view";
 
@@ -67,10 +69,11 @@ export default async function ProductDetailsPage({
   params: Promise<{ ref: string }>;
 }) {
   const { ref } = await params;
-  const [product, contact, rates] = await Promise.all([
+  const [product, contact, rates, payment] = await Promise.all([
     resolveProduct(ref),
     getPublicSiteContact(),
     getStoreDeliveryRates(),
+    getPublicPaymentSettings(),
   ]);
 
   const productUrl = absoluteUrl(productPath(product));
@@ -101,7 +104,9 @@ export default async function ProductDetailsPage({
       <JsonLd data={structuredProduct} />
       <JsonLd data={breadcrumbJsonLd} />
       <SiteContactProvider contact={contact}>
-        <ProductDetailLayout product={product} />
+        <PaymentQrProvider qrSrc={payment.qrSrc}>
+          <ProductDetailLayout product={product} />
+        </PaymentQrProvider>
       </SiteContactProvider>
     </>
   );

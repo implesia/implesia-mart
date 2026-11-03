@@ -198,7 +198,7 @@ export default function AdminOrderDetailPage() {
                 {order.number}
               </h1>
               <OrderStatusBadge status={order.status} />
-              <PaymentBadge />
+              <PaymentBadge method={order.paymentMethod} />
             </div>
             <p className="mt-2 text-sm text-neutral-600">
               Placed {formatPlaced(order.createdAt)}
@@ -328,11 +328,56 @@ export default function AdminOrderDetailPage() {
                 value={formatTaka(order.shipping)}
               />
               <TotalLine label="Total" value={formatTaka(order.total)} strong />
+              {order.paymentMethod === "bangla_qr" ? (
+                <>
+                  <TotalLine
+                    label={`Advance via Bangla QR${order.advancePercent ? ` (${order.advancePercent}%)` : ""}`}
+                    value={formatTaka(order.advanceAmount)}
+                  />
+                  <TotalLine label="Due on delivery (cash)" value={formatTaka(order.dueAmount)} />
+                </>
+              ) : null}
             </dl>
           </section>
         </div>
 
         <div className="space-y-4">
+          <section
+            className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5"
+            data-testid="order-payment"
+          >
+            <h2 className="text-sm font-semibold text-neutral-950">Payment</h2>
+            <dl className="mt-3 space-y-2 text-sm">
+              <TotalLine
+                label="Method"
+                value={order.paymentMethod === "bangla_qr" ? "Bangla QR + cash on delivery" : "Cash on delivery"}
+              />
+              {order.paymentMethod === "bangla_qr" ? (
+                <>
+                  <TotalLine
+                    label="Advance chosen"
+                    value={order.advancePercent ? `${order.advancePercent}%` : "—"}
+                  />
+                  <TotalLine label="Advance (Bangla QR)" value={formatTaka(order.advanceAmount)} />
+                  <TotalLine label="Due on delivery" value={formatTaka(order.dueAmount)} />
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-neutral-500">Transaction ID / sender</dt>
+                    <dd className="break-all text-right font-mono font-semibold text-neutral-950">
+                      {order.paymentReference || "—"}
+                    </dd>
+                  </div>
+                </>
+              ) : (
+                <TotalLine label="Due on delivery" value={formatTaka(order.dueAmount)} />
+              )}
+            </dl>
+            {order.paymentMethod === "bangla_qr" ? (
+              <p className="mt-3 text-xs leading-relaxed text-neutral-500">
+                Check this transaction against the received Bangla QR payment before confirming.
+              </p>
+            ) : null}
+          </section>
+
           <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
             <h2 className="text-sm font-semibold text-neutral-950">Customer</h2>
             <p className="mt-3 text-base font-semibold text-neutral-950">

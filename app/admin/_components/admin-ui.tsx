@@ -249,7 +249,13 @@ export function ActiveStatusField({
   );
 }
 
-export function PaymentBadge({ collected = false }: { collected?: boolean }) {
+export function PaymentBadge({
+  collected = false,
+  method = "cod",
+}: {
+  collected?: boolean;
+  method?: "cod" | "bangla_qr";
+}) {
   return (
     <span
       className={cn(
@@ -259,7 +265,7 @@ export function PaymentBadge({ collected = false }: { collected?: boolean }) {
           : "bg-neutral-100 text-neutral-700",
       )}
     >
-      {collected ? "Collected" : "Cash on delivery"}
+      {collected ? "Collected" : method === "bangla_qr" ? "Bangla QR + COD" : "Cash on delivery"}
     </span>
   );
 }

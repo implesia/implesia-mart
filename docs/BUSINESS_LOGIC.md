@@ -91,3 +91,13 @@ Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-se
 - Max quantity per line: the store-wide limit (Admin › Discounts, default 10) or the product's custom maximum, capped by stock. The API sends the result (`max_per_order`, `variants[].max_quantity`, cart `max_quantity`); selectors stop there, disable + and show "সর্বোচ্চ Nটি নেওয়া যাবে". Hard ceiling 1000 (`QUANTITY_CEILING`).
 - Only reachable tiers are shown (tiers above that maximum are hidden).
 - Order lookup needs the order number and phone; the browser may remember the number locally.
+
+## Bangla QR payment
+
+- One Payment QR for the whole store, managed at Admin › Site › Payment QR (upload, replace, remove). The public `GET /api/v1/site/payment` is read with `no-store`; no QR (or a failed call) hides every QR card and the checkout option.
+- Product page: QR card with the hint text near the price / Add to Cart; tap opens a lightbox. It is information only; ordering still goes through checkout.
+- Checkout methods: cash on delivery (default) and "Bangla QR" (only when the quote returns `bangla_qr_options`). Bangla QR = pay an advance of 25, 50, 75 or 100% now by scanning the QR, and the rest in cash on delivery.
+- Advance = `ceil(total × % / 100)` whole taka, due = total − advance. The API computes the options and the stored amounts; the browser only shows them (`advanceSplit` is a display mirror).
+- The transaction ID / sender number is required for Bangla QR (trimmed, 4–64 letters, digits, `+`, `-`). Cash on delivery sends no percent and no reference.
+- The API rejects Bangla QR when no QR is set, a percent outside 25/50/75/100, or a missing/invalid reference (422, Bengali message shown on the form).
+- The payment is not verified automatically: staff check the transaction ID in Admin › Orders › order detail (Payment section) before confirming.

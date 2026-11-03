@@ -305,7 +305,7 @@ function OrderCard({
         </span>
       </Link>
       <span className="mt-3 flex items-center justify-between gap-3">
-        <PaymentBadge />
+        <PaymentBadge method={order.paymentMethod} />
         <select
           aria-label={`Status for ${order.number}`}
           value={order.status}
@@ -362,7 +362,7 @@ function OrderTableRow({
         </span>
       </td>
       <td className="px-4 py-3 text-right font-semibold whitespace-nowrap tabular-nums">{formatTaka(order.total)}</td>
-      <td className="px-4 py-3 whitespace-nowrap"><PaymentBadge /></td>
+      <td className="px-4 py-3 whitespace-nowrap"><PaymentBadge method={order.paymentMethod} /></td>
       <td className="px-4 py-3 whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
         <select
           aria-label={`Status for ${order.number}`}
