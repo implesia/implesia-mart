@@ -34,6 +34,13 @@ export const HOME_CMS: CmsPage = {
       fields: ["slides", "title", "price", "image", "cta", "published"],
     },
     {
+      id: "showcase",
+      label: "Showcase",
+      icon: "view_quilt",
+      description: "Trending strip under the hero, plus the product row further down.",
+      fields: ["heading", "gadgetRow", "fashionRow"],
+    },
+    {
       id: "trust",
       label: "Trust",
       icon: "verified",
@@ -60,13 +67,6 @@ export const HOME_CMS: CmsPage = {
       icon: "campaign",
       description: "Slim banner under Featured Products. Hidden until you publish it.",
       fields: ["image", "heading", "cta"],
-    },
-    {
-      id: "showcase",
-      label: "Showcase",
-      icon: "view_quilt",
-      description: "Product rows grouped by category.",
-      fields: ["heading", "gadgetRow", "fashionRow"],
     },
     {
       id: "media",

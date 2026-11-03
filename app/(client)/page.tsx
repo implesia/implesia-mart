@@ -9,6 +9,7 @@ import { HomeMediaSection } from "./_components/home/media-section";
 import { PromoBannerSection } from "./_components/home/promo-banner-section";
 import { NewsletterSection } from "./_components/home/newsletter-section";
 import { TestimonialsSection } from "./_components/home/testimonials-section";
+import { TrendingSection } from "./_components/home/trending-section";
 import { Container } from "./_components/common/container";
 import { JsonLd } from "./_components/common/json-ld";
 import { loadStoreCatalog } from "@/lib/mart-api/catalog";
@@ -24,6 +25,7 @@ import { listPublicHomeMedia } from "@/lib/mart-api/home-media";
 import { featuredForStore, listPublicFeatured } from "@/lib/mart-api/featured";
 import { FALLBACK_REVIEWS, listPublicReviews } from "@/lib/mart-api/reviews";
 import { listPublicShowcase, showcaseForStore } from "@/lib/mart-api/showcase";
+import { splitTrendingRow } from "@/lib/mart-api/showcase-trending";
 import { FALLBACK_TRUST, listPublicTrustBenefits } from "@/lib/mart-api/trust";
 import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, pageMetadata } from "@/lib/seo";
 
@@ -76,6 +78,12 @@ export default async function HomePage() {
     products,
     catalog.unavailable,
   );
+  // Trending (first showcase row) sits right under the hero; other rows stay below.
+  const { trending, rest: showcaseRows } = splitTrendingRow(showcaseSection);
+  const productById = new Map(products.map((product) => [product.id, product]));
+  const trendingItems = (trending?.productIds ?? [])
+    .map((id) => productById.get(id))
+    .filter((product) => product != null);
   const faqSection = faq ?? FALLBACK_FAQ;
   const faqJsonLd =
     faqSection.items.length > 0
@@ -112,6 +120,9 @@ export default async function HomePage() {
           settings={heroSettings}
           categories={categories}
         />
+        {trending && trendingItems.length > 0 ? (
+          <TrendingSection heading={trending.heading} items={trendingItems} />
+        ) : null}
         <HomeTrustStrip items={trust ?? FALLBACK_TRUST} />
         {featuredSection ? (
           <FeaturedProductsSection
@@ -120,9 +131,9 @@ export default async function HomePage() {
           />
         ) : null}
         <PromoBannerSection promo={promo} />
-        {showcaseSection ? (
+        {showcaseRows ? (
           <CategoryShowcaseSection
-            section={showcaseSection}
+            section={showcaseRows}
             products={products}
           />
         ) : null}
