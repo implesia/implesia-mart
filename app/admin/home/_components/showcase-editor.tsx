@@ -18,6 +18,7 @@ import {
   type ShowcaseRow,
   type ShowcaseSection,
 } from "@/lib/mart-api/showcase";
+import { TRENDING_ROW_KEY } from "@/lib/mart-api/showcase-trending";
 import { formatTaka } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,10 @@ export function ShowcaseRows() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const confirmDelete = useConfirmDelete();
   const focusId = useRef<string | null>(null);
-  const rows = section?.rows ?? [];
+  // Trending is shown right under the hero on the website, so it is listed first here too.
+  const rows = [...(section?.rows ?? [])].sort(
+    (a, b) => Number(b.key === TRENDING_ROW_KEY) - Number(a.key === TRENDING_ROW_KEY),
+  );
   const selection = rows
     .map((row) => `${row.key}:${params.get(`row-${row.key}`) ?? ""}`)
     .join("|");
@@ -240,7 +244,7 @@ export function ShowcaseRows() {
     <div className="min-w-0 space-y-4">
       <HomeCmsHeader
         title="Showcase"
-        description="Manage the category product rows displayed on your storefront."
+        description="Trending appears right under the hero on the home page; the other row sits further down. Only published products can be added."
         sectionId="showcase"
       />
       {loadError ? (
@@ -346,12 +350,15 @@ function ShowcaseRowBlock({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <h2 id={`showcase-row-${row.key}`} className="text-lg font-semibold text-neutral-950">
           {row.heading || "Category row"}
+          {row.key === TRENDING_ROW_KEY ? (
+            <span className="ml-2 align-middle text-xs font-medium text-neutral-500">Under the hero</span>
+          ) : null}
         </h2>
         <button
           type="button"
           onClick={() => onEdit("new")}
           disabled={unused.length === 0}
-          title={unused.length === 0 ? "Every product in this category is already in the row." : undefined}
+          title={unused.length === 0 ? "Every published product is already in this row." : undefined}
           className={adminButtonClass.primary}
         >
           <MaterialIcon name="add" className="text-[18px]" />
@@ -382,7 +389,7 @@ function ShowcaseRowBlock({
               <div className="px-2 py-10 text-center">
                 <p className="text-sm font-semibold text-neutral-950">No products in this row yet</p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500">
-                  Add a product from this category so it appears in the row on the home page.
+                  Add a published product so it appears in this row on the home page.
                 </p>
               </div>
             ) : (
@@ -496,7 +503,7 @@ function ShowcaseRowBlock({
                           <span className="block truncate text-xs text-neutral-500">
                             {product
                               ? `${formatTaka(product.price)}${product.published ? "" : " · Hidden"}`
-                              : "Not in this category"}
+                              : "Product unavailable"}
                           </span>
                         </span>
                       </button>
@@ -551,6 +558,12 @@ function ShowcaseProductForm({
   const byId = new Map(row.choices.map((item) => [item.id, item]));
   const used = new Set(row.items.map((item) => item.productId));
   const kept = creating ? "" : (row.items.find((item) => item.id === selected)?.productId ?? "");
+  const keptItem = creating ? undefined : row.items.find((item) => item.id === selected);
+  // A pinned product that was hidden later is not in `choices` (published only); keep it
+  // selectable in its own slot so the form shows the real current product.
+  const keptHidden =
+    keptItem?.product && !byId.has(keptItem.productId) ? keptItem.product : undefined;
+  if (keptHidden) byId.set(keptHidden.id, keptHidden);
   const product = draft ? byId.get(draft) : undefined;
   const missing = Boolean(selected && selected !== "new" && draft === null);
   const heading = row.heading || "Category row";
@@ -590,6 +603,9 @@ function ShowcaseProductForm({
           onChange={(event) => onDraft(event.target.value)}
           className={adminFieldClass}
         >
+          {keptHidden ? (
+            <option value={keptHidden.id}>{keptHidden.title} (Hidden)</option>
+          ) : null}
           {row.choices.map((item) => (
             <option key={item.id} value={item.id} disabled={used.has(item.id) && item.id !== kept}>
               {item.title}
@@ -597,7 +613,7 @@ function ShowcaseProductForm({
           ))}
         </select>
         <p className="mt-1.5 text-xs text-neutral-500">
-          Only products from this category. Ones already in the row stay unavailable.{" "}
+          Only published products. Ones already in the row stay unavailable.{" "}
           {product && !product.published
             ? "This product is hidden, so it stays off the website until you publish it on the product page."
             : "Visibility follows the product’s Live or Hidden status."}
