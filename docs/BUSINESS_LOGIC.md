@@ -90,6 +90,7 @@ Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-se
 - Display: product page shows `qty × price = total − discount (x% ছাড়) = শেষ দাম final` only when a tier applies; a product without tiers shows just `qty × price = total`. Cart drawer and checkout show `price / পিস`, the base % and, when a tier applies, "পরিমাণে x% ছাড়: −৳discount" (discount = `unit_price × quantity − line_total`). All money is whole taka.
 - Max quantity per line: the store-wide limit (Admin › Discounts, default 10) or the product's custom maximum, capped by stock. The API sends the result (`max_per_order`, `variants[].max_quantity`, cart `max_quantity`); selectors stop there, disable + and show "সর্বোচ্চ Nটি নেওয়া যাবে". Hard ceiling 1000 (`QUANTITY_CEILING`).
 - Only reachable tiers are shown (tiers above that maximum are hidden).
+- Checkout phone: Bangladesh mobile `01[3-9]XXXXXXXX`; `880…` / `+880…`, spaces, dashes and Bengali digits are accepted and sent as `01XXXXXXXXX` (the API normalises the same way).
 - Order lookup needs the order number and phone; the browser may remember the number locally.
 
 ## Bangla QR payment

@@ -28,6 +28,7 @@ import {
   type OrderQuote,
   type QuoteLine,
 } from "@/lib/mart-api/orders";
+import { normalizePhone } from "@/lib/contact/contact-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import { purchaseQuantity } from "@/lib/mart-api/product-page";
 import { MartApiError } from "@/lib/mart-api/products";
@@ -489,7 +490,7 @@ export function CheckoutFormProvider({
         items: source === "direct" ? itemsRef.current : undefined,
         idempotencyKey: idempotencyKey.current,
         customerName: shipping.name,
-        phone: shipping.phone,
+        phone: normalizePhone(shipping.phone) ?? shipping.phone,
         email: shipping.email,
         area: shipping.area,
         deliveryZone: pickedZone.current ? quote.deliveryZone : undefined,

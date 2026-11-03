@@ -2,6 +2,10 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Checkout phone accepts +880 / 880 spellings (2026-11-03).**
+  - `validateShipping` used `/^01\d{9}$/` on the raw input, so `+8801516527932` showed "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)". It now uses `normalizePhone` (`lib/contact/contact-rules.ts`): `01XXXXXXXXX`, `8801XXXXXXXXX`, `+8801XXXXXXXXX`, spaces/dashes/dots/brackets and Bengali digits ignored, operator prefix 013–019. The order is sent with the normalised `01XXXXXXXXX`. Invalid numbers keep the same message.
+  - Files: `app/(client)/checkout/_lib/validate-shipping.ts`, `app/(client)/checkout/_components/checkout-form-context.tsx`, `tests/order-payload.test.ts`, docs.
+  - Backend: `OrderCreate`/`OrderLookup` normalise the same way (backend repo, same task, no migration).
 - **Bangla QR payment (2026-11-03): admin Payment QR, product-page QR card, checkout partial advance.**
   - Admin: new "Payment QR" tab at `/admin/site/payment` (`SITE_CMS` entry `payment`): upload, replace or remove (with confirm) the single Bangla QR image. Saved instantly through the API; the old file is deleted by the API.
   - Product page: under the WhatsApp button (in-stock branch) a small `BanglaQrCard` shows the QR and "Bangla QR স্ক্যান করে যেকোনো মোবাইল ব্যাংকিং বা ব্যাংক থেকে পেমেন্ট করুন"; tap opens a full-size `<dialog>` lightbox. Hidden when no QR is set or the API call fails. The fetch is `no-store`, so admin changes show on the next load.

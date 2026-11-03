@@ -57,3 +57,26 @@ test("shipping validation requires a bangladesh mobile and an address", () => {
   assert.ok(errors.email);
   assert.ok(errors.address);
 });
+
+test("checkout phone accepts 01, 880 and +880 spellings, rejects invalid ones", () => {
+  const base = {
+    name: "Rina",
+    email: "",
+    district: "ঢাকা",
+    area: "মিরপুর",
+    address: "House 12, Road 4",
+    notes: "",
+  };
+  for (const phone of [
+    "01712345678",
+    "8801712345678",
+    "+8801712345678",
+    "+880 1712-345678",
+    "+88 01712 345 678",
+  ]) {
+    assert.equal(validateShipping({ ...base, phone }).phone, undefined, phone);
+  }
+  for (const phone of ["01212345678", "+8801212345678", "0171234567", "+8811712345678", "abc"]) {
+    assert.equal(validateShipping({ ...base, phone }).phone, "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)", phone);
+  }
+});
