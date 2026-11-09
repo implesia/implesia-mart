@@ -4,6 +4,7 @@ import {
   type ProductBulkDeleteResult,
 } from "@/lib/mart-api/product-bulk-delete";
 import { publicRequestInit } from "@/lib/mart-api/public-request";
+import { readCostPrice } from "@/lib/admin/cost-price";
 import { readTiers } from "@/lib/mart-api/pricing";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
@@ -291,6 +292,9 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
           })),
         }
       : {}),
+    // Always sent when the form has a value (including null) so an empty field clears it.
+    // Omitted only for callers that never loaded the field. Not a public product field.
+    ...(draft.costPrice !== undefined ? { cost_price: draft.costPrice } : {}),
     min_order_quantity: draft.minOrderQuantity ?? 1,
     max_order_quantity: draft.maxOrderQuantity ?? null,
     ...(draft.seoTitle !== undefined
@@ -574,6 +578,8 @@ type ApiCard = {
   base_discount_percent?: number;
   tier_mode?: "global" | "custom";
   tiers?: unknown;
+  /** Admin read only. A decimal string or a number; absent on older responses. */
+  cost_price?: number | string | null;
 };
 
 type ApiVariant = {
@@ -721,6 +727,7 @@ function cardToProduct(item: ApiCard): AdminProduct {
           quantityTiers: readTiers(item.tiers),
         }
       : {}),
+    costPrice: readCostPrice(item.cost_price),
   };
 }
 

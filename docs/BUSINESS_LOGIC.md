@@ -23,6 +23,26 @@ Code: `lib/mart-api/badge-rules.ts`, `lib/mart-api/badges.ts`, `app/admin/badges
 - Publishing needs a price (unless it has variants), a category and a main image; the form shows the missing fields.
 - Drafts never appear on the storefront (the API filters them).
 
+## Admin cost price (কেনা দাম)
+
+Code: `lib/admin/cost-price.ts`, `app/admin/products/_components/product-form.tsx`. The storefront does not import this module and does not read `cost_price`.
+
+- Optional. The field sits next to the selling price. Empty is allowed and is sent as `cost_price: null`, which clears a previously saved cost. A negative number, letters, or more than two decimal places is shown under the field (Bangla and English) and blocks Save draft and Publish. Nothing invalid is sent.
+- Bengali digits are accepted. A trailing dot (`10.`) is the whole taka. The admin API may send `cost_price` as a number or a decimal string; both are shown in the field.
+- Margin uses the Shopify convention: percent of the **selling price**, not markup on cost.
+  - profit taka = selling price − cost price
+  - margin % = profit taka ÷ selling price × 100 (nearest 0.01; no percent when the selling price is 0)
+- The selling price in that formula is the quantity-1 price after the base discount. On a product with variants it is the lowest active variant price (the same price the product list shows). Green (`--color-success`) when profit is above 0, red (`--color-error`) when it is below 0.
+- Customers never see the cost or the margin. Only the admin product create/update/read payload carries `cost_price`.
+
+## Order delivered and returned times
+
+Code: `lib/admin/order-timestamps.ts`, `app/admin/orders/[number]/page.tsx`.
+
+- The admin order page shows **Delivered** (`delivered_at`) and **Returned** (`returned_at`) in the progress timeline and in the rows under it.
+- Both are timezone-aware ISO timestamps from the API, or null. The page formats them in Asia/Dhaka as `09 Nov 2026, 2:30 PM`. A missing or unreadable value is "—".
+- The API sets each timestamp once, when the status first becomes delivered or returned. The page only displays them.
+
 ## Create errors contract
 
 - `POST /api/v1/admin/products` returns `{"errors": [{"field","message","fix"}]}` (Bengali) with 400/409/500. The form maps each `field` to its input and shows `message` + `fix`.

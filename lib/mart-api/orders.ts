@@ -1,3 +1,4 @@
+import { readOrderTimestamp } from "@/lib/admin/order-timestamps";
 import { guestCartHeaders } from "@/lib/mart-api/cart";
 import type { DeliveryZone } from "@/lib/mart-api/delivery";
 import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
@@ -89,6 +90,10 @@ export type MartOrder = {
   trackingNumber: string;
   items: MartOrderItem[];
   createdAt: string;
+  /** Set once, when the status first becomes delivered. Null until then. */
+  deliveredAt: string | null;
+  /** Set once, when the status first becomes returned. Null until then. */
+  returnedAt: string | null;
   /** Statuses the backend will accept next; empty once the order is final. */
   nextStatuses: OrderStatus[];
 };
@@ -184,6 +189,8 @@ type ApiOrder = {
   tracking_number: string;
   items: ApiOrderItem[];
   created_at: string;
+  delivered_at?: string | null;
+  returned_at?: string | null;
   next_statuses?: OrderStatus[];
 };
 
@@ -264,6 +271,8 @@ function mapOrder(body: ApiOrder): MartOrder {
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
     createdAt: body.created_at,
+    deliveredAt: readOrderTimestamp(body.delivered_at),
+    returnedAt: readOrderTimestamp(body.returned_at),
     nextStatuses: body.next_statuses ?? [],
     items: body.items.map((item) => ({
       id: item.id,

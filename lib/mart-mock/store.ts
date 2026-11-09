@@ -113,6 +113,11 @@ export type AdminProduct = {
   baseDiscountPercent?: number;
   tierMode?: "global" | "custom";
   quantityTiers?: QuantityTier[];
+  /**
+   * What the shop paid for one piece. Admin product API only (`cost_price`).
+   * Null clears it. Never copied onto a storefront product.
+   */
+  costPrice?: number | null;
   /** Search snippet overrides (API products). "" = use the title / description. */
   seoTitle?: string;
   seoDescription?: string;
