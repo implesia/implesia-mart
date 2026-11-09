@@ -23,6 +23,22 @@ Code: `lib/mart-api/badge-rules.ts`, `lib/mart-api/badges.ts`, `app/admin/badges
 - Publishing needs a price (unless it has variants), a category and a main image; the form shows the missing fields.
 - Drafts never appear on the storefront (the API filters them).
 
+## Inventory (admin)
+
+Code: `lib/admin/inventory.ts`, `lib/mart-api/inventory.ts`, `lib/mart-mock/inventory.ts`, `app/admin/inventory/`, `app/admin/products/_components/product-stock-panel.tsx`. The storefront does not import these modules.
+
+- Staff roles come from `GET /api/v1/auth/me` (`viewer`, `editor`, `superadmin`) and are kept on the admin session. A viewer can open the inventory pages, export, download a template, and preview an import. Create, edit, confirm import, Record opening stock, and Adjust stock need an editor or superadmin. A session with no role stored is not treated as a viewer.
+- Suppliers have a name (required, 160), phone (40), address (500) and note (500). There is no delete.
+- A purchase needs a supplier, an Asia/Dhaka calendar date (`purchased_on`), and 1–100 lines. Invoice number and note are optional (64 and 500). Each line is `product_id`, optional `variant_id`, quantity of 1 or more, and `unit_cost` (non-negative `numeric(12, 2)`). The form shows a line total and a grand total from the numbers the user typed. `PurchaseRead` has no total; the list sums `quantity × unit_cost` of the returned lines for display only.
+- The server, not the browser, sets `cost_price` to the weighted average when a purchase is saved and increases on-hand stock. The product panel refetches `quantity` and `cost_price` from the admin product after an adjustment, and whenever the product page loads. The mock applies the same formula so that refetch works while the ledger routes are missing.
+- Stock movements are insert-only. `movement_type` is `opening`, `purchase`, `sale`, `return`, `cancel`, or `adjustment`. The history table shows `product_title`, signed `quantity`, and `actor_id` (the API does not return a name or email). `sku` is filled for a variant movement.
+- Adjust stock posts `{ product_id, variant_id?, quantity, reason }`. `quantity` is a non-zero signed difference. Reason is required (500) and is stored as the movement note. The response is the movement, not the new balance. The panel then refetches the product.
+- `POST /opening-stock` records one opening movement per tracked product or variant and does not change the count. It is idempotent (`created`, `already_recorded`, `untracked`). An opening import must quote the current stock or leave quantity blank; it does not change the number. A second opening is rejected.
+- Low stock: on-hand quantity at or below `LOW_STOCK_THRESHOLD` (5), including zero. There is no admin setting for this yet. A blank catalog quantity (made to order) is not low stock. Customers never see cost price, unit cost, or these admin stock tools.
+- Dates and times on these pages use Asia/Dhaka. "This week" is Monday–Sunday. "This month" is the calendar month. Custom from/to dates are inclusive. A timestamp just after Dhaka midnight belongs to the new Dhaka date, not the previous UTC date.
+- Excel import is two steps. Preview (`POST /imports/preview`) saves nothing and returns `rows[]` of `row`, `valid`, `action`, `errors`, and `summary`. Confirm saves every valid actionable row in one transaction and returns `saved` and `skipped`. The toast is "N rows saved. M skipped." The same file bytes are a 409 conflict (`error.code` `conflict`, `details.file_hash`) until the editor confirms the re-import.
+- Export Excel is `products`, `purchases`, or `movements`. The API date filter is `date_from` and `date_to`. Product and movement-type filters stay on the stock history list; they are not export query parameters. There is no supplier workbook.
+
 ## Admin cost price (কেনা দাম)
 
 Code: `lib/admin/cost-price.ts`, `app/admin/products/_components/product-form.tsx`. The storefront does not import this module and does not read `cost_price`.

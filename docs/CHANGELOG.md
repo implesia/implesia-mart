@@ -2,6 +2,22 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Align admin inventory with backend ledger PR 9 (2026-11-09).**
+  - The client now calls `/api/v1/admin/inventory/…` as specified on `implesia-mart-backend` branch `cursor/inventory-ledger-2808` (PR #9). Field names come from `app/schemas/inventory.py`, `admin_inventory.py`, and that branch's `docs/API.md`. Excel columns and the 409 body come from `inventory_excel.py` and `inventory_service.py` on the same branch.
+  - Writes stay editor or superadmin. Viewers can list, export, download templates, and preview an import. Confirm, create, adjust, and Record opening stock stay hidden or disabled for viewers.
+  - A purchase does not compute `cost_price` in the browser. The product panel refetches `quantity` and `cost_price` from the admin product (or the mock book when the ledger is not mounted). The mock still applies the server weighted-average formula so that refetch shows the new cost.
+  - There is no supplier export and no supplier delete. Purchases and movements cannot be edited. Import kinds are `purchases`, `opening`, `stock_count`, and `cost_price`. Export kinds are `products`, `purchases`, and `movements`, with `date_from` and `date_to` only.
+  - A repeated file is previewed with `duplicate: true` and, on confirm, HTTP 409 `{ error: { code: "conflict", message, details: { file_hash } } }` until `confirm_duplicate` is true.
+  - The adjust-stock dialog is portaled to `document.body`. It sits inside the product form, and a nested form was submitting the product instead of the adjustment.
+  - Files: `lib/mart-api/inventory.ts`, `lib/mart-mock/inventory.ts`, `lib/admin/inventory.ts`, `app/admin/inventory/**`, `app/admin/products/_components/product-stock-panel.tsx`, `app/admin/products/_components/product-form.tsx`, `tests/inventory.test.ts`, docs.
+  - Backend: https://github.com/implesia/implesia-mart-backend/pull/9 (branch `cursor/inventory-ledger-2808`). This frontend still depends on frontend PR #7 for admin `cost_price` and must merge after it.
+
+- **Admin inventory: suppliers, purchases, stock history, adjustments, Excel (2026-11-09).**
+  - Sidebar group Inventory: Suppliers, Purchases, Stock history. Purchases have a new-purchase form (supplier, Asia/Dhaka date, invoice no, product search by name or SKU, qty × unit cost, live line and grand totals). Stock history filters by this week, this month, or a custom range, plus product and movement type, with pagination. The product edit page shows current stock, cost price, a low-stock warning at 5 units (`LOW_STOCK_THRESHOLD`), and Adjust stock (signed quantity and a required reason, with no separate note) for editors.
+  - Purchases and stock history export Excel for the date range. Suppliers have no export. Purchases can import a purchases workbook. Stock history can import opening stock, a stock count, or a cost price. Flow: template, upload, green/red preview, confirm. A file whose SHA-256 was already imported returns a duplicate-file prompt before it can be saved. The result toast says how many rows were saved and how many were skipped. Viewers do not see create, confirm, or adjust. They can still preview an import. Cost and these pages are admin-only.
+  - Paths in this entry were a guess. The alignment entry above replaces them with backend PR #9.
+  - Files: `app/admin/_config/nav.ts`, `app/admin/inventory/**`, `app/admin/products/_components/product-form.tsx`, `app/admin/products/_components/product-stock-panel.tsx`, `lib/admin/inventory.ts`, `lib/admin/xlsx-lite.ts`, `lib/admin/staff-role.ts`, `lib/mart-api/inventory.ts`, `lib/mart-api/products.ts`, `lib/mart-mock/inventory.ts`, `lib/mart-mock/store.ts`, `lib/auth/bff.ts`, `app/admin/login/page.tsx`, `app/admin/_components/admin-shell.tsx`, `tests/inventory.test.ts`, docs.
+
 - **Align cost price and order timestamps with backend PR 8 (2026-11-09).**
   - `cost_price` on admin product reads is a JSON number (float of `numeric(12, 2)`) or `null`, not a decimal string. The form still accepts a decimal string if one arrives. Values above 9,999,999,999.99 are refused before save. Omitting the field on PATCH keeps the stored price; the form sends `null` when the field is empty.
   - Admin `OrderRead` always includes `delivered_at` and `returned_at` (ISO 8601 UTC or `null`), including the order list and `POST /orders`. Public lookup does not. Display stays Asia/Dhaka.

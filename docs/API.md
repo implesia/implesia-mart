@@ -48,11 +48,15 @@ Notes on the tables below:
 | `/admin/home/hero` | `hero` |
 | `/admin/home/hero/[id]` | `hero` |
 | `/admin/inquiries` | `inquiries` |
+| `/admin/inventory/suppliers` | `inventory` |
+| `/admin/inventory/purchases` | `inventory` |
+| `/admin/inventory/purchases/new` | `inventory`, `products` |
+| `/admin/inventory/stock` | `inventory`, `products` |
 | `/admin/login` | `products` |
 | `/admin/orders` | `orders` |
 | `/admin/orders/[number]` | `orders` |
 | `/admin/products` | `badges`, `categories`, `products` |
-| `/admin/products/[id]` | `products` |
+| `/admin/products/[id]` | `products`, `inventory` |
 | `/admin/site/contact` | `site-contact` |
 | `/admin/site/footer` | `contact-details`, `footer` |
 | `/admin/site/header` | `header` |
@@ -114,6 +118,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `header.ts` | `/api/v1/admin/site/header`<br>`/api/v1/site/header` |
 | `hero.ts` | `/api/v1/admin/home/banner`<br>`/api/v1/admin/home/banner/slides`<br>`/api/v1/admin/home/banner/slides/{id}`<br>`/api/v1/admin/home/banner/slides/{id}/move`<br>`/api/v1/home/banner` |
 | `inquiries.ts` | `/api/v1/admin/inquiries`<br>`/api/v1/admin/inquiries/counts`<br>`/api/v1/admin/inquiries/{id}` |
+| `inventory.ts` | `/api/v1/admin/inventory/suppliers`<br>`/api/v1/admin/inventory/suppliers/{id}`<br>`/api/v1/admin/inventory/purchases`<br>`/api/v1/admin/inventory/purchases/{id}`<br>`/api/v1/admin/inventory/movements`<br>`/api/v1/admin/inventory/adjustments`<br>`/api/v1/admin/inventory/opening-stock`<br>`/api/v1/admin/inventory/imports/templates/{kind}`<br>`/api/v1/admin/inventory/imports/preview`<br>`/api/v1/admin/inventory/imports/confirm`<br>`/api/v1/admin/inventory/exports/{kind}` |
 | `inquiry-public.ts` | `/api/v1/inquiries` |
 | `home-media.ts` | `/api/v1/admin/home/media`<br>`/api/v1/admin/home/media/image`<br>`/api/v1/admin/home/media/video`<br>`/api/v1/home/media` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
@@ -150,6 +155,37 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `sustainability-origin.ts` | `/api/v1/admin/pages/sustainability/origin`<br>`/api/v1/pages/sustainability/origin` |
 | `sustainability-quality.ts` | `/api/v1/admin/pages/sustainability/quality`<br>`/api/v1/pages/sustainability/quality` |
 | `trust.ts` | `/api/v1/admin/home/trust`<br>`/api/v1/admin/home/trust/order`<br>`/api/v1/admin/home/trust/{id}`<br>`/api/v1/home/trust` |
+
+## Admin inventory
+
+Taken from implesia-mart-backend PR #9, branch `cursor/inventory-ledger-2808` (`app/schemas/inventory.py`, `app/api/v1/endpoints/admin_inventory.py`, `docs/API.md` on that branch). Excel column names are from `app/services/inventory_excel.py` on the same branch. The 409 body is from `ConflictError` plus `confirm_import` (`code: "conflict"`, `details.file_hash`).
+
+Until `GET /api/v1/admin/inventory/suppliers` answers, the admin UI uses `lib/mart-mock/inventory.ts`. The probe is that suppliers list (404, 501, or 5xx falls back).
+
+Reads, including import preview and template download: any signed-in staff. Writes: editor or superadmin. Lists are `{ items, total, page, page_size, pages }`.
+
+| UI | Method | Path |
+| --- | --- | --- |
+| Suppliers list / one / create / edit | GET, POST, PATCH | `/api/v1/admin/inventory/suppliers`, `/api/v1/admin/inventory/suppliers/{id}` |
+| Purchases list / one / create | GET, POST | `/api/v1/admin/inventory/purchases`, `/api/v1/admin/inventory/purchases/{id}` |
+| Stock history | GET | `/api/v1/admin/inventory/movements` |
+| Adjust stock | POST | `/api/v1/admin/inventory/adjustments` |
+| Record opening stock | POST | `/api/v1/admin/inventory/opening-stock` |
+| Excel template | GET | `/api/v1/admin/inventory/imports/templates/{kind}` |
+| Import preview | POST multipart | `/api/v1/admin/inventory/imports/preview` |
+| Import confirm | POST multipart | `/api/v1/admin/inventory/imports/confirm` |
+| Excel export | GET | `/api/v1/admin/inventory/exports/{kind}` |
+| On-hand and cost after a write | GET | `/api/v1/admin/products/{id}` (`quantity`, `cost_price`) |
+
+- `SupplierCreate`: `name` (required), `phone`, `address`, `note`. `SupplierRead` adds `id`, `created_at`, `updated_at`. No delete. Query `q` matches the name.
+- `PurchaseCreate`: `supplier_id`, `purchased_on`, `invoice_no`, `note`, `items[]` of `product_id`, optional `variant_id`, `quantity`, `unit_cost`. `PurchaseRead` adds `supplier_name`, `id`, `created_at`, and item `id`. It does not include a total, product name, or sku. Queries: `supplier_id`, `date_from`, `date_to`.
+- `MovementRead`: `id`, `product_id`, `variant_id`, `product_title`, `sku`, signed `quantity`, `movement_type`, `unit_cost`, `order_id`, `purchase_id`, `import_batch_id`, `actor_id`, `note`, `created_at`. Query `movement_type`, not `type`.
+- `AdjustmentCreate`: `product_id`, optional `variant_id`, signed `quantity`, `reason`. Response is `MovementRead`.
+- `OpeningStockResult`: `created`, `already_recorded`, `untracked`. No body. Does not change stock.
+- Import `kind` / form `import_type`: `purchases`, `opening`, `stock_count`, `cost_price`. Export `kind`: `products`, `purchases`, `movements`, with optional `date_from` and `date_to`.
+- Preview and confirm send multipart `file` and `import_type`. Confirm also sends `confirm_duplicate` (`true` / `false`). Preview response: `import_type`, `file_hash`, `duplicate`, `valid_count`, `invalid_count`, `rows[]` of `row`, `valid`, `action`, `errors`, `summary`. Confirm response: `import_type`, `file_hash`, `batch_id`, `saved`, `skipped`, `rows`.
+- A repeated file is **409** `{ error: { code: "conflict", message: "This file was already imported. Confirm to import it again.", details: { file_hash } } }` until `confirm_duplicate` is true. Every row invalid is 422 and saves nothing.
+- Session `GET /api/auth/session` and login JSON include `role` from `UserRead` (`GET /api/v1/auth/me`).
 
 ## Admin order timestamps
 

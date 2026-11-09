@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
     try {
       const account = await loginMart(email.trim(), password);
       clearPasswordChanged();
-      writeSession(account.email);
+      writeSession(account.email, account.role);
       router.replace("/admin");
     } catch (error) {
       setPending(false);

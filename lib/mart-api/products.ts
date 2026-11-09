@@ -433,9 +433,10 @@ export async function loginMart(email: string, password: string) {
     throw new MartApiError("Could not reach the product API.");
   }
   if (!response.ok) throw new MartApiError(await readError(response, "Sign in failed."));
-  const body = (await response.json()) as { email?: string };
+  const body = (await response.json()) as { email?: string; role?: string };
   if (!body.email) throw new MartApiError("Sign in failed.");
-  return { email: body.email };
+  const role = body.role === "viewer" || body.role === "editor" || body.role === "superadmin" ? body.role : null;
+  return { email: body.email, role };
 }
 
 export async function changeMartPassword(currentPassword: string, newPassword: string) {

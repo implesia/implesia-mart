@@ -69,6 +69,7 @@ import { productPath } from "@/lib/mart-api/product-url";
 import { badgeToneClass, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
 import { ProductBadgePicker } from "./product-badge-picker";
 import { QuantityTiersEditor } from "../../_components/quantity-tiers-editor";
+import { ProductStockPanel } from "./product-stock-panel";
 import { QUANTITY_CEILING } from "@/lib/mart-api/variants";
 import {
   derivedBase,
@@ -1361,6 +1362,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             title="Inventory"
             description="Stock status is the availability label. Quantity is optional: leave it blank for made to order."
           >
+            {product?.id ? (
+              <ProductStockPanel
+                productId={product.id}
+                productName={form.title || product.title}
+                sku={form.variants.find((variant) => variant.sku)?.sku || product.slug}
+                catalogQuantity={
+                  variantMode
+                    ? summary.quantity
+                    : form.quantity.trim() === "" || !Number.isFinite(Number(form.quantity))
+                      ? null
+                      : Number(form.quantity)
+                }
+              />
+            ) : null}
             <div>
               <p className="mb-1.5 text-sm font-medium text-neutral-700">
                 Stock status
