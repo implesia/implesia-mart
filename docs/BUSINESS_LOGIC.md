@@ -27,8 +27,8 @@ Code: `lib/mart-api/badge-rules.ts`, `lib/mart-api/badges.ts`, `app/admin/badges
 
 Code: `lib/admin/cost-price.ts`, `app/admin/products/_components/product-form.tsx`. The storefront does not import this module and does not read `cost_price`.
 
-- Optional. The field sits next to the selling price. Empty is allowed and is sent as `cost_price: null`, which clears a previously saved cost. A negative number, letters, or more than two decimal places is shown under the field (Bangla and English) and blocks Save draft and Publish. Nothing invalid is sent.
-- Bengali digits are accepted. A trailing dot (`10.`) is the whole taka. The admin API may send `cost_price` as a number or a decimal string; both are shown in the field.
+- Optional. The field sits next to the selling price. Empty is sent as `cost_price: null`, which clears a saved cost. Leaving the field out of a PATCH keeps the stored value (the form always sends the current value). A negative number, letters, more than two decimal places, or a value above 9,999,999,999.99 (`numeric(12, 2)`) is shown under the field and blocks Save draft and Publish. Nothing invalid is sent.
+- Bengali digits are accepted. A trailing dot (`10.`) is the whole taka. Admin reads return a JSON number (the float of that decimal, so `12.50` is `12.5`) or `null`. A decimal string is still shown if one arrives.
 - Margin uses the Shopify convention: percent of the **selling price**, not markup on cost.
   - profit taka = selling price − cost price
   - margin % = profit taka ÷ selling price × 100 (nearest 0.01; no percent when the selling price is 0)
@@ -40,13 +40,13 @@ Code: `lib/admin/cost-price.ts`, `app/admin/products/_components/product-form.ts
 Code: `lib/admin/order-timestamps.ts`, `app/admin/orders/[number]/page.tsx`.
 
 - The admin order page shows **Delivered** (`delivered_at`) and **Returned** (`returned_at`) in the progress timeline and in the rows under it.
-- Both are timezone-aware ISO timestamps from the API, or null. The page formats them in Asia/Dhaka as `09 Nov 2026, 2:30 PM`. A missing or unreadable value is "—".
-- The API sets each timestamp once, when the status first becomes delivered or returned. The page only displays them.
+- Admin `OrderRead` (list, detail, status update, and the response from placing an order) always includes both: an ISO 8601 UTC timestamp such as `2026-11-09T08:30:00+00:00`, or `null`. The page formats them in Asia/Dhaka as `09 Nov 2026, 2:30 PM`. Null or unreadable is "—".
+- Each timestamp is set once, the first time the status becomes delivered or returned, and is not replaced later. Returning an order keeps `delivered_at`. Public order lookup does not include either field, and the storefront type does not read them.
 
 ## Create errors contract
 
-- `POST /api/v1/admin/products` returns `{"errors": [{"field","message","fix"}]}` (Bengali) with 400/409/500. The form maps each `field` to its input and shows `message` + `fix`.
-- `PATCH` still returns the default `{"error": {...}}` envelope (422, English); the form shows that message as a general error (see TODO.md).
+- `POST /api/v1/admin/products` returns `{"errors": [{"field","message","fix"}]}` (Bengali) with 400/409/500. The form maps each `field` to its input and shows `message` + `fix`. A rejected `cost_price` uses `field: "costPrice"`.
+- `PATCH` still returns the default `{"error": {...}}` envelope (422, English); the form shows that message as a general error (see TODO.md). A negative `cost_price` on update is one of those 422s.
 
 ## Product media (gallery, video, YouTube)
 

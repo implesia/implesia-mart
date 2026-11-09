@@ -2,11 +2,17 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Align cost price and order timestamps with backend PR 8 (2026-11-09).**
+  - `cost_price` on admin product reads is a JSON number (float of `numeric(12, 2)`) or `null`, not a decimal string. The form still accepts a decimal string if one arrives. Values above 9,999,999,999.99 are refused before save. Omitting the field on PATCH keeps the stored price; the form sends `null` when the field is empty.
+  - Admin `OrderRead` always includes `delivered_at` and `returned_at` (ISO 8601 UTC or `null`), including the order list and `POST /orders`. Public lookup does not. Display stays Asia/Dhaka.
+  - Files: `lib/admin/cost-price.ts`, `lib/admin/order-timestamps.ts`, `lib/mart-api/products.ts`, `lib/mart-api/orders.ts`, `lib/mart-mock/store.ts`, `tests/cost-price.test.ts`, `tests/order-timestamps.test.ts`, docs.
+  - Backend: https://github.com/implesia/implesia-mart-backend/pull/8 (not merged). Create rejection uses `errors[].field` = `costPrice` (400). A negative cost on update is 422.
+
 - **Admin cost price and order delivered/returned dates (2026-11-09).**
   - Product create/edit: optional "কেনা দাম (Cost price)" beside the selling price, with a ৳ prefix and the note "শুধু অ্যাডমিন দেখবে, কাস্টমার দেখবে না।" Empty sends `cost_price: null` (clears it). A negative number, letters, or more than two decimals shows under the field and blocks save. When both prices are set, a live margin shows profit or loss in taka and as a percent of the selling price (Shopify margin: `(selling − cost) / selling × 100`). Green is profit, red is loss (`text-success` / `text-error`). The storefront does not read or render `cost_price`.
   - Admin order detail: Delivered and Returned dates in the progress timeline and in the rows under it, Asia/Dhaka, `09 Nov 2026, 2:30 PM`, or "—" when missing. A completed step no longer says "Not reached".
   - Files: `lib/admin/cost-price.ts`, `lib/admin/order-timestamps.ts`, `lib/mart-api/products.ts`, `lib/mart-api/orders.ts`, `lib/mart-mock/store.ts`, `app/admin/products/_components/product-form.tsx`, `app/admin/orders/[number]/page.tsx`, `tests/cost-price.test.ts`, `tests/order-timestamps.test.ts`, docs.
-  - Backend (`implesia-mart-backend`, parallel change, not merged here): `cost_price` Numeric, nullable, >= 0, on products, readable and writable only through the admin product API (editor or above). The admin read may serialise it as a decimal string or a number. `delivered_at` and `returned_at` timezone-aware ISO timestamps, nullable, on orders, set once when the status first becomes delivered or returned. Public product and public order payloads must not include `cost_price`.
+  - Backend contract (confirmed in `implesia-mart-backend` PR 8, not merged): see the entry above.
 
 - **Checkout phone accepts +880 / 880 spellings (2026-11-03).**
   - `validateShipping` used `/^01\d{9}$/` on the raw input, so `+8801516527932` showed "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)". It now uses `normalizePhone` (`lib/contact/contact-rules.ts`): `01XXXXXXXXX`, `8801XXXXXXXXX`, `+8801XXXXXXXXX`, spaces/dashes/dots/brackets and Bengali digits ignored, operator prefix 013–019. The order is sent with the normalised `01XXXXXXXXX`. Invalid numbers keep the same message.

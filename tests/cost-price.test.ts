@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  COST_PRICE_MAX,
   COST_PRICE_MESSAGE,
+  COST_PRICE_RANGE_MESSAGE,
   costMargin,
   costPriceError,
   costPriceForApi,
@@ -53,17 +55,25 @@ test("live validation waits for an unfinished decimal", () => {
   assert.equal(costPriceLiveError("১২a"), COST_PRICE_MESSAGE);
 });
 
-test("API cost_price accepts a decimal string or a number", () => {
-  assert.equal(readCostPrice("12.50"), 12.5);
-  assert.equal(readCostPrice(12), 12);
+test("API cost_price is a JSON number or null, within numeric(12, 2)", () => {
+  // AdminProductRead serialises Decimal via float, so 12.50 arrives as 12.5.
+  assert.equal(readCostPrice(12.5), 12.5);
+  assert.equal(readCostPrice(40), 40);
   assert.equal(readCostPrice(0), 0);
-  assert.equal(readCostPrice("0.00"), 0);
   assert.equal(readCostPrice(null), null);
   assert.equal(readCostPrice(""), null);
   assert.equal(readCostPrice(undefined), null);
   assert.equal(readCostPrice(-3), null);
   assert.equal(readCostPrice("nope"), null);
+  // A decimal string is still accepted (the write schema allows one).
+  assert.equal(readCostPrice("12.50"), 12.5);
+  assert.equal(readCostPrice("0.00"), 0);
   assert.equal(formatCostPriceInput(12.5), "12.5");
   assert.equal(formatCostPriceInput(null), "");
   assert.equal(formatCostPriceInput(readCostPrice("450.00")), "450");
+  assert.equal(costPriceForApi("9999999999.99"), COST_PRICE_MAX);
+  assert.equal(costPriceError("9999999999.99"), null);
+  assert.equal(costPriceError("10000000000"), COST_PRICE_RANGE_MESSAGE);
+  assert.equal(costPriceError("9999999999.999"), COST_PRICE_MESSAGE);
+  assert.equal(costPriceLiveError("10000000000"), COST_PRICE_RANGE_MESSAGE);
 });

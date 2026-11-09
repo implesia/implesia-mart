@@ -90,9 +90,15 @@ export type MartOrder = {
   trackingNumber: string;
   items: MartOrderItem[];
   createdAt: string;
-  /** Set once, when the status first becomes delivered. Null until then. */
+  /**
+   * `OrderRead.delivered_at`. ISO 8601 UTC, or null until the first move to
+   * delivered. A later status change does not replace it.
+   */
   deliveredAt: string | null;
-  /** Set once, when the status first becomes returned. Null until then. */
+  /**
+   * `OrderRead.returned_at`. ISO 8601 UTC, or null until the first move to
+   * returned. Kept when the order was delivered earlier.
+   */
   returnedAt: string | null;
   /** Statuses the backend will accept next; empty once the order is final. */
   nextStatuses: OrderStatus[];
@@ -189,8 +195,10 @@ type ApiOrder = {
   tracking_number: string;
   items: ApiOrderItem[];
   created_at: string;
-  delivered_at?: string | null;
-  returned_at?: string | null;
+  /** ISO 8601 with a UTC offset, or null. Always on admin OrderRead. */
+  delivered_at: string | null;
+  /** ISO 8601 with a UTC offset, or null. Always on admin OrderRead. */
+  returned_at: string | null;
   next_statuses?: OrderStatus[];
 };
 
@@ -444,6 +452,7 @@ export type PublicOrder = {
   dueAmount: number;
   items: PublicOrderItem[];
   createdAt: string;
+  // PublicOrderRead does not include delivered_at or returned_at.
 };
 
 type ApiPublicOrderItem = {

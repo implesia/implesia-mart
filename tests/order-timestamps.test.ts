@@ -10,6 +10,8 @@ import {
 test("formats delivered and returned timestamps in Asia/Dhaka", () => {
   // 08:30 UTC is 14:30 in Dhaka (UTC+6, no daylight saving).
   assert.equal(formatDhakaDateTime("2026-11-09T08:30:00.000Z"), "09 Nov 2026, 2:30 PM");
+  // FastAPI/Pydantic isoformat of a UTC datetime, the OrderRead JSON shape.
+  assert.equal(formatDhakaDateTime("2026-11-09T08:30:00+00:00"), "09 Nov 2026, 2:30 PM");
   assert.equal(formatDhakaDateTime("2026-11-09T00:00:00.000Z"), "09 Nov 2026, 6:00 AM");
   assert.equal(formatDhakaDateTime("2026-11-09T06:00:00.000Z"), "09 Nov 2026, 12:00 PM");
   assert.equal(formatDhakaDateTime("2026-11-08T18:00:00.000Z"), "09 Nov 2026, 12:00 AM");

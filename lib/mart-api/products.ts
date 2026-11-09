@@ -292,8 +292,8 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
           })),
         }
       : {}),
-    // Always sent when the form has a value (including null) so an empty field clears it.
-    // Omitted only for callers that never loaded the field. Not a public product field.
+    // Admin product JSON only. PATCH: omit keeps the stored numeric(12, 2); null clears it.
+    // The form always sends the current field (a number, or null when empty).
     ...(draft.costPrice !== undefined ? { cost_price: draft.costPrice } : {}),
     min_order_quantity: draft.minOrderQuantity ?? 1,
     max_order_quantity: draft.maxOrderQuantity ?? null,
@@ -578,8 +578,11 @@ type ApiCard = {
   base_discount_percent?: number;
   tier_mode?: "global" | "custom";
   tiers?: unknown;
-  /** Admin read only. A decimal string or a number; absent on older responses. */
-  cost_price?: number | string | null;
+  /**
+   * Admin list, get, create, and update (`AdminProductCard` / `AdminProductRead`).
+   * JSON number or null. Not present on public product responses.
+   */
+  cost_price?: number | null;
 };
 
 type ApiVariant = {

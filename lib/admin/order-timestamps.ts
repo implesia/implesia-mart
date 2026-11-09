@@ -1,6 +1,9 @@
 /**
- * Admin order timestamps. Display is always Asia/Dhaka, independent of the
- * browser timezone: "09 Nov 2026, 2:30 PM". Missing values are an em dash.
+ * Admin `OrderRead.delivered_at` / `returned_at`. The schema is `datetime | None`:
+ * JSON is an ISO 8601 string with a UTC offset (`2026-11-09T08:30:00+00:00`) or
+ * `null`. Each is set once, on the first transition to that status, and is not
+ * replaced later. Admin list, get, patch, and `POST /orders` include both.
+ * Public order lookup does not. Display is Asia/Dhaka: "09 Nov 2026, 2:30 PM".
  */
 
 export const MISSING_TIMESTAMP = "—";
@@ -11,7 +14,7 @@ function part(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTyp
   return parts.find((item) => item.type === type)?.value ?? "";
 }
 
-/** Timezone-aware ISO string, or null when the API omitted it or sent junk. */
+/** ISO 8601 timestamp, or null when the field is null, missing, or not a date. */
 export function readOrderTimestamp(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const date = new Date(value);
