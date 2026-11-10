@@ -2,6 +2,10 @@
 
 Open items found in the code and in recent work. Remove an item when it is done.
 
+## Done (not live)
+
+- **Admin new-order notifications (2026-11-10).** Polling, sound, toast, sidebar badge, tab title, browser notification, and the header bell are in the admin shell. They call `GET /api/v1/admin/orders/new` (backend PR #14, stacked on backend PR #13). Until that route answers, `lib/mart-mock/order-alerts.ts` is used. Remove the fallback once it answers in the environment this app calls. Not live. `docs/ROADMAP.md` is not in this repo.
+
 ## Open
 
 - **Reports API fallback**: `/admin` and `/admin/reports` call the report paths in `docs/API.md` (backend PR #10, branch `cursor/admin-sales-reports-b0a9`). A missing `GET /api/v1/admin/reports/sales` still falls back to `lib/mart-mock/reports.ts`. Remove that fallback once those routes answer in the environment this app calls. The mock books a sale movement on the delivery day; the live ledger uses the movement's `created_at`.
