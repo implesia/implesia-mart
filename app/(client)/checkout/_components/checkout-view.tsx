@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 import { Container } from "../../_components/common/container";
@@ -73,6 +75,21 @@ export function CheckoutView({
 
 function CheckoutReadyView({ productHref }: { productHref: string }) {
   const { status, quote, quoteReady, pricingMessage } = useCheckoutForm();
+  const beganCheckout = useRef(false);
+  useEffect(() => {
+    if (beganCheckout.current || !quote || quote.items.length === 0) return;
+    beganCheckout.current = true;
+    track({
+      name: "begin_checkout",
+      value: quote.total,
+      items: quote.items.map((line) => ({
+        id: line.productId,
+        name: line.title,
+        price: line.unitPrice,
+        quantity: line.quantity,
+      })),
+    });
+  }, [quote]);
   const hasItems = (quote?.items.length ?? 0) > 0;
   const succeeded = status === "success";
 

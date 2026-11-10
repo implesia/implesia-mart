@@ -9,7 +9,7 @@ import {
   type ShippingRates,
   type StructuredProduct,
 } from "@/lib/product-structured-data";
-import { absoluteUrl, pageMetadata, SITE_URL, siteVerification } from "@/lib/seo";
+import { absoluteUrl, pageMetadata, SITE_URL, siteVerification, verificationFromEnv } from "@/lib/seo";
 import { lastModified, latest, sitemapCategories } from "@/lib/sitemap-entries";
 
 const RATES: ShippingRates = {
@@ -146,6 +146,28 @@ test("siteVerification reads optional Google and Bing tokens", () => {
   assert.deepEqual(siteVerification({ google: " ", bing: "b-token" }), {
     other: { "msvalidate.01": "b-token" },
   });
+});
+
+test("verificationFromEnv prefers GOOGLE_SITE_VERIFICATION and omits an empty token", () => {
+  assert.equal(verificationFromEnv({}), undefined);
+  assert.equal(verificationFromEnv({ GOOGLE_SITE_VERIFICATION: "  " }), undefined);
+  assert.deepEqual(verificationFromEnv({ GOOGLE_SITE_VERIFICATION: "html-token" }), {
+    google: "html-token",
+  });
+  assert.deepEqual(
+    verificationFromEnv({
+      GOOGLE_SITE_VERIFICATION: " ",
+      NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: "legacy-token",
+    }),
+    { google: "legacy-token" },
+  );
+  assert.deepEqual(
+    verificationFromEnv({
+      GOOGLE_SITE_VERIFICATION: "preferred",
+      NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: "legacy-token",
+    }),
+    { google: "preferred" },
+  );
 });
 
 test("sitemap categories keep only those with products, with real dates", () => {

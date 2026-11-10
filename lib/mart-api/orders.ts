@@ -1,4 +1,5 @@
 import { readOrderTimestamp } from "@/lib/admin/order-timestamps";
+import { currentOrderTracking, type OrderTracking } from "@/lib/analytics/order-tracking";
 import { guestCartHeaders } from "@/lib/mart-api/cart";
 import type { DeliveryZone } from "@/lib/mart-api/delivery";
 import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
@@ -100,6 +101,12 @@ export type MartOrder = {
    * returned. Kept when the order was delivered earlier.
    */
   returnedAt: string | null;
+  /**
+   * Purchase dedupe id from the create response (`analytics_event_id`).
+   * Null when the API does not send it; the storefront then uses
+   * `purchase_<number>`.
+   */
+  analyticsEventId: string | null;
   /** Statuses the backend will accept next; empty once the order is final. */
   nextStatuses: OrderStatus[];
 };
@@ -200,7 +207,13 @@ type ApiOrder = {
   /** ISO 8601 with a UTC offset, or null. Always on admin OrderRead. */
   returned_at: string | null;
   next_statuses?: OrderStatus[];
+  /** Present on order create once the API emits the CAPI event id. */
+  analytics_event_id?: string | null;
 };
+
+function readAnalyticsEventId(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
 
 function mapSelection(selection: { name: string; label: string; swatch?: string }[] | undefined) {
   return (selection ?? []).map((choice) => ({
@@ -281,6 +294,7 @@ function mapOrder(body: ApiOrder): MartOrder {
     createdAt: body.created_at,
     deliveredAt: readOrderTimestamp(body.delivered_at),
     returnedAt: readOrderTimestamp(body.returned_at),
+    analyticsEventId: readAnalyticsEventId(body.analytics_event_id),
     nextStatuses: body.next_statuses ?? [],
     items: body.items.map((item) => ({
       id: item.id,
@@ -341,6 +355,11 @@ export async function placeOrder(
     address: string;
     notes: string;
     payment?: { method: PaymentMethod; advancePercent?: AdvancePercent | null; reference?: string };
+    /**
+     * Optional. Older APIs ignore unknown JSON. Nulls are sent when a value
+     * is missing so the field shape stays stable.
+     */
+    tracking?: OrderTracking;
   },
 ) {
   const response = await publicFetch("/api/v1/orders", {
@@ -359,6 +378,7 @@ export async function placeOrder(
       address: input.address.trim(),
       notes: input.notes.trim(),
       ...buildPaymentPayload(input.payment ?? { method: "cod" }),
+      tracking: input.tracking ?? currentOrderTracking(),
     }),
   });
   if (!response.ok) throw new MartApiError(await readError(response, "Could not place the order."));

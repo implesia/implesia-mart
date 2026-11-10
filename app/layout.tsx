@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
+import { connection } from "next/server";
 
 import {
   DEFAULT_DESCRIPTION,
@@ -10,7 +11,7 @@ import {
   OPEN_GRAPH_DEFAULTS,
   SITE_NAME,
   SITE_URL,
-  siteVerification,
+  verificationFromEnv,
 } from "@/lib/seo";
 
 import "./globals.css";
@@ -33,46 +34,51 @@ const materialSymbols = localFont({
   preload: false,
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: DEFAULT_TITLE,
-    template: `%s | ${SITE_NAME}`,
-  },
-  description: DEFAULT_DESCRIPTION,
-  keywords: DEFAULT_KEYWORDS,
-  applicationName: SITE_NAME,
-  category: "e-commerce",
-  // No root canonical / og:url: each indexable page sets its own (pageMetadata),
-  // so pages without one (checkout, search, 404, admin) don't point at "/".
-  openGraph: {
-    ...OPEN_GRAPH_DEFAULTS,
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-    images: [DEFAULT_SHARE_IMAGE.url],
-  },
-  icons: {
-    icon: [{ url: "/favicon.ico", type: "image/png" }],
-    shortcut: [{ url: "/favicon.ico", type: "image/png" }],
-    apple: [{ url: "/favicon.ico", type: "image/png" }],
-  },
-  // Indexing is the default, so only the preview limits are set here. A page
-  // that must not be indexed (404, checkout, admin) then has one robots tag.
-  // Search Console / Bing verification meta, only when the env tokens are set.
-  verification: siteVerification(),
-  robots: {
-    googleBot: {
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
+// Dynamic so GOOGLE_SITE_VERIFICATION is read on the request (Workers runtime
+// var), not frozen from the build. The tag is omitted when the token is empty.
+export async function generateMetadata(): Promise<Metadata> {
+  await connection();
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: DEFAULT_TITLE,
+      template: `%s | ${SITE_NAME}`,
     },
-  },
-};
+    description: DEFAULT_DESCRIPTION,
+    keywords: DEFAULT_KEYWORDS,
+    applicationName: SITE_NAME,
+    category: "e-commerce",
+    // No root canonical / og:url: each indexable page sets its own (pageMetadata),
+    // so pages without one (checkout, search, 404, admin) don't point at "/".
+    openGraph: {
+      ...OPEN_GRAPH_DEFAULTS,
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESCRIPTION,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESCRIPTION,
+      images: [DEFAULT_SHARE_IMAGE.url],
+    },
+    icons: {
+      icon: [{ url: "/favicon.ico", type: "image/png" }],
+      shortcut: [{ url: "/favicon.ico", type: "image/png" }],
+      apple: [{ url: "/favicon.ico", type: "image/png" }],
+    },
+    // Indexing is the default, so only the preview limits are set here. A page
+    // that must not be indexed (404, checkout, admin) then has one robots tag.
+    // Search Console / Bing verification meta, only when the env tokens are set.
+    verification: verificationFromEnv(),
+    robots: {
+      googleBot: {
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",

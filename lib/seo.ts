@@ -162,15 +162,13 @@ export function pageMetadata(options: PageMetadataOptions): Metadata {
 }
 
 /**
- * Search Console / Bing Webmaster verification tags, only for the tokens that are set
- * (`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, `NEXT_PUBLIC_BING_SITE_VERIFICATION`, read at build time).
+ * Search Console / Bing Webmaster verification tags, only for the tokens that are set.
+ * An empty token omits that tag.
  */
-export function siteVerification(
-  env: { google?: string; bing?: string } = {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
-    bing: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
-  },
-): Metadata["verification"] | undefined {
+export function siteVerification(env: {
+  google?: string;
+  bing?: string;
+} = {}): Metadata["verification"] | undefined {
   const google = env.google?.trim();
   const bing = env.bing?.trim();
   if (!google && !bing) return undefined;
@@ -178,6 +176,30 @@ export function siteVerification(
     ...(google ? { google } : {}),
     ...(bing ? { other: { "msvalidate.01": bing } } : {}),
   };
+}
+
+function firstToken(...values: (string | undefined)[]): string | undefined {
+  for (const value of values) {
+    const token = value?.trim();
+    if (token) return token;
+  }
+  return undefined;
+}
+
+/**
+ * `GOOGLE_SITE_VERIFICATION` is the server-only token (no NEXT_PUBLIC_ prefix:
+ * the tag is rendered by the server, not read in browser JS). The older
+ * `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` is still accepted. Both are read with
+ * a dynamic lookup so a Workers runtime variable is not frozen at build time.
+ * Call this from a dynamic render (`await connection()`).
+ */
+export function verificationFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): Metadata["verification"] | undefined {
+  return siteVerification({
+    google: firstToken(env.GOOGLE_SITE_VERIFICATION, env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION),
+    bing: env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
+  });
 }
 
 /** Resolves a site-relative path to a fully-qualified absolute URL. */
