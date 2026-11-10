@@ -160,6 +160,8 @@ export const DEFAULT_DELIVERY: DeliveryCharges = {
 
 export type AdminSession = {
   email: string;
+  /** From `GET /api/v1/auth/me`. Absent on a session saved before roles were stored. */
+  role?: "viewer" | "editor" | "superadmin" | null;
 };
 
 function emitMockChange() {
@@ -578,6 +580,7 @@ const SESSION_EVENT = "implesia-admin-session";
 
 type StoredSession = {
   email?: string;
+  role?: string;
   accessToken?: string;
   refreshToken?: string;
 };
@@ -602,6 +605,11 @@ export function readStoredRefreshToken() {
     : null;
 }
 
+function storedRole(value: unknown): AdminSession["role"] {
+  if (value === "viewer" || value === "editor" || value === "superadmin") return value;
+  return null;
+}
+
 /** Drop any token fields. The email can stay so the shell still knows who is signed in. */
 export function dropStoredTokens() {
   const parsed = readStoredSession();
@@ -611,7 +619,10 @@ export function dropStoredTokens() {
     clearSession();
     return;
   }
-  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email }));
+  const next: StoredSession = { email };
+  const role = storedRole(parsed.role);
+  if (role) next.role = role;
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
 }
 
 export function readSession(): AdminSession | null {
@@ -620,12 +631,15 @@ export function readSession(): AdminSession | null {
   const email = parsed?.email?.trim();
   if (!email) return null;
   if (parsed?.accessToken && !parsed.refreshToken) dropStoredTokens();
-  return { email };
+  return { email, role: storedRole(parsed?.role) };
 }
 
-export function writeSession(email: string) {
+export function writeSession(email: string, role?: string | null) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: email.trim() }));
+  const next: StoredSession = { email: email.trim() };
+  const stored = storedRole(role);
+  if (stored) next.role = stored;
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
 

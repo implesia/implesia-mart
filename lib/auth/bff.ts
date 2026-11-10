@@ -47,15 +47,24 @@ function rotateOnce(refreshToken: string) {
   return shareRefresh(refreshJobs, refreshToken, () => rotate(refreshToken));
 }
 
-async function readEmail(access: string) {
+type SignedInAccount = {
+  email: string;
+  role: "viewer" | "editor" | "superadmin" | null;
+};
+
+async function readAccount(access: string): Promise<SignedInAccount | null> {
   try {
     const response = await fetch(`${API}/api/v1/auth/me`, {
       headers: { Accept: "application/json", Authorization: `Bearer ${access}` },
       cache: "no-store",
     });
     if (!response.ok) return null;
-    const body = (await response.json()) as { email?: string };
-    return body.email?.trim() || null;
+    const body = (await response.json()) as { email?: string; role?: string };
+    const email = body.email?.trim();
+    if (!email) return null;
+    const role =
+      body.role === "viewer" || body.role === "editor" || body.role === "superadmin" ? body.role : null;
+    return { email, role };
   } catch {
     return null;
   }
@@ -97,9 +106,9 @@ export async function loginWithPassword(email: string, password: string) {
     );
   }
   const pair = { access: body.access_token, refresh: body.refresh_token };
-  const account = (await readEmail(pair.access)) ?? email;
+  const account = (await readAccount(pair.access)) ?? { email, role: null };
   const result = NextResponse.json(
-    { email: account },
+    { email: account.email, role: account.role },
     { headers: { "Cache-Control": "no-store" } },
   );
   applyPair(result, pair);
@@ -165,12 +174,12 @@ export async function sessionResponse() {
     rotated = await rotateOnce(refresh);
     access = rotated?.access;
   }
-  let email = access ? await readEmail(access) : null;
-  if (!email && refresh && !rotated) {
+  let account = access ? await readAccount(access) : null;
+  if (!account && refresh && !rotated) {
     rotated = await rotateOnce(refresh);
-    email = rotated ? await readEmail(rotated.access) : null;
+    account = rotated ? await readAccount(rotated.access) : null;
   }
-  if (!email) {
+  if (!account) {
     const missing = NextResponse.json(
       { error: { message: "Sign in again." } },
       { status: 401, headers: { "Cache-Control": "no-store" } },
@@ -179,7 +188,7 @@ export async function sessionResponse() {
     return missing;
   }
   const result = NextResponse.json(
-    { email },
+    { email: account.email, role: account.role },
     { headers: { "Cache-Control": "no-store" } },
   );
   if (rotated) applyPair(result, rotated);

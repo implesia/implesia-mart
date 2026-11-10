@@ -46,6 +46,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
+    title: "Inventory",
+    items: [
+      { href: "/admin/inventory/suppliers", label: "Suppliers", icon: "handshake" },
+      { href: "/admin/inventory/purchases", label: "Purchases", icon: "request_quote" },
+      { href: "/admin/inventory/stock", label: "Stock history", icon: "history" },
+    ],
+  },
+  {
     title: "Pages",
     items: [cmsNavItem(HOME_CMS), ...PAGE_CMS.map(cmsNavItem)],
   },
@@ -82,6 +90,9 @@ export function currentAdminPage(pathname: string) {
   }
   if (pathname.startsWith("/admin/products/")) {
     return { group: "Store", label: "Edit product" };
+  }
+  if (pathname === "/admin/inventory/purchases/new") {
+    return { group: "Inventory", label: "New purchase" };
   }
   if (pathname.startsWith("/admin/banners/")) {
     return { group: "Home", label: "Hero slide" };
@@ -172,7 +183,8 @@ export function isWideAdminPath(pathname: string) {
     pathname === "/admin/cart" ||
     pathname === "/admin/delivery" ||
     pathname === "/admin/pricing" ||
-    pathname === "/admin/badges"
+    pathname === "/admin/badges" ||
+    pathname.startsWith("/admin/inventory")
   ) {
     return true;
   }

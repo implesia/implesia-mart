@@ -5,7 +5,7 @@
 Bangla storefront (BDT prices, cash on delivery) for trending gadgets and handmade dresses, plus the `/admin` dashboard that manages it. All data comes from the Mart API (backend repo `implesia-mart-backend`).
 
 - **Storefront**: home sections, catalog and product pages, search, cart, checkout, order lookup, CMS pages (About, Sustainability, FAQs, Shipping & Returns, Privacy, Contact, Blog).
-- **Admin** (`/admin`): products (with badges, variants, gallery images/videos/YouTube, drafts, bulk delete), badges, home sections, CMS pages, site header/footer/contact, orders, delivery, inquiries, carts, dashboard.
+- **Admin** (`/admin`): products (with badges, variants, gallery images/videos/YouTube, drafts, bulk delete, cost price, on-hand stock and adjustments), inventory (suppliers, purchases, stock history, Excel import/export), badges, home sections, CMS pages, site header/footer/contact, orders, delivery, inquiries, carts, dashboard.
 
 ## Tech stack
 
