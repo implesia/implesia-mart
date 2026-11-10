@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { track } from "@/lib/analytics";
 import { catalogProductId } from "@/lib/mart-api/catalog";
 import { directCheckoutHref } from "@/lib/mart-api/product-page";
 import { maxQuantityText, percentText, tierOffers } from "@/lib/mart-api/pricing";
@@ -113,6 +114,15 @@ export function ProductInfo({ product }: { product: ProductDetail }) {
     setBuyQuantity(clampQuantity(1, { min: product.minPerOrder }));
     setActivePicks(picksFromChoices(groups, initialChoices));
   }, [product.slug, product.minPerOrder, initialChoices, groups]);
+
+  useEffect(() => {
+    const price = selectedVariant?.price ?? product.price;
+    track({
+      name: "view_item",
+      value: price,
+      items: [{ id: product.id, name: product.title, price, quantity: 1 }],
+    });
+  }, [product.id, product.title, product.price, selectedVariant?.id, selectedVariant?.price]);
 
   function choose(groupId: string, valueId: string) {
     const next = hasVariants

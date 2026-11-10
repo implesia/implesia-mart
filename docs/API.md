@@ -216,6 +216,22 @@ The dashboard headline calls the same report paths. `GET /api/v1/admin/dashboard
 
 - Admin `OrderRead` — `GET` and `PATCH /api/v1/admin/orders/{id}`, each item of `GET /api/v1/admin/orders`, and `POST /api/v1/orders` — includes `delivered_at` and `returned_at`: ISO 8601 UTC (`2026-11-09T08:30:00+00:00`) or `null`. A new order has both `null`. Each is set once, on the first transition to that status. The admin order detail page shows both in Asia/Dhaka. `PublicOrderRead` (`POST /api/v1/orders/lookup`) does not include them, and `PublicOrder` does not read them.
 
+## Order create tracking (storefront)
+
+`POST /api/v1/orders` (`placeOrder` in `lib/mart-api/orders.ts`) now sends an optional object alongside the existing order fields:
+
+```json
+"tracking": { "fbp": null, "fbc": null, "event_source_url": "https://mart.implesia.com/checkout" }
+```
+
+- `fbp` is the `_fbp` cookie, or `null`.
+- `fbc` is the `_fbc` cookie. If that cookie is missing and the visit had `fbclid`, the browser sends `fb.1.<unix milliseconds>.<fbclid>`. Otherwise `null`.
+- `event_source_url` is the checkout page URL without the hash, or `null`.
+
+The field is always present from this storefront (values may be `null`). An older API that ignores unknown JSON properties still accepts the order. The response may include `analytics_event_id` (string). The storefront uses it as the Purchase `event_id` when it is non-empty, and otherwise uses `purchase_<order number>`.
+
+Backend still to build (separate change, not in this repo): accept `tracking`, and return `analytics_event_id` = `purchase_<order_number>` on create, using that same id for the server Purchase (CAPI) event.
+
 ## Bangla QR payment fields
 
 - `GET /api/v1/site/payment` (public, `no-store`): `{ bangla_qr_src, bangla_qr_enabled }`.

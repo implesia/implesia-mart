@@ -100,8 +100,9 @@ Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-se
 - `htmlLimitedBots: /.*/` makes metadata render in `<head>` for every user agent (no streamed metadata in `<body>`).
 - Product title = SEO title or product title; description = SEO description or the product description trimmed to ~160 characters; keywords = SEO keywords or the defaults. A trailing "| Implesia Mart" is removed before the site template adds it. The JSON-LD uses the same name and description.
 - Admin limits: SEO title max 120 (counter warns above 60 incl. the brand suffix), meta description max 320 (counter vs 160), keywords max 500, slug `^[a-z0-9]+(-[a-z0-9]+)*$`, editable only on an existing product. Canonical product URLs stay `/products/<id>`; a slug (current or old) 308-redirects there.
-- Site verification: `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` / `NEXT_PUBLIC_BING_SITE_VERIFICATION` (build-time) add the verification meta tags; unset = no tag.
-- Sitemap: static pages, categories with published products (`/products?category=<slug>`), published products (`/products/<id>`, with images) and blog posts. `lastModified` only from real dates (API `updated_at`, blog publish date); none for static pages. Catalog API down → 5xx + log; category/blog API down → that section is left out + log.
+- Site verification: `GOOGLE_SITE_VERIFICATION` (server-only, read on each request) adds `<meta name="google-site-verification">`. `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` is used only when that is empty. `NEXT_PUBLIC_BING_SITE_VERIFICATION` adds the Bing tag. Empty token = no tag.
+- Sitemap: static pages, categories with published products (`/products?category=<slug>`), published products (`/products/<id>`, with images) and blog posts. `lastModified` only from real dates (API `updated_at`, blog publish date); none for static pages. Catalog API down → 5xx + log; category/blog API down → that section is left out + log. `/admin`, `/cart`, `/checkout`, `/order-status` and `/api` are not listed. There is no public cart or account page and no separate order-success URL (success is a state on `/checkout`).
+- `robots.txt` disallows `/admin` (includes `/admin/cart`), `/cart`, `/checkout`, `/order-status` and `/api`.
 - Product JSON-LD: `Product` with `Offer` (or `AggregateOffer` + one `Offer` per option), `priceValidUntil` = today + 365 days, shipping = highest enabled delivery charge, country BD, return policy 3 days / free / by mail. These are assumptions in `lib/product-structured-data.ts` (`RETURN_POLICY`, `PRICE_VALID_DAYS`); change them there if the shipping-returns policy changes. No ratings until real reviews exist.
 - Catalog canonical: `/products` with only `category` and `page` (>1). A page past the last one 307-redirects (from `proxy.ts`) to the last page with the same filters; page counts change, so the redirect is temporary.
 - Image alt: an empty gallery/main image description falls back to the product title on the storefront; the admin form says so.
@@ -118,6 +119,17 @@ Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-se
   - Result message, for example "1 product deleted · 1 skipped (already removed) · 2 could not be deleted". If nothing was deleted the result is shown as an error.
   - After the request the list reloads and the selection clears.
 - Deleting a product keeps past orders (order lines keep name and price).
+
+## Storefront analytics
+
+Code: `lib/analytics/`. The storefront calls `track` / `trackPurchase` only. `/admin` does not mount the loader, and `track` ignores any `/admin` path.
+
+- GA4 (`NEXT_PUBLIC_GA4_ID`, shape `G-…`) and Meta Pixel (`NEXT_PUBLIC_META_PIXEL_ID`, digits). An empty or malformed id turns that tracker off: no script, no event, no console message. The ids are read on the server per request and passed into the page. There is no consent banner; a tracker runs only when its id is set.
+- Scripts load after hydration (GA4, `afterInteractive`) and at idle (Meta, `lazyOnload`). gtag is configured with `send_page_view: false`. The Meta snippet does not send its own PageView. One `page_view` / `PageView` is sent on each client route change, including the first load.
+- Events, GA4 name = Meta name: `view_item` = `ViewContent` (product page), `add_to_cart` = `AddToCart` (after the cart API accepts the line), `begin_checkout` = `InitiateCheckout` (once, when checkout first has lines), `purchase` = `Purchase`. Currency is `BDT`. Payload carries product id, name, price, quantity, and for checkout/purchase the order total (`value`). Purchase also sends the order number as `transaction_id`.
+- Every event has an id: GA4 param `event_id`, Meta option `eventID`. Non-purchase ids are random. The purchase id is `analytics_event_id` from the order-create response when that string is non-empty, otherwise `purchase_<order_number>`.
+- Purchase is sent only after `placeOrder` succeeds, and only once per order number. The order number is kept in `localStorage` (`implesia.analytics.purchases.v1`), so a refresh, back navigation, or a later visit to that success state does not send it again.
+- `POST /api/v1/orders` includes `tracking: { fbp, fbc, event_source_url }`. `fbp` and `fbc` are the `_fbp` and `_fbc` cookies. If `_fbc` is missing but this visit had `fbclid` (this URL, or earlier in the same tab), `fbc` is `fb.1.<milliseconds>.<fbclid>`. A missing value is `null`. Older APIs that ignore unknown JSON fields keep working.
 
 ## Cart and checkout
 
