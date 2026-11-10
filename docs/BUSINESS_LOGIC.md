@@ -23,10 +23,46 @@ Code: `lib/mart-api/badge-rules.ts`, `lib/mart-api/badges.ts`, `app/admin/badges
 - Publishing needs a price (unless it has variants), a category and a main image; the form shows the missing fields.
 - Drafts never appear on the storefront (the API filters them).
 
+## Inventory (admin)
+
+Code: `lib/admin/inventory.ts`, `lib/mart-api/inventory.ts`, `lib/mart-mock/inventory.ts`, `app/admin/inventory/`, `app/admin/products/_components/product-stock-panel.tsx`. The storefront does not import these modules.
+
+- Staff roles come from `GET /api/v1/auth/me` (`viewer`, `editor`, `superadmin`) and are kept on the admin session. A viewer can open the inventory pages, export, download a template, and preview an import. Create, edit, confirm import, Record opening stock, and Adjust stock need an editor or superadmin. A session with no role stored is not treated as a viewer.
+- Suppliers have a name (required, 160), phone (40), address (500) and note (500). There is no delete.
+- A purchase needs a supplier, an Asia/Dhaka calendar date (`purchased_on`), and 1–100 lines. Invoice number and note are optional (64 and 500). Each line is `product_id`, optional `variant_id`, quantity of 1 or more, and `unit_cost` (non-negative `numeric(12, 2)`). The form shows a line total and a grand total from the numbers the user typed. `PurchaseRead` has no total; the list sums `quantity × unit_cost` of the returned lines for display only.
+- The server, not the browser, sets `cost_price` to the weighted average when a purchase is saved and increases on-hand stock. The product panel refetches `quantity` and `cost_price` from the admin product after an adjustment, and whenever the product page loads. The mock applies the same formula so that refetch works while the ledger routes are missing.
+- Stock movements are insert-only. `movement_type` is `opening`, `purchase`, `sale`, `return`, `cancel`, or `adjustment`. The history table shows `product_title`, signed `quantity`, and `actor_id` (the API does not return a name or email). `sku` is filled for a variant movement.
+- Adjust stock posts `{ product_id, variant_id?, quantity, reason }`. `quantity` is a non-zero signed difference. Reason is required (500) and is stored as the movement note. The response is the movement, not the new balance. The panel then refetches the product.
+- `POST /opening-stock` records one opening movement per tracked product or variant and does not change the count. It is idempotent (`created`, `already_recorded`, `untracked`). An opening import must quote the current stock or leave quantity blank; it does not change the number. A second opening is rejected.
+- Low stock: on-hand quantity at or below `LOW_STOCK_THRESHOLD` (5), including zero. There is no admin setting for this yet. A blank catalog quantity (made to order) is not low stock. Customers never see cost price, unit cost, or these admin stock tools.
+- Dates and times on these pages use Asia/Dhaka. "This week" on the stock history page is Monday–Sunday. "This month" there is the calendar month. Custom from/to dates are inclusive. A timestamp just after Dhaka midnight belongs to the new Dhaka date, not the previous UTC date.
+- Excel import is two steps. Preview (`POST /imports/preview`) saves nothing and returns `rows[]` of `row`, `valid`, `action`, `errors`, and `summary`. Confirm saves every valid actionable row in one transaction and returns `saved` and `skipped`. The toast is "N rows saved. M skipped." The same file bytes are a 409 conflict (`error.code` `conflict`, `details.file_hash`) until the editor confirms the re-import.
+- Export Excel is `products`, `purchases`, or `movements`. The API date filter is `date_from` and `date_to`. Product and movement-type filters stay on the stock history list; they are not export query parameters. There is no supplier workbook.
+
+## Admin cost price (কেনা দাম)
+
+Code: `lib/admin/cost-price.ts`, `app/admin/products/_components/product-form.tsx`. The storefront does not import this module and does not read `cost_price`.
+
+- Optional. The field sits next to the selling price. Empty is sent as `cost_price: null`, which clears a saved cost. Leaving the field out of a PATCH keeps the stored value (the form always sends the current value). A negative number, letters, more than two decimal places, or a value above 9,999,999,999.99 (`numeric(12, 2)`) is shown under the field and blocks Save draft and Publish. Nothing invalid is sent.
+- Bengali digits are accepted. A trailing dot (`10.`) is the whole taka. Admin reads return a JSON number (the float of that decimal, so `12.50` is `12.5`) or `null`. A decimal string is still shown if one arrives.
+- Margin uses the Shopify convention: percent of the **selling price**, not markup on cost.
+  - profit taka = selling price − cost price
+  - margin % = profit taka ÷ selling price × 100 (nearest 0.01; no percent when the selling price is 0)
+- The selling price in that formula is the quantity-1 price after the base discount. On a product with variants it is the lowest active variant price (the same price the product list shows). Green (`--color-success`) when profit is above 0, red (`--color-error`) when it is below 0.
+- Customers never see the cost or the margin. Only the admin product create/update/read payload carries `cost_price`.
+
+## Order delivered and returned times
+
+Code: `lib/admin/order-timestamps.ts`, `app/admin/orders/[number]/page.tsx`.
+
+- The admin order page shows **Delivered** (`delivered_at`) and **Returned** (`returned_at`) in the progress timeline and in the rows under it.
+- Admin `OrderRead` (list, detail, status update, and the response from placing an order) always includes both: an ISO 8601 UTC timestamp such as `2026-11-09T08:30:00+00:00`, or `null`. The page formats them in Asia/Dhaka as `09 Nov 2026, 2:30 PM`. Null or unreadable is "—".
+- Each timestamp is set once, the first time the status becomes delivered or returned, and is not replaced later. Returning an order keeps `delivered_at`. Public order lookup does not include either field, and the storefront type does not read them.
+
 ## Create errors contract
 
-- `POST /api/v1/admin/products` returns `{"errors": [{"field","message","fix"}]}` (Bengali) with 400/409/500. The form maps each `field` to its input and shows `message` + `fix`.
-- `PATCH` still returns the default `{"error": {...}}` envelope (422, English); the form shows that message as a general error (see TODO.md).
+- `POST /api/v1/admin/products` returns `{"errors": [{"field","message","fix"}]}` (Bengali) with 400/409/500. The form maps each `field` to its input and shows `message` + `fix`. A rejected `cost_price` uses `field: "costPrice"`.
+- `PATCH` still returns the default `{"error": {...}}` envelope (422, English); the form shows that message as a general error (see TODO.md). A negative `cost_price` on update is one of those 422s.
 
 ## Product media (gallery, video, YouTube)
 
@@ -103,3 +139,19 @@ Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-se
 - The transaction ID / sender number is required for Bangla QR (trimmed, 4–64 letters, digits, `+`, `-`). Cash on delivery sends no percent and no reference.
 - The API rejects Bangla QR when no QR is set, a percent outside 25/50/75/100, or a missing/invalid reference (422, Bengali message shown on the form).
 - The payment is not verified automatically: staff check the transaction ID in Admin › Orders › order detail (Payment section) before confirming.
+
+## Sales reports (admin)
+
+Code: `lib/admin/reports.ts`, `lib/mart-api/reports.ts`, `lib/mart-mock/reports.ts`, `app/admin/reports/`. The storefront does not import these modules. The API is the source of truth (backend PR #10, branch `cursor/admin-sales-reports-b0a9`).
+
+- Any signed-in staff member, including a viewer, can open Reports and export. There is no write action on this page.
+- The window is a preset or a from/to pair, never both. Presets match the API: This week is Monday through today, This month is the 1st through today, Last month is the whole previous calendar month. Custom dates are inclusive Asia/Dhaka days. A range longer than 366 days, a missing end date, or from after to is refused before the request.
+- Sales, profit, products, delivery, and the trend count delivered orders by `delivered_at`. A later return keeps the sale on the delivery day. Profit and margin use only lines that have a cost. They are blank when every line in the window has no cost, or when there were no known-cost lines. Margin is profit divided by that known-cost revenue. Delivery charge is not part of profit.
+- The summary cards compare the previous period of the same number of days. The page calls the same endpoints again with that from/to. The percent is "—" when the previous value is 0 or null, or the current value is null.
+- Unknown-cost lines are not treated as zero cost. The warning names how many lines lack a cost and links to the product list, or to that product when one product is filtered.
+- Stock on hand ignores the date range and the channel. Low stock is on-hand quantity at or below 5, including zero. A blank quantity (made to order) is not low stock. "No sale in 30 days" uses the API's `no_sale_since`.
+- Stock movement shows the ledger totals. A sale quantity is negative. Closing is the opening balance plus opening, purchase, sale, return, cancel, and adjustment. Channel is not applied.
+- Return rate is returned divided by delivered. It is blank when nothing was delivered. It can be over 100% when more orders were returned in the window than delivered in it.
+- The trend grain defaults the way the API does: day up to 31 days, week up to 92, otherwise month. An empty day has profit 0. A day whose only sales have no cost has profit blank.
+- The dashboard headline (the same seven figures and the trend chart) uses this API. Order activity, best sellers, recent orders, and areas still come from `GET /api/v1/admin/dashboard`, which remains editor-only. Its delivered count is orders whose `delivered_at` is in the window, including an order that was later returned.
+- Customers never see these reports, the cost, or the margin.

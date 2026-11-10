@@ -36,6 +36,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     title: "Store",
     items: [
       { href: "/admin", label: "Overview", icon: "dashboard", exact: true },
+      { href: "/admin/reports", label: "Reports", icon: "analytics", exact: true },
       { href: "/admin/orders", label: "Orders", icon: "receipt_long" },
       { href: "/admin/inquiries", label: "Inquiries", icon: "forum", badge: "inquiries" },
       { href: "/admin/products", label: "Products", icon: "inventory_2" },
@@ -43,6 +44,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/cart", label: "Cart", icon: "shopping_cart" },
       { href: "/admin/delivery", label: "Delivery charges", icon: "local_shipping" },
       { href: "/admin/pricing", label: "Discounts", icon: "percent" },
+    ],
+  },
+  {
+    title: "Inventory",
+    items: [
+      { href: "/admin/inventory/suppliers", label: "Suppliers", icon: "handshake" },
+      { href: "/admin/inventory/purchases", label: "Purchases", icon: "request_quote" },
+      { href: "/admin/inventory/stock", label: "Stock history", icon: "history" },
     ],
   },
   {
@@ -82,6 +91,9 @@ export function currentAdminPage(pathname: string) {
   }
   if (pathname.startsWith("/admin/products/")) {
     return { group: "Store", label: "Edit product" };
+  }
+  if (pathname === "/admin/inventory/purchases/new") {
+    return { group: "Inventory", label: "New purchase" };
   }
   if (pathname.startsWith("/admin/banners/")) {
     return { group: "Home", label: "Hero slide" };
@@ -165,6 +177,7 @@ export function adminBackHref(pathname: string) {
 export function isWideAdminPath(pathname: string) {
   if (pathname === "/admin") return true;
   if (
+    pathname === "/admin/reports" ||
     pathname === "/admin/orders" ||
     pathname.startsWith("/admin/orders/") ||
     pathname === "/admin/products" ||
@@ -172,7 +185,8 @@ export function isWideAdminPath(pathname: string) {
     pathname === "/admin/cart" ||
     pathname === "/admin/delivery" ||
     pathname === "/admin/pricing" ||
-    pathname === "/admin/badges"
+    pathname === "/admin/badges" ||
+    pathname.startsWith("/admin/inventory")
   ) {
     return true;
   }

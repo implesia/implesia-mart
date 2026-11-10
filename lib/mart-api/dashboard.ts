@@ -160,6 +160,14 @@ function metric(body: ApiMetric): DashboardMetric {
   };
 }
 
+/** The legacy overview is editor-only. Viewers use the report API instead. */
+export class DashboardAccessError extends Error {
+  constructor() {
+    super("Order activity is available to editors.");
+    this.name = "DashboardAccessError";
+  }
+}
+
 export async function getDashboardOverview(input: {
   range: DashboardRangeId;
   from?: string;
@@ -171,6 +179,7 @@ export async function getDashboardOverview(input: {
     params.set("to", input.to);
   }
   const response = await authorizedFetch(`/api/v1/admin/dashboard?${params}`);
+  if (response.status === 403) throw new DashboardAccessError();
   if (!response.ok) {
     throw new MartApiError(
       await readError(response, "Could not load the dashboard."),

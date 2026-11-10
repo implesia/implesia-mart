@@ -1,3 +1,4 @@
+import { readOrderTimestamp } from "@/lib/admin/order-timestamps";
 import { guestCartHeaders } from "@/lib/mart-api/cart";
 import type { DeliveryZone } from "@/lib/mart-api/delivery";
 import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
@@ -89,6 +90,16 @@ export type MartOrder = {
   trackingNumber: string;
   items: MartOrderItem[];
   createdAt: string;
+  /**
+   * `OrderRead.delivered_at`. ISO 8601 UTC, or null until the first move to
+   * delivered. A later status change does not replace it.
+   */
+  deliveredAt: string | null;
+  /**
+   * `OrderRead.returned_at`. ISO 8601 UTC, or null until the first move to
+   * returned. Kept when the order was delivered earlier.
+   */
+  returnedAt: string | null;
   /** Statuses the backend will accept next; empty once the order is final. */
   nextStatuses: OrderStatus[];
 };
@@ -184,6 +195,10 @@ type ApiOrder = {
   tracking_number: string;
   items: ApiOrderItem[];
   created_at: string;
+  /** ISO 8601 with a UTC offset, or null. Always on admin OrderRead. */
+  delivered_at: string | null;
+  /** ISO 8601 with a UTC offset, or null. Always on admin OrderRead. */
+  returned_at: string | null;
   next_statuses?: OrderStatus[];
 };
 
@@ -264,6 +279,8 @@ function mapOrder(body: ApiOrder): MartOrder {
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
     createdAt: body.created_at,
+    deliveredAt: readOrderTimestamp(body.delivered_at),
+    returnedAt: readOrderTimestamp(body.returned_at),
     nextStatuses: body.next_statuses ?? [],
     items: body.items.map((item) => ({
       id: item.id,
@@ -435,6 +452,7 @@ export type PublicOrder = {
   dueAmount: number;
   items: PublicOrderItem[];
   createdAt: string;
+  // PublicOrderRead does not include delivered_at or returned_at.
 };
 
 type ApiPublicOrderItem = {

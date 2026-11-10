@@ -69,6 +69,7 @@ import { productPath } from "@/lib/mart-api/product-url";
 import { badgeToneClass, type AdminBadgeRef } from "@/lib/mart-api/badge-rules";
 import { ProductBadgePicker } from "./product-badge-picker";
 import { QuantityTiersEditor } from "../../_components/quantity-tiers-editor";
+import { ProductStockPanel } from "./product-stock-panel";
 import { QUANTITY_CEILING } from "@/lib/mart-api/variants";
 import {
   derivedBase,
@@ -79,6 +80,14 @@ import {
   tierRowsFrom,
   type TierRow,
 } from "@/lib/mart-api/pricing";
+import {
+  costMargin,
+  costPriceError,
+  costPriceForApi,
+  costPriceLiveError,
+  formatCostPriceInput,
+  formatMarginTaka,
+} from "@/lib/admin/cost-price";
 
 const SECTIONS = [
   { id: "product-information", label: "Product information" },
@@ -127,6 +136,8 @@ type FormState = {
   seoTitle: string;
   seoDescription: string;
   seoKeywords: string;
+  /** Typed cost price. Empty sends null. */
+  costPrice: string;
 };
 
 type FieldKey =
@@ -135,6 +146,7 @@ type FieldKey =
   | "price"
   | "compareAtPrice"
   | "baseDiscount"
+  | "costPrice"
   | "quantityTiers"
   | "quantity"
   | "orderLimits"
@@ -151,6 +163,7 @@ const SERVER_FIELD_ORDER = [
   "price",
   "compareAtPrice",
   "baseDiscount",
+  "costPrice",
   "quantityTiers",
   "quantity",
   "status",
@@ -174,6 +187,7 @@ const SERVER_FIELD_LABEL: Record<string, string> = {
   compareAtPrice: "আগের দাম",
   regularPrice: "রেগুলার দাম",
   baseDiscount: "বেস ছাড়",
+  costPrice: "কেনা দাম",
   quantityTiers: "পরিমাণ অনুযায়ী ছাড়",
   quantity: "স্টকের পরিমাণ",
   status: "স্টক স্ট্যাটাস",
@@ -197,6 +211,7 @@ const SERVER_FIELD_SECTION: Record<string, SectionId> = {
   compareAtPrice: "product-pricing",
   regularPrice: "product-pricing",
   baseDiscount: "product-pricing",
+  costPrice: "product-pricing",
   quantityTiers: "product-pricing",
   quantity: "product-inventory",
   status: "product-inventory",
@@ -219,6 +234,7 @@ const SERVER_FIELD_INPUT: Record<string, string> = {
   compareAtPrice: "price",
   regularPrice: "price",
   baseDiscount: "base",
+  costPrice: "cost",
   quantity: "qty",
   orderLimits: "min-order",
 };
@@ -235,6 +251,7 @@ const SERVER_FIELDS_FOR: Partial<Record<keyof FormState, string[]>> = {
   compareAtPrice: ["compareAtPrice"],
   regularPrice: ["regularPrice", "price", "compareAtPrice"],
   baseDiscount: ["baseDiscount", "price", "compareAtPrice"],
+  costPrice: ["costPrice"],
   tierMode: ["quantityTiers"],
   tiers: ["quantityTiers"],
   quantity: ["quantity"],
@@ -308,11 +325,12 @@ function toForm(product?: AdminProduct): FormState {
       maxOrder: "",
       variants: [],
       slug: "",
-      seoTitle: "",
-      seoDescription: "",
-      seoKeywords: "",
-    };
-  }
+    seoTitle: "",
+    seoDescription: "",
+    seoKeywords: "",
+    costPrice: "",
+  };
+}
   const regular =
     product.regularPrice ?? Math.max(product.compareAtPrice ?? 0, product.price);
   const base = product.baseDiscountPercent ?? derivedBase(regular, product.price);
@@ -350,6 +368,7 @@ function toForm(product?: AdminProduct): FormState {
     seoTitle: product.seoTitle ?? "",
     seoDescription: product.seoDescription ?? "",
     seoKeywords: product.seoKeywords ?? "",
+    costPrice: formatCostPriceInput(product.costPrice),
   };
 }
 
@@ -384,6 +403,9 @@ function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors 
     const tierError = parseTierRows(form.tiers).error;
     if (tierError) errors.quantityTiers = tierError;
   }
+
+  const costProblem = costPriceError(form.costPrice);
+  if (costProblem) errors.costPrice = costProblem;
 
   if (!hasVariants && form.compareAtPrice.trim()) {
     const compareAtPrice = Number(form.compareAtPrice);
@@ -426,7 +448,13 @@ function validate(form: FormState, intent: SaveIntent = "publish"): FieldErrors 
 function firstErrorSection(errors: FieldErrors): SectionId | null {
   if (errors.title) return "product-information";
   if (errors.category) return "product-organization";
-  if (errors.price || errors.compareAtPrice || errors.baseDiscount || errors.quantityTiers) {
+  if (
+    errors.price ||
+    errors.compareAtPrice ||
+    errors.baseDiscount ||
+    errors.costPrice ||
+    errors.quantityTiers
+  ) {
     return "product-pricing";
   }
   if (errors.quantity || errors.orderLimits) return "product-inventory";
@@ -486,6 +514,15 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
     priceReady && compareReady && compareNumber > priceNumber
       ? Math.round(((compareNumber - priceNumber) / compareNumber) * 100)
       : null;
+  const marginSelling = variantMode
+    ? summary.price
+    : priceReady && !issues.price && !issues.baseDiscount
+      ? priceNumber
+      : null;
+  const parsedCost = costPriceError(form.costPrice) ? null : costPriceForApi(form.costPrice);
+  const margin =
+    marginSelling != null && parsedCost != null ? costMargin(marginSelling, parsedCost) : null;
+  const costMessage = errors.costPrice ?? costPriceLiveError(form.costPrice) ?? undefined;
 
   function serverFor(...fields: string[]) {
     return serverErrors.filter((item) => fields.includes(item.field));
@@ -658,12 +695,19 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       setErrorIntent(intent);
       setShowErrors(true);
       showToast(
-        intent === "draft" && nextErrors.title
+        intent === "draft" && nextErrors.title && Object.keys(nextErrors).length === 1
           ? "Add a product name to save the draft."
-          : "Fix the highlighted fields to publish.",
+          : intent === "draft"
+            ? "Fix the highlighted fields to save the draft."
+            : "Fix the highlighted fields to publish.",
       );
       const section = firstErrorSection(nextErrors);
       if (section) scrollToSection(section);
+      if (nextErrors.costPrice && section === "product-pricing" && !nextErrors.price && !nextErrors.baseDiscount) {
+        requestAnimationFrame(() => {
+          document.getElementById(`${formId}-cost`)?.focus({ preventScroll: true });
+        });
+      }
       return;
     }
     if (uploading || saving) return;
@@ -707,6 +751,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         : {}),
       tierMode: form.tierMode,
       quantityTiers: tiers,
+      costPrice: costPriceForApi(form.costPrice),
       quantity,
       status: form.status,
       badge: form.badge || null,
@@ -761,9 +806,12 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         return;
       }
       if (error instanceof MartApiError && error.fieldErrors.length > 0) {
-        const sorted = [...error.fieldErrors].sort(
-          (a, b) => serverRank(a.field) - serverRank(b.field),
-        );
+        const sorted = error.fieldErrors
+          .map((item) => ({
+            ...item,
+            field: item.field === "cost_price" ? "costPrice" : item.field,
+          }))
+          .sort((a, b) => serverRank(a.field) - serverRank(b.field));
         setServerErrors(sorted);
         // Wait for the messages to render, then bring the first problem into view.
         requestAnimationFrame(() => focusServerField(sorted[0].field));
@@ -1067,8 +1115,14 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
 
           <FormSection
             invalid={
-              serverFor("price", "compareAtPrice", "regularPrice", "baseDiscount", "quantityTiers")
-                .length > 0
+              serverFor(
+                "price",
+                "compareAtPrice",
+                "regularPrice",
+                "baseDiscount",
+                "costPrice",
+                "quantityTiers",
+              ).length > 0
             }
             id="product-pricing"
             title="Pricing"
@@ -1123,7 +1177,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   aria-invalid={
                     errors.baseDiscount || serverFor("baseDiscount").length ? true : undefined
                   }
-                  aria-describedby={`${formId}-base-hint`}
+                  aria-describedby={errors.baseDiscount ? `${formId}-base-error` : undefined}
                   className={cn(
                     adminFieldClass,
                     (errors.baseDiscount || serverFor("baseDiscount").length > 0) && INVALID_FIELD,
@@ -1134,21 +1188,6 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   id={`${formId}-server-baseDiscount`}
                   items={serverFor("baseDiscount")}
                 />
-                {!variantMode && priceReady && !errors.baseDiscount ? (
-                  <p
-                    id={`${formId}-base-hint`}
-                    className="mt-1.5 text-xs text-neutral-500"
-                    data-testid="selling-price-preview"
-                  >
-                    Selling price{" "}
-                    <span className="font-semibold text-neutral-900 tabular-nums">
-                      {formatTaka(priceNumber)}
-                    </span>
-                    {discount != null
-                      ? ` (${percentText(parsePercent(form.baseDiscount) ?? 0)}% off ${formatTaka(compareNumber)})`
-                      : ""}
-                  </p>
-                ) : null}
               </div>
               <div>
                 <FieldLabel htmlFor={`${formId}-unit`}>Price note</FieldLabel>
@@ -1168,6 +1207,100 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   Shown beside the price on the product page. Leave blank for a
                   normal price.
                 </p>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p
+                  id={`${formId}-selling-label`}
+                  className="mb-1.5 text-sm font-medium text-neutral-700"
+                >
+                  Selling price
+                </p>
+                <output
+                  htmlFor={`${formId}-price ${formId}-base`}
+                  data-testid="selling-price-preview"
+                  aria-labelledby={`${formId}-selling-label`}
+                  className={cn(adminFieldClass, "flex items-center gap-1 tabular-nums")}
+                >
+                  <span aria-hidden className="text-neutral-500">
+                    ৳
+                  </span>
+                  <span className="font-semibold text-neutral-950">
+                    {marginSelling == null ? "—" : marginSelling.toLocaleString("en-US")}
+                  </span>
+                </output>
+                <p className="mt-1.5 text-xs text-neutral-500">
+                  {variantMode
+                    ? "Lowest active variant price. Customers see each variant's own price."
+                    : discount != null
+                      ? `${percentText(parsePercent(form.baseDiscount) ?? 0)}% off ${formatTaka(compareNumber)}. Customers see this price.`
+                      : "Quantity-1 price after the base discount. Customers see this."}
+                </p>
+              </div>
+              <div>
+                <FieldLabel htmlFor={`${formId}-cost`}>কেনা দাম (Cost price)</FieldLabel>
+                <div className="relative">
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-neutral-500"
+                  >
+                    ৳
+                  </span>
+                  <input
+                    id={`${formId}-cost`}
+                    name="cost_price"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={form.costPrice}
+                    onChange={(event) => setField("costPrice", event.target.value)}
+                    placeholder="0.00"
+                    aria-invalid={costMessage ? true : undefined}
+                    aria-describedby={`${formId}-cost-hint${costMessage ? ` ${formId}-cost-error` : ""}${margin ? ` ${formId}-cost-margin` : ""}`}
+                    className={cn(
+                      adminFieldClass,
+                      "scroll-mb-28 pl-8",
+                      (costMessage || serverFor("costPrice").length > 0) &&
+                        "border-error focus-visible:border-error focus-visible:ring-error/30",
+                    )}
+                  />
+                </div>
+                {costMessage ? (
+                  <p id={`${formId}-cost-error`} role="alert" className="mt-1.5 text-xs text-error">
+                    {costMessage}
+                  </p>
+                ) : null}
+                <ServerFieldErrors
+                  id={`${formId}-server-costPrice`}
+                  items={serverFor("costPrice")}
+                />
+                <p id={`${formId}-cost-hint`} className="mt-1.5 text-xs text-neutral-500">
+                  শুধু অ্যাডমিন দেখবে, কাস্টমার দেখবে না।
+                </p>
+                {margin ? (
+                  <p
+                    id={`${formId}-cost-margin`}
+                    data-testid="cost-margin"
+                    data-margin-tone={
+                      margin.profit > 0 ? "profit" : margin.profit < 0 ? "loss" : "even"
+                    }
+                    aria-live="polite"
+                    className={cn(
+                      "mt-1.5 text-xs font-medium tabular-nums",
+                      margin.profit > 0
+                        ? "text-success"
+                        : margin.profit < 0
+                          ? "text-error"
+                          : "text-neutral-600",
+                    )}
+                  >
+                    {margin.profit < 0 ? "ক্ষতি" : "লাভ"} {formatMarginTaka(margin.profit)}
+                    {margin.percent == null
+                      ? " (বিক্রয় মূল্য ০, শতাংশ হিসাব হয় না)"
+                      : ` (বিক্রয় মূল্যের ${percentText(Math.abs(margin.percent))}%)`}
+                  </p>
+                ) : null}
               </div>
             </div>
             <fieldset className="mt-5 border-t border-neutral-100 pt-4">
@@ -1229,6 +1362,20 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
             title="Inventory"
             description="Stock status is the availability label. Quantity is optional: leave it blank for made to order."
           >
+            {product?.id ? (
+              <ProductStockPanel
+                productId={product.id}
+                productName={form.title || product.title}
+                sku={form.variants.find((variant) => variant.sku)?.sku || product.slug}
+                catalogQuantity={
+                  variantMode
+                    ? summary.quantity
+                    : form.quantity.trim() === "" || !Number.isFinite(Number(form.quantity))
+                      ? null
+                      : Number(form.quantity)
+                }
+              />
+            ) : null}
             <div>
               <p className="mb-1.5 text-sm font-medium text-neutral-700">
                 Stock status

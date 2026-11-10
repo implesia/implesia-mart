@@ -4,6 +4,7 @@ import {
   type ProductBulkDeleteResult,
 } from "@/lib/mart-api/product-bulk-delete";
 import { publicRequestInit } from "@/lib/mart-api/public-request";
+import { readCostPrice } from "@/lib/admin/cost-price";
 import { readTiers } from "@/lib/mart-api/pricing";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import type { ProductSpecGroupId } from "@/app/(client)/_data/products/product-details";
@@ -291,6 +292,9 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
           })),
         }
       : {}),
+    // Admin product JSON only. PATCH: omit keeps the stored numeric(12, 2); null clears it.
+    // The form always sends the current field (a number, or null when empty).
+    ...(draft.costPrice !== undefined ? { cost_price: draft.costPrice } : {}),
     min_order_quantity: draft.minOrderQuantity ?? 1,
     max_order_quantity: draft.maxOrderQuantity ?? null,
     ...(draft.seoTitle !== undefined
@@ -429,9 +433,10 @@ export async function loginMart(email: string, password: string) {
     throw new MartApiError("Could not reach the product API.");
   }
   if (!response.ok) throw new MartApiError(await readError(response, "Sign in failed."));
-  const body = (await response.json()) as { email?: string };
+  const body = (await response.json()) as { email?: string; role?: string };
   if (!body.email) throw new MartApiError("Sign in failed.");
-  return { email: body.email };
+  const role = body.role === "viewer" || body.role === "editor" || body.role === "superadmin" ? body.role : null;
+  return { email: body.email, role };
 }
 
 export async function changeMartPassword(currentPassword: string, newPassword: string) {
@@ -574,6 +579,11 @@ type ApiCard = {
   base_discount_percent?: number;
   tier_mode?: "global" | "custom";
   tiers?: unknown;
+  /**
+   * Admin list, get, create, and update (`AdminProductCard` / `AdminProductRead`).
+   * JSON number or null. Not present on public product responses.
+   */
+  cost_price?: number | null;
 };
 
 type ApiVariant = {
@@ -721,6 +731,7 @@ function cardToProduct(item: ApiCard): AdminProduct {
           quantityTiers: readTiers(item.tiers),
         }
       : {}),
+    costPrice: readCostPrice(item.cost_price),
   };
 }
 

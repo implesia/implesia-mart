@@ -63,7 +63,7 @@ let sessionCache: AdminSession | null | undefined;
 
 function getSessionSnapshot() {
   const next = readSession();
-  if (sessionCache && next && sessionCache.email === next.email) {
+  if (sessionCache && next && sessionCache.email === next.email && sessionCache.role === next.role) {
     return sessionCache;
   }
   if (!sessionCache && !next) return sessionCache ?? null;
@@ -482,8 +482,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         });
         if (cancelled) return;
         if (response.ok) {
-          const body = (await response.json()) as { email?: string };
-          if (body.email) writeSession(body.email);
+          const body = (await response.json()) as { email?: string; role?: string };
+          if (body.email) writeSession(body.email, body.role);
           return;
         }
         clearSession();
