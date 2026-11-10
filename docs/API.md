@@ -124,6 +124,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `home-media.ts` | `/api/v1/admin/home/media`<br>`/api/v1/admin/home/media/image`<br>`/api/v1/admin/home/media/video`<br>`/api/v1/home/media` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
 | `orders.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/orders`<br>`/api/v1/orders/lookup`<br>`/api/v1/orders/quote` |
+| `order-alerts.ts` | `/api/v1/admin/orders/new` |
 | `payment-settings.ts` | `/api/v1/admin/site/payment`<br>`/api/v1/admin/site/payment/qr`<br>`/api/v1/site/payment` |
 | `pricing-settings.ts` | `/api/v1/admin/pricing` |
 | `privacy-collection.ts` | `/api/v1/admin/pages/privacy/collection`<br>`/api/v1/pages/privacy/collection` |
@@ -211,6 +212,26 @@ Query: `preset` (`this_week`, `this_month`, `last_month`) or `from` and `to` (`Y
 `ReportFilters` uses JSON names `from` and `to` (not `date_from`). `MovementReport` uses `return` for the returned quantity. `DeliveryReport` uses `return_rate_percent`, which is null when nothing was delivered. `ProfitReport.profit` and `margin_percent` are null when every line has no cost. `StockReport.period_applies` is false. `channel_applies` is false on stock and movements.
 
 The dashboard headline calls the same report paths. `GET /api/v1/admin/dashboard` stays editor-only and still fills order activity, best sellers, recent orders, and areas. Its delivered count uses `delivered_at`.
+
+## Admin new orders
+
+Taken from implesia-mart-backend PR #14 (stacked on backend PR #13). Staff only, through `/api/proxy`. The admin shell on every page except `/admin/login` calls it. The order link is `/admin/orders/<id>` (`id` is the UUID, the same value the orders list already uses).
+
+Until the route answers (404, 501, or the API cannot be reached on the first try), the shell uses `lib/mart-mock/order-alerts.ts`. A 401 or 422 does not use the mock. The request is `cache: "no-store"`. The route's response is `Cache-Control: no-store`.
+
+| UI | Method | Path |
+| --- | --- | --- |
+| Poll for new orders | GET | `/api/v1/admin/orders/new` |
+
+Query: optional `since` (ISO datetime). `limit` is 1..50, default 20. The client clamps `limit` before sending. A value outside 1..50 is **422**. Anonymous or non-staff is **401**, and polling stops.
+
+```json
+{ "now": "2026-11-10T08:00:00.000Z", "items": [
+  { "id": "11111111-1111-4111-8111-111111111111", "number": "IM-24018", "customer_name": "Nusrat Jahan", "total": 2450, "payment_method": "cod", "created_at": "2026-11-10T07:59:00.000Z" }
+]}
+```
+
+`payment_method` is `cod` or `bangla_qr`. `items` are newest first and only include rows with `created_at` later than `since`. The next request sends `since` = `now`.
 
 ## Admin order timestamps
 

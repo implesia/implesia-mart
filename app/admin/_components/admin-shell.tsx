@@ -21,6 +21,8 @@ import {
 
 import { ChangePasswordDialog } from "./change-password-dialog";
 import { ConfirmDeleteProvider } from "./confirm-delete";
+import { OrderAlertBadge, OrderAlertBell } from "./order-alerts/order-alert-bell";
+import { OrderAlertHint, OrderAlertsProvider } from "./order-alerts/order-alerts-provider";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
@@ -160,6 +162,7 @@ function NavLink({
         {item.label}
       </span>
       {item.badge === "inquiries" ? <InquiryBadge collapsed={collapsed} /> : null}
+      {item.badge === "orders" ? <OrderAlertBadge collapsed={collapsed} /> : null}
     </Link>
   );
 }
@@ -406,6 +409,7 @@ function AdminHeader({
         </p>
       </div>
       <div className="ml-auto flex min-w-0 items-center gap-2">
+        <OrderAlertBell />
         <p className="hidden max-w-48 truncate text-sm text-neutral-600 md:block">
           {session.email}
         </p>
@@ -565,6 +569,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ConfirmDeleteProvider>
+    <OrderAlertsProvider>
     <div className="force-light min-h-dvh bg-[#f5f6f8] text-neutral-950">
       <aside
         className={cn(
@@ -603,6 +608,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           onChangePassword={() => setPasswordOpen(true)}
           onLogout={() => void logout()}
         />
+        <OrderAlertHint />
         {logoutError ? (
           <p
             role="alert"
@@ -640,6 +646,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         />
       ) : null}
     </div>
+    </OrderAlertsProvider>
     </ConfirmDeleteProvider>
   );
 }

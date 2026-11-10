@@ -51,6 +51,17 @@ Code: `lib/admin/cost-price.ts`, `app/admin/products/_components/product-form.ts
 - The selling price in that formula is the quantity-1 price after the base discount. On a product with variants it is the lowest active variant price (the same price the product list shows). Green (`--color-success`) when profit is above 0, red (`--color-error`) when it is below 0.
 - Customers never see the cost or the margin. Only the admin product create/update/read payload carries `cost_price`.
 
+## Admin new-order alerts
+
+Code: `lib/admin/order-alerts.ts`, `lib/mart-api/order-alerts.ts`, `lib/mart-mock/order-alerts.ts`, `app/admin/_components/order-alerts/`. The storefront does not import these modules. Not live until `GET /api/v1/admin/orders/new` answers (backend PR #14).
+
+- Signed-in staff on any admin page except `/admin/login` poll that route. A visible tab waits 25 seconds. A hidden tab waits 3 minutes and polls as soon as it is shown again. After an error the wait doubles, up to 5 minutes. HTTP 401 (anonymous or not staff) stops polling and the existing admin client clears the session. HTTP 422 (limit outside 1..50) backs off and does not switch to the mock. The client never sends a limit outside 1..50.
+- One browser tab holds the poll lock. The lock is stale after 10 seconds without a heartbeat (every 3 seconds). A visible tab takes the lock from a hidden leader. That tab broadcasts each result. The others update from the broadcast, or from `localStorage` if `BroadcastChannel` is missing.
+- The first response, when this browser has no cursor yet, is remembered and not announced. After that, a row counts as new only when its `created_at` is later than the cursor. The cursor becomes the response `now`. Rows are newest first. `id` is a UUID. `payment_method` is `cod` (Cash on delivery) or `bangla_qr` (Bangla QR). Anything else is ignored. The order link is `/admin/orders/<id>`.
+- Unread orders add a count to the Orders item in the sidebar and `(N)` to the tab title. **সব পড়া হয়েছে** clears the unread count and leaves the recent list (up to 20). Sound on/off and volume are stored in this browser. The browser's notification permission is not stored; the popover shows `granted`, `denied`, `default`, or `unsupported`.
+- Sound and the browser notification run once per order, on the tab that claimed it. A toast on that tab names the order number and the ৳ amount (thousands separators) and links to the order. If the browser blocks playback, the bar **শব্দ চালু করতে ক্লিক করুন** unlocks it. Times in the list are relative, using the Asia/Dhaka calendar day.
+- Customers never see this. Nothing is polled on the storefront.
+
 ## Order delivered and returned times
 
 Code: `lib/admin/order-timestamps.ts`, `app/admin/orders/[number]/page.tsx`.
