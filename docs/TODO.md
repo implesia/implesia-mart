@@ -4,6 +4,7 @@ Open items found in the code and in recent work. Remove an item when it is done.
 
 ## Open
 
+- **Reports API fallback**: `/admin` and `/admin/reports` call the report paths in `docs/API.md` (backend PR #10, branch `cursor/admin-sales-reports-b0a9`). A missing `GET /api/v1/admin/reports/sales` still falls back to `lib/mart-mock/reports.ts`. Remove that fallback once those routes answer in the environment this app calls. The mock books a sale movement on the delivery day; the live ledger uses the movement's `created_at`.
 - **Inventory API fallback**: the admin inventory screens call the ledger paths in `docs/API.md` (backend PR #9, branch `cursor/inventory-ledger-2808`). A missing `GET /api/v1/admin/inventory/suppliers` still falls back to `lib/mart-mock/inventory.ts`. Remove that fallback once those routes answer in the environment this app calls. `LOW_STOCK_THRESHOLD` is 5 until the shop has a setting for it. The history "Who" column shows `actor_id` because the movement payload has no name.
 - **PATCH product errors**: the API's `PATCH /api/v1/admin/products/{id}` still answers 422 with English messages in the default envelope. The edit form shows that as a general error instead of per-field Bengali errors like create. Needs a backend change first.
 - **Browser verification**: the bulk-delete UI on `/admin/products` passed lint, type check, build, unit tests and curl checks but has not had a full manual browser walkthrough (desktop and mobile).

@@ -40,7 +40,7 @@ Notes on the tables below:
 | --- | --- |
 | `/` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-related`, `cart`, `catalog`, `categories`, `category-preview`, `contact-details`, `faq`, `featured`, `footer`, `header`, `hero`, `inquiry-public`, `home-media`, `newsletter`, `products`, `promo`, `reviews`, `search`, `showcase`, `trust` |
 | `/about-us` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values` |
-| `/admin` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values`, `blog-categories`, `blog-cta`, `blog-hero`, `blog-listing`, `blog-posts`, `blog-related`, `contact-details`, `contact-faq`, `contact-form`, `contact-hero`, `contact-support`, `dashboard`, `faq-callout`, `faq-categories`, `faq-help`, `faq-hero`, `faq-items`, `faq-listing`, `inquiries`, `privacy-collection`, `privacy-contents`, `privacy-hero`, `privacy-introduction`, `privacy-rights`, `privacy-sharing`, `privacy-support`, `privacy-usage`, `products`, `shipping-block`, `shipping-contents`, `shipping-faq`, `shipping-hero`, `shipping-payment`, `shipping-refund`, `shipping-returns`, `shipping-support`, `sustainability-commitment`, `sustainability-cta`, `sustainability-durability`, `sustainability-hero`, `sustainability-impact`, `sustainability-origin`, `sustainability-quality` |
+| `/admin` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values`, `blog-categories`, `blog-cta`, `blog-hero`, `blog-listing`, `blog-posts`, `blog-related`, `contact-details`, `contact-faq`, `contact-form`, `contact-hero`, `contact-support`, `dashboard`, `reports`, `faq-callout`, `faq-categories`, `faq-help`, `faq-hero`, `faq-items`, `faq-listing`, `inquiries`, `privacy-collection`, `privacy-contents`, `privacy-hero`, `privacy-introduction`, `privacy-rights`, `privacy-sharing`, `privacy-support`, `privacy-usage`, `products`, `shipping-block`, `shipping-contents`, `shipping-faq`, `shipping-hero`, `shipping-payment`, `shipping-refund`, `shipping-returns`, `shipping-support`, `sustainability-commitment`, `sustainability-cta`, `sustainability-durability`, `sustainability-hero`, `sustainability-impact`, `sustainability-origin`, `sustainability-quality` |
 | `/admin/badges` | `badges` |
 | `/admin/cart` | `cart`, `products` |
 | `/admin/delivery` | `delivery` |
@@ -56,6 +56,7 @@ Notes on the tables below:
 | `/admin/orders` | `orders` |
 | `/admin/orders/[number]` | `orders` |
 | `/admin/products` | `badges`, `categories`, `products` |
+| `/admin/reports` | `reports`, `products`, `categories` |
 | `/admin/products/[id]` | `products`, `inventory` |
 | `/admin/site/contact` | `site-contact` |
 | `/admin/site/footer` | `contact-details`, `footer` |
@@ -135,6 +136,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `privacy-usage.ts` | `/api/v1/admin/pages/privacy/usage`<br>`/api/v1/pages/privacy/usage` |
 | `products.ts` | `/api/v1/admin/products`<br>`/api/v1/admin/products/bulk`<br>`/api/v1/admin/products/{id}` |
 | `promo.ts` | `/api/v1/admin/home/promo`<br>`/api/v1/home/promo` |
+| `reports.ts` | `/api/v1/admin/reports/sales`<br>`/api/v1/admin/reports/profit`<br>`/api/v1/admin/reports/products`<br>`/api/v1/admin/reports/stock`<br>`/api/v1/admin/reports/movements`<br>`/api/v1/admin/reports/delivery`<br>`/api/v1/admin/reports/trend`<br>and the matching `/export` path on each |
 | `reviews.ts` | `/api/v1/admin/home/reviews`<br>`/api/v1/admin/home/reviews/items`<br>`/api/v1/admin/home/reviews/items/order`<br>`/api/v1/admin/home/reviews/items/{id}`<br>`/api/v1/home/reviews` |
 | `search.ts` | `/api/v1/search` |
 | `shipping-block.ts` | `/api/v1/admin/pages/shipping/shipping`<br>`/api/v1/pages/shipping/shipping` |
@@ -186,6 +188,29 @@ Reads, including import preview and template download: any signed-in staff. Writ
 - Preview and confirm send multipart `file` and `import_type`. Confirm also sends `confirm_duplicate` (`true` / `false`). Preview response: `import_type`, `file_hash`, `duplicate`, `valid_count`, `invalid_count`, `rows[]` of `row`, `valid`, `action`, `errors`, `summary`. Confirm response: `import_type`, `file_hash`, `batch_id`, `saved`, `skipped`, `rows`.
 - A repeated file is **409** `{ error: { code: "conflict", message: "This file was already imported. Confirm to import it again.", details: { file_hash } } }` until `confirm_duplicate` is true. Every row invalid is 422 and saves nothing.
 - Session `GET /api/auth/session` and login JSON include `role` from `UserRead` (`GET /api/v1/auth/me`).
+
+## Admin reports
+
+Taken from implesia-mart-backend PR #10, branch `cursor/admin-sales-reports-b0a9` (`app/schemas/report.py`, `app/api/v1/endpoints/admin_reports.py`, `docs/API.md` on that branch). All of these are GET. Any signed-in staff, including a viewer. There is no write route.
+
+Until `GET /api/v1/admin/reports/sales` answers (404, 501, 5xx, or the API cannot be reached), `/admin` and `/admin/reports` use `lib/mart-mock/reports.ts`. A 401, 403, or 422 is shown as an error and does not fall back.
+
+| UI | Path |
+| --- | --- |
+| Sales summary | `GET /api/v1/admin/reports/sales` |
+| Profit | `GET /api/v1/admin/reports/profit` |
+| Products | `GET /api/v1/admin/reports/products` |
+| Stock | `GET /api/v1/admin/reports/stock` |
+| Stock movement | `GET /api/v1/admin/reports/movements` |
+| Delivery and return | `GET /api/v1/admin/reports/delivery` |
+| Trend | `GET /api/v1/admin/reports/trend` |
+| Excel for the same filters | `GET /api/v1/admin/reports/{kind}/export` |
+
+Query: `preset` (`this_week`, `this_month`, `last_month`) or `from` and `to` (`YYYY-MM-DD`, inclusive Asia/Dhaka days). Optional `product_id`, `category_id`, `channel`. `grain` (`day`, `week`, `month`) on the trend only. `page` and `page_size` (max 100) on products and stock. A range over 366 days, a preset together with dates, or `from` after `to` is 422.
+
+`ReportFilters` uses JSON names `from` and `to` (not `date_from`). `MovementReport` uses `return` for the returned quantity. `DeliveryReport` uses `return_rate_percent`, which is null when nothing was delivered. `ProfitReport.profit` and `margin_percent` are null when every line has no cost. `StockReport.period_applies` is false. `channel_applies` is false on stock and movements.
+
+The dashboard headline calls the same report paths. `GET /api/v1/admin/dashboard` stays editor-only and still fills order activity, best sellers, recent orders, and areas. Its delivered count uses `delivered_at`.
 
 ## Admin order timestamps
 

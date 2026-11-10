@@ -35,7 +35,7 @@ Code: `lib/admin/inventory.ts`, `lib/mart-api/inventory.ts`, `lib/mart-mock/inve
 - Adjust stock posts `{ product_id, variant_id?, quantity, reason }`. `quantity` is a non-zero signed difference. Reason is required (500) and is stored as the movement note. The response is the movement, not the new balance. The panel then refetches the product.
 - `POST /opening-stock` records one opening movement per tracked product or variant and does not change the count. It is idempotent (`created`, `already_recorded`, `untracked`). An opening import must quote the current stock or leave quantity blank; it does not change the number. A second opening is rejected.
 - Low stock: on-hand quantity at or below `LOW_STOCK_THRESHOLD` (5), including zero. There is no admin setting for this yet. A blank catalog quantity (made to order) is not low stock. Customers never see cost price, unit cost, or these admin stock tools.
-- Dates and times on these pages use Asia/Dhaka. "This week" is Monday–Sunday. "This month" is the calendar month. Custom from/to dates are inclusive. A timestamp just after Dhaka midnight belongs to the new Dhaka date, not the previous UTC date.
+- Dates and times on these pages use Asia/Dhaka. "This week" on the stock history page is Monday–Sunday. "This month" there is the calendar month. Custom from/to dates are inclusive. A timestamp just after Dhaka midnight belongs to the new Dhaka date, not the previous UTC date.
 - Excel import is two steps. Preview (`POST /imports/preview`) saves nothing and returns `rows[]` of `row`, `valid`, `action`, `errors`, and `summary`. Confirm saves every valid actionable row in one transaction and returns `saved` and `skipped`. The toast is "N rows saved. M skipped." The same file bytes are a 409 conflict (`error.code` `conflict`, `details.file_hash`) until the editor confirms the re-import.
 - Export Excel is `products`, `purchases`, or `movements`. The API date filter is `date_from` and `date_to`. Product and movement-type filters stay on the stock history list; they are not export query parameters. There is no supplier workbook.
 
@@ -139,3 +139,19 @@ Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-se
 - The transaction ID / sender number is required for Bangla QR (trimmed, 4–64 letters, digits, `+`, `-`). Cash on delivery sends no percent and no reference.
 - The API rejects Bangla QR when no QR is set, a percent outside 25/50/75/100, or a missing/invalid reference (422, Bengali message shown on the form).
 - The payment is not verified automatically: staff check the transaction ID in Admin › Orders › order detail (Payment section) before confirming.
+
+## Sales reports (admin)
+
+Code: `lib/admin/reports.ts`, `lib/mart-api/reports.ts`, `lib/mart-mock/reports.ts`, `app/admin/reports/`. The storefront does not import these modules. The API is the source of truth (backend PR #10, branch `cursor/admin-sales-reports-b0a9`).
+
+- Any signed-in staff member, including a viewer, can open Reports and export. There is no write action on this page.
+- The window is a preset or a from/to pair, never both. Presets match the API: This week is Monday through today, This month is the 1st through today, Last month is the whole previous calendar month. Custom dates are inclusive Asia/Dhaka days. A range longer than 366 days, a missing end date, or from after to is refused before the request.
+- Sales, profit, products, delivery, and the trend count delivered orders by `delivered_at`. A later return keeps the sale on the delivery day. Profit and margin use only lines that have a cost. They are blank when every line in the window has no cost, or when there were no known-cost lines. Margin is profit divided by that known-cost revenue. Delivery charge is not part of profit.
+- The summary cards compare the previous period of the same number of days. The page calls the same endpoints again with that from/to. The percent is "—" when the previous value is 0 or null, or the current value is null.
+- Unknown-cost lines are not treated as zero cost. The warning names how many lines lack a cost and links to the product list, or to that product when one product is filtered.
+- Stock on hand ignores the date range and the channel. Low stock is on-hand quantity at or below 5, including zero. A blank quantity (made to order) is not low stock. "No sale in 30 days" uses the API's `no_sale_since`.
+- Stock movement shows the ledger totals. A sale quantity is negative. Closing is the opening balance plus opening, purchase, sale, return, cancel, and adjustment. Channel is not applied.
+- Return rate is returned divided by delivered. It is blank when nothing was delivered. It can be over 100% when more orders were returned in the window than delivered in it.
+- The trend grain defaults the way the API does: day up to 31 days, week up to 92, otherwise month. An empty day has profit 0. A day whose only sales have no cost has profit blank.
+- The dashboard headline (the same seven figures and the trend chart) uses this API. Order activity, best sellers, recent orders, and areas still come from `GET /api/v1/admin/dashboard`, which remains editor-only. Its delivered count is orders whose `delivered_at` is in the window, including an order that was later returned.
+- Customers never see these reports, the cost, or the margin.
