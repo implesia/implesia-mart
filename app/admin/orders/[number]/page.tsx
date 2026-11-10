@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { formatDhakaDateTime } from "@/lib/admin/order-timestamps";
 import { getOrder, patchOrder, type MartOrder } from "@/lib/mart-api/orders";
 import { MartApiError } from "@/lib/mart-api/products";
 import { percentText } from "@/lib/mart-api/pricing";
@@ -244,7 +245,32 @@ export default function AdminOrderDetailPage() {
             <p className="mt-1 text-xs text-neutral-500">
               {STATUS_HINT[order.status]}
             </p>
-            <Lifecycle status={order.status} placed={order.createdAt} />
+            <Lifecycle
+              status={order.status}
+              placed={order.createdAt}
+              deliveredAt={order.deliveredAt}
+              returnedAt={order.returnedAt}
+            />
+            <dl className="mt-4 grid gap-3 border-t border-neutral-100 pt-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs text-neutral-500">Delivered</dt>
+                <dd
+                  className="mt-0.5 text-sm font-medium text-neutral-950"
+                  data-testid="order-delivered-at"
+                >
+                  {formatDhakaDateTime(order.deliveredAt)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-neutral-500">Returned</dt>
+                <dd
+                  className="mt-0.5 text-sm font-medium text-neutral-950"
+                  data-testid="order-returned-at"
+                >
+                  {formatDhakaDateTime(order.returnedAt)}
+                </dd>
+              </div>
+            </dl>
           </section>
 
           <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
@@ -513,9 +539,13 @@ export default function AdminOrderDetailPage() {
 function Lifecycle({
   status,
   placed,
+  deliveredAt,
+  returnedAt,
 }: {
   status: OrderStatus;
   placed: string;
+  deliveredAt: string | null;
+  returnedAt: string | null;
 }) {
   const steps =
     status === "cancelled" || status === "returned"
@@ -529,28 +559,28 @@ function Lifecycle({
           {
             id: status,
             label: ADMIN_ORDER_STATUS_LABEL[status],
-            detail: STATUS_HINT[status],
+            detail:
+              status === "returned" ? formatDhakaDateTime(returnedAt) : STATUS_HINT[status],
             state: "current" as const,
           },
         ]
       : FLOW.map((step, index) => {
           const current = FLOW.indexOf(status);
           const state =
-            index < current
-              ? "done"
-              : index === current
-                ? "current"
-                : "upcoming";
+            index < current ? "done" : index === current ? "current" : "upcoming";
           return {
             id: step,
-            label:
-              step === "new" ? "Order placed" : ADMIN_ORDER_STATUS_LABEL[step],
+            label: step === "new" ? "Order placed" : ADMIN_ORDER_STATUS_LABEL[step],
             detail:
-              index === 0
-                ? formatPlaced(placed)
-                : state === "current"
-                  ? STATUS_HINT[step]
-                  : "Not reached",
+              step === "delivered"
+                ? formatDhakaDateTime(deliveredAt)
+                : index === 0
+                  ? formatPlaced(placed)
+                  : state === "current"
+                    ? STATUS_HINT[step]
+                    : state === "done"
+                      ? ""
+                      : "Not reached",
             state,
           } as const;
         });
@@ -578,9 +608,9 @@ function Lifecycle({
             <span className="block text-sm font-semibold text-neutral-950">
               {step.label}
             </span>
-            <span className="mt-0.5 block text-xs text-neutral-500">
-              {step.detail}
-            </span>
+            {step.detail ? (
+              <span className="mt-0.5 block text-xs text-neutral-500">{step.detail}</span>
+            ) : null}
           </span>
         </li>
       ))}

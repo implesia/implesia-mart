@@ -28,7 +28,7 @@ Notes on the tables below:
 | Delete selected | `DELETE /api/v1/admin/products/bulk` (`bulkDeleteMartProducts`) |
 | Badge picker | `GET /api/v1/admin/badges` |
 | Discount settings and max quantity per order (`/admin/pricing`) | `GET` / `PUT /api/v1/admin/pricing` (`pricing-settings.ts`, `max_quantity_per_order`) |
-| Product pricing fields | `regular_price`, `base_discount_percent`, `tier_mode`, `tiers` in the create/update payload |
+| Product pricing fields | `regular_price`, `base_discount_percent`, `tier_mode`, `tiers`, and admin-only `cost_price` (`numeric(12, 2)`: JSON number or `null` on admin list/get/create/update; omit on PATCH to keep, `null` to clear). Not on any public product response |
 | Product page (storefront) | `GET /api/v1/products/by-slug/{slug}` or `GET /api/v1/products/{id}` (an old slug also resolves; the page then 308-redirects to `/products/{id}`) |
 | Product SEO fields | `seo_title`, `seo_description`, `seo_keywords` in the create/update payload and in `AdminProductRead` / `PublicProductDetail`; `slug` on update (409 `{errors:[{field:"slug"}]}` when taken) |
 | Sitemap lastmod | `updated_at` on `GET /api/v1/products` cards and on `GET /api/v1/categories/tree` nodes (`app/sitemap.ts`); delivery rates from `GET /api/v1/delivery` feed the product JSON-LD shipping |
@@ -150,6 +150,10 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `sustainability-origin.ts` | `/api/v1/admin/pages/sustainability/origin`<br>`/api/v1/pages/sustainability/origin` |
 | `sustainability-quality.ts` | `/api/v1/admin/pages/sustainability/quality`<br>`/api/v1/pages/sustainability/quality` |
 | `trust.ts` | `/api/v1/admin/home/trust`<br>`/api/v1/admin/home/trust/order`<br>`/api/v1/admin/home/trust/{id}`<br>`/api/v1/home/trust` |
+
+## Admin order timestamps
+
+- Admin `OrderRead` — `GET` and `PATCH /api/v1/admin/orders/{id}`, each item of `GET /api/v1/admin/orders`, and `POST /api/v1/orders` — includes `delivered_at` and `returned_at`: ISO 8601 UTC (`2026-11-09T08:30:00+00:00`) or `null`. A new order has both `null`. Each is set once, on the first transition to that status. The admin order detail page shows both in Asia/Dhaka. `PublicOrderRead` (`POST /api/v1/orders/lookup`) does not include them, and `PublicOrder` does not read them.
 
 ## Bangla QR payment fields
 
