@@ -2,6 +2,11 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Workers Builds lockfile includes recharts (2026-11-10).**
+  - Cloudflare Workers Builds install with `bun install --frozen-lockfile` (bun 1.4.4) and then run `bun run build`. Adding `recharts` updated `package.json` and `package-lock.json` while `bun.lock` stayed on the previous dependency set, so the install stopped with "lockfile had changes, but lockfile is frozen". `bun.lock` is regenerated with bun 1.4.4. Pull requests #7 and #8 left `package.json`, `package-lock.json`, and `bun.lock` unchanged.
+  - CI: a separate job installs with the same bun 1.4.4 frozen lockfile, alongside the existing npm install, test, and build job. Deploy settings are unchanged.
+  - Files: `bun.lock`, `.github/workflows/ci.yml`, docs.
+
 - **Admin reports page and dashboard figures from the report API (2026-11-10).**
   - New `/admin/reports` page for every signed-in staff member, including viewers. The sidebar item is Reports. Filters (This week, This month, Last month, Custom, product, category, channel, and chart grain) stay in the URL.
   - Summary cards: Net sales, Profit, Margin, Units sold, Delivered, Returned, Return rate. Each percent compares the previous inclusive range of the same length, loaded by calling the same endpoints with `from` and `to`. The card shows "—" when the previous value is 0 or null, or the current value is null.
