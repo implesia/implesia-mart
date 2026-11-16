@@ -18,6 +18,7 @@ import {
   type StatusCountMap,
 } from "@/lib/admin/orders-desk";
 import { currentOrderTracking, type OrderTracking } from "@/lib/analytics/order-tracking";
+import { orderLookupBody, publicTimelineFrom } from "@/lib/order-lookup";
 import { quoteCouponFromBody, type QuoteCoupon } from "@/lib/coupons";
 import { guestCartHeaders } from "@/lib/mart-api/cart";
 import type { DeliveryZone } from "@/lib/mart-api/delivery";
@@ -741,6 +742,8 @@ export type PublicOrderItem = {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  /** Option labels joined with " / ", or "" when the line has none. */
+  variantLabel: string;
   selection: { name: string; label: string; swatch: string }[];
 };
 
@@ -753,6 +756,8 @@ export type PublicOrder = {
   subtotal: number;
   shipping: number;
   total: number;
+  couponCode: string | null;
+  couponDiscount: number | null;
   courierName: string;
   trackingNumber: string;
   paymentMethod: AnyPaymentMethod;
@@ -760,6 +765,7 @@ export type PublicOrder = {
   advanceAmount: number;
   dueAmount: number;
   items: PublicOrderItem[];
+  timeline: { status: OrderStatus; at: string }[];
   createdAt: string;
   // PublicOrderRead does not include delivered_at or returned_at.
 };
@@ -772,6 +778,7 @@ type ApiPublicOrderItem = {
   unit_price: number;
   quantity: number;
   line_total: number;
+  variant_label?: string;
   selection?: { name: string; label: string; swatch?: string }[];
 };
 
@@ -790,7 +797,10 @@ type ApiPublicOrder = {
   advance_percent?: number | null;
   advance_amount?: number;
   due_amount?: number;
+  coupon_code?: string | null;
+  coupon_discount?: number | null;
   items: ApiPublicOrderItem[];
+  timeline?: { status?: string; at?: string }[];
   created_at: string;
 };
 
@@ -806,26 +816,44 @@ function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
     total: body.total,
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
+    couponCode: typeof body.coupon_code === "string" && body.coupon_code.trim() ? body.coupon_code.trim() : null,
+    couponDiscount: typeof body.coupon_discount === "number" ? body.coupon_discount : null,
     ...paymentFrom(body),
     createdAt: body.created_at,
-    items: body.items.map((item) => ({
-      title: item.title,
-      slug: item.slug,
-      productId: item.product_id ?? null,
-      imageSrc: mediaUrl(item.image_src),
-      unitPrice: item.unit_price,
-      quantity: item.quantity,
-      lineTotal: item.line_total,
-      selection: mapSelection(item.selection),
-    })),
+    timeline: publicTimelineFrom(body.timeline),
+    items: body.items.map((item) => {
+      const selection = mapSelection(item.selection);
+      return {
+        title: item.title,
+        slug: item.slug,
+        productId: item.product_id ?? null,
+        imageSrc: mediaUrl(item.image_src),
+        unitPrice: item.unit_price,
+        quantity: item.quantity,
+        lineTotal: item.line_total,
+        variantLabel:
+          typeof item.variant_label === "string"
+            ? item.variant_label
+            : selection.map((choice) => choice.label.trim()).filter(Boolean).join(" / "),
+        selection,
+      };
+    }),
   };
 }
 
-export async function lookupPublicOrder(number: string, phone: string) {
+export async function lookupPublicOrder(input: {
+  phone: string;
+  number?: string;
+  trackingNumber?: string;
+}) {
+  const body = orderLookupBody(input);
+  if (!body) {
+    throw new MartApiError("Send the order number or the tracking number, and the phone");
+  }
   const response = await publicFetch("/api/v1/orders/lookup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ number: number.trim(), phone: phone.trim() }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new MartApiError(await readError(response, "Order not found."));

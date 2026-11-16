@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { MartApiError } from "@/lib/mart-api/products";
 import { lookupPublicOrder, type PublicOrder } from "@/lib/mart-api/orders";
+import { orderLookupErrorText } from "@/lib/order-lookup";
 import type { OrderStatus } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
@@ -72,14 +73,11 @@ function supportHref(number: string) {
   return `${WHATSAPP_HREF}${join}text=${text}`;
 }
 
+type LookupMode = "number" | "tracking";
+
 function lookupMessage(error: unknown) {
   const message = error instanceof MartApiError ? error.message : "";
-  if (message === "Order not found") {
-    return "অর্ডার নম্বর বা মোবাইল মিলছে না। নম্বরটা কনফার্মের সময় যেটা দেখেছিলেন, সেটা দিন।";
-  }
-  if (message.includes("reach"))
-    return "এখন সংযোগ হয়নি। একটু পরে আবার চেষ্টা করুন।";
-  return "অর্ডার নম্বর আর ১১ সংখ্যার মোবাইল দিন।";
+  return orderLookupErrorText(message);
 }
 
 export function OrderStatusView({
@@ -88,7 +86,9 @@ export function OrderStatusView({
   initialOrder?: string;
 }) {
   const [saved, setSaved] = useState<SavedOrder[]>([]);
+  const [mode, setMode] = useState<LookupMode>("number");
   const [number, setNumber] = useState(initialOrder);
+  const [tracking, setTracking] = useState("");
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState<PublicOrder | null>(null);
   const [error, setError] = useState("");
@@ -96,17 +96,27 @@ export function OrderStatusView({
   const requestId = useRef(0);
   const resultRef = useRef<HTMLElement>(null);
 
-  async function runLookup(rawNumber: string, rawPhone: string) {
-    const nextNumber = rawNumber.replace(/\s+/g, "").toUpperCase();
+  async function runLookup(nextMode: LookupMode, rawId: string, rawPhone: string) {
     const nextPhone = orderPhoneDigits(rawPhone);
-    setNumber(nextNumber);
     setPhone(nextPhone);
-    if (!/^IM-[0-9A-F]{8}$/.test(nextNumber)) {
-      setResult(null);
-      setError(
-        "অর্ডার নম্বর IM- দিয়ে শুরু, তারপর ৮টা অক্ষর। যেমন IM-9F216D67।",
-      );
-      return;
+    const nextNumber = rawId.replace(/\s+/g, "").toUpperCase();
+    const nextTracking = rawId.trim();
+    if (nextMode === "number") {
+      setNumber(nextNumber);
+      if (!/^IM-[0-9A-F]{8}$/.test(nextNumber)) {
+        setResult(null);
+        setError(
+          "অর্ডার নম্বর IM- দিয়ে শুরু, তারপর ৮টা অক্ষর। যেমন IM-9F216D67।",
+        );
+        return;
+      }
+    } else {
+      setTracking(nextTracking);
+      if (!nextTracking || nextTracking.length > 120) {
+        setResult(null);
+        setError("কুরিয়ারের ট্র্যাকিং আইডি দিন।");
+        return;
+      }
     }
     if (!/^01\d{9}$/.test(nextPhone)) {
       setResult(null);
@@ -119,7 +129,11 @@ export function OrderStatusView({
     setPending(true);
     setError("");
     try {
-      const order = await lookupPublicOrder(nextNumber, nextPhone);
+      const order = await lookupPublicOrder(
+        nextMode === "number"
+          ? { phone: nextPhone, number: nextNumber }
+          : { phone: nextPhone, trackingNumber: nextTracking },
+      );
       if (id !== requestId.current) return;
       rememberOrder({
         number: order.number,
@@ -158,7 +172,7 @@ export function OrderStatusView({
         if (wanted) setNumber(wanted);
         return;
       }
-      void runLookup(match.number, match.phone);
+      void runLookup("number", match.number, match.phone);
     });
     return () => {
       cancelled = true;
@@ -175,8 +189,9 @@ export function OrderStatusView({
           আমার অর্ডার
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-          অর্ডার নম্বর আর চেকআউটে দেওয়া মোবাইল মিললে স্ট্যাটাস দেখাবে। একই
-          ব্রাউজারে অর্ডার করলে নম্বর সেভ থাকে।
+          অর্ডার নম্বর অথবা কুরিয়ারের ট্র্যাকিং আইডি, আর চেকআউটে দেওয়া মোবাইল
+          মিললে স্ট্যাটাস দেখাবে। লিংক থেকে এলে নম্বর বসানো থাকে, শুধু মোবাইল
+          দিন। একই ব্রাউজারে অর্ডার করলে নম্বর সেভ থাকে।
         </p>
 
         {saved.length > 0 ? (
@@ -191,7 +206,10 @@ export function OrderStatusView({
                   <li key={item.number} className="shrink-0">
                     <button
                       type="button"
-                      onClick={() => void runLookup(item.number, item.phone)}
+                      onClick={() => {
+                        setMode("number");
+                        void runLookup("number", item.number, item.phone);
+                      }}
                       aria-pressed={active}
                       className={cn(
                         "rounded-2xl px-3 py-2 text-left ring-1 transition-colors",
@@ -217,27 +235,76 @@ export function OrderStatusView({
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            void runLookup(number, phone);
+            void runLookup(mode, mode === "number" ? number : tracking, phone);
           }}
           className="mt-4 rounded-[24px] bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5"
         >
-          <label
-            htmlFor="order-number"
-            className="mb-1.5 block text-sm font-medium text-neutral-800"
-          >
-            অর্ডার নম্বর
-          </label>
-          <Input
-            id="order-number"
-            value={number}
-            onChange={(event) => setNumber(event.target.value.toUpperCase())}
-            placeholder="IM-9F216D67"
-            autoComplete="off"
-            spellCheck={false}
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "order-lookup-error" : undefined}
-            className={cn(fieldClass, "font-mono tracking-wide uppercase")}
-          />
+          <div role="tablist" aria-label="কী দিয়ে খুঁজবেন" className="mb-4 grid grid-cols-2 gap-1 rounded-full bg-[#f5f6f8] p-1">
+            {(
+              [
+                ["number", "অর্ডার নম্বর"],
+                ["tracking", "ট্র্যাকিং আইডি"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={mode === id}
+                onClick={() => {
+                  setMode(id);
+                  setError("");
+                }}
+                className={cn(
+                  "h-9 rounded-full text-sm font-medium",
+                  mode === id ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-500",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {mode === "number" ? (
+            <>
+              <label
+                htmlFor="order-number"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                অর্ডার নম্বর
+              </label>
+              <Input
+                id="order-number"
+                value={number}
+                onChange={(event) => setNumber(event.target.value.toUpperCase())}
+                placeholder="IM-9F216D67"
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "order-lookup-error" : undefined}
+                className={cn(fieldClass, "font-mono tracking-wide uppercase")}
+              />
+            </>
+          ) : (
+            <>
+              <label
+                htmlFor="order-tracking"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                ট্র্যাকিং আইডি
+              </label>
+              <Input
+                id="order-tracking"
+                value={tracking}
+                onChange={(event) => setTracking(event.target.value)}
+                placeholder="কুরিয়ারের ট্র্যাকিং আইডি"
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "order-lookup-error" : undefined}
+                className={cn(fieldClass, "font-mono tracking-wide")}
+              />
+            </>
+          )}
           <label
             htmlFor="order-phone"
             className="mt-4 mb-1.5 block text-sm font-medium text-neutral-800"
@@ -288,7 +355,7 @@ export function OrderStatusView({
             order={result}
             cardRef={resultRef}
             pending={pending}
-            onRefresh={() => void runLookup(result.number, phone)}
+            onRefresh={() => void runLookup("number", result.number, phone)}
           />
         ) : null}
       </div>
@@ -310,6 +377,8 @@ function OrderCard({
   const closed = CLOSED[order.status];
   const rank = FLOW.findIndex((step) => step.id === order.status);
   const firstName = order.customerName.trim().split(/\s+/)[0] ?? "";
+  const times = new Map<string, string>();
+  for (const event of order.timeline) times.set(event.status, event.at);
 
   return (
     <section
@@ -394,6 +463,9 @@ function OrderCard({
                   {now || (finished && index === FLOW.length - 1) ? (
                     <p className="text-xs text-neutral-500">{step.hint}</p>
                   ) : null}
+                  {times.get(step.id) && (done || now) ? (
+                    <p className="text-xs text-neutral-500">{formatWhen(times.get(step.id) ?? "")}</p>
+                  ) : null}
                 </div>
               </li>
             );
@@ -441,7 +513,9 @@ function OrderCard({
                 {item.title}
               </Link>
               <p className="text-xs text-neutral-500">× {item.quantity}</p>
-              {item.selection.length > 0 ? (
+              {item.variantLabel.trim() ? (
+                <p className="text-xs text-primary">{item.variantLabel}</p>
+              ) : item.selection.length > 0 ? (
                 <p className="text-xs text-primary">
                   {item.selection
                     .map((choice) => `${choice.name}: ${choice.label}`)
@@ -458,13 +532,15 @@ function OrderCard({
 
       <dl className="mt-4 space-y-1.5 border-t border-neutral-100 pt-4 text-sm">
         <Row label="পণ্য" value={formatCartMoney(order.subtotal)} />
+        {order.couponDiscount ? (
+          <Row label="কুপন" value={`−${formatCartMoney(order.couponDiscount)}`} />
+        ) : null}
         <Row label="ডেলিভারি" value={formatCartMoney(order.shipping)} />
+        <Row label="মোট" value={formatCartMoney(order.total)} />
         <div className="flex items-center justify-between pt-1">
-          <dt className="font-semibold text-neutral-950">
-            মোট · ক্যাশ অন ডেলিভারি
-          </dt>
+          <dt className="font-semibold text-neutral-950">বাকি</dt>
           <dd className="text-base font-semibold text-primary">
-            {formatCartMoney(order.total)}
+            {formatCartMoney(order.dueAmount)}
           </dd>
         </div>
       </dl>

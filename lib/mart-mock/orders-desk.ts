@@ -13,8 +13,8 @@ import {
   type OfflineOrderInput,
   type OrderListQuery,
   type OrderOrigin,
-  type PaymentStatus,
 } from "@/lib/admin/orders-desk";
+import { invoiceIdFromNumber, joinFullAddress, printOrderFromApi } from "@/lib/admin/print-sheet";
 import type { MartOrder, MartOrderItem, OrderActivity, OrderDirectory } from "@/lib/mart-api/orders";
 import type { OrderStatus } from "@/lib/mart-mock/store";
 
@@ -508,40 +508,74 @@ export function mockPrintData(ids: string[]) {
   return { orders, missing };
 }
 
+function dhakaDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Dhaka",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/** Same day count the print route uses: inside and suburban +2, outside +5. Not stored. */
+function mockEstimatedDelivery(order: MartOrder) {
+  const start = dhakaDate(order.orderedAt || order.createdAt);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(start);
+  if (!match) return "";
+  const days = order.deliveryZone === "outside" ? 5 : 2;
+  const utc = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days));
+  return utc.toISOString().slice(0, 10);
+}
+
+function shortProductId(id: string | null) {
+  if (!id) return "";
+  const hex = id.replace(/-/g, "");
+  return /^[0-9a-f]{8,}$/i.test(hex) ? hex.slice(0, 8).toLowerCase() : "";
+}
+
 function toPrint(order: MartOrder) {
-  return {
+  return printOrderFromApi({
     id: order.id,
+    invoice_id: invoiceIdFromNumber(order.number),
     number: order.number,
+    order_number: order.number,
     status: order.status,
     origin: order.origin,
-    orderedAt: order.orderedAt,
-    createdAt: order.createdAt,
-    customerName: order.customerName,
+    ordered_at: order.orderedAt,
+    created_at: order.createdAt,
+    estimated_delivery_date: mockEstimatedDelivery(order),
+    customer_name: order.customerName,
     phone: order.phone,
+    email: order.email,
     district: order.district,
     area: order.area,
     address: order.address,
+    full_address: joinFullAddress(order.address, order.area, order.district),
     notes: order.notes,
-    courierName: order.courierName,
-    trackingNumber: order.trackingNumber,
-    paymentMethod: order.paymentMethod,
-    paymentStatus: order.paymentStatus as PaymentStatus,
+    courier_name: order.courierName,
+    tracking_number: order.trackingNumber,
+    payment_method: order.paymentMethod,
+    payment_status: order.paymentStatus,
     subtotal: order.subtotal,
-    manualDiscount: order.manualDiscount,
-    couponDiscount: order.couponDiscount,
+    manual_discount: order.manualDiscount,
+    coupon_discount: order.couponDiscount,
     shipping: order.shipping,
     total: order.total,
-    paidAmount: order.paidAmount,
-    dueAmount: order.dueAmount,
+    paid_amount: order.paidAmount,
+    due_amount: order.dueAmount,
     items: order.items.map((item) => ({
       title: item.title,
+      variant_label: item.selection.map((choice) => choice.label.trim()).filter(Boolean).join(" / "),
       sku: item.sku,
+      product_id_short: shortProductId(item.productId),
       quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      lineTotal: item.lineTotal,
+      unit_price: item.unitPrice,
+      line_total: item.lineTotal,
       selection: item.selection.map((choice) => ({ name: choice.name, label: choice.label })),
     })),
-  };
+  });
 }
 
 export function mockReadyToPack(query: OrderListQuery) {

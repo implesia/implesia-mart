@@ -32,6 +32,7 @@ import {
   mockReplaceItems,
   mockSearchCustomers,
 } from "@/lib/mart-mock/orders-desk";
+import { printOrderFromApi, type PrintOrder } from "@/lib/admin/print-sheet";
 import { MartApiError, authorizedFetch, getMartProduct, listMartProducts, readError } from "@/lib/mart-api/products";
 import type { AdminProduct } from "@/lib/mart-mock/store";
 import type { AdminVariant } from "@/lib/mart-api/admin-variants";
@@ -104,41 +105,7 @@ export type BulkStatusResult = {
   error: string | null;
 };
 
-export type PrintLine = {
-  title: string;
-  sku: string;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-  selection: { name: string; label: string }[];
-};
-
-export type PrintOrder = {
-  id: string;
-  number: string;
-  status: string;
-  origin: OrderOrigin;
-  orderedAt: string | null;
-  createdAt: string;
-  customerName: string;
-  phone: string;
-  district: string;
-  area: string;
-  address: string;
-  notes: string;
-  courierName: string;
-  trackingNumber: string;
-  paymentMethod: string;
-  paymentStatus: string;
-  subtotal: number;
-  manualDiscount: number;
-  couponDiscount: number | null;
-  shipping: number;
-  total: number;
-  paidAmount: number;
-  dueAmount: number;
-  items: PrintLine[];
-};
+export type { PrintLine, PrintOrder } from "@/lib/admin/print-sheet";
 
 let mode: "unknown" | "live" | "mock" = "unknown";
 
@@ -368,47 +335,7 @@ export async function markOrdersPrinted(ids: string[]) {
 }
 
 function mapPrint(body: Record<string, unknown>): PrintOrder {
-  const items = Array.isArray(body.items) ? body.items : [];
-  return {
-    id: String(body.id ?? ""),
-    number: String(body.number ?? ""),
-    status: String(body.status ?? ""),
-    origin: body.origin === "offline" ? "offline" : "online",
-    orderedAt: typeof body.ordered_at === "string" ? body.ordered_at : null,
-    createdAt: String(body.created_at ?? ""),
-    customerName: String(body.customer_name ?? ""),
-    phone: String(body.phone ?? ""),
-    district: String(body.district ?? ""),
-    area: String(body.area ?? ""),
-    address: String(body.address ?? ""),
-    notes: String(body.notes ?? ""),
-    courierName: String(body.courier_name ?? ""),
-    trackingNumber: String(body.tracking_number ?? ""),
-    paymentMethod: String(body.payment_method ?? ""),
-    paymentStatus: String(body.payment_status ?? ""),
-    subtotal: Number(body.subtotal ?? 0),
-    manualDiscount: Number(body.manual_discount ?? 0),
-    couponDiscount: typeof body.coupon_discount === "number" ? body.coupon_discount : null,
-    shipping: Number(body.shipping ?? 0),
-    total: Number(body.total ?? 0),
-    paidAmount: Number(body.paid_amount ?? 0),
-    dueAmount: Number(body.due_amount ?? 0),
-    items: items.map((item) => {
-      const row = item as Record<string, unknown>;
-      const selection = Array.isArray(row.selection) ? row.selection : [];
-      return {
-        title: String(row.title ?? ""),
-        sku: String(row.sku ?? ""),
-        quantity: Number(row.quantity ?? 0),
-        unitPrice: Number(row.unit_price ?? 0),
-        lineTotal: Number(row.line_total ?? 0),
-        selection: selection.map((choice) => {
-          const option = choice as { name?: string; label?: string };
-          return { name: option.name ?? "", label: option.label ?? "" };
-        }),
-      };
-    }),
-  };
+  return printOrderFromApi(body);
 }
 
 export async function getPrintData(ids: string[]) {
