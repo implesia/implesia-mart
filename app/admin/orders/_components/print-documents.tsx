@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 import { code128Svg } from "@/lib/admin/barcode";
 import { PAYMENT_METHOD_LABEL, PAYMENT_STATUS_LABEL, isPaymentMethod, isPaymentStatus } from "@/lib/admin/orders-desk";
 import {
@@ -13,24 +11,51 @@ import { formatTaka } from "@/lib/mart-mock/store";
 const LOGO = "/images/common/logo.png";
 
 export function PrintDocuments({ orders, kind }: { orders: PrintOrder[]; kind: "invoice" | "label" | "both" }) {
+  const pageRule =
+    kind === "label"
+      ? "@page { size: 4in 6in; margin: 0; }"
+      : kind === "invoice"
+        ? "@page { size: A4; margin: 0; }"
+        : `@page { margin: 0; }
+           @page invoice { size: A4; margin: 0; }
+           @page label { size: 4in 6in; margin: 0; }`;
   return (
-    <div id="order-print" className="space-y-6">
+    <div id="order-print" className="space-y-6 print:space-y-0">
       <style>{`
-        @page invoice { size: A4; margin: 10mm; }
-        @page label { size: 4in 6in; margin: 0.15in; }
+        ${pageRule}
         .sheet-invoice { page: invoice; break-after: page; }
         .sheet-label { page: label; break-after: page; }
+        #order-print > :last-child .sheet-invoice:last-of-type,
+        #order-print > :last-child .sheet-label:last-of-type,
+        #order-print > .sheet-invoice:last-child,
+        #order-print > .sheet-label:last-child { break-after: auto; }
         @media print {
-          .sheet-invoice, .sheet-label { box-shadow: none !important; margin: 0 !important; }
+          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .sheet-invoice, .sheet-label {
+            box-shadow: none !important;
+            outline: none !important;
+            margin: 0 !important;
+          }
+          .sheet-invoice { width: 210mm !important; max-width: none !important; min-height: 297mm !important; }
+          .sheet-label { width: 4in !important; height: 6in !important; }
         }
       `}</style>
       {orders.map((order) => (
-        <div key={order.id} className="space-y-6">
+        <div key={order.id} className="space-y-6 print:contents">
           {kind !== "label" ? <InvoiceSheet order={order} /> : null}
           {kind !== "invoice" ? <LabelSheet order={order} /> : null}
         </div>
       ))}
     </div>
+  );
+}
+
+function BrandLogo({ width, height, className }: { width: number; height: number; className: string }) {
+  return (
+    // Same-origin raster, not next/image, so the PDF capture can read the pixels.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={LOGO} alt="Implesia Mart" width={width} height={height} className={className} />
   );
 }
 
@@ -59,9 +84,9 @@ function InvoiceSheet({ order }: { order: PrintOrder }) {
   const discount = order.manualDiscount + (order.couponDiscount ?? 0);
   const courier = [order.courierName.trim(), order.trackingNumber.trim()].filter(Boolean);
   return (
-    <article className="sheet-invoice mx-auto flex min-h-[270mm] w-full max-w-[210mm] flex-col bg-white p-5 text-[13px] leading-snug text-neutral-950 shadow-sm ring-1 ring-neutral-200 print:min-h-0 print:max-w-none print:p-0 print:shadow-none print:ring-0">
+    <article className="sheet-invoice mx-auto flex min-h-[270mm] w-full max-w-[210mm] flex-col bg-white p-5 text-[13px] leading-snug text-neutral-950 shadow-sm ring-1 ring-neutral-200 print:mx-0 print:min-h-[297mm] print:w-[210mm] print:max-w-none print:shadow-none print:ring-0">
       <header className="flex items-start justify-between gap-4">
-        <Image src={LOGO} alt="Implesia Mart" width={140} height={36} className="h-8 w-auto" />
+        <BrandLogo width={240} height={64} className="h-14 w-auto" />
         <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Invoice</p>
       </header>
       <div className="mt-3 grid gap-0.5">
@@ -147,12 +172,12 @@ function InvoiceSheet({ order }: { order: PrintOrder }) {
 function LabelSheet({ order }: { order: PrintOrder }) {
   const label = packetLabelModel(order);
   return (
-    <article className="sheet-label mx-auto flex h-[6in] w-[4in] flex-col bg-white p-3 text-[13px] leading-snug text-neutral-950 shadow-sm ring-1 ring-neutral-200 print:shadow-none print:ring-0">
-      <div className="flex items-start justify-between gap-2">
-        <Image src={LOGO} alt="Implesia Mart" width={112} height={28} className="h-7 w-auto" />
-        {label.invoiceId ? <p className="text-[11px] text-neutral-600">{label.invoiceId}</p> : null}
+    <article className="sheet-label mx-auto flex h-[6in] w-[4in] flex-col overflow-hidden bg-white p-3 text-[13px] leading-snug text-neutral-950 shadow-sm ring-1 ring-neutral-200 print:mx-0 print:shadow-none print:ring-0">
+      <div className="flex shrink-0 items-start justify-between gap-2">
+        <BrandLogo width={200} height={52} className="h-12 w-auto" />
+        {label.invoiceId ? <p className="shrink-0 pt-1 text-[11px] text-neutral-600">{label.invoiceId}</p> : null}
       </div>
-      <div className="mt-2 flex flex-col items-center text-center">
+      <div className="mt-2 flex min-h-0 flex-1 flex-col items-center overflow-hidden text-center">
         <p className="text-base font-semibold">{label.number}</p>
         <Barcode value={label.number} height={36} className="mx-auto flex justify-center [&_svg]:block" />
         <p className="mt-2 font-semibold">{label.customerName}</p>
@@ -163,10 +188,12 @@ function LabelSheet({ order }: { order: PrintOrder }) {
         </p>
         <p>{label.itemCount} {label.itemCount === 1 ? "item" : "items"}</p>
       </div>
-      {label.courier ? <p className="mt-1">{label.courier}</p> : null}
-      <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-        {label.orderDate ? <p className="text-xs text-neutral-600">{label.orderDate}</p> : <span />}
-        <Qr value={label.statusUrl} moduleSize={2} />
+      {label.courier ? <p className="mt-1 shrink-0 truncate">{label.courier}</p> : null}
+      <div className="mt-2 flex shrink-0 items-end justify-between gap-3">
+        {label.orderDate ? <p className="whitespace-nowrap text-xs text-neutral-600">{label.orderDate}</p> : <span />}
+        <div className="shrink-0">
+          <Qr value={label.statusUrl} moduleSize={2} />
+        </div>
       </div>
     </article>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { isPrintKind } from "@/lib/admin/orders-desk";
+import { isPrintKind, type PrintKind } from "@/lib/admin/orders-desk";
 import { bulkOrderStatus, getPrintData, markOrdersPrinted, type PrintOrder } from "@/lib/mart-api/orders-desk";
 import { MartApiError } from "@/lib/mart-api/products";
 
@@ -18,7 +18,9 @@ export function PrintDesk() {
   const ids = (params.get("ids") ?? "").split(",").map((id) => id.trim()).filter(Boolean).slice(0, 100);
   const idKey = ids.join(",");
   const requestedKind = params.get("kind");
-  const kind = isPrintKind(requestedKind) ? requestedKind : "both";
+  const kind: PrintKind = isPrintKind(requestedKind) ? requestedKind : "both";
+  const router = useRouter();
+  const pathname = usePathname();
   const [orders, setOrders] = useState<PrintOrder[]>([]);
   const [missing, setMissing] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +47,23 @@ export function PrintDesk() {
     };
   }, [idKey]);
 
+  function changeKind(next: string) {
+    if (!isPrintKind(next)) return;
+    const search = new URLSearchParams(params.toString());
+    search.set("kind", next);
+    router.replace(`${pathname}?${search.toString()}`, { scroll: false });
+  }
+
   async function printNow() {
+    const previousTitle = document.title;
+    document.title = " ";
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
     window.print();
+    window.setTimeout(restore, 1500);
     try {
       const result = await markOrdersPrinted(orders.map((order) => order.id));
       setNotice(result.missing.length ? `Printed. ${result.missing.length} orders were missing.` : "Marked as printed. You can print again.");
@@ -65,6 +82,7 @@ export function PrintDesk() {
       const { downloadPrintSheets } = await import("@/lib/admin/download-print-pdf");
       await downloadPrintSheets(sheets, printPdfFilename(kind === "invoice" || kind === "label" ? kind : "both", orders.map((order) => order.number)));
     } catch (reason) {
+      console.error("Download PDF failed", reason);
       setError(reason instanceof MartApiError ? reason.message : "Could not download the PDF.");
     } finally {
       setDownloading(false);
@@ -85,15 +103,25 @@ export function PrintDesk() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 print:space-y-0">
       <div className="print-toolbar flex flex-col gap-3 rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 print:hidden sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold">Print</h1>
           <p className="mt-1 text-sm text-neutral-600">
-            {kind === "invoice" ? "A4 invoice" : kind === "label" ? "4×6 packet label" : "Invoice and label"}, one order per page. Print opens the print dialog. Download PDF saves a file without printing.
+            Choose invoice, label, or both, then print or download. Download saves a PDF of the sheets on this page, without browser headers or footers.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <select
+            aria-label="What to print or download"
+            value={kind}
+            onChange={(event) => changeKind(event.target.value)}
+            className="h-10 rounded-full border border-neutral-200 bg-white px-3 text-sm"
+          >
+            <option value="invoice">Invoice only</option>
+            <option value="label">Label only</option>
+            <option value="both">Invoice and label</option>
+          </select>
           <button type="button" onClick={() => void printNow()} disabled={orders.length === 0} className={adminButtonClass.primary}>
             Print
           </button>
