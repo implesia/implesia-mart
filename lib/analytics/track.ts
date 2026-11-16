@@ -92,6 +92,8 @@ export function trackPurchase(
     analyticsEventId?: string | null;
     value: number;
     items: AnalyticsItem[];
+    /** Coupon code on the order. Sent as GA4 `coupon` and Meta custom data. */
+    coupon?: string | null;
   },
   ctx?: TrackContext,
 ): boolean {
@@ -102,6 +104,7 @@ export function trackPurchase(
       analyticsEventId: input.analyticsEventId,
       value: input.value,
       items: input.items,
+      coupon: input.coupon,
     },
     ctx,
   );

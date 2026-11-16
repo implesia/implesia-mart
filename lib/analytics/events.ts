@@ -41,6 +41,8 @@ export type TrackInput =
       transactionId: string;
       /** From the order-create response. Used as event_id when it is non-empty. */
       analyticsEventId?: string | null;
+      /** Coupon code from the order, when one was used. Omitted when empty. */
+      coupon?: string | null;
     } & EcommerceInput);
 
 export type Ga4Event = {
@@ -146,7 +148,12 @@ export function mapAnalyticsEvent(input: TrackInput, eventId: string): MappedAna
   }
 
   const extra =
-    input.name === "purchase" ? { transaction_id: input.transactionId } : undefined;
+    input.name === "purchase"
+      ? defined({
+          transaction_id: input.transactionId,
+          coupon: input.coupon?.trim() || undefined,
+        })
+      : undefined;
   const params = ecommerceParams(input, eventId, extra);
   return {
     ga4: { name: input.name, params: params.ga4 },

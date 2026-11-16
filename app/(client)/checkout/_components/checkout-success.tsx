@@ -112,7 +112,9 @@ export function CheckoutSuccess() {
   const firstName = shipping.name.trim().split(/\s+/)[0] ?? "";
   const title = firstName ? `অভিনন্দন, ${firstName}!` : "অভিনন্দন!";
   const itemCount = quote?.itemCount ?? 0;
-  const total = quote?.total ?? 0;
+  const total = placedOrder?.total ?? quote?.total ?? 0;
+  const couponCode = placedOrder?.couponCode;
+  const couponDiscount = placedOrder?.couponDiscount;
 
   useEffect(() => {
     if (!placedOrder) return;
@@ -121,6 +123,7 @@ export function CheckoutSuccess() {
       analyticsEventId: placedOrder.analyticsEventId,
       value: placedOrder.total,
       items: placedOrder.items,
+      coupon: placedOrder.couponCode,
     });
   }, [placedOrder]);
 
@@ -274,6 +277,16 @@ export function CheckoutSuccess() {
             <p className="mt-2 text-[11px] leading-relaxed text-neutral-500">
               এই ব্রাউজারে সেভ হয়েছে। পরে আমার অর্ডার থেকে দেখা যাবে।
             </p>
+            {couponCode ? (
+              <p className="mt-2 text-sm font-medium text-[#0b5e56]" data-testid="success-coupon">
+                কুপন {couponCode}
+                {couponDiscount != null && couponDiscount > 0
+                  ? ` · ছাড় ${formatCartMoney(couponDiscount)}`
+                  : couponDiscount === 0
+                    ? " · ফ্রি ডেলিভারি"
+                    : ""}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={() => void copyNumber()}

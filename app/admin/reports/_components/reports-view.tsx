@@ -25,6 +25,8 @@ import {
   type ReportCall,
   type ReportPreset,
 } from "@/lib/admin/reports";
+import type { CouponReportRow } from "@/lib/admin/coupons";
+import { downloadCouponReport, fetchCouponReport } from "@/lib/mart-api/coupons";
 import {
   downloadReportExport,
   fetchMovements,
@@ -47,6 +49,7 @@ const TABS = [
   { id: "stock", label: "Stock" },
   { id: "movements", label: "Stock movement" },
   { id: "delivery", label: "Delivery & Return" },
+  { id: "coupons", label: "Coupons" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -93,6 +96,7 @@ export function ReportsView() {
     stockRows: StockRow[];
     stockTruncated: boolean;
     movements: MovementReport | null;
+    coupons: CouponReportRow[];
   }>({
     key: "",
     error: "",
@@ -103,6 +107,7 @@ export function ReportsView() {
     stockRows: [],
     stockTruncated: false,
     movements: null,
+    coupons: [],
   });
 
   const tab: TabId = isTab(params.get("tab")) ? (params.get("tab") as TabId) : "products";
@@ -153,6 +158,7 @@ export function ReportsView() {
   const stockRows = tableState.key === tableKey ? tableState.stockRows : null;
   const stockTruncated = tableState.stockTruncated;
   const movements = tableState.key === tableKey ? tableState.movements : null;
+  const coupons = tableState.key === tableKey ? tableState.coupons : null;
 
   function replace(patch: Record<string, string | null>, resetPage = false) {
     const next = new URLSearchParams(params);
@@ -246,6 +252,11 @@ export function ReportsView() {
                 if (cancelled) return;
                 setTableState((current) => ({ ...current, key, error: "", movements: result }));
               })
+            : tab === "coupons" && validation.window
+              ? fetchCouponReport(call, now).then((result) => {
+                  if (cancelled) return;
+                  setTableState((current) => ({ ...current, key, error: "", coupons: result.items }));
+                })
             : Promise.resolve().then(() => {
                 if (!cancelled) setTableState((current) => ({ ...current, key, error: "" }));
               });
@@ -384,27 +395,35 @@ export function ReportsView() {
               </label>
             </>
           ) : null}
-          <FilterSelect
-            label="Product"
-            value={params.get("product_id") ?? ""}
-            onChange={(value) => replace({ product_id: value || null }, true)}
-            options={choices.products.map((product) => ({ id: product.id, label: product.title }))}
-            allLabel="All products"
-          />
-          <FilterSelect
-            label="Category"
-            value={params.get("category_id") ?? ""}
-            onChange={(value) => replace({ category_id: value || null }, true)}
-            options={choices.categories.map((category) => ({ id: category.id, label: category.label }))}
-            allLabel="All categories"
-          />
-          <FilterSelect
-            label="Channel"
-            value={channelValue}
-            onChange={(value) => replace({ channel: value || null }, true)}
-            options={channelOptions.map((channel) => ({ id: channel, label: channel === "website" ? "Website" : channel }))}
-            allLabel="All channels"
-          />
+          {tab === "coupons" ? (
+            <p className="self-end text-xs leading-5 text-neutral-500 sm:col-span-2">
+              Product, category, and channel do not apply to the coupon report.
+            </p>
+          ) : (
+            <>
+              <FilterSelect
+                label="Product"
+                value={params.get("product_id") ?? ""}
+                onChange={(value) => replace({ product_id: value || null }, true)}
+                options={choices.products.map((product) => ({ id: product.id, label: product.title }))}
+                allLabel="All products"
+              />
+              <FilterSelect
+                label="Category"
+                value={params.get("category_id") ?? ""}
+                onChange={(value) => replace({ category_id: value || null }, true)}
+                options={choices.categories.map((category) => ({ id: category.id, label: category.label }))}
+                allLabel="All categories"
+              />
+              <FilterSelect
+                label="Channel"
+                value={channelValue}
+                onChange={(value) => replace({ channel: value || null }, true)}
+                options={channelOptions.map((channel) => ({ id: channel, label: channel === "website" ? "Website" : channel }))}
+                allLabel="All channels"
+              />
+            </>
+          )}
         </div>
       </section>
 
@@ -514,8 +533,12 @@ export function ReportsView() {
               />
             </label>
             <ExportExcelButton
-              onExport={() => downloadReportExport(exportKind(tab), call, now)}
-              filename={`${exportKind(tab)}-${validation.window?.from ?? "report"}-${validation.window?.to ?? "export"}.xlsx`}
+              onExport={() =>
+                tab === "coupons"
+                  ? downloadCouponReport(call, now)
+                  : downloadReportExport(exportKind(tab), call, now)
+              }
+              filename={`${tab}-${validation.window?.from ?? "report"}-${validation.window?.to ?? "export"}.xlsx`}
             />
             <button type="button" className={adminButtonClass.secondary} onClick={() => window.print()}>
               <MaterialIcon name="print" className="text-[18px]" />
@@ -544,6 +567,7 @@ export function ReportsView() {
               stockRows={stockRows ?? []}
               stockTruncated={stockTruncated}
               movements={movements}
+              coupons={coupons ?? []}
               delivery={overview?.delivery ?? null}
               onSort={(column) => {
                 const nextDir = sort === column && direction === "desc" ? "asc" : sort === column ? "desc" : defaultDirectionFor(column);
@@ -562,16 +586,17 @@ function defaultSort(tab: TabId) {
   if (tab === "products") return "revenue";
   if (tab === "stock") return "quantity";
   if (tab === "movements") return "label";
+  if (tab === "coupons") return "uses";
   return "count";
 }
 
 function defaultDirection(tab: TabId): Direction {
-  if (tab === "products" || tab === "delivery") return "desc";
+  if (tab === "products" || tab === "delivery" || tab === "coupons") return "desc";
   return "asc";
 }
 
 function defaultDirectionFor(column: string): Direction {
-  if (column === "title" || column === "label" || column === "product") return "asc";
+  if (column === "title" || column === "label" || column === "product" || column === "code") return "asc";
   return "desc";
 }
 
@@ -638,6 +663,7 @@ function TabBody(props: {
   stockRows: StockRow[];
   stockTruncated: boolean;
   movements: MovementReport | null;
+  coupons: CouponReportRow[];
   delivery: ReportOverview["delivery"] | null;
   onSort: (column: string) => void;
   onPage: (page: number) => void;
@@ -742,6 +768,52 @@ function TabBody(props: {
             empty="Nothing in this table matches the search."
           />
         )}
+      </>
+    );
+  }
+  if (props.tab === "coupons") {
+    const columns: ReportColumn<CouponReportRow>[] = [
+      { id: "code", label: "Code", sortValue: (row) => row.code, render: (row) => row.code },
+      {
+        id: "uses",
+        label: "Uses",
+        align: "right",
+        sortValue: (row) => row.timesUsed,
+        render: (row) => formatReportCount(row.timesUsed),
+      },
+      {
+        id: "discount",
+        label: "Total discount",
+        align: "right",
+        sortValue: (row) => row.totalDiscount,
+        render: (row) => formatReportMoney(row.totalDiscount),
+      },
+      {
+        id: "sales",
+        label: "Total sales",
+        align: "right",
+        sortValue: (row) => row.totalSales,
+        render: (row) => formatReportMoney(row.totalSales),
+      },
+    ];
+    const filtered = props.coupons.filter((row) => !needle || row.code.toLowerCase().includes(needle));
+    return (
+      <>
+        <p className="border-b border-neutral-100 px-4 py-3 text-xs leading-5 text-neutral-600 sm:px-5">
+          Uses, discount given, and sales for coupons used in this period. Product, category, and channel filters do not apply. Cancelled uses are left out.
+        </p>
+        <Paged
+          caption="Coupon report"
+          columns={columns}
+          rows={filtered}
+          sort={props.sort}
+          direction={props.direction}
+          page={props.page}
+          onSort={props.onSort}
+          onPage={props.onPage}
+          rowKey={(row) => row.couponId}
+          empty="No coupon redemptions in this period."
+        />
       </>
     );
   }

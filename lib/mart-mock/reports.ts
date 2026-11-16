@@ -383,6 +383,7 @@ export function mockSales(call: ReportCall, now: Date): SalesSummary {
     unitsSold: fold.units,
     grossSales: fold.gross,
     discount: fold.gross - fold.merchandise,
+    couponDiscount: 0,
     deliveryCharge: fold.shipping,
     netSales: fold.merchandise + fold.shipping,
   };

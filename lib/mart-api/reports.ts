@@ -30,6 +30,7 @@ import {
   mockTrend,
   type ReportExportKind,
 } from "@/lib/mart-mock/reports";
+import { mockFallbackAllowed } from "@/lib/mock-mode";
 import { listAdminCategories } from "@/lib/mart-api/categories";
 import { MartApiError, authorizedFetch, listMartProducts } from "@/lib/mart-api/products";
 
@@ -51,6 +52,8 @@ let mode: "unknown" | "live" | "mock" = "unknown";
 
 /** 404, 501, or 5xx on the sales report means the routes are not mounted yet. */
 export async function reportsBackend(): Promise<"live" | "mock"> {
+  // Production builds never show stand-in figures; a failed call is an error.
+  if (!mockFallbackAllowed()) return "live";
   if (process.env.NEXT_PUBLIC_REPORTS_MOCK === "1") return "mock";
   if (mode !== "unknown") return mode;
   try {
