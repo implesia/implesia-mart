@@ -5,7 +5,7 @@ How the UI applies the API's rules. The API is the source of truth (see the back
 ## General
 
 - Storefront data always comes from the API. A failed catalog response shows no stand-in products.
-- Public calls use `publicRequestInit` (`lib/mart-api/public-request.ts`): `cache: "no-store"`, no credentials, no Authorization header. Admin changes therefore show on the next storefront request.
+- Public calls use `publicRequestInit` (`lib/mart-api/public-request.ts`): `cache: "no-store"`, no credentials, no Authorization header. Admin changes therefore show on the next storefront request. Home SEO is the exception: `GET /api/v1/site/settings` is reused for about 60 seconds (the same window as the API's `Cache-Control: public, max-age=60`), so a saved title shows on the next home request after that window.
 - Admin pages are behind `proxy.ts`: without the access or refresh cookie, `/admin/*` redirects to `/admin/login`.
 - Admin API calls go through the BFF (`/api/proxy/...`), which only forwards `api/v1/admin/*`, requires same-origin requests and attaches the staff token.
 
@@ -104,9 +104,14 @@ Code: `app/(client)/_components/home/media-section.tsx`, `app/admin/home/_compon
 
 ## SEO
 
-Code: `lib/seo.ts`, `next.config.ts`, `app/admin/products/_components/product-seo-fields.tsx`.
+Code: `lib/seo.ts`, `lib/site-seo.ts`, `lib/mart-api/site-settings-public.ts`, `lib/mart-api/site-settings.ts`, `app/admin/site/seo/`, `next.config.ts`, `app/admin/products/_components/product-seo-fields.tsx`.
 
 - Every page builds its metadata with `pageMetadata()`: own canonical, `og:url`, `og:title`, `og:description` and twitter tags on top of `OPEN_GRAPH_DEFAULTS` (site name, `bn_BD`, default share image). The root layout sets no canonical or `og:url`.
+- The home page and the default title, description, and title template come from `GET /api/v1/site/settings`, read in the root `generateMetadata` and the home page `generateMetadata`. That puts `<title>`, the meta description, `og:title`, `og:description`, and the Twitter title and description in the first HTML. Nothing in the browser sets the title. A null or blank field, a value over the API length (title 70, description 170, template 80), or a template that does not contain `%s` exactly once (and no other `%`) uses the built-in copy for that field. A timeout (3 seconds), a non-200 response, or a body that is not the settings object uses the built-in title, description, and `%s | Implesia Mart`.
+- Built-in title: "Implesia Mart — অরিজিনাল গ্যাজেট ও ইলেকট্রনিক্স, সেরা দামে". Built-in description: gadgets and electronics, nationwide cash on delivery, a quality check before delivery, and paying after the product is in hand. Those delivery and payment lines are the same claims already on the storefront (hero trust line, FAQ, product page).
+- Other pages already use the root title template, so a saved `seo_title_template` replaces `%s | Implesia Mart` on their `<title>` tags. Each page still sets its own Open Graph title.
+- Admin › Site › SEO is for an editor or above. The form shows a Google-style preview, counters that warn past 60 characters (title) and 160 (description), and Save sends `PATCH` with all three fields (`null` when the field is empty). Clear, then Save, stores null and the storefront uses the built-in copy again. The page is under `/admin`, so it does not load storefront trackers.
+- Until `GET /api/v1/admin/site/settings` answers, and only while stand-ins are allowed (`next dev`, or `NEXT_PUBLIC_ENABLE_MOCK=true` at build time), the form uses `lib/mart-mock/site-settings.ts`. Optional `NEXT_PUBLIC_SITE_SETTINGS_MOCK=1` forces that stand-in while stand-ins are allowed. The storefront never reads it. A 401 or 403 is shown and does not use the stand-in. A production build does not.
 - Not indexed (robots tag, no canonical): checkout and order-status (`noindex, nofollow`), search (`noindex, follow`), 404 (`noindex`), admin.
 - `htmlLimitedBots: /.*/` makes metadata render in `<head>` for every user agent (no streamed metadata in `<body>`).
 - Product title = SEO title or product title; description = SEO description or the product description trimmed to ~160 characters; keywords = SEO keywords or the defaults. A trailing "| Implesia Mart" is removed before the site template adds it. The JSON-LD uses the same name and description.

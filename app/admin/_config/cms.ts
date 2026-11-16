@@ -557,6 +557,16 @@ export const SITE_CMS: CmsPage[] = [
     description: "Bangla QR image for the product pages and the checkout.",
     sections: [],
   },
+  {
+    id: "seo",
+    label: "SEO",
+    icon: "travel_explore",
+    href: "/admin/site/seo",
+    publicPath: "/",
+    api: "site/settings",
+    description: "Home page title and description, and the title template for other pages.",
+    sections: [],
+  },
 ];
 
 export const ALL_CMS_PAGES: CmsPage[] = [HOME_CMS, ...PAGE_CMS, ...SITE_CMS];

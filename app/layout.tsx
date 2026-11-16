@@ -3,11 +3,10 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { connection } from "next/server";
 
+import { getPublicSiteSettings } from "@/lib/mart-api/site-settings-public";
 import {
-  DEFAULT_DESCRIPTION,
   DEFAULT_KEYWORDS,
   DEFAULT_SHARE_IMAGE,
-  DEFAULT_TITLE,
   OPEN_GRAPH_DEFAULTS,
   SITE_NAME,
   SITE_URL,
@@ -38,13 +37,14 @@ const materialSymbols = localFont({
 // var), not frozen from the build. The tag is omitted when the token is empty.
 export async function generateMetadata(): Promise<Metadata> {
   await connection();
+  const seo = await getPublicSiteSettings();
   return {
     metadataBase: new URL(SITE_URL),
     title: {
-      default: DEFAULT_TITLE,
-      template: `%s | ${SITE_NAME}`,
+      default: seo.title,
+      template: seo.titleTemplate,
     },
-    description: DEFAULT_DESCRIPTION,
+    description: seo.description,
     keywords: DEFAULT_KEYWORDS,
     applicationName: SITE_NAME,
     category: "e-commerce",
@@ -52,13 +52,13 @@ export async function generateMetadata(): Promise<Metadata> {
     // so pages without one (checkout, search, 404, admin) don't point at "/".
     openGraph: {
       ...OPEN_GRAPH_DEFAULTS,
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
+      title: seo.title,
+      description: seo.description,
     },
     twitter: {
       card: "summary_large_image",
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
+      title: seo.title,
+      description: seo.description,
       images: [DEFAULT_SHARE_IMAGE.url],
     },
     icons: {
