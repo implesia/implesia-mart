@@ -46,6 +46,7 @@ import {
   type MockPurchase,
   type MockSupplier,
 } from "@/lib/mart-mock/inventory";
+import { mockFallbackAllowed } from "@/lib/mock-mode";
 import { readSession } from "@/lib/mart-mock/store";
 
 export const INVENTORY_PATHS = {
@@ -172,6 +173,8 @@ export class DuplicateFileError extends Error {
 let mode: "unknown" | "live" | "mock" = "unknown";
 
 export async function inventoryBackend(): Promise<"live" | "mock"> {
+  // Production builds never use the stand-in book; a failed call is an error.
+  if (!mockFallbackAllowed()) return "live";
   if (process.env.NEXT_PUBLIC_INVENTORY_MOCK === "1") return "mock";
   if (mode !== "unknown") return mode;
   try {

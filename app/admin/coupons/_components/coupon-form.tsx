@@ -39,11 +39,21 @@ export function CouponForm({ couponId }: { couponId?: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    void loadCouponCatalog().then((catalog) => {
-      if (cancelled) return;
-      setProducts(catalog.products.map((item) => ({ id: item.id, label: item.title })));
-      setCategories(catalog.categories);
-    });
+    void loadCouponCatalog().then(
+      (catalog) => {
+        if (cancelled) return;
+        setProducts(catalog.products.map((item) => ({ id: item.id, label: item.title })));
+        setCategories(catalog.categories);
+      },
+      (error: unknown) => {
+        if (cancelled) return;
+        setFormError(
+          error instanceof MartApiError
+            ? `${error.message} Reload to try again.`
+            : "Could not load products and categories. Reload to try again.",
+        );
+      },
+    );
     return () => {
       cancelled = true;
     };
