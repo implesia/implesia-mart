@@ -284,7 +284,7 @@ Redemptions are paged (`page`, `page_size`) and return `id`, `coupon_id`, `order
 
 The coupon report uses the same date query as the other reports (`preset` or `from` and `to`). Product, category, and channel filters do not apply (`channel_applies: false`). Each row is `coupon_id`, `code`, `times_used`, `total_discount`, `total_sales`. The sales summary adds `coupon_discount`, already included in `discount`.
 
-Until `GET /api/v1/admin/coupons` or the quote answers (404, 501, 5xx, or the API cannot be reached), checkout pricing and these admin screens use `lib/mart-mock/coupons.ts`. A 401 or 422 is shown and does not fall back. `NEXT_PUBLIC_COUPONS_MOCK=1` forces the mock.
+Production builds never use a stand-in: a failed quote, order, or admin coupon call is shown as an error. Only when `mockFallbackAllowed()` (`lib/mock-mode.ts`: `next dev`, or `NEXT_PUBLIC_ENABLE_MOCK=true` at build time) is true, and `GET /api/v1/admin/coupons` or the quote does not answer (404, 501, 5xx, or the API cannot be reached), checkout pricing and these admin screens use `lib/mart-mock/coupons.ts`. A 401 or 422 is shown and does not fall back. `NEXT_PUBLIC_COUPONS_MOCK=1` forces the mock while stand-ins are allowed.
 
 If a live quote succeeds but omits `coupon` (or returns `null`) while `coupon_code` was sent, the UI does not invent a discount. It shows “কুপন এখন যাচাই করা যাচ্ছে না…” and keeps the server totals.
 
