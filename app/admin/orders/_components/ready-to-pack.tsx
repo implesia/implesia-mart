@@ -75,7 +75,7 @@ export function ReadyToPack() {
               aria-disabled={selected.length === 0}
               className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium text-white ${selected.length ? "bg-neutral-950" : "pointer-events-none bg-neutral-300"}`}
             >
-              Print and download PDF
+              Print / Download PDF
             </Link>
           </div>
           <ul className="divide-y divide-neutral-100">
