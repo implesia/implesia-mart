@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 
+import { track } from "@/lib/analytics";
 import {
   addCartItem,
   getShopCart,
@@ -277,12 +278,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       epoch.current += 1;
       inflight.current += 1;
       try {
-        commit(await addCartItem(
-            productId,
-            clampCartQty(quantity),
-            options?.selection,
-            options?.variantId,
-          ));
+        const qty = clampCartQty(quantity);
+        const cart = await addCartItem(
+          productId,
+          qty,
+          options?.selection,
+          options?.variantId,
+        );
+        commit(cart);
+        const variantId = options?.variantId ?? null;
+        const line = cart.items.find(
+          (item) => item.productId === productId && (item.variantId ?? null) === variantId,
+        );
+        if (line) {
+          track({
+            name: "add_to_cart",
+            value: line.unitPrice * qty,
+            items: [
+              {
+                id: line.productId,
+                name: line.title,
+                price: line.unitPrice,
+                quantity: qty,
+              },
+            ],
+          });
+        }
         return true;
       } catch (error) {
         showFailure(error);

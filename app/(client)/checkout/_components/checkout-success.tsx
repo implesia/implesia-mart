@@ -5,6 +5,8 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
+import { trackPurchase } from "@/lib/analytics";
+
 import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
 import { formatCartMoney } from "../../_lib/cart-shared";
@@ -102,7 +104,7 @@ const STEPS = [
 ] as const;
 
 export function CheckoutSuccess() {
-  const { orderNumber, shipping, quote } = useCheckoutForm();
+  const { orderNumber, shipping, quote, placedOrder } = useCheckoutForm();
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -111,6 +113,16 @@ export function CheckoutSuccess() {
   const title = firstName ? `অভিনন্দন, ${firstName}!` : "অভিনন্দন!";
   const itemCount = quote?.itemCount ?? 0;
   const total = quote?.total ?? 0;
+
+  useEffect(() => {
+    if (!placedOrder) return;
+    trackPurchase({
+      orderNumber: placedOrder.number,
+      analyticsEventId: placedOrder.analyticsEventId,
+      value: placedOrder.total,
+      items: placedOrder.items,
+    });
+  }, [placedOrder]);
 
   useEffect(() => {
     if (orderNumber) {

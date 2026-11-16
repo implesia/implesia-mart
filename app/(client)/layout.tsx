@@ -1,5 +1,8 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 
+import { ANALYTICS_CONFIG_ELEMENT_ID, analyticsConfig } from "@/lib/analytics/config";
+import { StoreAnalytics } from "@/lib/analytics/store-analytics";
 import { JsonLd } from "./_components/common/json-ld";
 import { StorefrontFrame } from "./_components/common/storefront-frame";
 import Footer from "./_components/common/footer";
@@ -88,6 +91,28 @@ async function ContactFloating() {
   return <FloatingActions whatsappHref={contactChannel(details, "chat")?.href ?? ""} />;
 }
 
+async function StoreAnalyticsSlot() {
+  // Runtime read: ids set on the Worker show up without a rebuild, and an
+  // empty id renders nothing. This slot is not mounted under /admin.
+  await connection();
+  const { ga4Id, metaPixelId } = analyticsConfig();
+  return (
+    <>
+      {ga4Id || metaPixelId ? (
+        <div
+          id={ANALYTICS_CONFIG_ELEMENT_ID}
+          hidden
+          data-ga4={ga4Id}
+          data-meta={metaPixelId}
+        />
+      ) : null}
+      <Suspense fallback={null}>
+        <StoreAnalytics ga4Id={ga4Id} metaPixelId={metaPixelId} />
+      </Suspense>
+    </>
+  );
+}
+
 export default function ClientLayout({
   children,
 }: Readonly<{
@@ -95,6 +120,9 @@ export default function ClientLayout({
 }>) {
   return (
     <CartProvider>
+      <Suspense fallback={null}>
+        <StoreAnalyticsSlot />
+      </Suspense>
       <JsonLd data={websiteJsonLd} />
       <StorefrontFrame
         header={

@@ -58,6 +58,8 @@ Names only (see `.env.example`). Values must never be committed.
 
 - `NEXT_PUBLIC_SITE_URL`: canonical site URL (metadata, sitemap, robots, JSON-LD).
 - `NEXT_PUBLIC_MART_API_URL`: Mart API base URL, no trailing slash.
+- `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_META_PIXEL_ID`: storefront analytics. Empty = that tracker off. Read on the server per request (Workers **runtime** variables).
+- `GOOGLE_SITE_VERIFICATION`: Search Console HTML-tag token, server-rendered meta. Empty = no tag. Workers **runtime** variable. `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` is the fallback name. `NEXT_PUBLIC_BING_SITE_VERIFICATION` is the Bing token.
 - `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`: only for vinext deploys.
 
 ## Connection to the backend repo

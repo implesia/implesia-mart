@@ -28,6 +28,7 @@ import {
   type OrderQuote,
   type QuoteLine,
 } from "@/lib/mart-api/orders";
+import type { AnalyticsItem } from "@/lib/analytics";
 import { normalizePhone } from "@/lib/contact/contact-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import { purchaseQuantity } from "@/lib/mart-api/product-page";
@@ -90,6 +91,13 @@ type CheckoutFormContextValue = {
   rates: DeliveryRates | null;
   chooseDeliveryZone: (zone: DeliveryZone) => void;
   orderNumber: string | null;
+  /** Set only after placeOrder succeeds. The success view fires Purchase from this. */
+  placedOrder: {
+    number: string;
+    analyticsEventId: string | null;
+    total: number;
+    items: AnalyticsItem[];
+  } | null;
   canSubmit: boolean;
   changeQuantity: (line: QuoteLine, quantity: number) => void;
   removeLine: (line: QuoteLine) => void;
@@ -157,6 +165,7 @@ export function CheckoutFormProvider({
   const [pricingBusy, setPricingBusy] = useState(false);
   const [pricingMessage, setPricingMessage] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [placedOrder, setPlacedOrder] = useState<CheckoutFormContextValue["placedOrder"]>(null);
   const [errors, setErrors] = useState<
     Partial<Record<keyof CheckoutShippingValues, string>>
   >({});
@@ -503,6 +512,17 @@ export function CheckoutFormProvider({
       });
       if (source === "cart") await reloadCart();
       setOrderNumber(order.number);
+      setPlacedOrder({
+        number: order.number,
+        analyticsEventId: order.analyticsEventId,
+        total: order.total,
+        items: order.items.map((item) => ({
+          id: item.productId || item.id,
+          name: item.title,
+          price: item.unitPrice,
+          quantity: item.quantity,
+        })),
+      });
       setStatus("success");
       return true;
     } catch (error) {
@@ -560,6 +580,7 @@ export function CheckoutFormProvider({
       rates,
       chooseDeliveryZone,
       orderNumber,
+      placedOrder,
       canSubmit,
       changeQuantity,
       removeLine,
@@ -590,6 +611,7 @@ export function CheckoutFormProvider({
       rates,
       chooseDeliveryZone,
       orderNumber,
+      placedOrder,
       canSubmit,
       changeQuantity,
       removeLine,

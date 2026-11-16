@@ -34,6 +34,9 @@
   ],
   "vars": {
     "NEXT_PUBLIC_SITE_URL": "https://mart.implesia.com",
-    "NEXT_PUBLIC_MART_API_URL": "https://mart-api.implesia.com"
+    "NEXT_PUBLIC_MART_API_URL": "https://mart-api.implesia.com",
+    "NEXT_PUBLIC_GA4_ID": "G-SPW4M1XN18",
+    "NEXT_PUBLIC_META_PIXEL_ID": "1149497531150111",
+    "GOOGLE_SITE_VERIFICATION": "126I6wmatE4F-nJvY7NgOMSty08EXhOZW09YAtTUcfM"
   }
 }
