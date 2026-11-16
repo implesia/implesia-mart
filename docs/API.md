@@ -5,7 +5,7 @@ Which page uses which backend endpoint. The full endpoint list (methods, access,
 ## How calls are made
 
 - **Base URL**: `NEXT_PUBLIC_MART_API_URL` (`API_BASE_URL` in `lib/mart-api/media-url.ts`).
-- **Public (storefront)**: modules in `lib/mart-api/` call `${API_BASE_URL}/api/v1/...` directly with `publicRequestInit` (no cache, no credentials). Guest carts send `X-Cart-Token`.
+- **Public (storefront)**: modules in `lib/mart-api/` call `${API_BASE_URL}/api/v1/...` directly with `publicRequestInit` (no cache, no credentials). Guest carts send `X-Cart-Token`. `GET /api/v1/site/settings` is the exception: `lib/mart-api/site-settings-public.ts` caches the result for 60 seconds (no credentials), matching `Cache-Control: public, max-age=60`.
 - **Admin**: modules call `/api/proxy/api/v1/admin/...` (`authorizedFetch` / `apiFetch` in `lib/mart-api/products.ts`). The route `app/api/proxy/[...path]/route.ts` hands the request to `proxyAdmin` (`lib/auth/bff.ts`), which:
   - accepts only same-origin requests (otherwise 403),
   - forwards only paths under `api/v1/admin/`,
@@ -38,7 +38,7 @@ Notes on the tables below:
 
 | Route | Modules (see the next table for endpoints) |
 | --- | --- |
-| `/` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-related`, `cart`, `catalog`, `categories`, `category-preview`, `contact-details`, `faq`, `featured`, `footer`, `header`, `hero`, `inquiry-public`, `home-media`, `newsletter`, `products`, `promo`, `reviews`, `search`, `showcase`, `trust` |
+| `/` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-related`, `cart`, `catalog`, `categories`, `category-preview`, `contact-details`, `faq`, `featured`, `footer`, `header`, `hero`, `inquiry-public`, `home-media`, `newsletter`, `products`, `promo`, `reviews`, `search`, `showcase`, `site-settings-public`, `trust` |
 | `/about-us` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values` |
 | `/admin` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values`, `blog-categories`, `blog-cta`, `blog-hero`, `blog-listing`, `blog-posts`, `blog-related`, `contact-details`, `contact-faq`, `contact-form`, `contact-hero`, `contact-support`, `dashboard`, `reports`, `faq-callout`, `faq-categories`, `faq-help`, `faq-hero`, `faq-items`, `faq-listing`, `inquiries`, `privacy-collection`, `privacy-contents`, `privacy-hero`, `privacy-introduction`, `privacy-rights`, `privacy-sharing`, `privacy-support`, `privacy-usage`, `products`, `shipping-block`, `shipping-contents`, `shipping-faq`, `shipping-hero`, `shipping-payment`, `shipping-refund`, `shipping-returns`, `shipping-support`, `sustainability-commitment`, `sustainability-cta`, `sustainability-durability`, `sustainability-hero`, `sustainability-impact`, `sustainability-origin`, `sustainability-quality` |
 | `/admin/badges` | `badges` |
@@ -69,6 +69,7 @@ Notes on the tables below:
 | `/admin/site/footer` | `contact-details`, `footer` |
 | `/admin/site/header` | `header` |
 | `/admin/site/payment` | `payment-settings` |
+| `/admin/site/seo` | `site-settings` |
 | `/blogs` | `blog-categories`, `blog-hero`, `blog-listing`, `blog-posts` |
 | `/blogs/[slug]` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-posts`, `blog-related` |
 | `/checkout` | `cart`, `delivery`, `orders`, `payment-settings` |
@@ -159,6 +160,8 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `shipping-support.ts` | `/api/v1/admin/pages/shipping/support`<br>`/api/v1/pages/shipping/support` |
 | `showcase.ts` | `/api/v1/admin/home/showcase`<br>`/api/v1/admin/home/showcase/rows/{id}`<br>`/api/v1/admin/home/showcase/rows/{id}/items`<br>`/api/v1/admin/home/showcase/rows/{id}/items/order`<br>`/api/v1/admin/home/showcase/rows/{id}/items/{id}`<br>`/api/v1/home/showcase` |
 | `site-contact.ts` | `/api/v1/admin/site/contact`<br>`/api/v1/site/contact` |
+| `site-settings.ts` | `/api/v1/admin/site/settings` |
+| `site-settings-public.ts` | `/api/v1/site/settings` |
 | `sustainability-commitment.ts` | `/api/v1/admin/pages/sustainability/commitment`<br>`/api/v1/admin/pages/sustainability/commitment/items`<br>`/api/v1/admin/pages/sustainability/commitment/items/order`<br>`/api/v1/admin/pages/sustainability/commitment/items/{id}`<br>`/api/v1/pages/sustainability/commitment` |
 | `sustainability-cta.ts` | `/api/v1/admin/pages/sustainability/cta`<br>`/api/v1/pages/sustainability/cta` |
 | `sustainability-durability.ts` | `/api/v1/admin/pages/sustainability/durability`<br>`/api/v1/pages/sustainability/durability` |
@@ -320,6 +323,21 @@ The coupon report uses the same date query as the other reports (`preset` or `fr
 Production builds never use a stand-in: a failed quote, order, or admin coupon call is shown as an error. Only when `mockFallbackAllowed()` (`lib/mock-mode.ts`: `next dev`, or `NEXT_PUBLIC_ENABLE_MOCK=true` at build time) is true, and `GET /api/v1/admin/coupons` or the quote does not answer (404, 501, 5xx, or the API cannot be reached), checkout pricing and these admin screens use `lib/mart-mock/coupons.ts`. A 401 or 422 is shown and does not fall back. `NEXT_PUBLIC_COUPONS_MOCK=1` forces the mock while stand-ins are allowed.
 
 If a live quote succeeds but omits `coupon` (or returns `null`) while `coupon_code` was sent, the UI does not invent a discount. It shows “কুপন এখন যাচাই করা যাচ্ছে না…” and keeps the server totals.
+
+## Site SEO settings
+
+Taken from implesia-mart-backend PR #19, branch `cursor/storefront-seo-settings-0629` (`docs/API.md` on that branch). One row. `null` means the storefront keeps its built-in title, description, or `%s | Implesia Mart` template.
+
+| UI | Method | Path |
+| --- | --- | --- |
+| Home / default metadata | GET | `/api/v1/site/settings` |
+| Admin › Site › SEO | GET, PATCH | `/api/v1/admin/site/settings` |
+
+Public response: `{ seo_title, seo_description, seo_title_template }`, each a string or `null`. `Cache-Control: public, max-age=60`. The storefront waits at most 3 seconds and then uses the built-in copy. It also does that for a non-200, bad JSON, a blank value, a value over the length limit, or a template that does not contain `%s` exactly once (and no other `%`).
+
+Admin is editor or above, through `/api/proxy`, `Cache-Control: no-store`. PATCH sends only the fields to change; this form sends all three. Omit keeps the stored value. `null` or `""` clears it (stored and returned as `null`). Lengths: title 70, description 170, template 80. A viewer is 403. Anonymous is 401. Those two are shown and do not use the stand-in.
+
+Until `GET /api/v1/admin/site/settings` answers (404, 501, 5xx, or the API cannot be reached), and only when `mockFallbackAllowed()` is true, the form uses `lib/mart-mock/site-settings.ts`. `NEXT_PUBLIC_SITE_SETTINGS_MOCK=1` forces that while stand-ins are allowed. The storefront never reads the stand-in.
 
 ## Bangla QR payment fields
 

@@ -27,18 +27,22 @@ import { FALLBACK_REVIEWS, listPublicReviews } from "@/lib/mart-api/reviews";
 import { listPublicShowcase, showcaseForStore } from "@/lib/mart-api/showcase";
 import { splitTrendingRow } from "@/lib/mart-api/showcase-trending";
 import { FALLBACK_TRUST, listPublicTrustBenefits } from "@/lib/mart-api/trust";
-import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, pageMetadata } from "@/lib/seo";
+import { getPublicSiteSettings } from "@/lib/mart-api/site-settings-public";
+import { pageMetadata } from "@/lib/seo";
 
 // Render per request: the Workers KV fetch/ISR cache hit its daily write limit and
 // kept serving stale CMS data (old image URLs). CMS reads go straight to the API.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = pageMetadata({
-  title: DEFAULT_TITLE,
-  absoluteTitle: true,
-  description: DEFAULT_DESCRIPTION,
-  path: "/",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getPublicSiteSettings();
+  return pageMetadata({
+    title: seo.title,
+    absoluteTitle: true,
+    description: seo.description,
+    path: "/",
+  });
+}
 
 export default async function HomePage() {
   const [
