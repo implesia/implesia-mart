@@ -90,6 +90,15 @@ test("offline preview uses the quote only when every price is untouched", () => 
   assert.equal(estimate.shipping, 0);
   assert.equal(estimate.total, 850);
   assert.match(estimate.note, /server/i);
+
+  const freeDelivery = offlineMoneyPreview({
+    lines: [{ quantity: 2, unitPrice: 500, priceEdited: false }],
+    manualDiscount: 0,
+    deliveryCharge: 0,
+    quote: { subtotal: 990, shipping: 70 },
+  });
+  assert.equal(freeDelivery.shipping, 0);
+  assert.equal(freeDelivery.total, 990);
 });
 
 test("offline create body omits catalog prices, zone delivery, and client totals", () => {
@@ -120,6 +129,26 @@ test("offline create body omits catalog prices, zone delivery, and client totals
   assert.equal(body.payment_reference, "AB12");
   assert.deepEqual(body.items[0], { product_id: "p1", quantity: 2 });
   assert.deepEqual(body.items[1], { product_id: "p2", variant_id: "v2", quantity: 1, unit_price: 400 });
+});
+
+test("offline create body sends delivery_charge 0 when staff leave it blank", () => {
+  const body = offlineCreateBody({
+    customerName: "Karim",
+    phone: "01800000000",
+    email: "",
+    district: "Dhaka",
+    area: "Gulshan",
+    address: "House 4, Road 12",
+    notes: "",
+    items: [{ productId: "p1", variantId: null, quantity: 1, unitPrice: 500, priceEdited: false }],
+    manualDiscount: 0,
+    deliveryCharge: 0,
+    paymentMethod: "cash",
+    paidAmount: 0,
+    paymentReference: "",
+    orderDate: null,
+  });
+  assert.equal(body.delivery_charge, 0);
 });
 
 test("item update can keep the current discount and delivery", () => {
