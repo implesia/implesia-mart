@@ -44,6 +44,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/cart", label: "Cart", icon: "shopping_cart" },
       { href: "/admin/delivery", label: "Delivery charges", icon: "local_shipping" },
       { href: "/admin/pricing", label: "Discounts", icon: "percent" },
+      { href: "/admin/coupons", label: "Coupons", icon: "confirmation_number" },
     ],
   },
   {
@@ -88,6 +89,12 @@ export function currentAdminPage(pathname: string) {
   }
   if (pathname === "/admin/products/new") {
     return { group: "Store", label: "New product" };
+  }
+  if (pathname === "/admin/coupons/new") {
+    return { group: "Store", label: "New coupon" };
+  }
+  if (pathname.startsWith("/admin/coupons/")) {
+    return { group: "Store", label: "Edit coupon" };
   }
   if (pathname.startsWith("/admin/products/")) {
     return { group: "Store", label: "Edit product" };
@@ -185,6 +192,8 @@ export function isWideAdminPath(pathname: string) {
     pathname === "/admin/cart" ||
     pathname === "/admin/delivery" ||
     pathname === "/admin/pricing" ||
+    pathname === "/admin/coupons" ||
+    pathname.startsWith("/admin/coupons/") ||
     pathname === "/admin/badges" ||
     pathname.startsWith("/admin/inventory")
   ) {

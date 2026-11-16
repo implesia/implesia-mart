@@ -36,15 +36,18 @@ export type MartApiErrorKind = "network" | "server" | "request";
 export class MartApiError extends Error {
   readonly kind: MartApiErrorKind;
   readonly fieldErrors: ApiFieldError[];
+  /** API `error.code` or `error.error_code`, when the body sent one. */
+  readonly code: string | null;
 
   constructor(
     message: string,
-    options: { kind?: MartApiErrorKind; fieldErrors?: ApiFieldError[] } = {},
+    options: { kind?: MartApiErrorKind; fieldErrors?: ApiFieldError[]; code?: string | null } = {},
   ) {
     super(message);
     this.name = "MartApiError";
     this.kind = options.kind ?? "request";
     this.fieldErrors = options.fieldErrors ?? [];
+    this.code = options.code ?? null;
   }
 }
 

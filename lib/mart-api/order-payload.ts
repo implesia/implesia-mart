@@ -1,3 +1,5 @@
+import { couponCodeFromParam } from "@/lib/coupons";
+
 export type DeliveryZoneName = "inside" | "suburban" | "outside";
 
 export type OrderItemRef = {
@@ -13,6 +15,13 @@ export type QuotePayloadInput = {
   area?: string;
   deliveryZone?: DeliveryZoneName;
   items?: OrderItemRef[];
+  /** Sent only as a code. The API returns the discount and the new total. */
+  couponCode?: string | null;
+  /**
+   * Sent when checkout already has a valid mobile and a coupon is applied,
+   * so the quote can check the per-phone limit and the first-order rule.
+   */
+  phone?: string | null;
 };
 
 const CLIENT_MONEY_KEYS = [
@@ -23,6 +32,7 @@ const CLIENT_MONEY_KEYS = [
   "shipping",
   "total",
   "discount",
+  "coupon_discount",
   "delivery_charge",
 ] as const;
 
@@ -45,6 +55,10 @@ export function buildQuotePayload(input: QuotePayloadInput) {
       })),
     }));
   }
+  const coupon = couponCodeFromParam(input.couponCode);
+  if (coupon) body.coupon_code = coupon;
+  const phone = input.phone?.trim();
+  if (phone) body.phone = phone;
   return body;
 }
 

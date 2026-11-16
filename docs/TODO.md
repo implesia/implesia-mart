@@ -4,6 +4,7 @@ Open items found in the code and in recent work. Remove an item when it is done.
 
 ## Done (not live)
 
+- **Coupons (2026-11-10).** Admin list, create, edit, activate, history, the reports tab, checkout apply/remove, `?coupon=` capture, and the purchase `coupon` param are in this repo. They call the coupon routes in `docs/API.md`. Until those routes answer, `lib/mart-mock/coupons.ts` prices quotes and fills the admin screens. Remove that fallback once they answer in the environment this app calls. Not live. `docs/ROADMAP.md` is not in this repo.
 - **Admin new-order notifications (2026-11-10).** Polling, sound, toast, sidebar badge, tab title, browser notification, and the header bell are in the admin shell. They call `GET /api/v1/admin/orders/new` (backend PR #14, stacked on backend PR #13). Until that route answers, `lib/mart-mock/order-alerts.ts` is used. Remove the fallback once it answers in the environment this app calls. Not live. `docs/ROADMAP.md` is not in this repo.
 
 ## Open

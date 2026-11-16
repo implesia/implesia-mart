@@ -53,10 +53,13 @@ Notes on the tables below:
 | `/admin/inventory/purchases/new` | `inventory`, `products` |
 | `/admin/inventory/stock` | `inventory`, `products` |
 | `/admin/login` | `products` |
+| `/admin/coupons` | `coupons` |
+| `/admin/coupons/new` | `coupons` |
+| `/admin/coupons/[id]` | `coupons` |
 | `/admin/orders` | `orders` |
 | `/admin/orders/[number]` | `orders` |
 | `/admin/products` | `badges`, `categories`, `products` |
-| `/admin/reports` | `reports`, `products`, `categories` |
+| `/admin/reports` | `reports`, `coupons`, `products`, `categories` |
 | `/admin/products/[id]` | `products`, `inventory` |
 | `/admin/site/contact` | `site-contact` |
 | `/admin/site/footer` | `contact-details`, `footer` |
@@ -105,6 +108,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `contact-form.ts` | `/api/v1/admin/pages/contact/form`<br>`/api/v1/pages/contact/form` |
 | `contact-hero.ts` | `/api/v1/admin/pages/contact/hero`<br>`/api/v1/pages/contact/hero` |
 | `contact-support.ts` | `/api/v1/admin/pages/contact/support`<br>`/api/v1/pages/contact/support` |
+| `coupons.ts` | `/api/v1/admin/coupons`<br>`/api/v1/admin/coupons/{id}`<br>`/api/v1/admin/coupons/{id}/activate`<br>`/api/v1/admin/coupons/{id}/deactivate`<br>`/api/v1/admin/coupons/{id}/redemptions`<br>`/api/v1/admin/reports/coupons`<br>`/api/v1/admin/reports/coupons/export` |
 | `dashboard.ts` | `/api/v1/admin/dashboard` |
 | `delivery.ts` | `/api/v1/admin/delivery`<br>`/api/v1/delivery` |
 | `faq.ts` | `/api/v1/admin/home/faq`<br>`/api/v1/admin/home/faq/items`<br>`/api/v1/admin/home/faq/items/order`<br>`/api/v1/admin/home/faq/items/{id}`<br>`/api/v1/home/faq` |
@@ -252,6 +256,37 @@ Query: optional `since` (ISO datetime). `limit` is 1..50, default 20. The client
 The field is always present from this storefront (values may be `null`). An older API that ignores unknown JSON properties still accepts the order. The response may include `analytics_event_id` (string). The storefront uses it as the Purchase `event_id` when it is non-empty, and otherwise uses `purchase_<order number>`.
 
 Backend still to build (separate change, not in this repo): accept `tracking`, and return `analytics_event_id` = `purchase_<order_number>` on create, using that same id for the server Purchase (CAPI) event.
+
+## Coupons
+
+Proposed contract (the backend is not in this repo yet). The browser sends `coupon_code` only. Discount, free delivery, and totals come back on the quote or the order. Writes need an editor or above. A viewer can read.
+
+| What | Method | Path |
+| --- | --- | --- |
+| Quote with an optional code | POST | `/api/v1/orders/quote` |
+| Create an order with an optional code | POST | `/api/v1/orders` |
+| List (`q`, `status` = `active` \| `inactive` \| `expired` \| `scheduled`, `page`, `page_size`) | GET | `/api/v1/admin/coupons` |
+| Create | POST | `/api/v1/admin/coupons` |
+| Read one | GET | `/api/v1/admin/coupons/{id}` |
+| Update | PATCH | `/api/v1/admin/coupons/{id}` |
+| Activate / deactivate | POST | `/api/v1/admin/coupons/{id}/activate` and `.../deactivate` |
+| Redemptions (order id, order number, phone, `discount_amount`, `created_at`, status) | GET | `/api/v1/admin/coupons/{id}/redemptions` |
+| Report (`from`, `to`; each row: uses, total discount, total sales) | GET | `/api/v1/admin/reports/coupons` |
+| Excel for that window | GET | `/api/v1/admin/reports/coupons/export` |
+
+Quote request adds optional `coupon_code` and optional `phone` (sent when checkout has a valid mobile and a coupon is applied). Response adds `coupon`: `null`, or `{ code, valid, discount, free_delivery, error_code, message }`. An invalid code stays HTTP 200. `message` is Bangla. `subtotal` is merchandise after the quantity discount. A valid coupon sets `total = subtotal − discount + shipping`. Free delivery sets `shipping` to 0. `bangla_qr_options` use that total. `min_order_amount` is compared with that merchandise, before the coupon and before shipping.
+
+Order reads add `coupon_code` and `coupon_discount` (`null` when unused; `0` is a free-delivery-only coupon). An invalid code on create is HTTP 422 in the existing envelope, with `error.code` one of `coupon_not_found`, `coupon_inactive`, `coupon_not_started`, `coupon_expired`, `coupon_min_amount`, `coupon_usage_limit`, `coupon_phone_limit`, `coupon_first_order_only`, `coupon_not_eligible`, and `error.message` in Bangla. Sending `coupon_discount`, `total`, `shipping`, or `unit_price` is also 422, so the client never sends them.
+
+Coupon JSON: `id`, `code`, `discount_type` (`percent` | `fixed`), `value`, `max_discount`, `min_order_amount`, `starts_at`, `ends_at`, `usage_limit_total`, `usage_limit_per_phone`, `first_order_only`, `product_ids`, `category_ids`, `free_delivery`, `is_active`, `status`, `used_count`, `created_by` (admin UUID or null), `created_at`, `updated_at`. A code is 3–32 characters of A–Z, digits, hyphen, and underscore. A listed category includes its subcategories. The admin form shows and edits `starts_at` / `ends_at` in Asia/Dhaka; the wire format is an ISO instant. There is no delete route.
+
+Redemptions are paged (`page`, `page_size`) and return `id`, `coupon_id`, `order_id`, `order_number`, `phone`, `discount_amount`, `status` (`active` | `cancelled`), `cancelled_at`, `created_at`.
+
+The coupon report uses the same date query as the other reports (`preset` or `from` and `to`). Product, category, and channel filters do not apply (`channel_applies: false`). Each row is `coupon_id`, `code`, `times_used`, `total_discount`, `total_sales`. The sales summary adds `coupon_discount`, already included in `discount`.
+
+Until `GET /api/v1/admin/coupons` or the quote answers (404, 501, 5xx, or the API cannot be reached), checkout pricing and these admin screens use `lib/mart-mock/coupons.ts`. A 401 or 422 is shown and does not fall back. `NEXT_PUBLIC_COUPONS_MOCK=1` forces the mock.
+
+If a live quote succeeds but omits `coupon` (or returns `null`) while `coupon_code` was sent, the UI does not invent a discount. It shows “কুপন এখন যাচাই করা যাচ্ছে না…” and keeps the server totals.
 
 ## Bangla QR payment fields
 
