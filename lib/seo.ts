@@ -11,10 +11,10 @@ export const SITE_URL = (
 
 export const SITE_NAME = "Implesia Mart";
 
-export const DEFAULT_TITLE = "Implesia Mart | ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি গর্জিয়াস ড্রেস";
+export const DEFAULT_TITLE = "Implesia Mart — অরিজিনাল গ্যাজেট ও ইলেকট্রনিক্স, সেরা দামে";
 
 export const DEFAULT_DESCRIPTION =
-  "ইমপ্লেসিয়া মার্ট — ট্রেন্ডিং গ্যাজেট ও হাতে তৈরি কাস্টম ড্রেস, ক্যাশ অন ডেলিভারিতে সারাদেশে দ্রুত ডেলিভারি।";
+  "গ্যাজেট ও ইলেকট্রনিক্স ইমপ্লেসিয়া মার্টে। সারাদেশে ক্যাশ অন ডেলিভারি — প্রোডাক্ট হাতে পেয়ে, ভালোভাবে দেখে তারপর টাকা দিন। ডেলিভারির আগে কোয়ালিটি চেক।";
 
 export const DEFAULT_KEYWORDS = [
   "Implesia Mart",

@@ -5,7 +5,7 @@ Which page uses which backend endpoint. The full endpoint list (methods, access,
 ## How calls are made
 
 - **Base URL**: `NEXT_PUBLIC_MART_API_URL` (`API_BASE_URL` in `lib/mart-api/media-url.ts`).
-- **Public (storefront)**: modules in `lib/mart-api/` call `${API_BASE_URL}/api/v1/...` directly with `publicRequestInit` (no cache, no credentials). Guest carts send `X-Cart-Token`.
+- **Public (storefront)**: modules in `lib/mart-api/` call `${API_BASE_URL}/api/v1/...` directly with `publicRequestInit` (no cache, no credentials). Guest carts send `X-Cart-Token`. `GET /api/v1/site/settings` is the exception: `lib/mart-api/site-settings-public.ts` caches the result for 60 seconds (no credentials), matching `Cache-Control: public, max-age=60`.
 - **Admin**: modules call `/api/proxy/api/v1/admin/...` (`authorizedFetch` / `apiFetch` in `lib/mart-api/products.ts`). The route `app/api/proxy/[...path]/route.ts` hands the request to `proxyAdmin` (`lib/auth/bff.ts`), which:
   - accepts only same-origin requests (otherwise 403),
   - forwards only paths under `api/v1/admin/`,
@@ -38,7 +38,7 @@ Notes on the tables below:
 
 | Route | Modules (see the next table for endpoints) |
 | --- | --- |
-| `/` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-related`, `cart`, `catalog`, `categories`, `category-preview`, `contact-details`, `faq`, `featured`, `footer`, `header`, `hero`, `inquiry-public`, `home-media`, `newsletter`, `products`, `promo`, `reviews`, `search`, `showcase`, `trust` |
+| `/` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-related`, `cart`, `catalog`, `categories`, `category-preview`, `contact-details`, `faq`, `featured`, `footer`, `header`, `hero`, `inquiry-public`, `home-media`, `newsletter`, `products`, `promo`, `reviews`, `search`, `showcase`, `site-settings-public`, `trust` |
 | `/about-us` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values` |
 | `/admin` | `about-cta`, `about-dresses`, `about-hero`, `about-mission`, `about-stats`, `about-steps`, `about-stories`, `about-values`, `blog-categories`, `blog-cta`, `blog-hero`, `blog-listing`, `blog-posts`, `blog-related`, `contact-details`, `contact-faq`, `contact-form`, `contact-hero`, `contact-support`, `dashboard`, `reports`, `faq-callout`, `faq-categories`, `faq-help`, `faq-hero`, `faq-items`, `faq-listing`, `inquiries`, `privacy-collection`, `privacy-contents`, `privacy-hero`, `privacy-introduction`, `privacy-rights`, `privacy-sharing`, `privacy-support`, `privacy-usage`, `products`, `shipping-block`, `shipping-contents`, `shipping-faq`, `shipping-hero`, `shipping-payment`, `shipping-refund`, `shipping-returns`, `shipping-support`, `sustainability-commitment`, `sustainability-cta`, `sustainability-durability`, `sustainability-hero`, `sustainability-impact`, `sustainability-origin`, `sustainability-quality` |
 | `/admin/badges` | `badges` |
@@ -56,8 +56,12 @@ Notes on the tables below:
 | `/admin/coupons` | `coupons` |
 | `/admin/coupons/new` | `coupons` |
 | `/admin/coupons/[id]` | `coupons` |
-| `/admin/orders` | `orders` |
-| `/admin/orders/[number]` | `orders` |
+| `/admin/orders` | `orders-desk` |
+| `/admin/orders/list` | `orders-desk` |
+| `/admin/orders/new` | `orders-desk` |
+| `/admin/orders/ready-to-pack` | `orders-desk` |
+| `/admin/orders/print` | `orders-desk` |
+| `/admin/orders/[number]` | `orders-desk` |
 | `/admin/products` | `badges`, `categories`, `products` |
 | `/admin/reports` | `reports`, `coupons`, `products`, `categories` |
 | `/admin/products/[id]` | `products`, `inventory` |
@@ -65,6 +69,7 @@ Notes on the tables below:
 | `/admin/site/footer` | `contact-details`, `footer` |
 | `/admin/site/header` | `header` |
 | `/admin/site/payment` | `payment-settings` |
+| `/admin/site/seo` | `site-settings` |
 | `/blogs` | `blog-categories`, `blog-hero`, `blog-listing`, `blog-posts` |
 | `/blogs/[slug]` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-posts`, `blog-related` |
 | `/checkout` | `cart`, `delivery`, `orders`, `payment-settings` |
@@ -128,6 +133,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `home-media.ts` | `/api/v1/admin/home/media`<br>`/api/v1/admin/home/media/image`<br>`/api/v1/admin/home/media/video`<br>`/api/v1/home/media` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
 | `orders.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/orders`<br>`/api/v1/orders/lookup`<br>`/api/v1/orders/quote` |
+| `orders-desk.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/admin/orders/{id}/items`<br>`/api/v1/admin/orders/overview`<br>`/api/v1/admin/orders/customers`<br>`/api/v1/admin/orders/offline`<br>`/api/v1/admin/orders/ready-to-pack`<br>`/api/v1/admin/orders/bulk-status`<br>`/api/v1/admin/orders/printed`<br>`/api/v1/admin/orders/print-data`<br>`/api/v1/admin/products`<br>`/api/v1/orders/quote` |
 | `order-alerts.ts` | `/api/v1/admin/orders/new` |
 | `payment-settings.ts` | `/api/v1/admin/site/payment`<br>`/api/v1/admin/site/payment/qr`<br>`/api/v1/site/payment` |
 | `pricing-settings.ts` | `/api/v1/admin/pricing` |
@@ -154,6 +160,8 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `shipping-support.ts` | `/api/v1/admin/pages/shipping/support`<br>`/api/v1/pages/shipping/support` |
 | `showcase.ts` | `/api/v1/admin/home/showcase`<br>`/api/v1/admin/home/showcase/rows/{id}`<br>`/api/v1/admin/home/showcase/rows/{id}/items`<br>`/api/v1/admin/home/showcase/rows/{id}/items/order`<br>`/api/v1/admin/home/showcase/rows/{id}/items/{id}`<br>`/api/v1/home/showcase` |
 | `site-contact.ts` | `/api/v1/admin/site/contact`<br>`/api/v1/site/contact` |
+| `site-settings.ts` | `/api/v1/admin/site/settings` |
+| `site-settings-public.ts` | `/api/v1/site/settings` |
 | `sustainability-commitment.ts` | `/api/v1/admin/pages/sustainability/commitment`<br>`/api/v1/admin/pages/sustainability/commitment/items`<br>`/api/v1/admin/pages/sustainability/commitment/items/order`<br>`/api/v1/admin/pages/sustainability/commitment/items/{id}`<br>`/api/v1/pages/sustainability/commitment` |
 | `sustainability-cta.ts` | `/api/v1/admin/pages/sustainability/cta`<br>`/api/v1/pages/sustainability/cta` |
 | `sustainability-durability.ts` | `/api/v1/admin/pages/sustainability/durability`<br>`/api/v1/pages/sustainability/durability` |
@@ -237,6 +245,34 @@ Query: optional `since` (ISO datetime). `limit` is 1..50, default 20. The client
 
 `payment_method` is `cod` or `bangla_qr`. `items` are newest first and only include rows with `created_at` later than `since`. The next request sends `since` = `now`.
 
+## Admin orders management
+
+Taken from implesia-mart-backend PR #18 (branch `cursor/admin-orders-management-aaf2`). Staff only, through `/api/proxy`, except the public quote used as a price preview. Field names follow that branch's `docs/API.md` and `app/schemas/order.py`.
+
+| Page | Method | Path |
+| --- | --- | --- |
+| Overview | GET | `/api/v1/admin/orders/overview` |
+| Customer search | GET | `/api/v1/admin/orders/customers?q=` |
+| Create offline order | POST | `/api/v1/admin/orders/offline` |
+| Order list | GET | `/api/v1/admin/orders` |
+| Order page | GET, PATCH | `/api/v1/admin/orders/{id}` |
+| Replace items (status `new` only) | PUT | `/api/v1/admin/orders/{id}/items` |
+| Ready to pack | GET | `/api/v1/admin/orders/ready-to-pack` |
+| Bulk status | POST | `/api/v1/admin/orders/bulk-status` |
+| Record a print | POST | `/api/v1/admin/orders/printed` |
+| Invoice and label data | POST | `/api/v1/admin/orders/print-data` |
+| Catalog price preview | POST | `/api/v1/orders/quote` |
+
+`POST /offline` requires `Idempotency-Key` (8–80 of letters, digits, `_`, `-`). The body does not include a total. Status values: `new`, `confirmed`, `packed`, `shipped`, `delivered`, `cancelled`, `returned`. `origin`: `online` or `offline`. `call_status`: `not_called`, `confirmed`, `no_answer`, `fake`. Offline `payment_method`: `cash`, `bkash`, `nagad`, `card`, `due`. List query adds `origin`, `payment_method`, `payment_status`, `call_status`, `courier`, `date_from`, `date_to`, and `scope`, and the response adds `status_counts`. `confirmed` is the ready-to-pack queue.
+
+`POST /api/v1/admin/orders/print-data` does not mark an order printed. Each order includes `invoice_id` (`INV-` plus the eight hex characters of `number`), `order_number` (the same string as `number`), `created_at`, `estimated_delivery_date` (`YYYY-MM-DD`, computed when the route is read, not stored), `email` (`""` when none), `full_address` (address, area, and district joined with `", "`, blanks skipped), `courier_name`, `tracking_number`, the stored totals, `paid_amount`, `due_amount`, and `payment_status`. Each item has `title`, `variant_label` (`""` when there is no option), `sku`, `product_id_short` (first 8 hex characters of the product id, `""` when the product was deleted), `quantity`, `unit_price`, and `line_total`.
+
+## Public order lookup
+
+`POST /api/v1/orders/lookup` is public (`lookupPublicOrder` in `lib/mart-api/orders.ts`). The body is `phone` plus exactly one of `number` or `tracking_number`. Both, or neither, is 422 `Send the order number or the tracking number, and the phone`. `number` is `IM-` plus 8 hex characters. `tracking_number` is the courier id, trimmed, 1–120 characters, matched exactly and without case. A wrong phone, an unknown number, and an unknown tracking id are the same 404 `{ "error": { "message": "Order not found" } }`.
+
+`PublicOrderRead` includes `status`, `timeline` (`{ status, at }` only), `courier_name`, `tracking_number`, `items` (`title`, `variant_label`, `quantity`, `unit_price`, `line_total`, plus `slug`, `product_id`, `image_src`, and `selection`), `subtotal`, `shipping`, `total`, `coupon_code`, `coupon_discount`, and `due_amount` (the cash still to collect). It does not include the order id, email, street address, or `delivered_at` / `returned_at`. `/order-status?number=` prefills the order number. The phone is not put in the URL.
+
 ## Admin order timestamps
 
 - Admin `OrderRead` — `GET` and `PATCH /api/v1/admin/orders/{id}`, each item of `GET /api/v1/admin/orders`, and `POST /api/v1/orders` — includes `delivered_at` and `returned_at`: ISO 8601 UTC (`2026-11-09T08:30:00+00:00`) or `null`. A new order has both `null`. Each is set once, on the first transition to that status. The admin order detail page shows both in Asia/Dhaka. `PublicOrderRead` (`POST /api/v1/orders/lookup`) does not include them, and `PublicOrder` does not read them.
@@ -287,6 +323,21 @@ The coupon report uses the same date query as the other reports (`preset` or `fr
 Production builds never use a stand-in: a failed quote, order, or admin coupon call is shown as an error. Only when `mockFallbackAllowed()` (`lib/mock-mode.ts`: `next dev`, or `NEXT_PUBLIC_ENABLE_MOCK=true` at build time) is true, and `GET /api/v1/admin/coupons` or the quote does not answer (404, 501, 5xx, or the API cannot be reached), checkout pricing and these admin screens use `lib/mart-mock/coupons.ts`. A 401 or 422 is shown and does not fall back. `NEXT_PUBLIC_COUPONS_MOCK=1` forces the mock while stand-ins are allowed.
 
 If a live quote succeeds but omits `coupon` (or returns `null`) while `coupon_code` was sent, the UI does not invent a discount. It shows “কুপন এখন যাচাই করা যাচ্ছে না…” and keeps the server totals.
+
+## Site SEO settings
+
+Taken from implesia-mart-backend PR #19, branch `cursor/storefront-seo-settings-0629` (`docs/API.md` on that branch). One row. `null` means the storefront keeps its built-in title, description, or `%s | Implesia Mart` template.
+
+| UI | Method | Path |
+| --- | --- | --- |
+| Home / default metadata | GET | `/api/v1/site/settings` |
+| Admin › Site › SEO | GET, PATCH | `/api/v1/admin/site/settings` |
+
+Public response: `{ seo_title, seo_description, seo_title_template }`, each a string or `null`. `Cache-Control: public, max-age=60`. The storefront waits at most 3 seconds and then uses the built-in copy. It also does that for a non-200, bad JSON, a blank value, a value over the length limit, or a template that does not contain `%s` exactly once (and no other `%`).
+
+Admin is editor or above, through `/api/proxy`, `Cache-Control: no-store`. PATCH sends only the fields to change; this form sends all three. Omit keeps the stored value. `null` or `""` clears it (stored and returned as `null`). Lengths: title 70, description 170, template 80. A viewer is 403. Anonymous is 401. Those two are shown and do not use the stand-in.
+
+Until `GET /api/v1/admin/site/settings` answers (404, 501, 5xx, or the API cannot be reached), and only when `mockFallbackAllowed()` is true, the form uses `lib/mart-mock/site-settings.ts`. `NEXT_PUBLIC_SITE_SETTINGS_MOCK=1` forces that while stand-ins are allowed. The storefront never reads the stand-in.
 
 ## Bangla QR payment fields
 

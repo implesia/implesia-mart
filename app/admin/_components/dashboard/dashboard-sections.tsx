@@ -29,7 +29,7 @@ export function OrderActivity({
       <SectionHeading
         title="Order activity"
         description="How orders in this period are moving."
-        href="/admin/orders"
+        href="/admin/orders/list"
         action="All orders"
       />
       {total === 0 ? (
@@ -54,7 +54,7 @@ export function OrderActivity({
             {statuses.map((slice) => (
               <li key={slice.status}>
                 <Link
-                  href={`/admin/orders?status=${slice.status}`}
+                  href={`/admin/orders/list?status=${slice.status}`}
                   className="flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   <span
@@ -159,7 +159,7 @@ export function RecentOrders({ orders }: { orders: DashboardRecentOrder[] }) {
         <SectionHeading
           title="Recent orders"
           description="Latest orders placed in this period."
-          href="/admin/orders"
+          href="/admin/orders/list"
           action="View all orders"
         />
       </div>

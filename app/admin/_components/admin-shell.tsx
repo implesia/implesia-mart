@@ -220,6 +220,8 @@ function NavBranch({
         >
           <MaterialIcon name={item.icon} className="text-[20px]" />
           <span className="truncate">{item.label}</span>
+          {item.badge === "inquiries" ? <InquiryBadge collapsed={false} /> : null}
+          {item.badge === "orders" ? <OrderAlertBadge collapsed={false} /> : null}
         </Link>
         <button
           type="button"
@@ -375,7 +377,7 @@ function AdminHeader({
 }) {
   const page = currentAdminPage(pathname);
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-neutral-200 bg-white px-3 sm:px-4">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-neutral-200 bg-white px-3 print:hidden sm:px-4">
       <button
         type="button"
         onClick={onOpenMenu}
@@ -573,7 +575,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     <div className="force-light min-h-dvh bg-[#f5f6f8] text-neutral-950">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden border-r border-neutral-200 bg-white transition-[width] duration-200 lg:block",
+          "fixed inset-y-0 left-0 z-30 hidden border-r border-neutral-200 bg-white transition-[width] duration-200 print:hidden lg:block",
           collapsed ? "w-[4.5rem]" : "w-64",
         )}
       >
@@ -595,7 +597,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       <div
         className={cn(
-          "min-w-0 transition-[padding] duration-200",
+          "min-w-0 transition-[padding] duration-200 print:pl-0",
           collapsed ? "lg:pl-[4.5rem]" : "lg:pl-64",
         )}
       >
@@ -619,14 +621,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         ) : null}
         <div
           className={cn(
-            "w-full",
+            "w-full print:p-0",
             wide
               ? "px-4 py-3 sm:px-5 lg:px-5"
-              : "mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-6",
+              : "mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-6 print:max-w-none",
           )}
         >
           {backHref ? (
-            <div className="mb-4">
+            <div className="mb-4 print:hidden">
               <Link
                 href={backHref}
                 className="inline-flex h-9 items-center gap-1.5 text-sm font-medium text-neutral-600 hover:text-neutral-950"

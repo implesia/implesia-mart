@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { orderStatusQuery } from "@/lib/order-lookup";
 import { DEFAULT_DESCRIPTION, pageMetadata } from "@/lib/seo";
 
 import { OrderStatusView } from "./_components/order-status-view";
@@ -17,8 +18,8 @@ type OrderStatusPageProps = {
 
 export default async function OrderStatusPage({ searchParams }: OrderStatusPageProps) {
   const params = (await searchParams) ?? {};
-  const raw = params.order;
-  const initialOrder = Array.isArray(raw) ? (raw[0] ?? "") : (raw ?? "");
+  const first = (value: string | string[] | undefined) => (Array.isArray(value) ? (value[0] ?? "") : (value ?? ""));
+  const initialOrder = orderStatusQuery({ number: first(params.number), order: first(params.order) });
 
   return (
     <main className="force-light min-h-[60vh] w-full bg-[#f5f6f8] text-neutral-950">
