@@ -37,7 +37,19 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin", label: "Overview", icon: "dashboard", exact: true },
       { href: "/admin/reports", label: "Reports", icon: "analytics", exact: true },
-      { href: "/admin/orders", label: "Orders", icon: "receipt_long", badge: "orders" },
+      {
+        href: "/admin/orders",
+        label: "Orders Management",
+        icon: "receipt_long",
+        exact: true,
+        badge: "orders",
+        children: [
+          { href: "/admin/orders", label: "Overview", icon: "dashboard", exact: true },
+          { href: "/admin/orders/new", label: "Create Order", icon: "add_shopping_cart", exact: true },
+          { href: "/admin/orders/list", label: "Order List", icon: "list_alt", exact: true },
+          { href: "/admin/orders/ready-to-pack", label: "Ready to Pack", icon: "package_2", exact: true },
+        ],
+      },
       { href: "/admin/inquiries", label: "Inquiries", icon: "forum", badge: "inquiries" },
       { href: "/admin/products", label: "Products", icon: "inventory_2" },
       { href: "/admin/badges", label: "Badges", icon: "sell" },
@@ -77,7 +89,8 @@ export function isAdminNavActive(pathname: string, item: AdminNavItem) {
 
 export function isAdminBranchActive(pathname: string, item: AdminNavItem) {
   if (isAdminNavActive(pathname, item)) return true;
-  return (item.children ?? []).some((child) => isAdminNavActive(pathname, child));
+  if ((item.children ?? []).some((child) => isAdminNavActive(pathname, child))) return true;
+  return Boolean(item.children?.length) && pathname.startsWith(`${item.href}/`);
 }
 
 export function currentAdminPage(pathname: string) {
@@ -85,7 +98,13 @@ export function currentAdminPage(pathname: string) {
   if (cms) return cms;
 
   if (pathname.startsWith("/admin/orders/")) {
-    return { group: "Store", label: "Order details" };
+    const pages: Record<string, string> = {
+      "/admin/orders/list": "Order List",
+      "/admin/orders/new": "Create Order",
+      "/admin/orders/ready-to-pack": "Ready to Pack",
+      "/admin/orders/print": "Print",
+    };
+    return { group: "Orders Management", label: pages[pathname] ?? "Order details" };
   }
   if (pathname === "/admin/products/new") {
     return { group: "Store", label: "New product" };

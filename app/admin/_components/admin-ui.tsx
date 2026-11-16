@@ -1,9 +1,12 @@
+import type { AnyPaymentMethod } from "@/lib/admin/orders-desk";
+import { PAYMENT_METHOD_LABEL } from "@/lib/admin/orders-desk";
 import { cn } from "@/lib/utils";
 import type { OrderStatus, StockStatus } from "@/lib/mart-mock/store";
 
 export const ADMIN_ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   new: "New",
   confirmed: "Confirmed",
+  packed: "Packed",
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",
@@ -64,6 +67,7 @@ export function AdminCard({
 export const ORDER_STATUS_TONE: Record<OrderStatus, string> = {
   new: "bg-primary/10 text-[#0b3d39]",
   confirmed: "bg-sky-50 text-sky-800",
+  packed: "bg-indigo-50 text-indigo-800",
   shipped: "bg-amber-50 text-amber-900",
   delivered: "bg-emerald-50 text-emerald-800",
   cancelled: "bg-red-50 text-red-700",
@@ -73,6 +77,7 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, string> = {
 export const ORDER_STATUS_MARK: Record<OrderStatus, string> = {
   new: "bg-primary",
   confirmed: "bg-sky-600",
+  packed: "bg-indigo-600",
   shipped: "bg-amber-500",
   delivered: "bg-emerald-600",
   cancelled: "bg-red-500",
@@ -254,7 +259,7 @@ export function PaymentBadge({
   method = "cod",
 }: {
   collected?: boolean;
-  method?: "cod" | "bangla_qr";
+  method?: AnyPaymentMethod;
 }) {
   return (
     <span
@@ -265,7 +270,7 @@ export function PaymentBadge({
           : "bg-neutral-100 text-neutral-700",
       )}
     >
-      {collected ? "Collected" : method === "bangla_qr" ? "Bangla QR + COD" : "Cash on delivery"}
+      {collected ? "Collected" : PAYMENT_METHOD_LABEL[method]}
     </span>
   );
 }
