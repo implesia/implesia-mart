@@ -34,14 +34,14 @@ export function PrintDocuments({ orders, kind }: { orders: PrintOrder[]; kind: "
   );
 }
 
-function Barcode({ value, height = 40 }: { value: string; height?: number }) {
+function Barcode({ value, height = 40, className = "" }: { value: string; height?: number; className?: string }) {
   let svg = "";
   try {
     svg = code128Svg(value, { barWidth: 1.6, height });
   } catch {
     return null;
   }
-  return <div className="max-w-full overflow-hidden" dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <div className={`max-w-full overflow-hidden ${className}`.trim()} dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
 function Qr({ value, moduleSize }: { value: string; moduleSize: number }) {
@@ -152,15 +152,17 @@ function LabelSheet({ order }: { order: PrintOrder }) {
         <Image src={LOGO} alt="Implesia Mart" width={112} height={28} className="h-7 w-auto" />
         {label.invoiceId ? <p className="text-[11px] text-neutral-600">{label.invoiceId}</p> : null}
       </div>
-      <p className="mt-2 text-base font-semibold">{label.number}</p>
-      <Barcode value={label.number} height={36} />
-      <p className="mt-2 font-semibold">{label.customerName}</p>
-      <p>{label.phone}</p>
-      {label.address ? <p>{label.address}</p> : null}
-      <p className="mt-3">
-        COD amount <span className="text-xl font-bold tabular-nums">{formatTaka(label.dueAmount)}</span>
-      </p>
-      <p>{label.itemCount} {label.itemCount === 1 ? "item" : "items"}</p>
+      <div className="mt-2 flex flex-col items-center text-center">
+        <p className="text-base font-semibold">{label.number}</p>
+        <Barcode value={label.number} height={36} className="mx-auto flex justify-center [&_svg]:block" />
+        <p className="mt-2 font-semibold">{label.customerName}</p>
+        <p>{label.phone}</p>
+        {label.address ? <p className="max-w-full">{label.address}</p> : null}
+        <p className="mt-3">
+          COD amount <span className="text-xl font-bold tabular-nums">{formatTaka(label.dueAmount)}</span>
+        </p>
+        <p>{label.itemCount} {label.itemCount === 1 ? "item" : "items"}</p>
+      </div>
       {label.courier ? <p className="mt-1">{label.courier}</p> : null}
       <div className="mt-auto flex items-end justify-between gap-2 pt-2">
         {label.orderDate ? <p className="text-xs text-neutral-600">{label.orderDate}</p> : <span />}
