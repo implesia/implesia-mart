@@ -286,6 +286,124 @@ export type PurchaseLineInput = {
   unitCost: number;
 };
 
+/** One option on a product that tracks stock per option. */
+export type PurchaseVariantSource = {
+  id: string;
+  label: string;
+  sku: string;
+  quantity: number | null;
+};
+
+/** A product as the purchase search sees it, after the list card and (when needed) the product read. */
+export type PurchaseProductSource = {
+  id: string;
+  name: string;
+  sku: string;
+  quantity: number | null;
+  costPrice: number | null;
+  hasVariants: boolean;
+  variants: PurchaseVariantSource[];
+};
+
+export type PurchaseProductChoice = {
+  id: string;
+  variantId: string | null;
+  name: string;
+  /** Empty for a product that does not track stock per option. */
+  optionLabel: string;
+  sku: string;
+  quantity: number | null;
+  costPrice: number | null;
+  /**
+   * The product tracks stock per option, but no option id was loaded.
+   * The form must not post this row: the API answers 422 without `variant_id`.
+   */
+  needsVariant: boolean;
+};
+
+/**
+ * One searchable row per product, or one row per option when stock is tracked per option.
+ * The same product can be purchased as several lines, one option each.
+ */
+export function purchaseChoicesFromProduct(product: PurchaseProductSource): PurchaseProductChoice[] {
+  const variants = product.variants.filter((variant) => variant.id.trim());
+  const tracked = product.hasVariants || variants.length > 0;
+  if (!tracked) {
+    return [
+      {
+        id: product.id,
+        variantId: null,
+        name: product.name,
+        optionLabel: "",
+        sku: product.sku,
+        quantity: product.quantity,
+        costPrice: product.costPrice,
+        needsVariant: false,
+      },
+    ];
+  }
+  if (variants.length === 0) {
+    return [
+      {
+        id: product.id,
+        variantId: null,
+        name: product.name,
+        optionLabel: "",
+        sku: product.sku,
+        quantity: product.quantity,
+        costPrice: product.costPrice,
+        needsVariant: true,
+      },
+    ];
+  }
+  return variants.map((variant) => ({
+    id: product.id,
+    variantId: variant.id,
+    name: product.name,
+    optionLabel: variant.label.trim() || variant.sku.trim() || "Option",
+    sku: variant.sku,
+    quantity: variant.quantity,
+    costPrice: product.costPrice,
+    needsVariant: false,
+  }));
+}
+
+/**
+ * One purchase line as `PurchaseItemCreate` expects it.
+ * `variant_id` is sent only for an option. `sku` is not a field on that schema
+ * (unknown JSON fields are rejected). Excel import is the path that matches a SKU.
+ */
+export function purchaseItemBody(item: {
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+  unitCost: number;
+}): { product_id: string; variant_id?: string; quantity: number; unit_cost: number } {
+  const body: { product_id: string; variant_id?: string; quantity: number; unit_cost: number } = {
+    product_id: item.productId,
+    quantity: item.quantity,
+    unit_cost: item.unitCost,
+  };
+  if (item.variantId) body.variant_id = item.variantId;
+  return body;
+}
+
+/** `AdjustmentCreate`. `variant_id` is required by the API when the product tracks options. */
+export function adjustmentBody(input: {
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+  reason: string;
+}): { product_id: string; variant_id?: string; quantity: number; reason: string } {
+  const body: { product_id: string; variant_id?: string; quantity: number; reason: string } = {
+    product_id: input.productId,
+    quantity: input.quantity,
+    reason: input.reason,
+  };
+  if (input.variantId) body.variant_id = input.variantId;
+  return body;
+}
+
 export type PurchaseDraft = {
   supplierId: string;
   purchasedOn: string;
@@ -301,7 +419,13 @@ export function validatePurchaseDraft(draft: {
   purchasedOn: string;
   invoiceNo: string;
   note?: string;
-  lines: Array<{ productId: string; quantity: string; unitCost: string }>;
+  lines: Array<{
+    productId: string;
+    quantity: string;
+    unitCost: string;
+    variantId?: string | null;
+    tracksVariants?: boolean;
+  }>;
 }): FieldIssue[] {
   const issues: FieldIssue[] = [];
   if (!draft.supplierId.trim()) issues.push({ field: "supplierId", message: "Choose a supplier." });
@@ -317,6 +441,12 @@ export function validatePurchaseDraft(draft: {
   draft.lines.forEach((line, index) => {
     if (!line.productId.trim()) {
       issues.push({ field: `lines.${index}.productId`, message: "Choose a product." });
+    }
+    if (line.tracksVariants && !line.variantId) {
+      issues.push({
+        field: `lines.${index}.variantId`,
+        message: "Choose an option. This product tracks stock per option.",
+      });
     }
     const quantity = parsePositiveQuantity(line.quantity);
     if (!quantity.ok) issues.push({ field: `lines.${index}.quantity`, message: quantity.message });

@@ -38,7 +38,9 @@ type Line = {
   key: string;
   productId: string;
   variantId: string | null;
+  tracksVariants: boolean;
   productName: string;
+  optionLabel: string;
   sku: string;
   quantity: string;
   unitCost: string;
@@ -49,11 +51,21 @@ function blankLine(): Line {
     key: Math.random().toString(36).slice(2),
     productId: "",
     variantId: null,
+    tracksVariants: false,
     productName: "",
+    optionLabel: "",
     sku: "",
     quantity: "1",
     unitCost: "",
   };
+}
+
+function choiceKey(product: ProductChoice) {
+  return `${product.id}:${product.variantId ?? "product"}`;
+}
+
+function choiceDetail(product: { optionLabel: string; sku: string }) {
+  return [product.optionLabel, product.sku || "No SKU"].filter(Boolean).join(" · ");
 }
 
 export default function NewPurchasePage() {
@@ -125,11 +137,14 @@ export default function NewPurchasePage() {
           productId: line.productId,
           quantity: line.quantity,
           unitCost: line.unitCost,
+          variantId: line.variantId,
+          tracksVariants: line.tracksVariants,
         })),
       })
     : [];
 
   function addProduct(product: ProductChoice) {
+    if (product.needsVariant || !product.id) return;
     setLines((current) => {
       if (current.some((line) => line.productId === product.id && line.variantId === product.variantId)) return current;
       return [
@@ -138,7 +153,9 @@ export default function NewPurchasePage() {
           ...blankLine(),
           productId: product.id,
           variantId: product.variantId,
+          tracksVariants: product.variantId != null,
           productName: product.name,
+          optionLabel: product.optionLabel,
           sku: product.sku,
           unitCost: product.costPrice == null ? "" : String(product.costPrice),
         },
@@ -181,6 +198,8 @@ export default function NewPurchasePage() {
         productId: line.productId,
         quantity: line.quantity,
         unitCost: line.unitCost,
+        variantId: line.variantId,
+        tracksVariants: line.tracksVariants,
       })),
     });
     if (nextIssues.length > 0) return;
@@ -227,7 +246,7 @@ export default function NewPurchasePage() {
     <div className="min-w-0 space-y-4">
       <AdminPageHeader
         title="New purchase"
-        description="Search by product name or SKU. Line totals and the grand total update as you type. Dates are Asia/Dhaka."
+        description="Search by product name or SKU. A product that tracks stock per option is listed once for each option, and each option is its own line. Dates are Asia/Dhaka."
         action={
           <Link href="/admin/inventory/purchases" className={adminButtonClass.secondary}>
             Back to purchases
@@ -316,7 +335,7 @@ export default function NewPurchasePage() {
                 } else if (event.key === "ArrowUp") {
                   event.preventDefault();
                   setActiveResult((index) => Math.max(index - 1, 0));
-                } else if (event.key === "Enter" && results[activeResult]) {
+                } else if (event.key === "Enter" && results[activeResult] && !results[activeResult].needsVariant) {
                   event.preventDefault();
                   addProduct(results[activeResult]);
                 }
@@ -335,11 +354,13 @@ export default function NewPurchasePage() {
                 className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-xl bg-white py-1 shadow-lg ring-1 ring-neutral-200"
               >
                 {results.map((product, index) => (
-                  <li key={product.id} role="option" aria-selected={index === activeResult}>
+                  <li key={choiceKey(product)} role="option" aria-selected={index === activeResult}>
                     <button
                       type="button"
+                      disabled={product.needsVariant}
                       className={cn(
                         "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-primary",
+                        product.needsVariant && "cursor-not-allowed opacity-60",
                         index === activeResult ? "bg-primary/10" : "hover:bg-neutral-50",
                       )}
                       onMouseEnter={() => setActiveResult(index)}
@@ -347,10 +368,16 @@ export default function NewPurchasePage() {
                     >
                       <span>
                         <span className="font-medium text-neutral-950">{product.name}</span>
-                        <span className="mt-0.5 block text-xs text-neutral-500">{product.sku || "No SKU"}</span>
+                        <span className="mt-0.5 block text-xs text-neutral-500">
+                          {product.needsVariant ? "Options could not be loaded" : choiceDetail(product)}
+                        </span>
                       </span>
                       <span className="text-xs text-neutral-500">
-                        {product.quantity == null ? "Made to order" : `${product.quantity} in stock`}
+                        {product.needsVariant
+                          ? ""
+                          : product.quantity == null
+                            ? "Made to order"
+                            : `${product.quantity} in stock`}
                       </span>
                     </button>
                   </li>
@@ -371,12 +398,14 @@ export default function NewPurchasePage() {
                 const amount = totals[index];
                 const quantityError = issueFor(issues, `lines.${index}.quantity`);
                 const costError = issueFor(issues, `lines.${index}.unitCost`);
+                const variantError = issueFor(issues, `lines.${index}.variantId`);
                 return (
                   <div key={line.key} className="rounded-xl ring-1 ring-neutral-200 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-medium text-neutral-950">{line.productName}</p>
-                        <p className="text-xs text-neutral-500">{line.sku || "No SKU"}</p>
+                        <p className="text-xs text-neutral-500">{choiceDetail(line)}</p>
+                        <FieldMessage id={`${formId}-variant-${line.key}-error`} message={variantError} />
                       </div>
                       <button
                         type="button"
