@@ -6,6 +6,7 @@ import {
   dhakaMonthRange,
   dhakaWeekRange,
   filterMovements,
+  adjustmentBody,
   grandTotal,
   importResultMessage,
   inDhakaDateRange,
@@ -13,10 +14,14 @@ import {
   lineTotal,
   mapImportPreview,
   previewImportSheet,
+  purchaseChoicesFromProduct,
+  purchaseItemBody,
   readDuplicateFile,
   sha256Hex,
+  validatePurchaseDraft,
   weightedAverageCost,
   type ImportLookups,
+  type PurchaseProductSource,
   type StockMovementType,
 } from "@/lib/admin/inventory";
 import { canWriteInventory } from "@/lib/admin/staff-role";
@@ -288,6 +293,110 @@ test("xlsx round trip keeps header and values", async () => {
   assert.equal(rows[1]?.[1], "2");
   assert.equal(rows[2]?.[0], "Name, with comma");
   assert.equal(rows[2]?.[2], "10.5");
+});
+
+const SIMPLE: PurchaseProductSource = {
+  id: "11111111-1111-4111-8111-111111111111",
+  name: "Plain earbuds",
+  sku: "NV-EAR-01",
+  quantity: 8,
+  costPrice: 450,
+  hasVariants: false,
+  variants: [],
+};
+
+const VARIANT: PurchaseProductSource = {
+  id: "9c30505f-1111-4111-8111-111111111111",
+  name: "Linen dress",
+  sku: "linen-dress",
+  quantity: 12,
+  costPrice: 700,
+  hasVariants: true,
+  variants: [
+    { id: "aaaaaaaa-1111-4111-8111-111111111111", label: "S / Red", sku: "DRS-S-RED", quantity: 5 },
+    { id: "bbbbbbbb-1111-4111-8111-111111111111", label: "M / Blue", sku: "DRS-M-BLU", quantity: 7 },
+  ],
+};
+
+test("purchase search lists a plain product once and each option of a variant product", () => {
+  const plain = purchaseChoicesFromProduct(SIMPLE);
+  assert.equal(plain.length, 1);
+  assert.equal(plain[0]?.variantId, null);
+  assert.equal(plain[0]?.needsVariant, false);
+  assert.equal(plain[0]?.sku, "NV-EAR-01");
+
+  const options = purchaseChoicesFromProduct(VARIANT);
+  assert.deepEqual(
+    options.map((row) => [row.id, row.variantId, row.optionLabel, row.sku, row.quantity]),
+    [
+      [VARIANT.id, "aaaaaaaa-1111-4111-8111-111111111111", "S / Red", "DRS-S-RED", 5],
+      [VARIANT.id, "bbbbbbbb-1111-4111-8111-111111111111", "M / Blue", "DRS-M-BLU", 7],
+    ],
+  );
+  assert.equal(options.every((row) => row.needsVariant === false), true);
+
+  const unloaded = purchaseChoicesFromProduct({ ...VARIANT, variants: [] });
+  assert.equal(unloaded.length, 1);
+  assert.equal(unloaded[0]?.needsVariant, true);
+  assert.equal(unloaded[0]?.variantId, null);
+});
+
+test("purchase and adjustment payloads send variant_id and never sku", () => {
+  const plain = purchaseItemBody({ productId: SIMPLE.id, variantId: null, quantity: 50, unitCost: 700 });
+  assert.deepEqual(plain, { product_id: SIMPLE.id, quantity: 50, unit_cost: 700 });
+  assert.equal("variant_id" in plain, false);
+  assert.equal("sku" in plain, false);
+
+  const option = purchaseItemBody({
+    productId: VARIANT.id,
+    variantId: VARIANT.variants[1]?.id,
+    quantity: 50,
+    unitCost: 700,
+  });
+  assert.deepEqual(option, {
+    product_id: VARIANT.id,
+    variant_id: "bbbbbbbb-1111-4111-8111-111111111111",
+    quantity: 50,
+    unit_cost: 700,
+  });
+  assert.equal("sku" in option, false);
+
+  const adjustment = adjustmentBody({
+    productId: VARIANT.id,
+    variantId: VARIANT.variants[0]?.id,
+    quantity: -2,
+    reason: "Count",
+  });
+  assert.equal(adjustment.variant_id, "aaaaaaaa-1111-4111-8111-111111111111");
+  assert.equal("sku" in adjustment, false);
+  const plainAdjustment = adjustmentBody({
+    productId: SIMPLE.id,
+    variantId: null,
+    quantity: 3,
+    reason: "Found",
+  });
+  assert.equal("variant_id" in plainAdjustment, false);
+});
+
+test("a variant purchase line without an option is refused before save", () => {
+  const issues = validatePurchaseDraft({
+    supplierId: "c73f0000-1111-4111-8111-111111111111",
+    purchasedOn: "2026-11-01",
+    invoiceNo: "",
+    note: "",
+    lines: [
+      { productId: SIMPLE.id, quantity: "50", unitCost: "700", variantId: null, tracksVariants: false },
+      { productId: VARIANT.id, quantity: "50", unitCost: "700", variantId: null, tracksVariants: true },
+    ],
+  });
+  assert.equal(
+    issues.some((issue) => issue.field === "lines.1.variantId"),
+    true,
+  );
+  assert.equal(
+    issues.some((issue) => issue.field.startsWith("lines.0")),
+    false,
+  );
 });
 
 function movement(createdAt: string, productId: string, movementType: StockMovementType) {

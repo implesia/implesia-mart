@@ -23,6 +23,7 @@ import {
   rowsToVariants,
   sameVariants,
   validateVariants,
+  variantLabel,
   type VariantRow,
 } from "@/lib/mart-api/admin-variants";
 import {
@@ -1374,6 +1375,32 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                       ? null
                       : Number(form.quantity)
                 }
+                variants={form.variants.flatMap((row) => {
+                  if (!row.id) return [];
+                  const label = variantLabel(form.content.options, row.options);
+                  const named = label.replaceAll("?", "").replaceAll("/", "").trim();
+                  return [
+                    {
+                      id: row.id,
+                      label: named ? label : row.sku.trim() || "Option",
+                      sku: row.sku,
+                      quantity:
+                        row.quantity.trim() === "" || !Number.isFinite(Number(row.quantity))
+                          ? null
+                          : Number(row.quantity),
+                    },
+                  ];
+                })}
+                onVariantQuantity={(variantId, quantity) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    variants: prev.variants.map((row) =>
+                      row.id === variantId
+                        ? { ...row, quantity: quantity == null ? "" : String(quantity) }
+                        : row,
+                    ),
+                  }));
+                }}
               />
             ) : null}
             <div>

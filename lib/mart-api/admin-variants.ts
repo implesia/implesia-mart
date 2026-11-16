@@ -11,6 +11,8 @@ export const SKU_MAX_LENGTH = 64;
 export type AdminVariant = {
   id?: string;
   options: Record<string, string>;
+  /** Option text from the API, such as "M / Red". Absent on rows the form built. */
+  label?: string;
   sku: string;
   price: number;
   compareAtPrice: number | null;

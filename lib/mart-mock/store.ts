@@ -106,6 +106,11 @@ export type AdminProduct = {
   /** Variants (API products). Absent or empty = a plain product. */
   variants?: AdminVariant[];
   /**
+   * True when the API tracks stock per option (`has_variants` on the list card).
+   * The list card does not include `variants`; the product read does.
+   */
+  hasVariants?: boolean;
+  /**
    * Dynamic discount (API products). On save, `regularPrice` + `baseDiscountPercent` are sent
    * only when set; the API then works out `price` and `compareAtPrice` itself.
    */

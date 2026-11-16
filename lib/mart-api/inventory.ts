@@ -13,12 +13,16 @@
  */
 
 import {
+  adjustmentBody,
   mapImportPreview,
+  purchaseChoicesFromProduct,
+  purchaseItemBody,
   readDuplicateFile,
   sha256Hex,
   type ExportKind,
   type ImportKind,
   type ImportPreview,
+  type PurchaseProductChoice,
   type StockMovementType,
 } from "@/lib/admin/inventory";
 import { canWriteInventory } from "@/lib/admin/staff-role";
@@ -135,6 +139,13 @@ export type ProductStock = {
   costPrice: number | null;
   sku: string;
   name: string;
+  hasVariants: boolean;
+  variants: Array<{
+    id: string;
+    label: string;
+    sku: string;
+    quantity: number | null;
+  }>;
 };
 
 export type OpeningStockResult = {
@@ -151,14 +162,7 @@ export type Page<T> = {
   pages: number;
 };
 
-export type ProductChoice = {
-  id: string;
-  variantId: string | null;
-  name: string;
-  sku: string;
-  quantity: number | null;
-  costPrice: number | null;
-};
+export type ProductChoice = PurchaseProductChoice;
 
 export class DuplicateFileError extends Error {
   readonly fileHash: string;
@@ -392,12 +396,7 @@ export async function savePurchase(input: PurchaseInput): Promise<Purchase> {
       purchased_on: input.purchasedOn,
       invoice_no: input.invoiceNo,
       note: input.note,
-      items: input.items.map((item) => ({
-        product_id: item.productId,
-        ...(item.variantId ? { variant_id: item.variantId } : {}),
-        quantity: item.quantity,
-        unit_cost: item.unitCost,
-      })),
+      items: input.items.map((item) => purchaseItemBody(item)),
     }),
   });
   if (!response.ok) throw new MartApiError(await readError(response, "Could not save the purchase."));
@@ -455,17 +454,32 @@ export async function fetchProductStock(productId: string): Promise<ProductStock
       costPrice: row.costPrice,
       sku: row.sku,
       name: row.name,
+      hasVariants: false,
+      variants: [],
     };
   }
   try {
     const product = await getMartProduct(productId);
-    const variant = product.variants?.find((item) => item.sku);
+    const variants = (product.variants ?? []).flatMap((item) => {
+      if (!item.id) return [];
+      return [
+        {
+          id: item.id,
+          label: item.label?.trim() || item.sku || "Option",
+          sku: item.sku,
+          quantity: item.quantity,
+        },
+      ];
+    });
+    const variant = variants.find((item) => item.sku);
     return {
       productId,
       quantity: product.quantity,
       costPrice: product.costPrice ?? null,
       sku: variant?.sku || product.slug,
       name: product.title,
+      hasVariants: product.hasVariants === true || variants.length > 0,
+      variants,
     };
   } catch (error) {
     if (error instanceof MartApiError && /not found/i.test(error.message)) return null;
@@ -489,12 +503,7 @@ export async function saveStockAdjustment(input: {
   const response = await authorizedFetch(INVENTORY_PATHS.adjustments, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      product_id: input.productId,
-      ...(input.variantId ? { variant_id: input.variantId } : {}),
-      quantity: input.quantity,
-      reason: input.reason,
-    }),
+    body: JSON.stringify(adjustmentBody(input)),
   });
   if (!response.ok) throw new MartApiError(await readError(response, "Could not adjust stock."));
   return movementFromApi((await response.json()) as Record<string, unknown>);
@@ -519,50 +528,72 @@ export async function recordOpeningStock(): Promise<OpeningStockResult> {
 
 type ListedProduct = Awaited<ReturnType<typeof listMartProducts>>["items"][number];
 
-function choicesFromProducts(items: ListedProduct[]): ProductChoice[] {
-  const choices: ProductChoice[] = [];
-  for (const product of items) {
-    const id = product.id ?? "";
-    const variants = (product.variants ?? []).filter((variant) => Boolean(variant.id));
-    if (variants.length === 0) {
-      choices.push({
-        id,
-        variantId: null,
-        name: product.title,
-        sku: product.slug,
-        quantity: product.quantity,
-        costPrice: product.costPrice ?? null,
-      });
-      continue;
-    }
-    for (const variant of variants) {
-      if (!variant.id) continue;
-      choices.push({
-        id,
-        variantId: variant.id,
-        name: product.title,
+function listedProductChoice(product: ListedProduct): ProductChoice {
+  const variantSku = product.variants?.find((item) => item.sku)?.sku;
+  return {
+    id: product.id ?? "",
+    variantId: null,
+    name: product.title,
+    optionLabel: "",
+    sku: variantSku || product.slug,
+    quantity: product.quantity,
+    costPrice: product.costPrice ?? null,
+    needsVariant: false,
+  };
+}
+
+function purchaseSource(product: ListedProduct) {
+  const variants = (product.variants ?? []).flatMap((variant) => {
+    if (!variant.id) return [];
+    return [
+      {
+        id: variant.id,
+        label: variant.label?.trim() || "",
         sku: variant.sku,
         quantity: variant.quantity,
-        costPrice: product.costPrice ?? null,
-      });
-    }
+      },
+    ];
+  });
+  return {
+    id: product.id ?? "",
+    name: product.title,
+    sku: product.slug,
+    quantity: product.quantity,
+    costPrice: product.costPrice ?? null,
+    hasVariants: product.hasVariants === true || variants.length > 0,
+    variants,
+  };
+}
+
+/**
+ * The product list card has `has_variants` and no variant rows. Load the product
+ * so each option can be chosen and sent as `variant_id`.
+ */
+async function productWithOptions(product: ListedProduct): Promise<ListedProduct> {
+  const loaded = (product.variants ?? []).some((variant) => variant.id);
+  if (loaded || product.hasVariants !== true || !product.id) return product;
+  try {
+    return await getMartProduct(product.id);
+  } catch {
+    return product;
   }
-  return choices;
 }
 
 export async function fetchProductChoices(): Promise<ProductChoice[]> {
   try {
     const page = await listMartProducts({ page: 1, pageSize: 100 });
-    return choicesFromProducts(page.items);
+    return page.items.map(listedProductChoice);
   } catch (error) {
     if ((await inventoryBackend()) === "mock") {
       return loadInventory().stock.map((row) => ({
         id: row.productId,
         variantId: null,
         name: row.name,
+        optionLabel: "",
         sku: row.sku,
         quantity: row.quantity,
         costPrice: row.costPrice,
+        needsVariant: false,
       }));
     }
     throw error instanceof MartApiError ? error : new MartApiError("Could not load products.");
@@ -572,16 +603,19 @@ export async function fetchProductChoices(): Promise<ProductChoice[]> {
 export async function searchProductsForPurchase(q: string): Promise<ProductChoice[]> {
   try {
     const page = await listMartProducts({ q, page: 1, pageSize: 8 });
-    return choicesFromProducts(page.items);
+    const detailed = await Promise.all(page.items.map(productWithOptions));
+    return detailed.flatMap((product) => purchaseChoicesFromProduct(purchaseSource(product)));
   } catch (error) {
     if ((await inventoryBackend()) === "mock") {
       return searchStock(loadInventory(), q).map((row) => ({
         id: row.productId,
         variantId: null,
         name: row.name,
+        optionLabel: "",
         sku: row.sku,
         quantity: row.quantity,
         costPrice: row.costPrice,
+        needsVariant: false,
       }));
     }
     throw error instanceof MartApiError ? error : new MartApiError("Could not search products.");

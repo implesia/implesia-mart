@@ -578,6 +578,8 @@ type ApiCard = {
   seo_description?: string;
   seo_keywords?: string;
   variants?: ApiVariant[];
+  /** List cards (`AdminProductCard`). Variant rows are only on the product read. */
+  has_variants?: boolean;
   regular_price?: number;
   base_discount_percent?: number;
   tier_mode?: "global" | "custom";
@@ -592,6 +594,7 @@ type ApiCard = {
 type ApiVariant = {
   id: string;
   options: Record<string, string>;
+  label?: string;
   sku: string;
   price: number;
   compare_at_price: number | null;
@@ -717,9 +720,11 @@ function cardToProduct(item: ApiCard): AdminProduct {
     seoTitle: item.seo_title ?? "",
     seoDescription: item.seo_description ?? "",
     seoKeywords: item.seo_keywords ?? "",
+    hasVariants: item.has_variants === true || (item.variants ?? []).length > 0,
     variants: (item.variants ?? []).map((variant) => ({
       id: variant.id,
       options: variant.options,
+      label: variant.label ?? "",
       sku: variant.sku,
       price: variant.price,
       compareAtPrice: variant.compare_at_price,
