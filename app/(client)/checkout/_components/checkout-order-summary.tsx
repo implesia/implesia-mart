@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import { Separator } from "@/components/ui/separator";
+import { couponDisplay, shownCheckoutTotal } from "@/lib/coupons";
 import { lineDiscount, maxQuantityText, percentText } from "@/lib/mart-api/pricing";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +11,7 @@ import { MaterialIcon } from "../../_components/common/material-icon";
 import { checkoutCopy } from "../../_data/checkout/checkout";
 import { formatCartMoney } from "../../_lib/cart-shared";
 
+import { CheckoutCoupon } from "./checkout-coupon";
 import { CheckoutPlaceOrderButton } from "./checkout-place-order-button";
 import { useCheckoutForm } from "./checkout-form-context";
 
@@ -23,7 +25,6 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
   const {
     quote,
     deliveryFee,
-    grandTotal,
     deliveryZone,
     zoneKnown,
     pricingBusy,
@@ -33,6 +34,8 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
     advanceChoice,
   } = useCheckoutForm();
   const items = quote?.items ?? [];
+  const coupon = couponDisplay(quote?.coupon);
+  const payable = quote ? shownCheckoutTotal(zoneKnown, quote) : 0;
 
   return (
     <aside className={cn("min-w-0 lg:col-span-5", className)}>
@@ -50,6 +53,8 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
             {items.length} আইটেম
           </span>
         </div>
+
+        <CheckoutCoupon />
 
         <div className="flex max-h-[min(50vh,22rem)] flex-col gap-3.5 overflow-y-auto pr-0.5 sm:max-h-none sm:overflow-visible">
           {items.map((item) => (
@@ -193,6 +198,15 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
               {formatCartMoney(quote?.subtotal ?? 0)}
             </span>
           </div>
+          {coupon.state === "applied" && (coupon.discount > 0 || coupon.freeDelivery) ? (
+            <div className="flex items-center justify-between gap-3 text-sm" data-testid="coupon-discount">
+              <span className="text-[#0b5e56]">কুপন {coupon.code}</span>
+              <span className={cn("font-medium text-[#0b5e56]", pricingBusy && "opacity-50")}>
+                {coupon.discount > 0 ? `−${formatCartMoney(coupon.discount)}` : "ফ্রি ডেলিভারি"}
+                {coupon.discount > 0 && coupon.freeDelivery ? " · ফ্রি ডেলিভারি" : ""}
+              </span>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-neutral-600">
               ডেলিভারি চার্জ
@@ -214,7 +228,11 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
                 pricingBusy && "opacity-50",
               )}
             >
-              {zoneKnown ? formatCartMoney(deliveryFee) : "—"}
+              {zoneKnown
+                ? coupon.state === "applied" && coupon.freeDelivery
+                  ? "ফ্রি"
+                  : formatCartMoney(deliveryFee)
+                : "—"}
             </span>
           </div>
         </div>
@@ -229,7 +247,7 @@ export function CheckoutOrderSummary({ className }: { className?: string }) {
               pricingBusy && "opacity-50",
             )}
           >
-            {formatCartMoney(zoneKnown ? grandTotal : (quote?.subtotal ?? 0))}
+            <span data-testid="checkout-total">{formatCartMoney(payable)}</span>
           </span>
         </div>
         {advanceChoice && zoneKnown ? (

@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { ANALYTICS_CONFIG_ELEMENT_ID, analyticsConfig } from "@/lib/analytics/config";
 import { StoreAnalytics } from "@/lib/analytics/store-analytics";
+import { CouponCapture } from "./_components/common/coupon-capture";
 import { JsonLd } from "./_components/common/json-ld";
 import { StorefrontFrame } from "./_components/common/storefront-frame";
 import Footer from "./_components/common/footer";
@@ -122,6 +123,9 @@ export default function ClientLayout({
     <CartProvider>
       <Suspense fallback={null}>
         <StoreAnalyticsSlot />
+      </Suspense>
+      <Suspense fallback={null}>
+        <CouponCapture />
       </Suspense>
       <JsonLd data={websiteJsonLd} />
       <StorefrontFrame

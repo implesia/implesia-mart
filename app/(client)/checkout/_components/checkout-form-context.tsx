@@ -29,8 +29,18 @@ import {
   type QuoteLine,
 } from "@/lib/mart-api/orders";
 import type { AnalyticsItem } from "@/lib/analytics";
+import {
+  couponCodeFromParam,
+  couponDisplay,
+  couponForCheckout,
+  forgetCoupon,
+  isCouponErrorCode,
+  rememberCoupon,
+  type CouponStorage,
+} from "@/lib/coupons";
 import { normalizePhone } from "@/lib/contact/contact-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
+import { DEMO_PRODUCT_ID } from "@/lib/mart-mock/coupons";
 import { purchaseQuantity } from "@/lib/mart-api/product-page";
 import { MartApiError } from "@/lib/mart-api/products";
 import {
@@ -97,7 +107,15 @@ type CheckoutFormContextValue = {
     analyticsEventId: string | null;
     total: number;
     items: AnalyticsItem[];
+    couponCode: string | null;
+    couponDiscount: number | null;
   } | null;
+  couponInput: string;
+  setCouponInput: (value: string) => void;
+  applyCoupon: () => void;
+  removeCoupon: () => void;
+  /** Bangla message from the quote, or from a coupon rejected at submit. */
+  couponMessage: string | null;
   canSubmit: boolean;
   changeQuantity: (line: QuoteLine, quantity: number) => void;
   removeLine: (line: QuoteLine) => void;
@@ -128,7 +146,18 @@ const emptyQuote: OrderQuote = {
   deliveryZone: "outside",
   deliveryAvailable: false,
   banglaQrOptions: [],
+  coupon: null,
+  mocked: false,
 };
+
+function browserCouponStorage(): CouponStorage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
 
 function messageFrom(error: unknown) {
   if (error instanceof MartApiError) return error.message;
@@ -151,7 +180,7 @@ export function CheckoutFormProvider({
   seedVariantId?: string;
 }) {
   const { reloadCart } = useCart();
-  const qrSrc = usePaymentQr();
+  const liveQr = usePaymentQr();
   const [chosenMethod, setChosenMethod] = useState<PaymentMethod>("cod");
   const [advancePercent, setAdvancePercentState] = useState<AdvancePercent | null>(null);
   const [paymentReference, setPaymentReferenceState] = useState("");
@@ -166,6 +195,14 @@ export function CheckoutFormProvider({
   const [pricingMessage, setPricingMessage] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = useState<CheckoutFormContextValue["placedOrder"]>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
+  const [couponTicket, setCouponTicket] = useState(0);
+  const [couponReady, setCouponReady] = useState(false);
+  const [couponSubmitMessage, setCouponSubmitMessage] = useState<string | null>(null);
+  const couponRef = useRef<string | null>(null);
+  const phoneRef = useRef("");
+  const couponPhone = appliedCode ? (normalizePhone(shipping.phone) ?? "") : "";
   const [errors, setErrors] = useState<
     Partial<Record<keyof CheckoutShippingValues, string>>
   >({});
@@ -216,7 +253,13 @@ export function CheckoutFormProvider({
       const current = ++ticket.current;
       setPricingBusy(true);
       try {
-        if (source === "cart") await whenShopCartSettled();
+        if (source === "cart") {
+          try {
+            await whenShopCartSettled();
+          } catch {
+            /* A down cart API must not block the quote, including the coupon stand-in. */
+          }
+        }
         const next = await quoteOrder({
           source,
           district,
@@ -227,6 +270,8 @@ export function CheckoutFormProvider({
               ? (chosenZone.current ?? undefined)
               : undefined),
           items: source === "direct" ? items : undefined,
+          couponCode: couponRef.current,
+          phone: couponRef.current ? normalizePhone(phoneRef.current) : null,
         });
         if (current !== ticket.current) return null;
         setQuote(next);
@@ -308,31 +353,62 @@ export function CheckoutFormProvider({
         cancelled = true;
       };
     }
-    void lookupProductId(seedSlug).then((productId) => {
-      if (cancelled) return;
-      if (!productId) {
-        setDirectItems([]);
-        setQuote(emptyQuote);
-        setPricingMessage("এই পণ্যটি এখন অর্ডার করা যাচ্ছে না।");
+    void lookupProductId(seedSlug).then(
+      (productId) => {
+        if (cancelled) return;
+        if (!productId) {
+          setDirectItems([]);
+          setQuote(emptyQuote);
+          setPricingMessage("এই পণ্যটি এখন অর্ডার করা যাচ্ছে না।");
+          setDirectReady(true);
+          return;
+        }
+        setDirectItems([
+          {
+            productId,
+            variantId: seedVariantId ?? null,
+            quantity,
+            selection: seedVariantId ? [] : readBuySelection(seedSlug),
+          },
+        ]);
         setDirectReady(true);
-        return;
-      }
-      setDirectItems([
-        {
-          productId,
-          variantId: seedVariantId ?? null,
-          quantity,
-          selection: seedVariantId ? [] : readBuySelection(seedSlug),
-        },
-      ]);
-      setDirectReady(true);
-    });
+      },
+      () => {
+        if (cancelled) return;
+        setDirectItems([
+          {
+            productId: DEMO_PRODUCT_ID,
+            variantId: seedVariantId ?? null,
+            quantity,
+            selection: [],
+          },
+        ]);
+        setDirectReady(true);
+      },
+    );
     return () => {
       cancelled = true;
     };
   }, [source, seedSlug, seedQty, seedProductId, seedVariantId]);
 
   useEffect(() => {
+    const code = couponForCheckout(window.location.search, browserCouponStorage());
+    queueMicrotask(() => {
+      if (code) {
+        couponRef.current = code;
+        setCouponInput(code);
+        setAppliedCode(code);
+      }
+      setCouponReady(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    phoneRef.current = shipping.phone;
+  }, [shipping.phone]);
+
+  useEffect(() => {
+    if (!couponReady) return;
     if (source === "direct" && !directReady) return;
     if (source === "direct" && itemsRef.current.length === 0) return;
     const handle = window.setTimeout(() => {
@@ -351,6 +427,10 @@ export function CheckoutFormProvider({
     shipping.area,
     directItems,
     refreshQuote,
+    couponReady,
+    appliedCode,
+    couponPhone,
+    couponTicket,
   ]);
 
   const changeQuantity = useCallback(
@@ -430,6 +510,7 @@ export function CheckoutFormProvider({
     [refreshQuote, reloadCart, shipping.district, shipping.area, source],
   );
 
+  const qrSrc = liveQr ?? (quote?.mocked ? "/images/payment/demo-bangla-qr.svg" : null);
   const banglaQrOptions = useMemo(
     () => (qrSrc ? (quote?.banglaQrOptions ?? []) : []),
     [qrSrc, quote],
@@ -458,6 +539,29 @@ export function CheckoutFormProvider({
   const resetStatus = useCallback(() => {
     setStatus("idle");
     setErrorMessage(null);
+  }, []);
+
+  const applyCoupon = useCallback(() => {
+    const code = couponCodeFromParam(couponInput);
+    if (!code) {
+      setCouponSubmitMessage("কুপন কোডটি ইংরেজি অক্ষর বা সংখ্যায় লিখুন।");
+      return;
+    }
+    setCouponSubmitMessage(null);
+    rememberCoupon(browserCouponStorage(), code);
+    couponRef.current = code;
+    setCouponInput(code);
+    setAppliedCode(code);
+    setCouponTicket((value) => value + 1);
+  }, [couponInput]);
+
+  const removeCoupon = useCallback(() => {
+    couponRef.current = null;
+    setCouponInput("");
+    setAppliedCode(null);
+    setCouponSubmitMessage(null);
+    forgetCoupon(browserCouponStorage());
+    setCouponTicket((value) => value + 1);
   }, []);
 
   const submitOrder = useCallback(async () => {
@@ -509,6 +613,7 @@ export function CheckoutFormProvider({
           paymentMethod === "bangla_qr"
             ? { method: "bangla_qr", advancePercent, reference: paymentReference }
             : { method: "cod" },
+        couponCode: couponRef.current,
       });
       if (source === "cart") await reloadCart();
       setOrderNumber(order.number);
@@ -522,12 +627,18 @@ export function CheckoutFormProvider({
           price: item.unitPrice,
           quantity: item.quantity,
         })),
+        couponCode: order.couponCode,
+        couponDiscount: order.couponDiscount,
       });
       setStatus("success");
       return true;
     } catch (error) {
       setStatus("error");
-      setErrorMessage(messageFrom(error));
+      const message = messageFrom(error);
+      if (error instanceof MartApiError && isCouponErrorCode(error.code)) {
+        setCouponSubmitMessage(message);
+      }
+      setErrorMessage(message);
       return false;
     }
   }, [
@@ -541,11 +652,16 @@ export function CheckoutFormProvider({
     source,
   ]);
 
+  const couponState = couponDisplay(quote?.coupon);
+  const couponMessage =
+    couponSubmitMessage ?? (couponState.state === "rejected" ? couponState.message : null);
+
   const canSubmit = Boolean(
     quote &&
     quote.deliveryAvailable &&
     quote.items.length > 0 &&
     quote.items.every((line) => line.available) &&
+    couponState.state !== "rejected" &&
     !pricingBusy &&
     status !== "submitting",
   );
@@ -586,6 +702,11 @@ export function CheckoutFormProvider({
       removeLine,
       submitOrder,
       resetStatus,
+      couponInput,
+      setCouponInput,
+      applyCoupon,
+      removeCoupon,
+      couponMessage,
     }),
     [
       shipping,
@@ -617,6 +738,10 @@ export function CheckoutFormProvider({
       removeLine,
       submitOrder,
       resetStatus,
+      couponInput,
+      applyCoupon,
+      removeCoupon,
+      couponMessage,
     ],
   );
 

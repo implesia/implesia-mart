@@ -46,6 +46,8 @@ export type SalesSummary = {
   unitsSold: number;
   grossSales: number;
   discount: number;
+  /** Coupon taka already included in `discount`. Missing on older payloads counts as 0. */
+  couponDiscount: number;
   deliveryCharge: number;
   netSales: number;
 };
@@ -478,6 +480,7 @@ export function parseSalesSummary(value: unknown): SalesSummary | null {
     unitsSold: int(body.units_sold),
     grossSales: int(body.gross_sales),
     discount: int(body.discount),
+    couponDiscount: int(body.coupon_discount),
     deliveryCharge: int(body.delivery_charge),
     netSales: int(body.net_sales),
   };

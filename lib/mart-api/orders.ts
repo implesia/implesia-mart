@@ -1,9 +1,11 @@
 import { readOrderTimestamp } from "@/lib/admin/order-timestamps";
 import { currentOrderTracking, type OrderTracking } from "@/lib/analytics/order-tracking";
+import { quoteCouponFromBody, type QuoteCoupon } from "@/lib/coupons";
 import { guestCartHeaders } from "@/lib/mart-api/cart";
 import type { DeliveryZone } from "@/lib/mart-api/delivery";
 import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
 import { MartApiError, authorizedFetch, mediaUrl, publicFetch } from "@/lib/mart-api/products";
+import { mockOrderApi, mockPlaceOrder, mockQuoteApi } from "@/lib/mart-mock/coupons";
 import type { OrderStatus } from "@/lib/mart-mock/store";
 import {
   advanceOptionsFrom,
@@ -43,6 +45,10 @@ export type OrderQuote = {
   deliveryAvailable: boolean;
   /** Bangla QR advance choices for this total; empty when no QR is set. */
   banglaQrOptions: AdvanceOption[];
+  /** Null when no code was sent. Discount and flags come from the server. */
+  coupon: QuoteCoupon | null;
+  /** True when the live quote route was missing and the stand-in priced this. */
+  mocked: boolean;
 };
 
 export type MartOrderItem = {
@@ -87,6 +93,10 @@ export type MartOrder = {
   subtotal: number;
   shipping: number;
   total: number;
+  /** Null on orders placed before coupons, and when no coupon was used. */
+  couponCode: string | null;
+  /** Null when no coupon was used. Whole taka taken off by the server. */
+  couponDiscount: number | null;
   courierName: string;
   trackingNumber: string;
   items: MartOrderItem[];
@@ -156,6 +166,7 @@ type ApiQuote = {
   delivery_zone: DeliveryZone;
   delivery_available?: boolean;
   bangla_qr_options?: unknown;
+  coupon?: unknown;
 };
 
 type ApiOrderItem = {
@@ -198,6 +209,8 @@ type ApiOrder = {
   subtotal: number;
   shipping: number;
   total: number;
+  coupon_code?: string | null;
+  coupon_discount?: number | null;
   courier_name: string;
   tracking_number: string;
   items: ApiOrderItem[];
@@ -240,7 +253,7 @@ function paymentFrom(body: {
   };
 }
 
-function mapQuote(body: ApiQuote): OrderQuote {
+function mapQuote(body: ApiQuote, sentCode: string | null, mocked = false): OrderQuote {
   return {
     items: body.items.map((item) => ({
       productId: item.product_id,
@@ -266,6 +279,8 @@ function mapQuote(body: ApiQuote): OrderQuote {
     deliveryZone: body.delivery_zone,
     deliveryAvailable: body.delivery_available !== false,
     banglaQrOptions: advanceOptionsFrom(body.bangla_qr_options),
+    coupon: quoteCouponFromBody(body, sentCode),
+    mocked,
   };
 }
 
@@ -289,6 +304,9 @@ function mapOrder(body: ApiOrder): MartOrder {
     subtotal: body.subtotal,
     shipping: body.shipping,
     total: body.total,
+    couponCode: typeof body.coupon_code === "string" && body.coupon_code.trim() ? body.coupon_code.trim() : null,
+    couponDiscount:
+      typeof body.coupon_discount === "number" && Number.isFinite(body.coupon_discount) ? body.coupon_discount : null,
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
     createdAt: body.created_at,
@@ -316,14 +334,52 @@ function mapOrder(body: ApiOrder): MartOrder {
   };
 }
 
-async function readError(response: Response, fallback: string) {
+async function readFailure(response: Response, fallback: string) {
   try {
-    const body = (await response.json()) as { error?: { message?: string } };
-    if (body.error?.message) return body.error.message;
+    const body = (await response.json()) as {
+      message?: string;
+      error_code?: string;
+      error?: { message?: string; code?: string; error_code?: string };
+    };
+    const message = body.error?.message || (typeof body.message === "string" ? body.message : "") || fallback;
+    const raw = body.error?.error_code || body.error?.code || body.error_code || null;
+    return { message, code: typeof raw === "string" && raw.trim() ? raw : null };
   } catch {
-    /* not the API envelope */
+    return { message: fallback, code: null };
   }
-  return fallback;
+}
+
+async function readError(response: Response, fallback: string) {
+  return (await readFailure(response, fallback)).message;
+}
+
+let pricingMode: "unknown" | "live" | "mock" = "unknown";
+
+export function resetOrderPricingMode() {
+  pricingMode = "unknown";
+}
+
+function pricingMockForced() {
+  return process.env.NEXT_PUBLIC_COUPONS_MOCK === "1" || pricingMode === "mock";
+}
+
+function routeMissing(status: number) {
+  return status === 404 || status === 501 || status >= 500;
+}
+
+function unreachable(error: unknown) {
+  return error instanceof MartApiError && error.message === "Could not reach the API.";
+}
+
+function mockQuoteInput(input: QuoteInput) {
+  return {
+    couponCode: input.couponCode,
+    phone: input.phone,
+    district: input.district,
+    deliveryZone: input.deliveryZone,
+    source: input.source,
+    productIds: input.items?.map((item) => item.productId),
+  };
 }
 
 type QuoteInput = QuotePayloadInput;
@@ -332,17 +388,33 @@ function quoteBody(input: QuoteInput) {
   return buildQuotePayload(input);
 }
 
+function pricedByMock(input: QuoteInput) {
+  pricingMode = "mock";
+  return mapQuote(mockQuoteApi(mockQuoteInput(input)) as ApiQuote, input.couponCode ?? null, true);
+}
+
 export async function quoteOrder(input: QuoteInput) {
-  const response = await publicFetch("/api/v1/orders/quote", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...guestCartHeaders(),
-    },
-    body: JSON.stringify(quoteBody(input)),
-  });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not price this order."));
-  return mapQuote((await response.json()) as ApiQuote);
+  if (pricingMockForced()) return pricedByMock(input);
+  try {
+    const response = await publicFetch("/api/v1/orders/quote", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...guestCartHeaders(),
+      },
+      body: JSON.stringify(quoteBody(input)),
+    });
+    if (routeMissing(response.status)) return pricedByMock(input);
+    if (!response.ok) {
+      const failure = await readFailure(response, "Could not price this order.");
+      throw new MartApiError(failure.message, { code: failure.code });
+    }
+    pricingMode = "live";
+    return mapQuote((await response.json()) as ApiQuote, input.couponCode ?? null, false);
+  } catch (error) {
+    if (unreachable(error)) return pricedByMock(input);
+    throw error;
+  }
 }
 
 export async function placeOrder(
@@ -362,27 +434,70 @@ export async function placeOrder(
     tracking?: OrderTracking;
   },
 ) {
-  const response = await publicFetch("/api/v1/orders", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Idempotency-Key": input.idempotencyKey,
-      ...guestCartHeaders(),
-    },
-    body: JSON.stringify({
-      ...quoteBody(input),
-      customer_name: input.customerName.trim(),
-      phone: input.phone.trim(),
-      email: input.email.trim(),
-      area: input.area.trim(),
-      address: input.address.trim(),
-      notes: input.notes.trim(),
-      ...buildPaymentPayload(input.payment ?? { method: "cod" }),
-      tracking: input.tracking ?? currentOrderTracking(),
-    }),
+  if (pricingMockForced()) return placedByMock(input);
+  try {
+    const response = await publicFetch("/api/v1/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": input.idempotencyKey,
+        ...guestCartHeaders(),
+      },
+      body: JSON.stringify({
+        ...quoteBody(input),
+        customer_name: input.customerName.trim(),
+        phone: input.phone.trim(),
+        email: input.email.trim(),
+        area: input.area.trim(),
+        address: input.address.trim(),
+        notes: input.notes.trim(),
+        ...buildPaymentPayload(input.payment ?? { method: "cod" }),
+        tracking: input.tracking ?? currentOrderTracking(),
+      }),
+    });
+    if ((response.status === 404 || response.status === 501) && pricingMode !== "live") {
+      return placedByMock(input);
+    }
+    if (!response.ok) {
+      const failure = await readFailure(response, "Could not place the order.");
+      throw new MartApiError(failure.message, { code: failure.code });
+    }
+    pricingMode = "live";
+    return mapOrder((await response.json()) as ApiOrder);
+  } catch (error) {
+    if (unreachable(error) && pricingMode !== "live") return placedByMock(input);
+    throw error;
+  }
+}
+
+function placedByMock(
+  input: QuoteInput & {
+    idempotencyKey: string;
+    customerName: string;
+    phone: string;
+    email: string;
+    area: string;
+    address: string;
+    notes: string;
+    payment?: { method: PaymentMethod; advancePercent?: AdvancePercent | null; reference?: string };
+  },
+) {
+  pricingMode = "mock";
+  const result = mockPlaceOrder({
+    ...mockQuoteInput(input),
+    phone: input.phone,
+    idempotencyKey: input.idempotencyKey,
+    customerName: input.customerName,
+    email: input.email,
+    area: input.area,
+    address: input.address,
+    notes: input.notes,
+    paymentMethod: input.payment?.method,
+    advancePercent: input.payment?.advancePercent,
+    paymentReference: input.payment?.reference,
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not place the order."));
-  return mapOrder((await response.json()) as ApiOrder);
+  if (!result.ok) throw new MartApiError(result.message, { code: result.errorCode });
+  return mapOrder(result.order as ApiOrder);
 }
 
 export async function listOrders(query: {
@@ -437,10 +552,35 @@ export async function listOrders(query: {
   } satisfies OrderDirectory;
 }
 
+function orderFromMock(orderId: string) {
+  const mocked = mockOrderApi(orderId);
+  return mocked ? mapOrder(mocked as ApiOrder) : null;
+}
+
 export async function getOrder(orderId: string) {
-  const response = await authorizedFetch(`/api/v1/admin/orders/${orderId}`);
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not load this order."));
-  return mapOrder((await response.json()) as ApiOrder);
+  if (pricingMockForced()) {
+    const mocked = orderFromMock(orderId);
+    if (!mocked) throw new MartApiError("Order not found");
+    return mocked;
+  }
+  try {
+    const response = await authorizedFetch(`/api/v1/admin/orders/${orderId}`);
+    if (!response.ok) {
+      if (routeMissing(response.status)) {
+        const mocked = orderFromMock(orderId);
+        if (mocked) return mocked;
+      }
+      if (response.status === 404) throw new MartApiError("Order not found");
+      throw new MartApiError(await readError(response, "Could not load this order."));
+    }
+    return mapOrder((await response.json()) as ApiOrder);
+  } catch (error) {
+    if (unreachable(error)) {
+      const mocked = orderFromMock(orderId);
+      if (mocked) return mocked;
+    }
+    throw error;
+  }
 }
 
 export type PublicOrderItem = {

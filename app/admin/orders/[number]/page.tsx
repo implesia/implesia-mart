@@ -353,6 +353,16 @@ export default function AdminOrderDetailPage() {
                 }
                 value={formatTaka(order.shipping)}
               />
+              {order.couponCode ? (
+                <TotalLine
+                  label={`Coupon ${order.couponCode}`}
+                  value={
+                    order.couponDiscount != null && order.couponDiscount > 0
+                      ? `−${formatTaka(order.couponDiscount)}`
+                      : "Free delivery"
+                  }
+                />
+              ) : null}
               <TotalLine label="Total" value={formatTaka(order.total)} strong />
               {order.paymentMethod === "bangla_qr" ? (
                 <>
@@ -430,6 +440,14 @@ export default function AdminOrderDetailPage() {
             <h2 className="text-sm font-semibold text-neutral-950">
               Fulfillment
             </h2>
+            {order.couponCode ? (
+              <p className="mt-2 text-sm text-neutral-700" data-testid="order-coupon">
+                Coupon {order.couponCode}
+                {order.couponDiscount != null && order.couponDiscount > 0
+                  ? ` · −${formatTaka(order.couponDiscount)}`
+                  : " · Free delivery"}
+              </p>
+            ) : null}
             <div className="mt-3">
               <FieldLabel htmlFor="order-status">Status</FieldLabel>
               <select
