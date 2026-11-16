@@ -41,6 +41,7 @@ import {
 import { normalizePhone } from "@/lib/contact/contact-rules";
 import { isCatalogProductId } from "@/lib/mart-api/catalog-rules";
 import { DEMO_PRODUCT_ID } from "@/lib/mart-mock/coupons";
+import { mockFallbackAllowed } from "@/lib/mock-mode";
 import { purchaseQuantity } from "@/lib/mart-api/product-page";
 import { MartApiError } from "@/lib/mart-api/products";
 import {
@@ -290,7 +291,11 @@ export function CheckoutFormProvider({
         return next;
       } catch (error) {
         if (current !== ticket.current) return null;
-        setPricingMessage(messageFrom(error));
+        const message = messageFrom(error);
+        setPricingMessage(message);
+        if (error instanceof MartApiError && isCouponErrorCode(error.code)) {
+          setCouponSubmitMessage(message);
+        }
         return null;
       } finally {
         if (current === ticket.current) setPricingBusy(false);
@@ -375,6 +380,14 @@ export function CheckoutFormProvider({
       },
       () => {
         if (cancelled) return;
+        if (!mockFallbackAllowed()) {
+          // Never price or place a stand-in product outside local development.
+          setDirectItems([]);
+          setQuote(emptyQuote);
+          setPricingMessage("পণ্যের তথ্য লোড করা যায়নি। পেজটি রিফ্রেশ করে আবার চেষ্টা করুন।");
+          setDirectReady(true);
+          return;
+        }
         setDirectItems([
           {
             productId: DEMO_PRODUCT_ID,

@@ -6,6 +6,7 @@ import type { DeliveryZone } from "@/lib/mart-api/delivery";
 import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
 import { MartApiError, authorizedFetch, mediaUrl, publicFetch } from "@/lib/mart-api/products";
 import { mockOrderApi, mockPlaceOrder, mockQuoteApi } from "@/lib/mart-mock/coupons";
+import { mockFallbackAllowed } from "@/lib/mock-mode";
 import type { OrderStatus } from "@/lib/mart-mock/store";
 import {
   advanceOptionsFrom,
@@ -360,7 +361,31 @@ export function resetOrderPricingMode() {
 }
 
 function pricingMockForced() {
+  if (!mockFallbackAllowed()) return false;
   return process.env.NEXT_PUBLIC_COUPONS_MOCK === "1" || pricingMode === "mock";
+}
+
+/** Shown when the live quote/order route is down and no stand-in is allowed. */
+export const PRICING_UNAVAILABLE_MESSAGE = "অর্ডারের দাম এখন লোড করা যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।";
+export const ORDER_UNAVAILABLE_MESSAGE =
+  "অর্ডারটি এখন সম্পন্ন করা যায়নি। কিছুক্ষণ পরে আবার চেষ্টা করুন। সমস্যা থাকলে আমাদের সাথে যোগাযোগ করুন।";
+export const API_UNREACHABLE_MESSAGE = "সার্ভারের সাথে সংযোগ করা যাচ্ছে না। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।";
+
+/**
+ * 4xx keeps the API message (coupon invalid/expired, stock, validation). A 5xx
+ * without an error code shows the retryable message instead of server text.
+ */
+async function failureError(response: Response, fallback: string) {
+  const failure = await readFailure(response, fallback);
+  const server = response.status >= 500;
+  return new MartApiError(server && !failure.code ? fallback : failure.message, {
+    code: failure.code,
+    kind: server ? "server" : "request",
+  });
+}
+
+function assertMockAllowed() {
+  if (!mockFallbackAllowed()) throw new MartApiError(PRICING_UNAVAILABLE_MESSAGE, { kind: "server" });
 }
 
 function routeMissing(status: number) {
@@ -389,6 +414,7 @@ function quoteBody(input: QuoteInput) {
 }
 
 function pricedByMock(input: QuoteInput) {
+  assertMockAllowed();
   pricingMode = "mock";
   return mapQuote(mockQuoteApi(mockQuoteInput(input)) as ApiQuote, input.couponCode ?? null, true);
 }
@@ -404,15 +430,15 @@ export async function quoteOrder(input: QuoteInput) {
       },
       body: JSON.stringify(quoteBody(input)),
     });
-    if (routeMissing(response.status)) return pricedByMock(input);
-    if (!response.ok) {
-      const failure = await readFailure(response, "Could not price this order.");
-      throw new MartApiError(failure.message, { code: failure.code });
-    }
+    if (routeMissing(response.status) && mockFallbackAllowed()) return pricedByMock(input);
+    if (!response.ok) throw await failureError(response, PRICING_UNAVAILABLE_MESSAGE);
     pricingMode = "live";
     return mapQuote((await response.json()) as ApiQuote, input.couponCode ?? null, false);
   } catch (error) {
-    if (unreachable(error)) return pricedByMock(input);
+    if (unreachable(error)) {
+      if (mockFallbackAllowed()) return pricedByMock(input);
+      throw new MartApiError(API_UNREACHABLE_MESSAGE, { kind: "network" });
+    }
     throw error;
   }
 }
@@ -455,17 +481,21 @@ export async function placeOrder(
         tracking: input.tracking ?? currentOrderTracking(),
       }),
     });
-    if ((response.status === 404 || response.status === 501) && pricingMode !== "live") {
+    if (
+      (response.status === 404 || response.status === 501) &&
+      pricingMode !== "live" &&
+      mockFallbackAllowed()
+    ) {
       return placedByMock(input);
     }
-    if (!response.ok) {
-      const failure = await readFailure(response, "Could not place the order.");
-      throw new MartApiError(failure.message, { code: failure.code });
-    }
+    if (!response.ok) throw await failureError(response, ORDER_UNAVAILABLE_MESSAGE);
     pricingMode = "live";
     return mapOrder((await response.json()) as ApiOrder);
   } catch (error) {
-    if (unreachable(error) && pricingMode !== "live") return placedByMock(input);
+    if (unreachable(error)) {
+      if (pricingMode !== "live" && mockFallbackAllowed()) return placedByMock(input);
+      throw new MartApiError(API_UNREACHABLE_MESSAGE, { kind: "network" });
+    }
     throw error;
   }
 }
@@ -482,6 +512,7 @@ function placedByMock(
     payment?: { method: PaymentMethod; advancePercent?: AdvancePercent | null; reference?: string };
   },
 ) {
+  if (!mockFallbackAllowed()) throw new MartApiError(ORDER_UNAVAILABLE_MESSAGE, { kind: "server" });
   pricingMode = "mock";
   const result = mockPlaceOrder({
     ...mockQuoteInput(input),
@@ -553,6 +584,7 @@ export async function listOrders(query: {
 }
 
 function orderFromMock(orderId: string) {
+  if (!mockFallbackAllowed()) return null;
   const mocked = mockOrderApi(orderId);
   return mocked ? mapOrder(mocked as ApiOrder) : null;
 }
