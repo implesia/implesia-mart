@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { qrMatrix, qrSvg } from "@/lib/admin/qr";
+import { printPdfFilename } from "@/lib/admin/download-print-pdf";
 import {
   formatCalendarDate,
   invoiceHeading,
@@ -134,4 +135,10 @@ test("QR svg is deterministic and does not print the payload", () => {
   assert.match(svg, /<path /);
   assert.equal(svg.includes(url), false);
   assert.throws(() => qrMatrix(""), /empty/);
+});
+
+test("print PDF filename uses the order number, or a plural name", () => {
+  assert.equal(printPdfFilename("label", ["IM-28080126"]), "IM-28080126-label.pdf");
+  assert.equal(printPdfFilename("invoice", ["IM-28080126"]), "IM-28080126-invoice.pdf");
+  assert.equal(printPdfFilename("both", ["IM-1", "IM-2"]), "orders-print.pdf");
 });
