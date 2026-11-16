@@ -8,6 +8,8 @@ import { isPrintKind } from "@/lib/admin/orders-desk";
 import { bulkOrderStatus, getPrintData, markOrdersPrinted, type PrintOrder } from "@/lib/mart-api/orders-desk";
 import { MartApiError } from "@/lib/mart-api/products";
 
+import { printPdfFilename } from "@/lib/admin/download-print-pdf";
+
 import { adminButtonClass } from "../../_components/admin-ui";
 import { PrintDocuments } from "./print-documents";
 
@@ -22,6 +24,7 @@ export function PrintDesk() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [packing, setPacking] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const nextIds = idKey.split(",").filter(Boolean);
@@ -52,6 +55,22 @@ export function PrintDesk() {
     }
   }
 
+  async function downloadNow() {
+    const root = document.getElementById("order-print");
+    const sheets = [...(root?.querySelectorAll<HTMLElement>(".sheet-invoice, .sheet-label") ?? [])];
+    if (sheets.length === 0) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      const { downloadPrintSheets } = await import("@/lib/admin/download-print-pdf");
+      await downloadPrintSheets(sheets, printPdfFilename(kind === "invoice" || kind === "label" ? kind : "both", orders.map((order) => order.number)));
+    } catch (reason) {
+      setError(reason instanceof MartApiError ? reason.message : "Could not download the PDF.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   async function markPacked() {
     setPacking(true);
     try {
@@ -71,12 +90,15 @@ export function PrintDesk() {
         <div>
           <h1 className="text-xl font-semibold">Print</h1>
           <p className="mt-1 text-sm text-neutral-600">
-            {kind === "invoice" ? "A4 invoice" : kind === "label" ? "4×6 packet label" : "Invoice and label"}, one order per page. In the print dialog, choose Save as PDF to download.
+            {kind === "invoice" ? "A4 invoice" : kind === "label" ? "4×6 packet label" : "Invoice and label"}, one order per page. Print opens the print dialog. Download PDF saves a file without printing.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => void printNow()} disabled={orders.length === 0} className={adminButtonClass.primary}>
-            Print and download PDF
+            Print
+          </button>
+          <button type="button" onClick={() => void downloadNow()} disabled={downloading || orders.length === 0} className={adminButtonClass.secondary}>
+            {downloading ? "Downloading…" : "Download PDF"}
           </button>
           <button type="button" onClick={() => void markPacked()} disabled={packing || orders.length === 0} className={adminButtonClass.secondary}>
             {packing ? "Saving…" : "Mark packed"}

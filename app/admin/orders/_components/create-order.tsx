@@ -133,7 +133,7 @@ export function CreateOrder() {
       priceEdited: line.priceEdited,
     })),
     manualDiscount: Number(discount) || 0,
-    deliveryCharge: delivery.trim() ? Number(delivery) || 0 : null,
+    deliveryCharge: delivery.trim() ? Number(delivery) || 0 : 0,
     quote,
   });
 
@@ -187,7 +187,7 @@ export function CreateOrder() {
             priceEdited: line.priceEdited,
           })),
           manualDiscount: Number(discount) || 0,
-          deliveryCharge: delivery.trim() ? Number(delivery) : null,
+          deliveryCharge: delivery.trim() ? Number(delivery) : 0,
           paymentMethod: method,
           paidAmount: Number(paid) || 0,
           paymentReference: reference,
@@ -335,7 +335,7 @@ export function CreateOrder() {
             </label>
             <Field id="paid-amount" label="Paid amount" value={paid} onChange={setPaid} error={errors.paidAmount} />
             <Field id="order-discount" label="Discount" value={discount} onChange={setDiscount} error={errors.manualDiscount} />
-            <Field id="delivery-charge" label="Delivery charge" value={delivery} onChange={setDelivery} error={errors.deliveryCharge} placeholder="Blank uses the zone fee" />
+            <Field id="delivery-charge" label="Delivery charge" value={delivery} onChange={setDelivery} error={errors.deliveryCharge} placeholder="Optional — blank is ৳0" />
             <Field id="payment-reference" label="Payment reference" value={reference} onChange={setReference} error={errors.paymentReference} />
             <label className="text-sm font-medium text-neutral-700">
               Order date
