@@ -1,7 +1,9 @@
 /**
- * Admin coupon routes. Until `GET /api/v1/admin/coupons` answers (404, 501,
- * 5xx, or the API cannot be reached), the screens use `lib/mart-mock/coupons.ts`.
- * A 401 or 422 is shown and does not fall back.
+ * Admin coupon routes. Only when stand-ins are allowed (`mockFallbackAllowed`,
+ * never in production builds) and `GET /api/v1/admin/coupons` does not answer
+ * (404, 501, 5xx, or the API cannot be reached), the screens use
+ * `lib/mart-mock/coupons.ts`. Otherwise every failure is shown as an error.
+ * A 401 or 422 is always shown and does not fall back.
  */
 
 import {
@@ -30,6 +32,7 @@ import {
   mockUpdateCoupon,
 } from "@/lib/mart-mock/coupons";
 import { MartApiError, authorizedFetch, listMartProducts } from "@/lib/mart-api/products";
+import { mockFallbackAllowed } from "@/lib/mock-mode";
 
 const COUPONS = "/api/v1/admin/coupons";
 
@@ -44,7 +47,7 @@ export function resetCouponsBackendMode() {
 }
 
 function forceMock() {
-  return process.env.NEXT_PUBLIC_COUPONS_MOCK === "1";
+  return mockFallbackAllowed() && process.env.NEXT_PUBLIC_COUPONS_MOCK === "1";
 }
 
 async function readFailure(response: Response, fallback: string) {
@@ -63,12 +66,12 @@ async function readFailure(response: Response, fallback: string) {
 }
 
 function mockOnStatus(status: number) {
-  return status === 404 || status === 501 || status >= 500;
+  return mockFallbackAllowed() && (status === 404 || status === 501 || status >= 500);
 }
 
 /** Probe the list once. Later calls reuse the result. */
 export async function couponsBackend(): Promise<"live" | "mock"> {
-  if (forceMock() || mode === "mock") {
+  if (forceMock() || (mode === "mock" && mockFallbackAllowed())) {
     mode = "mock";
     return "mock";
   }
@@ -86,6 +89,7 @@ export async function couponsBackend(): Promise<"live" | "mock"> {
     mode = response.ok ? "live" : "live";
     return "live";
   } catch {
+    if (!mockFallbackAllowed()) return "live";
     mode = "mock";
     return "mock";
   }
@@ -256,8 +260,9 @@ export async function loadCouponCatalog() {
       products: products.items.flatMap((product) => (product.id ? [{ id: product.id, title: product.title }] : [])),
       categories: categories.map((category) => ({ id: category.id, label: category.label })),
     };
-  } catch {
-    return mockCouponCatalog();
+  } catch (error) {
+    if (mockFallbackAllowed()) return mockCouponCatalog();
+    throw error instanceof MartApiError ? error : new MartApiError("Could not load products and categories.");
   }
 }
 

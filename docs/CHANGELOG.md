@@ -2,6 +2,11 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **No stand-in orders, quotes, or coupons in production (2026-11-16).**
+  - `lib/mock-mode.ts` `mockFallbackAllowed()` is the single gate for every `lib/mart-mock/*` fallback that fakes data from the API: checkout quote and order (`lib/mart-api/orders.ts`), Admin › Coupons and the coupon report (`lib/mart-api/coupons.ts`), admin new-order alerts, inventory, and reports. It is true only under `next dev` (`NODE_ENV=development`) or with `NEXT_PUBLIC_ENABLE_MOCK=true` at build time. It is not set in `wrangler.jsonc`. The older `NEXT_PUBLIC_*_MOCK=1` switches only work while it is true.
+  - Production: a quote or order that fails (404, 501, 5xx, or the API cannot be reached) is an error on the checkout form with a Bangla "try again" message. The order button never shows success and no demo QR is shown. A 4xx keeps the backend message and `error.code` (coupon invalid, expired, ...), and a coupon error code on the quote is also shown next to the coupon field. Buy-now no longer seeds a demo product when the product lookup fails. Admin coupon screens show the API error (the form also shows when products/categories cannot be loaded).
+  - Files: `lib/mock-mode.ts`, `lib/mart-api/orders.ts`, `lib/mart-api/coupons.ts`, `lib/mart-api/order-alerts.ts`, `lib/mart-api/inventory.ts`, `lib/mart-api/reports.ts`, `app/(client)/checkout/_components/checkout-form-context.tsx`, `app/admin/coupons/_components/coupon-form.tsx`, `tests/mock-mode.test.ts`, `tests/register-alias.mjs` (extension-less relative imports resolve to `.ts`), `.env.example`, docs. No backend change.
+
 - **Coupons: Done (not live) (2026-11-10).**
   - `docs/ROADMAP.md` is not in this repo. Coupons are **Done (not live)**: the admin and checkout UI call the routes below, but those routes are not on the API this app calls yet.
   - Admin › Coupons lists codes (status, used / limit, validity in Asia/Dhaka), searches by code, and filters by status. Create and edit explain every field. **Generate code** makes an 8-character code (no I, O, 0, or 1). Editors can activate and deactivate. Each coupon has a redemption history. A viewer sees the same screens read-only.
