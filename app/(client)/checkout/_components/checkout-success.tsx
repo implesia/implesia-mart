@@ -346,7 +346,7 @@ export function CheckoutSuccess() {
         >
           {orderNumber ? (
             <Link
-              href={`/order-status?order=${encodeURIComponent(orderNumber)}`}
+              href={`/order-status?number=${encodeURIComponent(orderNumber)}`}
               className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/80"
             >
               {checkoutCopy.successTrack}

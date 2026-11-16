@@ -30,6 +30,7 @@ const DELIVERY_KEY = "implesia.admin.delivery.v1";
 export const ORDER_STATUSES = [
   "new",
   "confirmed",
+  "packed",
   "shipped",
   "delivered",
   "cancelled",
@@ -41,6 +42,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   new: "নতুন",
   confirmed: "কনফার্ম",
+  packed: "প্যাক",
   shipped: "পাঠানো",
   delivered: "ডেলিভার্ড",
   cancelled: "বাতিল",
