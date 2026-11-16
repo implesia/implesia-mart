@@ -27,6 +27,7 @@ const fieldClass =
 const FLOW = [
   { id: "new", label: "সেভ হয়েছে", hint: "অর্ডার আমাদের কাছে আছে" },
   { id: "confirmed", label: "কনফার্ম", hint: "মোবাইলে কল বা মেসেজ হবে" },
+  { id: "packed", label: "প্যাক", hint: "পার্সেল তৈরি হচ্ছে" },
   { id: "shipped", label: "পাঠানো", hint: "কুরিয়ার বের হয়েছে" },
   { id: "delivered", label: "হাতে পৌঁছেছে", hint: "দেখে তারপর টাকা দিন" },
 ] as const;

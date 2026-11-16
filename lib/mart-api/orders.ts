@@ -1,4 +1,22 @@
 import { readOrderTimestamp } from "@/lib/admin/order-timestamps";
+import {
+  emptyStatusCounts,
+  isCallStatus,
+  isOrderOrigin,
+  isOrderStatus,
+  isPaymentMethod,
+  isPaymentStatus,
+  nextOrderStatuses,
+  orderListSearchParams,
+  paymentStatusOf,
+  type AnyPaymentMethod,
+  type CallStatus,
+  type CustomerHistoryCounts,
+  type OrderListQuery,
+  type OrderOrigin,
+  type PaymentStatus,
+  type StatusCountMap,
+} from "@/lib/admin/orders-desk";
 import { currentOrderTracking, type OrderTracking } from "@/lib/analytics/order-tracking";
 import { quoteCouponFromBody, type QuoteCoupon } from "@/lib/coupons";
 import { guestCartHeaders } from "@/lib/mart-api/cart";
@@ -7,7 +25,7 @@ import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-
 import { MartApiError, authorizedFetch, mediaUrl, publicFetch } from "@/lib/mart-api/products";
 import { mockOrderApi, mockPlaceOrder, mockQuoteApi } from "@/lib/mart-mock/coupons";
 import { mockFallbackAllowed } from "@/lib/mock-mode";
-import type { OrderStatus } from "@/lib/mart-mock/store";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/mart-mock/store";
 import {
   advanceOptionsFrom,
   buildPaymentPayload,
@@ -71,12 +89,26 @@ export type MartOrderItem = {
   totalPercent: number | null;
 };
 
+export type OrderActivity = {
+  id: string;
+  actorUserId: string | null;
+  actorName: string | null;
+  action: string;
+  summary: string;
+  detail: Record<string, unknown>;
+  createdAt: string;
+};
+
 export type MartOrder = {
   id: string;
   number: string;
   source: "cart" | "direct";
+  /** Online checkout or an order typed by staff. Not the same as `source`. */
+  origin: OrderOrigin;
   status: OrderStatus;
-  paymentMethod: PaymentMethod;
+  callStatus: CallStatus;
+  paymentMethod: AnyPaymentMethod;
+  paymentStatus: PaymentStatus;
   advancePercent: number | null;
   advanceAmount: number;
   dueAmount: number;
@@ -98,10 +130,20 @@ export type MartOrder = {
   couponCode: string | null;
   /** Null when no coupon was used. Whole taka taken off by the server. */
   couponDiscount: number | null;
+  /** Staff discount, whole taka. Already taken off `total`. 0 on checkout orders. */
+  manualDiscount: number;
+  paidAmount: number;
   courierName: string;
   trackingNumber: string;
+  printedAt: string | null;
+  /** Set for offline orders. Online checkout leaves this null and counts on `createdAt`. */
+  orderedAt: string | null;
   items: MartOrderItem[];
   createdAt: string;
+  /** Null when this response did not include `customer_history` (older list payloads). */
+  customerHistory: CustomerHistoryCounts | null;
+  duplicateWarning: boolean;
+  activity: OrderActivity[];
   /**
    * `OrderRead.delivered_at`. ISO 8601 UTC, or null until the first move to
    * delivered. A later status change does not replace it.
@@ -119,7 +161,8 @@ export type MartOrder = {
    */
   analyticsEventId: string | null;
   /** Statuses the backend will accept next; empty once the order is final. */
-  nextStatuses: OrderStatus[];
+  /** Null when the payload omitted `next_statuses` (the UI then uses the known map). */
+  nextStatuses: OrderStatus[] | null;
 };
 
 export type OrderDirectory = {
@@ -135,9 +178,13 @@ export type OrderDirectory = {
     delivered: number;
     cancelled: number;
     returned: number;
+    packed: number;
     inTransit: number;
     revenue: number;
   };
+  /** Counts for the current filters, ignoring the status filter. */
+  statusCounts: StatusCountMap;
+  pageSize: number;
 };
 
 type ApiQuoteLine = {
@@ -192,8 +239,11 @@ type ApiOrder = {
   id: string;
   number: string;
   source: "cart" | "direct";
+  origin?: string;
   status: OrderStatus;
-  payment_method: PaymentMethod;
+  call_status?: string;
+  payment_method: string;
+  payment_status?: string;
   advance_percent?: number | null;
   advance_amount?: number;
   due_amount?: number;
@@ -212,8 +262,28 @@ type ApiOrder = {
   total: number;
   coupon_code?: string | null;
   coupon_discount?: number | null;
+  manual_discount?: number;
+  paid_amount?: number;
   courier_name: string;
   tracking_number: string;
+  printed_at?: string | null;
+  ordered_at?: string | null;
+  customer_history?: {
+    phone?: string;
+    total_orders?: number;
+    delivered?: number;
+    returned_cancelled?: number;
+  };
+  duplicate_warning?: boolean;
+  activity?: {
+    id?: string;
+    actor_user_id?: string | null;
+    actor_name?: string | null;
+    action?: string;
+    summary?: string;
+    detail?: Record<string, unknown>;
+    created_at?: string;
+  }[];
   items: ApiOrderItem[];
   created_at: string;
   /** ISO 8601 with a UTC offset, or null. Always on admin OrderRead. */
@@ -239,18 +309,27 @@ function mapSelection(selection: { name: string; label: string; swatch?: string 
 
 /** Payment fields of an order; older orders (no due sent) owe the whole total. */
 function paymentFrom(body: {
-  payment_method: PaymentMethod;
+  payment_method: string;
+  payment_status?: string;
   advance_percent?: number | null;
   advance_amount?: number;
   due_amount?: number;
+  paid_amount?: number;
   total: number;
 }) {
   const advanceAmount = body.advance_amount ?? 0;
+  const method = isPaymentMethod(body.payment_method) ? body.payment_method : "cod";
+  const paidFromField = typeof body.paid_amount === "number" ? body.paid_amount : null;
+  const paidAmount = paidFromField ?? (method === "bangla_qr" ? advanceAmount : 0);
   return {
-    paymentMethod: body.payment_method === "bangla_qr" ? ("bangla_qr" as const) : ("cod" as const),
+    paymentMethod: method,
+    paymentStatus: isPaymentStatus(body.payment_status)
+      ? body.payment_status
+      : paymentStatusOf(paidAmount, body.total),
     advancePercent: body.advance_percent ?? null,
     advanceAmount,
     dueAmount: body.due_amount ?? Math.max(body.total - advanceAmount, 0),
+    paidAmount,
   };
 }
 
@@ -285,13 +364,34 @@ function mapQuote(body: ApiQuote, sentCode: string | null, mocked = false): Orde
   };
 }
 
-function mapOrder(body: ApiOrder): MartOrder {
+function mapActivity(body: NonNullable<ApiOrder["activity"]>): OrderActivity[] {
+  return body.flatMap((row) => {
+    if (!row.id || !row.created_at) return [];
+    return [
+      {
+        id: row.id,
+        actorUserId: row.actor_user_id ?? null,
+        actorName: row.actor_name ?? null,
+        action: row.action ?? "",
+        summary: row.summary ?? "",
+        detail: row.detail ?? {},
+        createdAt: row.created_at,
+      },
+    ];
+  });
+}
+
+export function mapOrder(body: ApiOrder): MartOrder {
+  const payment = paymentFrom(body);
+  const status = isOrderStatus(body.status) ? body.status : "new";
   return {
     id: body.id,
     number: body.number,
     source: body.source,
-    status: body.status,
-    ...paymentFrom(body),
+    origin: isOrderOrigin(body.origin) ? body.origin : "online",
+    status,
+    callStatus: isCallStatus(body.call_status) ? body.call_status : "not_called",
+    ...payment,
     paymentReference: body.payment_reference ?? "",
     anonymous: body.anonymous,
     customerName: body.customer_name,
@@ -308,13 +408,31 @@ function mapOrder(body: ApiOrder): MartOrder {
     couponCode: typeof body.coupon_code === "string" && body.coupon_code.trim() ? body.coupon_code.trim() : null,
     couponDiscount:
       typeof body.coupon_discount === "number" && Number.isFinite(body.coupon_discount) ? body.coupon_discount : null,
+    manualDiscount: typeof body.manual_discount === "number" ? body.manual_discount : 0,
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
+    printedAt: readOrderTimestamp(body.printed_at),
+    orderedAt: readOrderTimestamp(body.ordered_at),
+    customerHistory: body.customer_history
+      ? {
+          phone: body.customer_history.phone || body.phone,
+          totalOrders: body.customer_history.total_orders ?? 0,
+          delivered: body.customer_history.delivered ?? 0,
+          returnedCancelled: body.customer_history.returned_cancelled ?? 0,
+        }
+      : null,
+    duplicateWarning: body.duplicate_warning === true,
+    activity: mapActivity(body.activity ?? []),
     createdAt: body.created_at,
     deliveredAt: readOrderTimestamp(body.delivered_at),
     returnedAt: readOrderTimestamp(body.returned_at),
     analyticsEventId: readAnalyticsEventId(body.analytics_event_id),
-    nextStatuses: body.next_statuses ?? [],
+    nextStatuses: Array.isArray(body.next_statuses)
+      ? nextOrderStatuses(
+          status,
+          body.next_statuses.filter((item): item is OrderStatus => isOrderStatus(item)),
+        )
+      : null,
     items: body.items.map((item) => ({
       id: item.id,
       productId: item.product_id,
@@ -531,31 +649,20 @@ function placedByMock(
   return mapOrder(result.order as ApiOrder);
 }
 
-export async function listOrders(query: {
-  q?: string;
-  status?: OrderStatus | null;
-  scope?: "all" | "transit";
-  sort?: "newest" | "oldest" | "high" | "low";
-  page: number;
-}) {
-  const search = new URLSearchParams();
-  if (query.q) search.set("q", query.q);
-  if (query.status) search.set("status", query.status);
-  if (query.scope && query.scope !== "all") search.set("scope", query.scope);
-  if (query.sort) search.set("sort", query.sort);
-  search.set("page", String(query.page));
-  search.set("page_size", "10");
-  const response = await authorizedFetch(`/api/v1/admin/orders?${search}`);
+export async function listOrders(query: OrderListQuery) {
+  const response = await authorizedFetch(`/api/v1/admin/orders?${orderListSearchParams(query)}`);
   if (!response.ok) throw new MartApiError(await readError(response, "Could not load orders."));
   const body = (await response.json()) as {
     items: ApiOrder[];
     total: number;
     page: number;
+    page_size?: number;
     pages: number;
     metrics: {
       orders: number;
       new: number;
       confirmed: number;
+      packed?: number;
       shipped: number;
       delivered: number;
       cancelled: number;
@@ -563,16 +670,26 @@ export async function listOrders(query: {
       in_transit: number;
       revenue: number;
     };
+    status_counts?: Partial<Record<OrderStatus, number>>;
   };
+  const statusCounts = emptyStatusCounts();
+  for (const status of ORDER_STATUSES) {
+    const fromTabs = body.status_counts?.[status];
+    const fromMetrics = body.metrics[status];
+    statusCounts[status] = typeof fromTabs === "number" ? fromTabs : typeof fromMetrics === "number" ? fromMetrics : 0;
+  }
   return {
     items: body.items.map(mapOrder),
     total: body.total,
     page: body.page,
     pages: body.pages,
+    pageSize: body.page_size ?? query.pageSize ?? 20,
+    statusCounts,
     metrics: {
       orders: body.metrics.orders,
       new: body.metrics.new,
       confirmed: body.metrics.confirmed,
+      packed: body.metrics.packed ?? statusCounts.packed,
       shipped: body.metrics.shipped,
       delivered: body.metrics.delivered,
       cancelled: body.metrics.cancelled,
@@ -638,7 +755,7 @@ export type PublicOrder = {
   total: number;
   courierName: string;
   trackingNumber: string;
-  paymentMethod: PaymentMethod;
+  paymentMethod: AnyPaymentMethod;
   advancePercent: number | null;
   advanceAmount: number;
   dueAmount: number;
@@ -669,7 +786,7 @@ type ApiPublicOrder = {
   total: number;
   courier_name: string;
   tracking_number: string;
-  payment_method: PaymentMethod;
+  payment_method: string;
   advance_percent?: number | null;
   advance_amount?: number;
   due_amount?: number;
@@ -718,12 +835,20 @@ export async function lookupPublicOrder(number: string, phone: string) {
 
 export async function patchOrder(
   orderId: string,
-  patch: { status?: OrderStatus; courierName?: string; trackingNumber?: string },
+  patch: {
+    status?: OrderStatus;
+    callStatus?: CallStatus;
+    courierName?: string;
+    trackingNumber?: string;
+    notes?: string;
+  },
 ) {
   const body: Record<string, string> = {};
   if (patch.status) body.status = patch.status;
+  if (patch.callStatus) body.call_status = patch.callStatus;
   if (patch.courierName !== undefined) body.courier_name = patch.courierName;
   if (patch.trackingNumber !== undefined) body.tracking_number = patch.trackingNumber;
+  if (patch.notes !== undefined) body.notes = patch.notes;
   const response = await authorizedFetch(`/api/v1/admin/orders/${orderId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

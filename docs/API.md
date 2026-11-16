@@ -56,8 +56,12 @@ Notes on the tables below:
 | `/admin/coupons` | `coupons` |
 | `/admin/coupons/new` | `coupons` |
 | `/admin/coupons/[id]` | `coupons` |
-| `/admin/orders` | `orders` |
-| `/admin/orders/[number]` | `orders` |
+| `/admin/orders` | `orders-desk` |
+| `/admin/orders/list` | `orders-desk` |
+| `/admin/orders/new` | `orders-desk` |
+| `/admin/orders/ready-to-pack` | `orders-desk` |
+| `/admin/orders/print` | `orders-desk` |
+| `/admin/orders/[number]` | `orders-desk` |
 | `/admin/products` | `badges`, `categories`, `products` |
 | `/admin/reports` | `reports`, `coupons`, `products`, `categories` |
 | `/admin/products/[id]` | `products`, `inventory` |
@@ -128,6 +132,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `home-media.ts` | `/api/v1/admin/home/media`<br>`/api/v1/admin/home/media/image`<br>`/api/v1/admin/home/media/video`<br>`/api/v1/home/media` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
 | `orders.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/orders`<br>`/api/v1/orders/lookup`<br>`/api/v1/orders/quote` |
+| `orders-desk.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/admin/orders/{id}/items`<br>`/api/v1/admin/orders/overview`<br>`/api/v1/admin/orders/customers`<br>`/api/v1/admin/orders/offline`<br>`/api/v1/admin/orders/ready-to-pack`<br>`/api/v1/admin/orders/bulk-status`<br>`/api/v1/admin/orders/printed`<br>`/api/v1/admin/orders/print-data`<br>`/api/v1/admin/products`<br>`/api/v1/orders/quote` |
 | `order-alerts.ts` | `/api/v1/admin/orders/new` |
 | `payment-settings.ts` | `/api/v1/admin/site/payment`<br>`/api/v1/admin/site/payment/qr`<br>`/api/v1/site/payment` |
 | `pricing-settings.ts` | `/api/v1/admin/pricing` |
@@ -236,6 +241,26 @@ Query: optional `since` (ISO datetime). `limit` is 1..50, default 20. The client
 ```
 
 `payment_method` is `cod` or `bangla_qr`. `items` are newest first and only include rows with `created_at` later than `since`. The next request sends `since` = `now`.
+
+## Admin orders management
+
+Taken from implesia-mart-backend PR #18 (branch `cursor/admin-orders-management-aaf2`). Staff only, through `/api/proxy`, except the public quote used as a price preview. Field names follow that branch's `docs/API.md` and `app/schemas/order.py`.
+
+| Page | Method | Path |
+| --- | --- | --- |
+| Overview | GET | `/api/v1/admin/orders/overview` |
+| Customer search | GET | `/api/v1/admin/orders/customers?q=` |
+| Create offline order | POST | `/api/v1/admin/orders/offline` |
+| Order list | GET | `/api/v1/admin/orders` |
+| Order page | GET, PATCH | `/api/v1/admin/orders/{id}` |
+| Replace items (status `new` only) | PUT | `/api/v1/admin/orders/{id}/items` |
+| Ready to pack | GET | `/api/v1/admin/orders/ready-to-pack` |
+| Bulk status | POST | `/api/v1/admin/orders/bulk-status` |
+| Record a print | POST | `/api/v1/admin/orders/printed` |
+| Invoice and label data | POST | `/api/v1/admin/orders/print-data` |
+| Catalog price preview | POST | `/api/v1/orders/quote` |
+
+`POST /offline` requires `Idempotency-Key` (8–80 of letters, digits, `_`, `-`). The body does not include a total. Status values: `new`, `confirmed`, `packed`, `shipped`, `delivered`, `cancelled`, `returned`. `origin`: `online` or `offline`. `call_status`: `not_called`, `confirmed`, `no_answer`, `fake`. Offline `payment_method`: `cash`, `bkash`, `nagad`, `card`, `due`. List query adds `origin`, `payment_method`, `payment_status`, `call_status`, `courier`, `date_from`, `date_to`, and `scope`, and the response adds `status_counts`. `confirmed` is the ready-to-pack queue.
 
 ## Admin order timestamps
 
