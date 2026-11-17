@@ -252,7 +252,7 @@ export function BestSellingCarousel() {
           href="/products"
           className="inline-flex items-center gap-1 text-sm font-semibold text-primary"
         >
-          সব প্রোডাক্ট দেখুন
+          সব পণ্য দেখুন
           <MaterialIcon name="arrow_forward" className="text-[16px]" />
         </Link>
       </div>

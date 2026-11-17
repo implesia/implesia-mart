@@ -323,7 +323,7 @@ export function ProductsCatalog({
               onClick={() => go(cleared)}
               className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold"
             >
-              সব প্রোডাক্ট দেখুন
+              সব পণ্য দেখুন
             </button>
           </div>
         )}

@@ -13,7 +13,10 @@ import { TrendingSection } from "./_components/home/trending-section";
 import { Container } from "./_components/common/container";
 import { JsonLd } from "./_components/common/json-ld";
 import { loadStoreCatalog } from "@/lib/mart-api/catalog";
-import { getPublicHeroSettings, listPublicHeroSlides } from "@/lib/mart-api/hero";
+import {
+  getPublicHeroSettings,
+  listPublicHeroSlides,
+} from "@/lib/mart-api/hero";
 import { listPublicCategories } from "@/lib/mart-api/categories";
 import { FALLBACK_FAQ, listPublicFaq } from "@/lib/mart-api/faq";
 import {
@@ -136,10 +139,7 @@ export default async function HomePage() {
         ) : null}
         <PromoBannerSection promo={promo} />
         {showcaseRows ? (
-          <CategoryShowcaseSection
-            section={showcaseRows}
-            products={products}
-          />
+          <CategoryShowcaseSection section={showcaseRows} products={products} />
         ) : null}
         <HomeMediaSection section={media} />
         <TestimonialsSection section={reviews ?? FALLBACK_REVIEWS} />

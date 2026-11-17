@@ -72,7 +72,12 @@ export function CategoryShowcaseSection({
     >
       <Container className="space-y-8 px-4 sm:space-y-10 sm:px-6 lg:px-8">
         {rows.map((row) => (
-          <CategoryProductRow key={row.key} heading={row.heading} href={row.href} items={row.items} />
+          <CategoryProductRow
+            key={row.key}
+            heading={row.heading}
+            href={row.href}
+            items={row.items}
+          />
         ))}
       </Container>
     </section>

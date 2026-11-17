@@ -58,7 +58,14 @@ export async function generateMetadata({
     keywords: seo.keywords,
     product: { price: product.price, currency: STORE_CURRENCY },
     images: product.imageSrc
-      ? [{ url: product.imageSrc, alt: product.imageAlt, width: 900, height: 900 }]
+      ? [
+          {
+            url: product.imageSrc,
+            alt: product.imageAlt,
+            width: 900,
+            height: 900,
+          },
+        ]
       : undefined,
   });
 }

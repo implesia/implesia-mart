@@ -27,18 +27,27 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function ShippingReturnsPage() {
-  const [rates, hero, contents, shipping, payment, returns, refund, support, faq] =
-    await Promise.all([
-      getStoreDeliveryRates(),
-      listPublicShippingHero(),
-      listPublicShippingContents(),
-      listPublicShippingBlock(),
-      listPublicShippingPayment(),
-      listPublicShippingReturns(),
-      listPublicShippingRefund(),
-      listPublicShippingSupport(),
-      listPublicShippingFaq(),
-    ]);
+  const [
+    rates,
+    hero,
+    contents,
+    shipping,
+    payment,
+    returns,
+    refund,
+    support,
+    faq,
+  ] = await Promise.all([
+    getStoreDeliveryRates(),
+    listPublicShippingHero(),
+    listPublicShippingContents(),
+    listPublicShippingBlock(),
+    listPublicShippingPayment(),
+    listPublicShippingReturns(),
+    listPublicShippingRefund(),
+    listPublicShippingSupport(),
+    listPublicShippingFaq(),
+  ]);
   return (
     <main className="force-light w-full overflow-x-hidden bg-[#f5f6f8] text-neutral-950">
       <Container className="w-full px-4 sm:px-6 lg:px-8">

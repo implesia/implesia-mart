@@ -66,8 +66,12 @@ function CategoryRailError() {
         >
           Categories
         </h2>
-        <p role="alert" className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-white/70">
-          Categories couldn’t be loaded right now. Please refresh in a moment, or browse every product.
+        <p
+          role="alert"
+          className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-white/70"
+        >
+          Categories couldn’t be loaded right now. Please refresh in a moment,
+          or browse every product.
         </p>
         <Link
           href="/products"

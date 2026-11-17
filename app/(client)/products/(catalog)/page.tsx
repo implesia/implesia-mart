@@ -22,7 +22,7 @@ import { productPath } from "@/lib/mart-api/product-url";
 export const dynamic = "force-dynamic";
 
 const DESCRIPTION =
-  "ট্রেন্ডিং গ্যাজেট থেকে হাতে তৈরি গর্জিয়াস ড্রেস — ইমপ্লেসিয়া মার্টের সব প্রোডাক্ট এক জায়গায়, ক্যাশ অন ডেলিভারিতে সারাদেশে ডেলিভারি সহ।";
+  "ইমপ্লেসিয়া মার্টে ইলেকট্রনিক্স ও প্রয়োজনীয় হোম অ্যাপ্লায়েন্সের নির্ভরযোগ্য সংগ্রহ। পছন্দের পণ্যটি অর্ডার করুন সহজেই, ক্যাশ অন ডেলিভারিতে সারা বাংলাদেশে পণ্য পৌঁছে যাবে আপনার ঠিকানায়।";
 
 function breadcrumbJsonLd(trail: { slug: string; label: string }[]) {
   return {
@@ -33,7 +33,7 @@ function breadcrumbJsonLd(trail: { slug: string; label: string }[]) {
       {
         "@type": "ListItem",
         position: 2,
-        name: "সব প্রোডাক্ট",
+        name: "সব পণ্য",
         item: absoluteUrl("/products"),
       },
       ...trail.map((crumb, index) => ({
@@ -59,7 +59,8 @@ export async function generateMetadata({
     ? tree?.find((item) => item.slug === search.category)
     : undefined;
   const title = current?.label ?? catalogTitle(search);
-  const description = current?.metaDescription || current?.description || DESCRIPTION;
+  const description =
+    current?.metaDescription || current?.description || DESCRIPTION;
   // Self-canonical per page (category + page only; sort, filters and search fold into it).
   const params = new URLSearchParams();
   if (current) params.set("category", current.slug);
@@ -69,13 +70,18 @@ export async function generateMetadata({
   const pageTitle = current?.metaTitle || title;
 
   return pageMetadata({
-    title: search.page > 1 ? `${pageTitle} — পৃষ্ঠা ${search.page.toLocaleString("bn-BD")}` : pageTitle,
+    title:
+      search.page > 1
+        ? `${pageTitle} — পৃষ্ঠা ${search.page.toLocaleString("bn-BD")}`
+        : pageTitle,
     description,
     path: canonical,
   });
 }
 
-export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+export default async function ProductsPage({
+  searchParams,
+}: ProductsPageProps) {
   const search = readCatalogSearch((await searchParams) ?? {});
   const [result, categoryTree] = await Promise.all([
     queryStoreCatalog(search),
@@ -83,10 +89,17 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   ]);
   // The tree only lists visible categories, so an unknown or hidden slug is a 404. When the
   // tree itself could not be loaded we fall back to the plain listing instead of guessing.
-  if (search.category && categoryTree && !categoryTree.some((item) => item.slug === search.category)) {
+  if (
+    search.category &&
+    categoryTree &&
+    !categoryTree.some((item) => item.slug === search.category)
+  ) {
     notFound();
   }
-  const trail = search.category && categoryTree ? categoryTrail(categoryTree, search.category) : [];
+  const trail =
+    search.category && categoryTree
+      ? categoryTrail(categoryTree, search.category)
+      : [];
   const title = trail[trail.length - 1]?.label ?? catalogTitle(search);
   // proxy.ts already answers an out-of-range page with a real 307; this is the fallback
   // (after the loading shell has streamed it can only be a meta refresh).

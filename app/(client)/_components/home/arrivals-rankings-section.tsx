@@ -56,7 +56,8 @@ const BADGE_LABEL: Record<ProductBadge, string> = {
 };
 
 function discountPct(product: Product) {
-  if (!product.compareAtPrice || product.compareAtPrice <= product.price) return null;
+  if (!product.compareAtPrice || product.compareAtPrice <= product.price)
+    return null;
   return Math.round(
     ((product.compareAtPrice - product.price) / product.compareAtPrice) * 100,
   );

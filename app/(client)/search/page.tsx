@@ -35,7 +35,9 @@ function readPage(raw: string | undefined) {
   return Number.isSafeInteger(value) && value >= 1 && value <= 1000 ? value : 1;
 }
 
-export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: SearchPageProps): Promise<Metadata> {
   const q = cleanSearchQuery(first((await searchParams)?.q));
   return pageMetadata({
     title: q ? `“${q}” - খোঁজার ফল` : "খুঁজুন",
@@ -77,13 +79,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           {!q ? (
             <section className="mt-6 rounded-2xl border border-dashed border-neutral-300 bg-white px-4 py-12 text-center">
               <p className="text-sm text-neutral-600">
-                উপরের সার্চ বক্সে প্রোডাক্ট বা ব্লগের নাম লিখুন।
+                পছন্দের প্রোডাক্ট বা ব্লগ খুঁজতে এখানে লিখুন।
               </p>
               <Link
                 href="/products"
                 className="mt-4 inline-flex h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold"
               >
-                সব প্রোডাক্ট দেখুন
+                সব পণ্য দেখুন
               </Link>
             </section>
           ) : results === null ? (
@@ -99,14 +101,25 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   );
 }
 
-function Results({ results, q, page }: { results: SearchResults; q: string; page: number }) {
+function Results({
+  results,
+  q,
+  page,
+}: {
+  results: SearchResults;
+  q: string;
+  page: number;
+}) {
   const { products, blogs } = results;
   const nothing = products.total === 0 && blogs.total === 0;
   if (page > 1 && products.items.length === 0 && products.total > 0) {
     // A page past the end: send the shopper to the last real one.
     return (
       <p className="mt-6 text-sm text-neutral-600">
-        <Link className="font-semibold text-primary underline" href={searchHref(q, Math.max(1, products.pages))}>
+        <Link
+          className="font-semibold text-primary underline"
+          href={searchHref(q, Math.max(1, products.pages))}
+        >
           শেষ পৃষ্ঠায় যান
         </Link>
       </p>
@@ -123,7 +136,7 @@ function Results({ results, q, page }: { results: SearchResults; q: string; page
           href="/products"
           className="mt-5 inline-flex h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold"
         >
-          সব প্রোডাক্ট দেখুন
+          সব পণ্য দেখুন
         </Link>
       </section>
     );
@@ -137,15 +150,24 @@ function Results({ results, q, page }: { results: SearchResults; q: string; page
             <h2 id="search-products" className="text-base font-semibold">
               প্রোডাক্ট ({products.total.toLocaleString("en-US")})
             </h2>
-            <Link href={filtered} className="inline-flex min-h-6 items-center text-sm font-semibold text-primary underline">
+            <Link
+              href={filtered}
+              className="inline-flex min-h-6 items-center text-sm font-semibold text-primary underline"
+            >
               ফিল্টারসহ দেখুন
             </Link>
           </div>
           <ProductsGrid products={products.items.map(cardToProduct)} />
           {products.pages > 1 ? (
-            <nav aria-label="পৃষ্ঠা" className="mt-6 flex items-center justify-between text-sm">
+            <nav
+              aria-label="পৃষ্ঠা"
+              className="mt-6 flex items-center justify-between text-sm"
+            >
               {page > 1 ? (
-                <Link className="font-semibold text-primary underline" href={searchHref(q, page - 1)}>
+                <Link
+                  className="font-semibold text-primary underline"
+                  href={searchHref(q, page - 1)}
+                >
                   আগের পৃষ্ঠা
                 </Link>
               ) : (
@@ -155,7 +177,10 @@ function Results({ results, q, page }: { results: SearchResults; q: string; page
                 {page} / {products.pages}
               </span>
               {page < products.pages ? (
-                <Link className="font-semibold text-primary underline" href={searchHref(q, page + 1)}>
+                <Link
+                  className="font-semibold text-primary underline"
+                  href={searchHref(q, page + 1)}
+                >
                   পরের পৃষ্ঠা
                 </Link>
               ) : (
@@ -165,7 +190,9 @@ function Results({ results, q, page }: { results: SearchResults; q: string; page
           ) : null}
         </section>
       ) : null}
-      {page === 1 && blogs.total > 0 ? <SearchBlogs posts={blogs.items} total={blogs.total} /> : null}
+      {page === 1 && blogs.total > 0 ? (
+        <SearchBlogs posts={blogs.items} total={blogs.total} />
+      ) : null}
     </div>
   );
 }

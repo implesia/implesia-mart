@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 
-import { ANALYTICS_CONFIG_ELEMENT_ID, analyticsConfig } from "@/lib/analytics/config";
+import {
+  ANALYTICS_CONFIG_ELEMENT_ID,
+  analyticsConfig,
+} from "@/lib/analytics/config";
 import { StoreAnalytics } from "@/lib/analytics/store-analytics";
 import { CouponCapture } from "./_components/common/coupon-capture";
 import { JsonLd } from "./_components/common/json-ld";
@@ -32,13 +35,16 @@ const websiteJsonLd = {
   publisher: { "@id": `${SITE_URL}/#organization` },
 };
 
-const fallbackChat = contactChannel(FALLBACK_CONTACT_DETAILS, "chat")?.href ?? "";
+const fallbackChat =
+  contactChannel(FALLBACK_CONTACT_DETAILS, "chat")?.href ?? "";
 
 function organizationJsonLd(details: ContactDetails) {
   const phone = contactChannel(details, "call");
   const chat = contactChannel(details, "chat");
   const sameAs = details.isActive
-    ? details.social.map((item) => item.href).filter((href) => href.startsWith("http"))
+    ? details.social
+        .map((item) => item.href)
+        .filter((href) => href.startsWith("http"))
     : [];
   return {
     "@context": "https://schema.org",
@@ -83,13 +89,20 @@ async function ContactHeader() {
 }
 
 async function ContactFooter() {
-  const [details, config] = await Promise.all([listPublicContactDetails(), listPublicFooter()]);
+  const [details, config] = await Promise.all([
+    listPublicContactDetails(),
+    listPublicFooter(),
+  ]);
   return <Footer details={details} config={config} />;
 }
 
 async function ContactFloating() {
   const details = await listPublicContactDetails();
-  return <FloatingActions whatsappHref={contactChannel(details, "chat")?.href ?? ""} />;
+  return (
+    <FloatingActions
+      whatsappHref={contactChannel(details, "chat")?.href ?? ""}
+    />
+  );
 }
 
 async function StoreAnalyticsSlot() {
@@ -135,7 +148,14 @@ export default function ClientLayout({
           </Suspense>
         }
         footer={
-          <Suspense fallback={<Footer details={FALLBACK_CONTACT_DETAILS} config={DEFAULT_FOOTER} />}>
+          <Suspense
+            fallback={
+              <Footer
+                details={FALLBACK_CONTACT_DETAILS}
+                config={DEFAULT_FOOTER}
+              />
+            }
+          >
             <ContactFooter />
           </Suspense>
         }
