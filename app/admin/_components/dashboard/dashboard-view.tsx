@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, RefreshCw, ArrowUpRight, AlertTriangle, TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
 
 import { dhakaDateString } from "@/lib/admin/inventory";
-import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { SalesTrendChart } from "@/app/admin/reports/_components/trend-chart";
 import { SummaryCards, summaryCardsFrom } from "@/app/admin/reports/_components/summary-cards";
-import { adminButtonClass } from "@/app/admin/_components/admin-ui";
 import {
   dashboardReportCall,
   formatRangeLabel,
@@ -28,6 +27,7 @@ import {
 } from "@/lib/mart-api/dashboard";
 import { loadReportOverview, type ReportOverview } from "@/lib/mart-api/reports";
 import { MartApiError } from "@/lib/mart-api/products";
+import { cn } from "@/lib/utils";
 
 import {
   BestSellingProducts,
@@ -44,8 +44,11 @@ export function DashboardView() {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [now, setNow] = useState(() => new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const reportKey = `${rangeId}|${customFrom}|${customTo}|${now.getTime()}|${refreshKey}`;
   const legacyKey = `${rangeId}|${customFrom}|${customTo}|${refreshKey}`;
+
   const [reportState, setReportState] = useState<{ key: string; overview: ReportOverview | null; error: string }>({
     key: "",
     overview: null,
@@ -56,6 +59,7 @@ export function DashboardView() {
     snapshot: null,
     note: "",
   });
+
   const overview = reportState.key === reportKey ? reportState.overview : null;
   const reportError = reportState.key === reportKey ? reportState.error : "";
   const reportLoading = reportState.key !== reportKey;
@@ -115,9 +119,11 @@ export function DashboardView() {
   }, [rangeId, customFrom, customTo, refreshKey, legacyKey]);
 
   function refresh() {
+    setIsRefreshing(true);
     setUpdatedAt(new Date());
     setNow(new Date());
     setRefreshKey((key) => key + 1);
+    setTimeout(() => setIsRefreshing(false), 800);
   }
 
   const cards = overview
@@ -149,99 +155,151 @@ export function DashboardView() {
   if (reportLoading && !overview && !reportError) return <DashboardSkeleton />;
 
   return (
-    <div className="min-w-0 space-y-4">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">Dashboard</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            {periodLabel || "Sales in Asia/Dhaka"}
-            {comparisonLabel ? (
-              <>
-                <span className="text-neutral-500"> · </span>
-                <span>compared with {comparisonLabel}</span>
-              </>
-            ) : null}
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <label className="min-w-0 sm:min-w-44">
-            <span className="sr-only">Reporting period</span>
-            <select
-              value={rangeId}
-              onChange={(event) => setRangeId(event.target.value as DashboardRangeId)}
-              className="h-10 w-full rounded-full border border-neutral-200 bg-white px-3 text-sm text-neutral-950 outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/25"
-            >
-              {DASHBOARD_RANGE_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {rangeId === "custom" ? (
-            <div className="flex items-center gap-2">
-              <DateField label="From" value={customFrom} onChange={setCustomFrom} />
-              <DateField label="To" value={customTo} onChange={setCustomTo} />
-            </div>
-          ) : null}
-          <Link href={reportsPageHref(reportCall)} className={adminButtonClass.quiet}>
-            View all reports
-          </Link>
-          <button
-            type="button"
-            onClick={refresh}
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-medium text-neutral-800 ring-1 ring-neutral-200 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <MaterialIcon name="refresh" className="text-[18px]" />
-            Refresh
-          </button>
-          {updatedAt ? (
-            <p className="text-xs text-neutral-500">
-              Updated{" "}
-              {new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(updatedAt)}
-            </p>
-          ) : null}
-        </div>
-      </header>
+    <div className="min-w-0 space-y-5 pb-10">
+     {/* Page Header & Toolbar */}
+<header className="flex flex-col gap-4">
+  {/* Title Section */}
+  <div className="flex flex-col gap-1">
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2bc0b5]/90 text-white shadow-sm shadow-[#2bc0b5]/20">
+        <BarChart3 className="h-5 w-5" />
+      </div>
+      <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+        Dashboard
+      </h1>
+    </div>
+    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-slate-500 sm:pl-11">
+      {periodLabel || "Sales in Asia/Dhaka"}
+      {comparisonLabel ? (
+        <>
+          <span className="mx-0.5 text-slate-300">•</span>
+          <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200/60">
+            vs {comparisonLabel}
+          </span>
+        </>
+      ) : null}
+    </p>
+  </div>
 
+  {/* Toolbar Section */}
+  <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.02)] sm:flex-row sm:items-center sm:justify-between">
+    {/* Left: Date Range Selector */}
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="relative min-w-0 sm:min-w-[180px]">
+        <span className="sr-only">Reporting period</span>
+        <select
+          value={rangeId}
+          onChange={(event) => setRangeId(event.target.value as DashboardRangeId)}
+          className="h-9 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50/50 pl-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+        >
+          {DASHBOARD_RANGE_OPTIONS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+      </label>
+
+      {rangeId === "custom" ? (
+        <div className="flex items-center gap-2">
+          <DateField label="From" value={customFrom} onChange={setCustomFrom} />
+          <DateField label="To" value={customTo} onChange={setCustomTo} />
+        </div>
+      ) : null}
+    </div>
+
+    {/* Right: Actions & Timestamp */}
+    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+      {updatedAt ? (
+        <p className="mr-1 hidden text-[11px] font-medium text-slate-400 sm:block">
+          Updated {new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(updatedAt)}
+        </p>
+      ) : null}
+
+      <Link
+        href={reportsPageHref(reportCall)}
+        className="group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-[#2bc0b5] transition hover:bg-indigo-50"
+      >
+        View all reports
+        <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+      </Link>
+
+      <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+
+      <button
+        type="button"
+        onClick={refresh}
+        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+      >
+        <RefreshCw className={cn("h-3.5 w-3.5 text-slate-500", isRefreshing && "animate-spin")} />
+        Refresh
+      </button>
+    </div>
+  </div>
+</header>
+
+      {/* Error Banner */}
       {reportError ? (
-        <p role="alert" className="rounded-xl bg-error-container px-3 py-2 text-sm text-on-error-container">
+        <p role="alert" className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 ring-1 ring-inset ring-rose-200/50">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
           {reportError}
         </p>
       ) : null}
 
+      {/* Main KPIs & Chart */}
       {overview ? (
         <>
           <SummaryCards cards={cards} />
+
           {overview.profit.unknownCostLines > 0 ? (
-            <p className="rounded-2xl bg-warning/10 px-4 py-3 text-sm text-warning ring-1 ring-warning/30">
-              {overview.profit.unknownCostLines.toLocaleString("en-US")} order lines have no cost price.{" "}
-              <Link href="/admin/products" className="font-semibold underline">
-                Fix cost prices
-              </Link>
-            </p>
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-200/50">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <p>
+                <span className="font-semibold">{overview.profit.unknownCostLines.toLocaleString("en-US")}</span> order lines have no cost price.{" "}
+                <Link href="/admin/products" className="font-semibold underline decoration-amber-300 underline-offset-2 transition hover:text-amber-950">
+                  Fix cost prices
+                </Link>
+              </p>
+            </div>
           ) : null}
-          <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
-            <div className="mb-4 flex items-start justify-between gap-3">
+
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-1.5 border-b border-slate-100 bg-white p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
               <div>
-                <h2 className="text-sm font-semibold text-neutral-950">Net sales and profit</h2>
-                <p className="mt-0.5 text-xs text-neutral-600">
+                <h2 className="text-sm font-bold text-slate-900">Net sales and profit</h2>
+                <p className="mt-0.5 text-[11px] font-medium text-slate-500">
                   Delivered orders, by {overview.trend.grain}. Delivered counts use the delivered date.
                 </p>
               </div>
-              <Link href={reportsPageHref(reportCall)} className="shrink-0 text-sm font-medium text-primary-ink">
+              <Link
+                href={reportsPageHref(reportCall)}
+                className="group inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-indigo-600 transition hover:text-indigo-800"
+              >
                 View all reports
+                <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </Link>
             </div>
-            <SalesTrendChart points={overview.trend.points} grain={overview.trend.grain} />
+            <div className="p-4 sm:p-5">
+              <SalesTrendChart points={overview.trend.points} grain={overview.trend.grain} />
+            </div>
           </section>
         </>
       ) : null}
 
+      {/* Secondary Dashboard Sections */}
       {legacyLoading && !snapshot ? (
-        <div className="h-64 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-busy="true" />
+        <div className="flex h-64 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm" aria-busy="true">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
+        </div>
       ) : null}
-      {legacyNote ? <p className="text-sm text-neutral-600">{legacyNote}</p> : null}
+
+      {legacyNote ? (
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
+          {legacyNote}
+        </p>
+      ) : null}
+
       {snapshot ? (
         <>
           <div className="grid items-start gap-4 xl:grid-cols-2">
@@ -271,13 +329,13 @@ function DateField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex items-center gap-2 rounded-full bg-white px-3 ring-1 ring-neutral-200">
-      <span className="text-xs text-neutral-500">{label}</span>
+    <label className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 shadow-sm transition focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
       <input
         type="date"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 bg-transparent text-sm text-neutral-950 outline-none"
+        className="bg-transparent text-xs font-medium text-slate-700 outline-none"
       />
     </label>
   );
@@ -290,14 +348,14 @@ function inputDate(offsetDays: number) {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading dashboard">
-      <div className="h-16 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
+    <div className="space-y-5" aria-busy="true" aria-label="Loading dashboard">
+      <div className="h-16 animate-pulse rounded-xl border border-slate-200 bg-white shadow-sm" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 7 }, (_, index) => (
-          <div key={index} className="h-28 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
+          <div key={index} className="h-28 animate-pulse rounded-xl border border-slate-200 bg-white shadow-sm" />
         ))}
       </div>
-      <div className="h-72 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" />
+      <div className="h-72 animate-pulse rounded-xl border border-slate-200 bg-white shadow-sm" />
     </div>
   );
 }
