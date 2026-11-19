@@ -23,7 +23,7 @@ import { MartApiError } from "@/lib/mart-api/products";
 import { ORDER_STATUSES, formatTaka } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
-import { ADMIN_ORDER_STATUS_LABEL, AdminEmpty, AdminPageHeader } from "../../_components/admin-ui";
+import { ADMIN_ORDER_STATUS_LABEL, AdminEmpty, AdminPageHeader, OrderStatusBadge } from "../../_components/admin-ui";
 import { OriginBadge } from "./order-badges";
 
 export function OrdersOverview() {
@@ -125,56 +125,78 @@ export function OrdersOverview() {
           </section>
 
           {/* Recent Orders Table */}
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 py-3 sm:px-5">
-              <h2 className="text-sm font-semibold text-slate-900">Recent Orders</h2>
-              <Link href="/admin/orders/list" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 transition hover:text-indigo-800">
-                View Full List
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            
-            {data.recent.length === 0 ? (
-              <AdminEmpty title="No orders yet" detail="A checkout or a counter order will show up here." />
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <table className="w-full min-w-[40rem] text-left text-sm">
-                  <thead className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-4 py-2.5 font-semibold">Order</th>
-                      <th className="px-4 py-2.5 font-semibold">Customer</th>
-                      <th className="px-4 py-2.5 font-semibold">Source</th>
-                      <th className="px-4 py-2.5 font-semibold">Status</th>
-                      <th className="px-4 py-2.5 text-right font-semibold">Total</th>
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 py-3 sm:px-5">
+            <h2 className="text-sm font-semibold text-slate-900">Recent Orders</h2>
+            <Link href="/admin/orders/list" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 transition hover:text-indigo-800">
+              View Full List
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          
+          {data.recent.length === 0 ? (
+            <AdminEmpty title="No orders yet" detail="A checkout or a counter order will show up here." />
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[44rem] text-left text-sm">
+                <thead className="border-b border-slate-200 bg-slate-50/30 text-[11px] uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th className="w-12 px-4 py-2.5 font-semibold text-center">#</th>
+                    <th className="w-12 px-4 py-2.5 font-semibold">
+                      <input 
+                        type="checkbox" 
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                        aria-label="Select all"
+                      />
+                    </th>
+                    <th className="px-4 py-2.5 font-semibold">Order</th>
+                    <th className="px-4 py-2.5 font-semibold">Customer</th>
+                    <th className="px-4 py-2.5 font-semibold">Source</th>
+                    <th className="px-4 py-2.5 font-semibold">Status</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.recent.map((order, index) => (
+                    <tr key={order.id} className="group transition-colors hover:bg-slate-50/80">
+                      <td className="px-4 py-3 text-center text-xs font-medium tabular-nums text-slate-400">
+                        {index + 1}
+                      </td>
+                      <td className="px-4 py-3">
+                        <input 
+                          type="checkbox" 
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                          aria-label={`Select order ${order.number}`}
+                        />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <Link href={`/admin/orders/${order.id}`} className="text-sm font-medium text-slate-900 transition-colors group-hover:text-indigo-600">
+                          {order.number}
+                        </Link>
+                        <span className="mt-0.5 block text-[11px] font-medium text-slate-500">
+                          {formatDhakaDateTime(order.orderedAt ?? order.createdAt)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="block text-sm font-medium text-slate-800">{order.customerName}</span>
+                        <span className="block text-[11px] font-medium text-slate-500">{order.phone}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <OriginBadge origin={order.origin} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <OrderStatusBadge status={order.status} />
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-slate-900">
+                        {formatTaka(order.total)}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {data.recent.map((order) => (
-                      <tr key={order.id} className="group transition-colors hover:bg-slate-50/80">
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <Link href={`/admin/orders/${order.id}`} className="text-sm font-semibold text-slate-900 transition-colors group-hover:text-indigo-600">
-                            {order.number}
-                          </Link>
-                          <span className="mt-0.5 block text-[11px] font-medium text-slate-500">{formatDhakaDateTime(order.orderedAt ?? order.createdAt)}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="block text-sm font-medium text-slate-800">{order.customerName}</span>
-                          <span className="block text-[11px] font-medium text-slate-500">{order.phone}</span>
-                        </td>
-                        <td className="px-4 py-3"><OriginBadge origin={order.origin} /></td>
-                        <td className="px-4 py-3 text-xs font-medium text-slate-600">
-                          {ADMIN_ORDER_STATUS_LABEL[order.status] ?? order.status}
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-slate-900">
-                          {formatTaka(order.total)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
         </>
       ) : null}
     </div>
