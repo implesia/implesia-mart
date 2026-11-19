@@ -34,8 +34,8 @@ function deliveryOffer(cart: SavedCart) {
   if (fees.every((fee) => fee === fees[0])) return formatTaka(cart.shipping);
   return [
     cart.insideEnabled ? `City ${formatTaka(cart.insideDhaka)}` : null,
-    cart.suburbanEnabled ? `suburban ${formatTaka(cart.dhakaSuburban)}` : null,
-    cart.outsideEnabled ? `other ${formatTaka(cart.outsideDhaka)}` : null,
+    cart.suburbanEnabled ? `Suburban ${formatTaka(cart.dhakaSuburban)}` : null,
+    cart.outsideEnabled ? `Other ${formatTaka(cart.outsideDhaka)}` : null,
   ]
     .filter((part) => part != null)
     .join(" · ");
@@ -57,7 +57,8 @@ export default function AdminCartPage() {
   const [directory, setDirectory] = useState<CartDirectory | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  
+  const [lastLoadedKey, setLastLoadedKey] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -67,6 +68,9 @@ export default function AdminCartPage() {
     }, 300);
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  const currentKey = JSON.stringify({ q: debounced, owner, page, reloadKey });
+  const isLoading = currentKey !== lastLoadedKey;
 
   useEffect(() => {
     let cancelled = false;
@@ -91,159 +95,168 @@ export default function AdminCartPage() {
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLastLoadedKey(currentKey);
       });
     return () => {
       cancelled = true;
     };
-  }, [debounced, owner, page, reloadKey]);
+  }, [debounced, owner, page, reloadKey, currentKey]);
 
   const selected =
     directory?.items.find((cart) => cart.id === selectedId) ?? null;
   const metrics = directory?.metrics;
 
   return (
-    <div className="min-w-0 space-y-4">
+    <div className="min-w-0 space-y-4 pb-8">
       <AdminPageHeader
         title="Carts"
         description="Logged-in shoppers and anonymous visitors can both add products. This page shows who added which product, and how many."
       />
+      
       {error ? (
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 shadow-sm">
+          <MaterialIcon name="error" className="text-[16px] text-red-500" />
           {error}
-        </p>
+        </div>
       ) : null}
+
+      {/* Summary Cards - Compact Horizontal Layout */}
       <section
         aria-label="Cart summary"
-        className="grid grid-cols-2 gap-3 xl:grid-cols-4"
+        className="grid grid-cols-2 gap-2.5 xl:grid-cols-4"
       >
-        <Metric label="Carts with items" value={metrics?.carts} />
-        <Metric label="Logged in" value={metrics?.userCarts} />
-        <Metric label="Anonymous" value={metrics?.guestCarts} />
-        <Metric label="Units added" value={metrics?.units} />
+        <Metric label="Carts with items" value={metrics?.carts} icon="shopping_cart" tone="primary" />
+        <Metric label="Logged in" value={metrics?.userCarts} icon="person" tone="emerald" />
+        <Metric label="Anonymous" value={metrics?.guestCarts} icon="visibility_off" tone="amber" />
+        <Metric label="Units added" value={metrics?.units} icon="inventory" tone="neutral" />
       </section>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
-        <section className="min-w-0 overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
-          <div className="space-y-3 border-b border-neutral-100 px-4 py-4 sm:px-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-neutral-950">
-                Shopper carts
-              </h2>
-              <div className="flex rounded-full bg-admin-subtle p-1">
-                {FILTERS.map((filter) => (
-                  <button
-                    key={filter.id}
-                    type="button"
-                    onClick={() => {
-                      setOwner(filter.id);
-                      setPage(1);
-                    }}
-                    className={cn(
-                      "h-8 rounded-full px-3 text-xs font-medium",
-                      owner === filter.id
-                        ? "bg-white text-neutral-950 shadow-sm"
-                        : "text-neutral-500",
-                    )}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <label className="relative block">
+      {/* Main Split Layout */}
+      <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
+        
+        {/* Left Side: Cart List */}
+        <section className="min-w-0 flex flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-neutral-200/80">
+          {/* Header & Filters */}
+          <div className="flex flex-col gap-2.5 border-b border-neutral-100 bg-white px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="relative block flex-1">
               <MaterialIcon
                 name="search"
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500"
+                className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-[18px] text-neutral-400"
               />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name, email, or product"
+                placeholder="Search by name, email, or product..."
                 aria-label="Search carts"
-                className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-3 pl-10 text-sm outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-3 focus:ring-primary/25"
+                className="h-8 w-full rounded-md border-0 bg-neutral-100 pr-2 pl-8 text-[13px] outline-none transition-colors placeholder:text-neutral-500 focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
             </label>
-          </div>
-          {loading && !directory ? (
-            <div className="h-48 animate-pulse bg-neutral-50" />
-          ) : error && !directory ? null : !directory ||
-            directory.items.length === 0 ? (
-            <AdminEmpty
-              title="No carts yet."
-              detail="A cart appears here after a logged-in shopper or an anonymous visitor adds a product."
-            />
-          ) : (
-            <ul className="divide-y divide-neutral-100">
-              {directory.items.map((cart) => (
-                <li key={cart.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(cart.id)}
-                    className={cn(
-                      "flex w-full items-start gap-3 px-4 py-3 text-left sm:px-5",
-                      selectedId === cart.id
-                        ? "bg-primary/5"
-                        : "hover:bg-neutral-50",
-                    )}
-                  >
-                    <OwnerBadge kind={cart.owner.kind} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-neutral-950">
-                        {ownerLabel(cart)}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-neutral-500">
-                        {cart.items
-                          .map((item) => `${item.title} × ${item.quantity}`)
-                          .join(", ")}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-right">
-                      <span className="block text-sm font-semibold tabular-nums text-neutral-950">
-                        {formatTaka(cart.total)}
-                      </span>
-                      <span className="block text-xs text-neutral-500">
-                        {when(cart.updatedAt)}
-                      </span>
-                    </span>
-                  </button>
-                </li>
+            <div className="flex shrink-0 rounded-md bg-neutral-100 p-0.5">
+              {FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => {
+                    setOwner(filter.id);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "h-7 rounded px-2.5 text-[11px] font-semibold transition-all",
+                    owner === filter.id
+                      ? "bg-white text-neutral-950 shadow-sm ring-1 ring-black/5"
+                      : "text-neutral-500 hover:text-neutral-800",
+                  )}
+                >
+                  {filter.label}
+                </button>
               ))}
-            </ul>
-          )}
+            </div>
+          </div>
+
+          {/* List Body */}
+          <div className="flex-1">
+            {isLoading && !directory ? (
+              <div className="space-y-2 p-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-14 animate-pulse rounded-lg bg-neutral-100/80" />
+                ))}
+              </div>
+            ) : error && !directory ? null : !directory || directory.items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 text-center">
+                <MaterialIcon name="shopping_cart" className="mb-2 text-[28px] text-neutral-300" />
+                <h3 className="text-sm font-medium text-neutral-800">No carts yet</h3>
+                <p className="mt-0.5 text-xs text-neutral-500">A cart appears here after a product is added.</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-neutral-100">
+                {directory.items.map((cart) => {
+                  const isSelected = selectedId === cart.id;
+                  return (
+                    <li key={cart.id} className="relative">
+                      {isSelected && <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(cart.id)}
+                        className={cn(
+                          "flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors",
+                          isSelected ? "bg-primary/[0.04]" : "hover:bg-neutral-50",
+                        )}
+                      >
+                        <OwnerBadge kind={cart.owner.kind} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={cn("truncate text-[13px] font-semibold", isSelected ? "text-primary" : "text-neutral-950")}>
+                              {ownerLabel(cart)}
+                            </span>
+                            <span className="shrink-0 text-[13px] font-bold tabular-nums text-neutral-950">
+                              {formatTaka(cart.total)}
+                            </span>
+                          </div>
+                          <span className="mt-0.5 block truncate text-[11px] text-neutral-500">
+                            {cart.items.map((item) => `${item.title} × ${item.quantity}`).join(", ")}
+                          </span>
+                          <span className="mt-1 block text-[10px] font-medium text-neutral-400">
+                            {when(cart.updatedAt)}
+                          </span>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Pagination */}
           {directory && directory.pages > 1 ? (
-            <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3 text-sm sm:px-5">
+            <div className="flex items-center justify-between border-t border-neutral-100 bg-neutral-50/50 px-3 py-2">
               <button
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((current) => current - 1)}
-                className="font-medium text-neutral-600 disabled:text-neutral-300"
+                className="inline-flex h-7 items-center rounded px-2 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-white hover:shadow-sm disabled:opacity-40"
               >
-                Previous
+                <MaterialIcon name="chevron_left" className="text-[14px]" />
+                Prev
               </button>
-              <span className="text-neutral-500">
-                {page} / {directory.pages}
-              </span>
+              <span className="text-[11px] font-medium text-neutral-500">Page {page} of {directory.pages}</span>
               <button
                 type="button"
                 disabled={page >= directory.pages}
                 onClick={() => setPage((current) => current + 1)}
-                className="font-medium text-neutral-600 disabled:text-neutral-300"
+                className="inline-flex h-7 items-center rounded px-2 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-white hover:shadow-sm disabled:opacity-40"
               >
                 Next
+                <MaterialIcon name="chevron_right" className="text-[14px]" />
               </button>
             </div>
           ) : null}
         </section>
 
-        <div className="space-y-4">
+        {/* Right Side: Detail & Add Panel */}
+        <div className="space-y-3.5">
           <CartDetail cart={selected} />
-          <AddPanel
-            onAdded={() => {
-              setLoading(false);
-              setReloadKey((current) => current + 1);
-            }}
-          />
+          <AddPanel onAdded={() => setReloadKey((current) => current + 1)} />
         </div>
       </div>
     </div>
@@ -252,59 +265,58 @@ export default function AdminCartPage() {
 
 function CartDetail({ cart }: { cart: SavedCart | null }) {
   return (
-    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
-      <div className="border-b border-neutral-100 px-4 py-4 sm:px-5">
-        <h2 className="text-sm font-semibold text-neutral-950">Cart detail</h2>
+    <section className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-neutral-200/80">
+      <div className="border-b border-neutral-100 bg-neutral-50/50 px-3.5 py-3">
+        <h2 className="text-[13px] font-semibold text-neutral-950">Cart detail</h2>
         {cart ? (
-          <p className="mt-1 text-xs text-neutral-500">
-            {ownerLabel(cart)}
-            {cart.owner.email ? ` · ${cart.owner.email}` : " · no account"}
-            {cart.owner.role ? ` · ${cart.owner.role}` : ""}
+          <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-neutral-500">
+            <span className="font-semibold text-neutral-700">{ownerLabel(cart)}</span>
+            {cart.owner.email && <><span className="text-neutral-300">•</span>{cart.owner.email}</>}
+            {cart.owner.role && <><span className="text-neutral-300">•</span><span className="capitalize">{cart.owner.role}</span></>}
           </p>
         ) : (
-          <p className="mt-1 text-xs text-neutral-500">
-            Select a cart to see its products.
-          </p>
+          <p className="mt-0.5 text-[11px] text-neutral-500">Select a cart to see its products.</p>
         )}
       </div>
+      
       {!cart ? (
-        <AdminEmpty
-          title="Nothing selected."
-          detail="Choose a cart from the list."
-        />
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <MaterialIcon name="receipt_long" className="mb-2 text-[28px] text-neutral-300" />
+          <h3 className="text-sm font-medium text-neutral-800">Nothing selected</h3>
+        </div>
       ) : (
         <>
-          <ul className="divide-y divide-neutral-100">
+          <ul className="divide-y divide-neutral-100 px-3.5">
             {cart.items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-start gap-3 px-4 py-3 sm:px-5"
-              >
+              <li key={item.id} className="flex items-start gap-3 py-3">
                 <Thumb src={item.imageSrc} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-neutral-950">
-                    {item.title}
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-semibold text-neutral-950">{item.title}</span>
+                  <span className="mt-0.5 block text-[11px] text-neutral-500">
+                    {item.available ? formatTaka(item.unitPrice) : "Unavailable"}
                   </span>
-                  <span className="block text-xs text-neutral-500">
-                    {item.available
-                      ? `${formatTaka(item.unitPrice)} each`
-                      : "No longer available"}
-                    {item.addedAt ? ` · added ${when(item.addedAt)}` : ""}
+                  <span className="mt-1 inline-flex rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-700">
+                    Qty {item.quantity}
                   </span>
-                  <span className="mt-1 block text-xs font-medium text-neutral-800">
-                    Quantity {item.quantity}
-                  </span>
-                </span>
-                <span className="text-sm font-semibold tabular-nums text-neutral-950">
+                </div>
+                <span className="text-[13px] font-bold tabular-nums text-neutral-950">
                   {item.available ? formatTaka(item.lineTotal) : "—"}
                 </span>
               </li>
             ))}
           </ul>
-          <dl className="space-y-2 border-t border-neutral-100 px-4 py-4 text-sm sm:px-5">
-            <Row label="Subtotal" value={formatTaka(cart.subtotal)} />
-            <Row label="Delivery" value={deliveryOffer(cart)} />
-            <div className="flex items-center justify-between pt-1 text-base font-semibold text-neutral-950">
+          
+          {/* Summary */}
+          <dl className="space-y-2 border-t border-dashed border-neutral-200 bg-neutral-50/50 px-3.5 py-3 text-[12px]">
+            <div className="flex justify-between text-neutral-600">
+              <dt>Subtotal</dt>
+              <dd className="font-medium tabular-nums text-neutral-900">{formatTaka(cart.subtotal)}</dd>
+            </div>
+            <div className="flex justify-between text-neutral-600">
+              <dt>Delivery</dt>
+              <dd className="font-medium text-neutral-900">{deliveryOffer(cart)}</dd>
+            </div>
+            <div className="flex justify-between border-t border-neutral-200 pt-2 text-[13px] font-bold text-neutral-950">
               <dt>Total</dt>
               <dd className="tabular-nums">{formatTaka(cart.total)}</dd>
             </div>
@@ -330,91 +342,76 @@ function AddPanel({ onAdded }: { onAdded: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
-    listMartProducts({
-      q: debounced,
-      visibility: "live",
-      status: "available",
-      page: 1,
-      pageSize: 5,
-    })
-      .then((result) => {
-        if (!cancelled) setProducts(result.items);
-      })
-      .catch(() => {
-        if (!cancelled) setProducts([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+    listMartProducts({ q: debounced, visibility: "live", status: "available", page: 1, pageSize: 5 })
+      .then((result) => { if (!cancelled) setProducts(result.items); })
+      .catch(() => { if (!cancelled) setProducts([]); });
+    return () => { cancelled = true; };
   }, [debounced]);
 
   return (
-    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
-      <div className="border-b border-neutral-100 px-4 py-4 sm:px-5">
-        <h2 className="text-sm font-semibold text-neutral-950">
-          Add as {email ?? "you"}
+    <section className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-neutral-200/80">
+      <div className="border-b border-neutral-100 bg-neutral-50/50 px-3.5 py-3">
+        <h2 className="text-[13px] font-semibold text-neutral-950">
+          Add as <span className="text-primary">{email ?? "you"}</span>
         </h2>
-        <p className="mt-1 text-xs text-neutral-500">
-          This adds to the signed-in account. A visitor who is not signed in
-          gets their own cart.
-        </p>
-        <label className="relative mt-3 block">
-          <MaterialIcon
-            name="search"
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-neutral-500"
-          />
+        <label className="relative mt-2 block">
+          <MaterialIcon name="search" className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-[18px] text-neutral-400" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search live products"
-            aria-label="Search live products"
-            className="h-10 w-full rounded-xl border border-neutral-200 bg-admin-subtle pr-3 pl-10 text-sm outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-3 focus:ring-primary/25"
+            placeholder="Search live products..."
+            className="h-8 w-full rounded-md border-0 bg-white pr-2 pl-8 text-[13px] shadow-sm outline-none ring-1 ring-neutral-200 transition-colors placeholder:text-neutral-400 focus:ring-2 focus:ring-primary/20"
           />
         </label>
       </div>
+
       {message ? (
-        <p className="px-4 py-2 text-sm text-red-700 sm:px-5">{message}</p>
+        <div className="flex items-center gap-1.5 border-b border-red-100 bg-red-50 px-3.5 py-1.5 text-[11px] font-medium text-red-700">
+          <MaterialIcon name="error" className="text-[14px]" />
+          {message}
+        </div>
       ) : null}
+
       <ul className="divide-y divide-neutral-100">
-        {products.map((product) => (
-          <li
-            key={product.id}
-            className="flex items-center gap-3 px-4 py-3 sm:px-5"
-          >
-            <Thumb src={product.imageSrc} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-neutral-950">
-                {product.title}
-              </span>
-              <span className="block text-xs text-neutral-500">
-                {formatTaka(product.price)}
-              </span>
-            </span>
-            <button
-              type="button"
-              disabled={!product.id || pending === product.id}
-              onClick={() => {
-                if (!product.id) return;
-                const id = product.id;
-                setPending(id);
-                setMessage("");
-                addCartItem(id, 1)
-                  .then(() => onAdded())
-                  .catch((reason) => {
-                    setMessage(
-                      reason instanceof MartApiError
-                        ? reason.message
-                        : "The cart could not be updated.",
-                    );
-                  })
-                  .finally(() => setPending(""));
-              }}
-              className={adminButtonClass.primary}
-            >
-              Add
-            </button>
-          </li>
-        ))}
+        {products.length === 0 && debounced ? (
+          <li className="px-3.5 py-5 text-center text-[12px] text-neutral-500">No products found.</li>
+        ) : (
+          products.map((product) => (
+            <li key={product.id} className="flex items-center gap-2.5 px-3.5 py-2 transition-colors hover:bg-neutral-50">
+              <Thumb src={product.imageSrc} />
+              <div className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold text-neutral-950">{product.title}</span>
+                <span className="block text-[11px] text-neutral-500 tabular-nums">{formatTaka(product.price)}</span>
+              </div>
+              <button
+                type="button"
+                disabled={!product.id || pending === product.id}
+                onClick={() => {
+                  if (!product.id) return;
+                  const id = product.id;
+                  setPending(id);
+                  setMessage("");
+                  addCartItem(id, 1)
+                    .then(() => onAdded())
+                    .catch((reason) => setMessage(reason instanceof MartApiError ? reason.message : "Could not update cart."))
+                    .finally(() => setPending(""));
+                }}
+                className={cn(
+                  "inline-flex h-7 shrink-0 items-center justify-center rounded-md px-2.5 text-[11px] font-semibold shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  pending === product.id
+                    ? "bg-neutral-100 text-neutral-400"
+                    : "bg-neutral-900 text-white hover:bg-neutral-800 active:scale-95"
+                )}
+              >
+                {pending === product.id ? (
+                  <span className="size-3 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500" />
+                ) : (
+                  "Add"
+                )}
+              </button>
+            </li>
+          ))
+        )}
       </ul>
     </section>
   );
@@ -423,16 +420,32 @@ function AddPanel({ onAdded }: { onAdded: () => void }) {
 function Metric({
   label,
   value,
+  icon,
+  tone = "neutral",
 }: {
   label: string;
   value: number | undefined;
+  icon: string;
+  tone?: "neutral" | "primary" | "emerald" | "amber";
 }) {
+  const toneStyles = {
+    neutral: "bg-neutral-100 text-neutral-600",
+    primary: "bg-primary/10 text-primary",
+    emerald: "bg-emerald-50 text-emerald-600",
+    amber: "bg-amber-50 text-amber-600",
+  };
+
   return (
-    <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-neutral-200/90">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums text-neutral-950">
-        {value ?? "—"}
-      </p>
+    <div className="flex items-center justify-between rounded-xl bg-white px-3.5 py-3 shadow-sm ring-1 ring-neutral-200/80 transition-all hover:shadow-md">
+      <div>
+        <p className="text-[11px] font-medium text-neutral-500">{label}</p>
+        <p className="mt-0.5 text-xl font-bold tracking-tight tabular-nums text-neutral-950">
+          {value ?? "—"}
+        </p>
+      </div>
+      <div className={cn("grid size-8 place-items-center rounded-lg", toneStyles[tone])}>
+        <MaterialIcon name={icon} className="text-[18px]" />
+      </div>
     </div>
   );
 }
@@ -442,11 +455,13 @@ function OwnerBadge({ kind }: { kind: "user" | "guest" }) {
   return (
     <span
       className={cn(
-        "mt-0.5 inline-flex shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold",
-        guest ? "bg-amber-50 text-amber-900" : "bg-emerald-50 text-emerald-800",
+        "mt-0.5 inline-flex shrink-0 items-center rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1",
+        guest 
+          ? "bg-amber-50 text-amber-700 ring-amber-200" 
+          : "bg-emerald-50 text-emerald-700 ring-emerald-200",
       )}
     >
-      {guest ? "Anonymous" : "Logged in"}
+      {guest ? "Guest" : "User"}
     </span>
   );
 }
@@ -459,42 +474,21 @@ function ownerLabel(cart: SavedCart) {
 function when(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between text-neutral-600">
-      <dt>{label}</dt>
-      <dd className="tabular-nums text-neutral-950">{value}</dd>
-    </div>
-  );
+  return date.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 function Thumb({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-500">
-        <MaterialIcon name="image" className="text-[20px]" />
+      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-neutral-100 text-neutral-400 ring-1 ring-neutral-200/60">
+        <MaterialIcon name="image" className="text-[16px]" />
       </span>
     );
   }
   return (
-    <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-      <Image
-        src={src}
-        alt=""
-        fill
-        sizes="48px"
-        className="object-cover"
-        onError={() => setFailed(true)}
-      />
+    <span className="relative size-9 shrink-0 overflow-hidden rounded-md bg-neutral-100 ring-1 ring-neutral-200/60">
+      <Image src={src} alt="" fill sizes="36px" className="object-cover" onError={() => setFailed(true)} />
     </span>
   );
 }
