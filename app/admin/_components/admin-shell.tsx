@@ -776,7 +776,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 "w-full flex-1 print:p-0",
                 wide
                   ? "px-4 py-4 sm:px-5 lg:px-6"
-                  : "mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 print:max-w-none",
+                  : "mx-auto px-4 py-5 sm:py-6 print:max-w-none",
               )}
             >
               {backHref ? (
