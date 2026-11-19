@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 import { adminFieldClass } from "../_components/admin-ui";
 import { QuantityTiersEditor } from "../_components/quantity-tiers-editor";
+import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 
 type Draft = { enabled: boolean; cap: string; maxQuantity: string; rows: TierRow[] };
 
@@ -125,9 +126,9 @@ export default function AdminPricingPage() {
         : saving
           ? "Saving"
           : dirty
-            ? "Not saved yet"
+            ? "Unsaved changes"
             : saved
-              ? "Saved"
+              ? "Saved successfully"
               : "Up to date";
 
   const example =
@@ -146,157 +147,187 @@ export default function AdminPricingPage() {
     : [];
 
   return (
-    <form
-      onSubmit={save}
-      className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
-      data-testid="admin-pricing"
-    >
-      <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-neutral-950">Quantity discounts</h2>
-          <p className="mt-0.5 text-xs text-neutral-500">
-            Each product has a regular price and a base discount %. Buying more pieces adds the
-            extra % below, worked out on the regular price. The total never goes above the
-            maximum.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className={cn("text-sm", error ? "text-red-600" : "text-neutral-500")}>{status}</p>
-          <button
-            type="submit"
-            disabled={!dirty || invalid || saving || stored == null}
-            className={cn(
-              "inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium",
-              !dirty || invalid || saving || stored == null
-                ? "bg-neutral-100 text-neutral-500"
-                : "bg-neutral-950 text-white hover:bg-black",
-            )}
-          >
-            Save
-          </button>
-        </div>
-      </div>
-
-      {draft ? (
-        <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="space-y-5">
-            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[#f7f8fa] p-4">
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-neutral-950">
-                  Store-wide tiers
-                </span>
-                <span className="mt-0.5 block text-xs text-neutral-500">
-                  Off: products on store-wide tiers get only their base discount. Products with
-                  custom tiers keep them.
-                </span>
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={draft.enabled}
-                aria-label={`Store-wide tiers ${draft.enabled ? "on" : "off"}`}
-                disabled={saving}
-                onClick={() => edit({ enabled: !draft.enabled })}
-                className={cn(
-                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold",
-                  draft.enabled
-                    ? "bg-neutral-950 text-white"
-                    : "bg-white text-neutral-500 ring-1 ring-neutral-200",
-                )}
-              >
-                <span
-                  className={cn(
-                    "size-2 rounded-full",
-                    draft.enabled ? "bg-emerald-400" : "bg-neutral-300",
-                  )}
-                />
-                {draft.enabled ? "On" : "Off"}
-              </button>
-            </div>
-            <div>
-              <label htmlFor="pricing-cap" className="text-sm font-medium text-neutral-800">
-                Maximum total discount %
-              </label>
-              <input
-                id="pricing-cap"
-                inputMode="decimal"
-                value={draft.cap}
-                onChange={(event) => edit({ cap: event.target.value })}
-                aria-invalid={capError ? true : undefined}
-                className={cn(adminFieldClass, "mt-1.5", capError && "border-red-400")}
-              />
-              <p className={cn("mt-1.5 text-xs", capError ? "text-red-700" : "text-neutral-500")}>
-                {capError ?? "Base + quantity discount is capped here. It can never reach 100%."}
-              </p>
-            </div>
-            <div>
-              <label
-                htmlFor="pricing-max-quantity"
-                className="text-sm font-medium text-neutral-800"
-              >
-                সর্বোচ্চ quantity প্রতি অর্ডার
-              </label>
-              <input
-                id="pricing-max-quantity"
-                inputMode="numeric"
-                value={draft.maxQuantity}
-                onChange={(event) => edit({ maxQuantity: event.target.value })}
-                aria-invalid={maxQuantityError ? true : undefined}
-                className={cn(adminFieldClass, "mt-1.5", maxQuantityError && "border-red-400")}
-              />
-              <p
-                className={cn(
-                  "mt-1.5 text-xs",
-                  maxQuantityError ? "text-red-700" : "text-neutral-500",
-                )}
-              >
-                {maxQuantityError ??
-                  "Most pieces of one product per order. A product can set its own limit; stock still applies. Tiers above the limit cannot be reached."}
-              </p>
-            </div>
-            <QuantityTiersEditor
-              id="pricing-tiers"
-              rows={draft.rows}
-              onChange={(rows) => edit({ rows })}
-              error={tierError}
-            />
-          </div>
-          <div className="rounded-2xl bg-[#f7f8fa] p-4">
-            <p className="text-sm font-semibold text-neutral-950">Example</p>
-            <p className="mt-0.5 text-xs text-neutral-500">
-              Regular {formatTaka(EXAMPLE.regular)}, base discount {EXAMPLE.basePercent}%.
+    <div className="w-full pb-10">
+      <form
+        onSubmit={save}
+        className="overflow-hidden bg-white shadow-sm ring-1 ring-neutral-200/90 sm:rounded-2xl"
+        data-testid="admin-pricing"
+      >
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-neutral-100 bg-white/90 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-neutral-950">Quantity discounts</h2>
+            <p className="mt-0.5 text-[13px] text-neutral-500">
+              Each product has a regular price and a base discount %. Buying more pieces adds the extra % below, worked out on the regular price. The total never goes above the maximum.
             </p>
-            <table className="mt-3 w-full text-sm tabular-nums">
-              <thead>
-                <tr className="text-left text-xs text-neutral-500">
-                  <th className="py-1 font-medium">Pieces</th>
-                  <th className="py-1 font-medium">Discount</th>
-                  <th className="py-1 text-right font-medium">Each</th>
-                </tr>
-              </thead>
-              <tbody>
-                {example.map((line, index) => (
-                  <tr
-                    key={exampleQuantities[index]}
-                    className={cn(
-                      "border-t border-neutral-200/70",
-                      maxQuantity != null &&
-                        exampleQuantities[index] > maxQuantity &&
-                        "text-neutral-400 line-through",
-                    )}
-                  >
-                    <td className="py-1.5">{exampleQuantities[index]}</td>
-                    <td className="py-1.5">{percentText(line.totalPercent)}%</td>
-                    <td className="py-1.5 text-right">{formatTaka(line.unitPrice)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          </div>
+          <div className="flex shrink-0 items-center gap-4">
+            <p className={cn("text-xs font-semibold", error ? "text-red-600" : dirty ? "text-amber-600" : "text-emerald-600")}>
+              {status}
+            </p>
+            <button
+              type="submit"
+              disabled={!dirty || invalid || saving || stored == null}
+              className={cn(
+                "inline-flex h-9 items-center justify-center rounded-lg px-5 text-sm font-semibold shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+                !dirty || invalid || saving || stored == null
+                  ? "bg-neutral-100 text-neutral-400"
+                  : "bg-neutral-950 text-white hover:bg-neutral-800 active:scale-95",
+              )}
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
           </div>
         </div>
-      ) : (
-        <p className="p-5 text-sm text-neutral-500">{error ?? "Loading discount settings…"}</p>
-      )}
-    </form>
+
+        {/* Main Content - Full Width Split */}
+        {draft ? (
+          <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            
+            {/* Left Side: Configuration */}
+            <div className="space-y-4">
+              {/* Store-wide Toggle */}
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200/80 bg-neutral-50 px-4 py-3 shadow-sm">
+                <div className="min-w-0">
+                  <span className="block text-sm font-semibold text-neutral-950">
+                    Store-wide tiers
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-neutral-500">
+                    Off: products on store-wide tiers get only their base discount. Products with custom tiers keep them.
+                  </span>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={draft.enabled}
+                    disabled={saving}
+                    onChange={() => edit({ enabled: !draft.enabled })}
+                    aria-label={`Store-wide tiers ${draft.enabled ? "on" : "off"}`}
+                  />
+                  <div className="h-6 w-11 rounded-full bg-neutral-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/40 peer-disabled:opacity-50"></div>
+                </label>
+              </div>
+
+              {/* Inputs Row */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="pricing-cap" className="text-sm font-medium text-neutral-800">
+                    Maximum total discount %
+                  </label>
+                  <input
+                    id="pricing-cap"
+                    inputMode="decimal"
+                    value={draft.cap}
+                    onChange={(event) => edit({ cap: event.target.value })}
+                    aria-invalid={capError ? true : undefined}
+                    className={cn(
+                      adminFieldClass, 
+                      "mt-1.5 h-10 text-sm", 
+                      capError && "border-red-400 focus:border-red-500 focus:ring-red-200"
+                    )}
+                  />
+                  <p className={cn("mt-1.5 text-[11px]", capError ? "text-red-600" : "text-neutral-500")}>
+                    {capError ?? "Base + quantity discount is capped here. It can never reach 100%."}
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="pricing-max-quantity" className="text-sm font-medium text-neutral-800">
+                    সর্বোচ্চ quantity প্রতি অর্ডার
+                  </label>
+                  <input
+                    id="pricing-max-quantity"
+                    inputMode="numeric"
+                    value={draft.maxQuantity}
+                    onChange={(event) => edit({ maxQuantity: event.target.value })}
+                    aria-invalid={maxQuantityError ? true : undefined}
+                    className={cn(
+                      adminFieldClass, 
+                      "mt-1.5 h-10 text-sm", 
+                      maxQuantityError && "border-red-400 focus:border-red-500 focus:ring-red-200"
+                    )}
+                  />
+                  <p className={cn("mt-1.5 text-[11px]", maxQuantityError ? "text-red-600" : "text-neutral-500")}>
+                    {maxQuantityError ?? "Most pieces of one product per order. Tiers above the limit cannot be reached."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tiers Editor */}
+              <div className="pt-2">
+                <QuantityTiersEditor
+                  id="pricing-tiers"
+                  rows={draft.rows}
+                  onChange={(rows) => edit({ rows })}
+                  error={tierError}
+                />
+              </div>
+            </div>
+
+            {/* Right Side: Live Example Preview (Light Theme) */}
+            <div className="flex flex-col overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm">
+              <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-950">
+                  <MaterialIcon name="receipt_long" className="text-[18px] text-primary" />
+                  Live Example
+                </p>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Regular {formatTaka(EXAMPLE.regular)} · Base discount {EXAMPLE.basePercent}%
+                </p>
+              </div>
+              <div className="flex-1 overflow-x-auto">
+                <table className="w-full text-sm tabular-nums">
+                  <thead>
+                    <tr className="border-b border-neutral-100 bg-neutral-50/50 text-[10px] uppercase tracking-wider text-neutral-500">
+                      <th className="px-4 py-2 text-left font-semibold">Pieces</th>
+                      <th className="px-4 py-2 text-left font-semibold">Total Discount</th>
+                      <th className="px-4 py-2 text-right font-semibold">Price / Each</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                    {example.map((line, index) => {
+                      const isOverLimit = maxQuantity != null && exampleQuantities[index] > maxQuantity;
+                      return (
+                        <tr
+                          key={exampleQuantities[index]}
+                          className={cn(
+                            "transition-colors hover:bg-neutral-50",
+                            isOverLimit && "opacity-40 line-through"
+                          )}
+                        >
+                          <td className="px-4 py-2.5 font-medium">{exampleQuantities[index]}</td>
+                          <td className="px-4 py-2.5 text-primary font-medium">{percentText(line.totalPercent)}%</td>
+                          <td className="px-4 py-2.5 text-right font-bold text-neutral-950">{formatTaka(line.unitPrice)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {maxQuantity != null && (
+                <div className="mt-auto border-t border-neutral-100 bg-neutral-50 px-4 py-2 text-[11px] text-neutral-500">
+                  * Rows crossed out exceed the maximum order quantity ({maxQuantity}).
+                </div>
+              )}
+            </div>
+
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            {error ? (
+              <>
+                <MaterialIcon name="error" className="mb-2 text-[32px] text-red-400" />
+                <p className="text-sm font-medium text-red-600">{error}</p>
+              </>
+            ) : (
+              <>
+                <span className="mb-3 size-6 animate-spin rounded-full border-2 border-neutral-300 border-t-primary" />
+                <p className="text-sm text-neutral-500">Loading discount settings…</p>
+              </>
+            )}
+          </div>
+        )}
+      </form>
+    </div>
   );
 }

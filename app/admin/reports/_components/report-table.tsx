@@ -29,61 +29,86 @@ export function ReportTable<T>({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[40rem] text-left text-sm">
-        <caption className="sr-only">{caption}</caption>
-        <thead className="bg-admin-subtle text-xs text-neutral-600">
-          <tr>
-            {columns.map((column) => {
-              const active = sort === column.id;
-              const ariaSort = active ? (direction === "asc" ? "ascending" : "descending") : "none";
-              return (
-                <th
-                  key={column.id}
-                  aria-sort={ariaSort}
+  <table className="w-full min-w-[40rem] text-left text-sm">
+    <caption className="sr-only">{caption}</caption>
+    
+    {/* Table Header */}
+    <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500">
+      <tr>
+        {columns.map((column) => {
+          const active = sort === column.id;
+          const ariaSort = active ? (direction === "asc" ? "ascending" : "descending") : "none";
+          return (
+            <th
+              key={column.id}
+              aria-sort={ariaSort}
+              className={cn(
+                "whitespace-nowrap px-4 py-2.5 font-semibold",
+                column.align === "right" && "text-right",
+                column.id === columns[0]?.id && "sticky left-0 z-10 border-r border-slate-200 bg-slate-50/80",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onSort(column.id)}
+                className={cn(
+                  "group inline-flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2bc0b5]/40",
+                  column.align === "right" && "ml-auto",
+                  active ? "text-slate-900" : "text-slate-500",
+                )}
+              >
+                {column.label}
+                <span
+                  aria-hidden
                   className={cn(
-                    "px-4 py-2 font-medium whitespace-nowrap",
-                    column.align === "right" && "text-right",
-                    column.id === columns[0]?.id && "sticky left-0 bg-admin-subtle",
+                    "inline-flex shrink-0 transition-all duration-200",
+                    active ? "text-[#2bc0b5]" : "text-slate-300 opacity-0 group-hover:opacity-100",
                   )}
                 >
-                  <button
-                    type="button"
-                    onClick={() => onSort(column.id)}
-                    className={cn(
-                      "inline-flex min-h-10 items-center gap-1 rounded-lg px-1 focus-visible:outline-2 focus-visible:outline-primary",
-                      column.align === "right" && "ml-auto",
-                    )}
-                  >
-                    {column.label}
-                    <span aria-hidden className="text-neutral-500">
-                      {active ? (direction === "asc" ? "↑" : "↓") : ""}
-                    </span>
-                  </button>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={rowKey(row)} className="border-t border-neutral-100">
-              {columns.map((column) => (
-                <td
-                  key={column.id}
-                  className={cn(
-                    "px-4 py-2.5 text-neutral-800",
-                    column.align === "right" && "text-right tabular-nums",
-                    column.id === columns[0]?.id && "sticky left-0 bg-white font-medium text-neutral-950",
+                  {active ? (
+                    direction === "asc" ? (
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7l4-4m0 0l4 4m-4-4v18" />
+                      </svg>
+                    ) : (
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 17l-4 4m0 0l-4-4m4 4V3" />
+                      </svg>
+                    )
+                  ) : (
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                    </svg>
                   )}
-                >
-                  {column.render(row)}
-                </td>
-              ))}
-            </tr>
+                </span>
+              </button>
+            </th>
+          );
+        })}
+      </tr>
+    </thead>
+
+    {/* Table Body */}
+    <tbody className="divide-y divide-slate-100">
+      {rows.map((row) => (
+        <tr key={rowKey(row)} className="group transition-colors hover:bg-slate-50/80">
+          {columns.map((column) => (
+            <td
+              key={column.id}
+              className={cn(
+                "px-4 py-3 text-slate-700",
+                column.align === "right" && "text-right tabular-nums",
+                column.id === columns[0]?.id && "sticky left-0 z-10 border-r border-slate-100 bg-white font-medium text-slate-900 group-hover:bg-slate-50",
+              )}
+            >
+              {column.render(row)}
+            </td>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
   );
 }
 

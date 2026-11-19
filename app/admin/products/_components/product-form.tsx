@@ -882,10 +882,48 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         }
       />
       {saveError ? (
-        <p className="-mt-3 mb-5 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-          {saveError}
-        </p>
+  <p className="-mt-3 mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
+    <MaterialIcon name="error" className="mt-0.5 shrink-0 text-[18px] text-red-600" />
+    <span>{saveError}</span>
+  </p>
+) : null}
+      {serverErrors.length > 0 ? (
+        <div
+          id={`${formId}-error-summary`}
+          tabIndex={-1}
+          role="alert"
+          className="-mt-3 mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-700 shadow-sm focus:outline-none"
+        >
+          <p className="flex items-center gap-2 font-semibold text-red-800">
+            <MaterialIcon name="error" className="text-[18px]" />
+            {bengaliDigits(serverErrors.length)}টা সমস্যা আছে, ঠিক করে আবার চেষ্টা করুন
+          </p>
+          <ul className="mt-2.5 space-y-2 pl-1">
+            {serverErrors.map((item, index) => (
+              <li key={`${item.field}-${index}`} className="flex items-start gap-1.5">
+                <MaterialIcon
+                  name="chevron_right"
+                  className="mt-0.5 shrink-0 text-[16px] text-red-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => focusServerField(item.field)}
+                  className="text-left hover:underline focus-visible:underline focus-visible:outline-none"
+                >
+                  <span className="font-medium">
+                    {SERVER_FIELD_LABEL[item.field] ?? SERVER_FIELD_LABEL.form}:
+                  </span>{" "}
+                  {item.message}
+                  {item.fix ? (
+                    <span className="block text-xs text-red-600">{item.fix}</span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
+
       {serverErrors.length > 0 ? (
         <div
           id={`${formId}-error-summary`}
@@ -918,35 +956,38 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       ) : null}
       {product ? (
         <div className="-mt-3 mb-5 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 ring-1 ring-neutral-200">
+          <span className="rounded-full bg-white px-2.5 py-1 font-mono text-xs text-neutral-600 ring-1 ring-neutral-200">
             {product.slug}
           </span>
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-semibold",
+              "rounded-full px-2.5 py-1 text-xs font-semibold ring-1",
               form.published
-                ? "bg-emerald-50 text-emerald-800"
-                : "bg-neutral-100 text-neutral-600",
+                ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+                : "bg-neutral-100 text-neutral-600 ring-neutral-200",
             )}
           >
             {form.published ? "Published" : "Draft"}
           </span>
           <StockStatusBadge status={form.status} />
           {form.featured ? (
-            <span className="text-xs font-medium text-primary">Featured</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+              <MaterialIcon name="star" className="text-[12px]" />
+              Featured
+            </span>
           ) : null}
           <Link
             href={productPath(product)}
             target="_blank"
             className="text-xs font-semibold text-primary hover:underline"
           >
-            View on site
+            View on site ↗
           </Link>
           {product.id ? (
             <button
               type="button"
               onClick={removeProduct}
-              className="h-8 rounded-full px-3 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
+              className="ml-auto h-8 rounded-full px-3 text-xs font-medium text-neutral-500 transition-colors hover:bg-red-50 hover:text-red-600"
             >
               Delete
             </button>
@@ -955,11 +996,12 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       ) : null}
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_16.5rem] xl:grid-cols-[11rem_minmax(0,1fr)_17.5rem]">
-        <nav
-          aria-label="Product sections"
-          className="sticky top-20 hidden xl:block"
-        >
-          <ol className="space-y-1">
+      <nav
+        aria-label="Product sections"
+        className="sticky top-20 hidden self-start xl:block"
+      >
+        <div className="rounded-2xl border border-neutral-200/70 bg-white/60 p-2 shadow-sm backdrop-blur">
+          <ol className="space-y-0.5">
             {SECTIONS.map((section) => (
               <li key={section.id}>
                 <SectionLink
@@ -971,11 +1013,12 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
               </li>
             ))}
           </ol>
-        </nav>
+        </div>
+      </nav>
 
         <div className="min-w-0 space-y-4">
           <div className="sticky top-16 z-10 -mx-4 bg-[#f5f6f8]/95 px-4 py-2 backdrop-blur sm:-mx-5 sm:px-5 xl:hidden">
-            <div className="flex gap-1 overflow-x-auto">
+            <div className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {SECTIONS.map((section) => (
                 <button
                   key={section.id}
@@ -983,9 +1026,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                   aria-current={active === section.id ? "true" : undefined}
                   onClick={() => scrollToSection(section.id)}
                   className={cn(
-                    "h-9 shrink-0 rounded-full px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "h-9 shrink-0 rounded-full px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     active === section.id
-                      ? "bg-neutral-950 text-white"
+                      ? "bg-neutral-950 text-white shadow-sm"
                       : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50",
                   )}
                 >
@@ -1706,146 +1749,149 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         </div>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-20">
-          <section
-            className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90"
-            aria-label="Catalog preview"
-          >
-            <div className="relative aspect-[4/3] bg-[#f3f4f6]">
-              {form.imageSrc ? (
-                <Image
-                  src={form.imageSrc}
-                  alt=""
-                  fill
-                  sizes="320px"
-                  className="object-contain p-4"
-                />
-              ) : (
-                <div className="grid h-full place-items-center text-sm text-neutral-500">
+        <section
+          className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200/90"
+          aria-label="Catalog preview"
+        >
+          <div className="relative aspect-[4/3] bg-gradient-to-br from-neutral-100 to-neutral-50">
+            {form.imageSrc ? (
+              <Image
+                src={form.imageSrc}
+                alt=""
+                fill
+                sizes="320px"
+                className="object-contain p-4"
+              />
+            ) : (
+              <div className="grid h-full place-items-center">
+                <div className="flex flex-col items-center gap-1.5 text-sm text-neutral-500">
+                  <MaterialIcon name="image" className="text-[28px] text-neutral-400" />
                   No image yet
                 </div>
+              </div>
+            )}
+          </div>
+          <div className="space-y-2 border-t border-neutral-100 px-4 py-3.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+              Catalog preview
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <StockStatusBadge status={form.status} />
+              {form.badges === null ? (
+                form.badge ? (
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                    {form.badge}
+                  </span>
+                ) : null
+              ) : (
+                form.badges.map((badge) => (
+                  <span
+                    key={badge.id}
+                    className={cn(
+                      "max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                      badgeToneClass(badge.tone),
+                      !badge.isActive && "opacity-50",
+                    )}
+                  >
+                    {badge.name}
+                  </span>
+                ))
               )}
             </div>
-            <div className="space-y-2 px-4 py-3">
-              <p className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
-                Catalog preview
+            <p className="text-base font-semibold leading-snug text-neutral-950">
+              {form.title.trim() || "Product name"}
+            </p>
+            {form.subtitle.trim() ? (
+              <p className="text-sm leading-snug text-neutral-500">
+                {form.subtitle.trim()}
               </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <StockStatusBadge status={form.status} />
-                {form.badges === null ? (
-                  form.badge ? (
-                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
-                      {form.badge}
-                    </span>
-                  ) : null
-                ) : (
-                  form.badges.map((badge) => (
-                    <span
-                      key={badge.id}
-                      className={cn(
-                        "max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase",
-                        badgeToneClass(badge.tone),
-                        !badge.isActive && "opacity-50",
-                      )}
-                    >
-                      {badge.name}
-                    </span>
-                  ))
-                )}
-              </div>
-              <p className="text-base font-semibold text-neutral-950">
-                {form.title.trim() || "Product name"}
-              </p>
-              {form.subtitle.trim() ? (
-                <p className="text-sm text-neutral-500">
-                  {form.subtitle.trim()}
-                </p>
+            ) : null}
+            <p className="text-xs text-neutral-500">
+              {form.categoryTrail || "No category yet"}
+            </p>
+            <p className="flex items-baseline gap-2 pt-0.5">
+              <span className="text-lg font-semibold tabular-nums text-neutral-950">
+                {priceReady ? formatTaka(priceNumber) : "৳—"}
+              </span>
+              {discount != null ? (
+                <span className="text-sm text-neutral-500 line-through tabular-nums">
+                  {formatTaka(compareNumber)}
+                </span>
               ) : null}
-              <p className="text-xs text-neutral-500">
-                {form.categoryTrail || "No category yet"}
-              </p>
-              <p className="flex items-baseline gap-2">
-                <span className="text-lg font-semibold text-neutral-950 tabular-nums">
-                  {priceReady ? formatTaka(priceNumber) : "৳—"}
-                </span>
-                {discount != null ? (
-                  <span className="text-sm text-neutral-500 line-through tabular-nums">
-                    {formatTaka(compareNumber)}
-                  </span>
-                ) : null}
-              </p>
-            </div>
-          </section>
+            </p>
+          </div>
+        </section>
 
-          <FormSection
-            invalid={serverFor("publishing").length > 0}
-            id="product-publishing"
-            title="Publishing"
-            description="Draft and Published are the catalog states. Featured adds a label in the product list."
-          >
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3 rounded-xl px-1 py-1">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-neutral-800">Status</p>
-                  <p className="text-xs text-neutral-500">
-                    {form.published
-                      ? "Customers can see this product. Move to draft to hide it."
-                      : "Only admins can see a draft. Publish to show it on the store."}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
-                    form.published
-                      ? "bg-emerald-50 text-emerald-800"
-                      : "bg-neutral-100 text-neutral-600",
-                  )}
-                >
-                  {form.published ? "Published" : "Draft"}
-                </span>
+        <FormSection
+          invalid={serverFor("publishing").length > 0}
+          id="product-publishing"
+          title="Publishing"
+          description="Draft and Published are the catalog states. Featured adds a label in the product list."
+        >
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-3 rounded-xl border border-neutral-200/80 bg-neutral-50 px-3.5 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-neutral-800">Status</p>
+                <p className="text-xs leading-relaxed text-neutral-500">
+                  {form.published
+                    ? "Customers can see this product. Move to draft to hide it."
+                    : "Only admins can see a draft. Publish to show it on the store."}
+                </p>
               </div>
-              <Toggle
-                label="Featured"
-                hint="Shows a Featured label in the product list."
-                checked={form.featured}
-                onChange={(checked) => setField("featured", checked)}
-              />
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
+                  form.published
+                    ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
+                    : "bg-neutral-200/70 text-neutral-700 ring-1 ring-neutral-300/60",
+                )}
+              >
+                {form.published ? "Published" : "Draft"}
+              </span>
             </div>
-            <ServerFieldErrors id={`${formId}-server-publishing`} items={serverFor("publishing")} />
-            <p className="mt-4 border-t border-neutral-100 pt-3 text-sm font-medium text-neutral-800">
+            <Toggle
+              label="Featured"
+              hint="Shows a Featured label in the product list."
+              checked={form.featured}
+              onChange={(checked) => setField("featured", checked)}
+            />
+          </div>
+        <ServerFieldErrors id={`${formId}-server-publishing`} items={serverFor("publishing")} />
+        <div className="mt-4 border-t border-neutral-100 pt-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-neutral-800">
               Setup {setupDone} of 4
             </p>
-            <ul className="mt-2 space-y-2" aria-label="Required details">
-              <CheckRow
-                done={Boolean(form.title.trim())}
-                label="Product name"
+            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-200">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${(setupDone / 4) * 100}%` }}
               />
-              <CheckRow
-                done={priceReady && !issues.price}
-                label="Selling price"
-              />
-              <CheckRow
-                done={Boolean(form.imageSrc)}
-                label="Main image"
-                optional
-              />
-              <CheckRow
-                done={Boolean(form.content.description.trim())}
-                label="Product description"
-                optional
-              />
-            </ul>
-          </FormSection>
+            </div>
+          </div>
+          <ul className="mt-2.5 space-y-1.5" aria-label="Required details">
+            <CheckRow done={Boolean(form.title.trim())} label="Product name" />
+            <CheckRow done={priceReady && !issues.price} label="Selling price" />
+            <CheckRow done={Boolean(form.imageSrc)} label="Main image" optional />
+            <CheckRow
+              done={Boolean(form.content.description.trim())}
+              label="Product description"
+              optional
+            />
+          </ul>
+        </div>
+        </FormSection>
         </aside>
       </div>
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 backdrop-blur",
+          "fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 shadow-[0_-1px_0_rgba(0,0,0,0.02)] backdrop-blur supports-[backdrop-filter]:bg-white/80",
           collapsed ? "lg:left-[4.5rem]" : "lg:left-64",
         )}
       >
-        <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
-          {/* Enter in a field submits with this one, so it never changes the product's status. */}
+        <div className="flex items-center gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+          {/* hidden default submit (Enter key) — UNCHANGED */}
           <button
             type="submit"
             name="intent"
@@ -1901,9 +1947,9 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
         {toast ? (
           <p
             key={toast.key}
-            className="flex max-w-xl items-center gap-2 rounded-full bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-xl"
+            className="flex max-w-xl items-center gap-2 rounded-full bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-2xl ring-1 ring-red-500/30"
           >
-            <MaterialIcon name="error" className="shrink-0 text-[18px]" />
+            <MaterialIcon name="error" className="shrink-0 text-[18px] text-red-400" />
             {toast.message}
           </p>
         ) : null}
@@ -1929,15 +1975,33 @@ function FormSection({
     <section
       id={id}
       className={cn(
-        "scroll-mt-32 rounded-2xl bg-white p-4 ring-1 sm:p-5",
-        invalid ? "ring-red-300" : "ring-neutral-200/90",
+        "scroll-mt-32 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 transition-shadow sm:shadow-none sm:hover:shadow-sm",
+        invalid
+          ? "ring-2 ring-red-300/80 shadow-red-100/50"
+          : "ring-neutral-200/90",
       )}
     >
-      <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
-      <p className="mt-1 text-sm leading-relaxed text-neutral-500">
-        {description}
-      </p>
-      <div className="mt-4">{children}</div>
+      <header
+        className={cn(
+          "border-b px-4 pb-3 pt-4 sm:px-5",
+          invalid
+            ? "border-red-100 bg-red-50/40"
+            : "border-neutral-100 bg-white",
+        )}
+      >
+        <h2 className="flex items-center gap-2 text-base font-semibold text-neutral-950">
+          {invalid ? (
+            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-red-100 text-red-700">
+              <MaterialIcon name="error" className="text-[14px]" />
+            </span>
+          ) : null}
+          {title}
+        </h2>
+        <p className="mt-1 text-sm leading-relaxed text-neutral-500">
+          {description}
+        </p>
+      </header>
+      <div className="px-4 py-4 sm:px-5">{children}</div>
     </section>
   );
 }
@@ -1957,13 +2021,20 @@ function SectionLink({
       aria-current={active ? "true" : undefined}
       onClick={onClick}
       className={cn(
-        "flex w-full rounded-xl px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "group/link relative flex w-full items-center rounded-lg py-2 pl-3 pr-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active
-          ? "bg-white font-semibold text-neutral-950 ring-1 ring-neutral-200"
+          ? "bg-white font-semibold text-neutral-950 shadow-sm ring-1 ring-neutral-200"
           : "font-medium text-neutral-500 hover:bg-white/70 hover:text-neutral-800",
       )}
     >
-      {children}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-opacity",
+          active ? "opacity-100" : "opacity-0",
+        )}
+      />
+      <span className="truncate">{children}</span>
     </button>
   );
 }
@@ -1971,7 +2042,7 @@ function SectionLink({
 function RequiredMark() {
   return (
     <>
-      <span className="text-red-700" aria-hidden>
+      <span className="ml-0.5 text-red-600" aria-hidden>
         *
       </span>
       <span className="sr-only">required</span>
@@ -2006,14 +2077,29 @@ function ServerFieldErrors({
       id={id}
       tabIndex={-1}
       className={cn(
-        "space-y-1 focus:outline-none",
-        boxed ? "mb-4 rounded-xl bg-red-50 px-3 py-2.5 ring-1 ring-red-200" : "mt-1.5",
+        "space-y-1.5 focus:outline-none",
+        boxed
+          ? "mb-4 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3"
+          : "mt-1.5",
       )}
     >
       {items.map((item, index) => (
-        <p key={`${item.field}-${index}`} className="text-sm text-red-700">
-          {fixOnly ? null : <span className="block font-medium">{item.message}</span>}
-          {item.fix ? <span className="block text-xs text-red-600">{item.fix}</span> : null}
+        <p
+          key={`${item.field}-${index}`}
+          className="flex items-start gap-1.5 text-sm text-red-700"
+        >
+          <MaterialIcon
+            name="error"
+            className="mt-0.5 shrink-0 text-[16px] text-red-600"
+          />
+          <span>
+            {fixOnly ? null : (
+              <span className="block font-medium">{item.message}</span>
+            )}
+            {item.fix ? (
+              <span className="block text-xs text-red-600">{item.fix}</span>
+            ) : null}
+          </span>
         </p>
       ))}
     </div>
@@ -2030,22 +2116,37 @@ function CheckRow({
   optional?: boolean;
 }) {
   return (
-    <li className="flex items-center gap-2 text-sm">
+    <li
+      className={cn(
+        "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors",
+        done ? "bg-emerald-50/50" : "bg-transparent",
+      )}
+    >
       <MaterialIcon
         name={done ? "check_circle" : "radio_button_unchecked"}
         className={cn(
           "text-[18px]",
-          done ? "text-emerald-700" : "text-neutral-500",
+          done ? "text-emerald-600" : "text-neutral-400",
         )}
       />
-      <span className={done ? "text-neutral-800" : "text-neutral-600"}>
+      <span
+        className={cn(
+          "flex-1 truncate",
+          done ? "font-medium text-neutral-800" : "text-neutral-600",
+        )}
+      >
         {label}
       </span>
-      {optional ? (
-        <span className="text-xs text-neutral-500">Optional</span>
-      ) : (
-        <span className="text-xs text-neutral-500">Required</span>
-      )}
+      <span
+        className={cn(
+          "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+          optional
+            ? "bg-neutral-100 text-neutral-500"
+            : "bg-amber-100 text-amber-800",
+        )}
+      >
+        {optional ? "Optional" : "Required"}
+      </span>
     </li>
   );
 }
@@ -2062,8 +2163,8 @@ function Toggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f6f8] px-3.5 py-3">
-      <span>
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200/80 bg-neutral-50 px-3.5 py-3">
+      <span className="min-w-0">
         <span className="block text-sm font-medium text-neutral-800">
           {label}
         </span>
@@ -2076,13 +2177,13 @@ function Toggle({
         aria-label={label}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-          checked ? "bg-primary" : "bg-neutral-300",
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+          checked ? "bg-emerald-500" : "bg-neutral-300",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 size-5 rounded-full bg-white transition-all",
+            "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-all",
             checked ? "left-5" : "left-0.5",
           )}
         />

@@ -24,7 +24,12 @@ export const STOCK_MOVEMENT_TYPES = [
 export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
 
 /** Form field `import_type` and the template path kind. From `ImportKind` on the ledger branch. */
-export const IMPORT_KINDS = ["purchases", "opening", "stock_count", "cost_price"] as const;
+export const IMPORT_KINDS = [
+  "purchases",
+  "opening",
+  "stock_count",
+  "cost_price",
+] as const;
 export type ImportKind = (typeof IMPORT_KINDS)[number];
 
 /** `GET /exports/{kind}`. There is no supplier export. */
@@ -95,7 +100,10 @@ export function dhakaWeekRange(now: Date) {
   const sinceMonday = (parts.weekday - WEEK_STARTS_ON + 7) % 7;
   const start = addDays(parts.year, parts.month, parts.day, -sinceMonday);
   const end = addDays(start.year, start.month, start.day, 6);
-  return { from: isoDate(start.year, start.month, start.day), to: isoDate(end.year, end.month, end.day) };
+  return {
+    from: isoDate(start.year, start.month, start.day),
+    to: isoDate(end.year, end.month, end.day),
+  };
 }
 
 /** Inclusive calendar range for the current month in Asia/Dhaka. */
@@ -118,7 +126,11 @@ export function presetRange(preset: Exclude<DatePreset, "custom">, now: Date) {
  * True when `iso` falls on a Dhaka calendar date inside the inclusive range.
  * A missing bound is open. An unreadable instant is outside every range.
  */
-export function inDhakaDateRange(iso: string, from: string | null, to: string | null) {
+export function inDhakaDateRange(
+  iso: string,
+  from: string | null,
+  to: string | null,
+) {
   const instant = new Date(iso);
   if (Number.isNaN(instant.getTime())) return false;
   const day = dhakaDateString(instant);
@@ -130,7 +142,9 @@ export function inDhakaDateRange(iso: string, from: string | null, to: string | 
 export function formatDhakaDate(isoDateValue: string) {
   const parts = parseIsoDate(isoDateValue);
   if (!parts) return "—";
-  const instant = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 6, 0, 0));
+  const instant = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day, 6, 0, 0),
+  );
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
@@ -170,8 +184,12 @@ export function lineTotal(quantity: number, unitCost: number) {
   return roundMoney(quantity * unitCost);
 }
 
-export function grandTotal(lines: Array<{ quantity: number; unitCost: number }>) {
-  return roundMoney(lines.reduce((sum, line) => sum + line.quantity * line.unitCost, 0));
+export function grandTotal(
+  lines: Array<{ quantity: number; unitCost: number }>,
+) {
+  return roundMoney(
+    lines.reduce((sum, line) => sum + line.quantity * line.unitCost, 0),
+  );
 }
 
 /**
@@ -226,7 +244,10 @@ export type MovementRow = {
   movementType: StockMovementType;
 };
 
-export function filterMovements<T extends MovementRow>(items: T[], filter: MovementFilter) {
+export function filterMovements<T extends MovementRow>(
+  items: T[],
+  filter: MovementFilter,
+) {
   return items.filter((item) => {
     if (filter.productId && item.productId !== filter.productId) return false;
     if (filter.type && item.movementType !== filter.type) return false;
@@ -237,11 +258,17 @@ export function filterMovements<T extends MovementRow>(items: T[], filter: Movem
 export function parsePositiveQuantity(raw: string) {
   const text = canonicalizeInteger(raw);
   if (!/^[1-9]\d*$/.test(text)) {
-    return { ok: false as const, message: "Enter a whole quantity of 1 or more." };
+    return {
+      ok: false as const,
+      message: "Enter a whole quantity of 1 or more.",
+    };
   }
   const value = Number(text);
   if (!Number.isSafeInteger(value) || value > 1_000_000) {
-    return { ok: false as const, message: "Quantity cannot be more than 1,000,000." };
+    return {
+      ok: false as const,
+      message: "Quantity cannot be more than 1,000,000.",
+    };
   }
   return { ok: true as const, value };
 }
@@ -250,11 +277,18 @@ export function parsePositiveQuantity(raw: string) {
 export function parseAdjustmentQuantity(raw: string) {
   const text = canonicalizeInteger(raw);
   if (!/^-?[1-9]\d*$/.test(text)) {
-    return { ok: false as const, message: "Enter a whole number other than 0. Use a minus to remove stock." };
+    return {
+      ok: false as const,
+      message:
+        "Enter a whole number other than 0. Use a minus to remove stock.",
+    };
   }
   const value = Number(text);
   if (!Number.isSafeInteger(value) || Math.abs(value) > 1_000_000) {
-    return { ok: false as const, message: "Quantity cannot be more than 1,000,000." };
+    return {
+      ok: false as const,
+      message: "Quantity cannot be more than 1,000,000.",
+    };
   }
   return { ok: true as const, value };
 }
@@ -268,8 +302,13 @@ function canonicalizeInteger(raw: string) {
 
 export function parseUnitCost(raw: string) {
   const parsed = parseCostPriceInput(raw);
-  if (!parsed.ok) return { ok: false as const, message: "Enter a unit cost of 0 or more, with up to 2 decimal places." };
-  if (parsed.value == null) return { ok: false as const, message: "Enter a unit cost." };
+  if (!parsed.ok)
+    return {
+      ok: false as const,
+      message: "Enter a unit cost of 0 or more, with up to 2 decimal places.",
+    };
+  if (parsed.value == null)
+    return { ok: false as const, message: "Enter a unit cost." };
   return { ok: true as const, value: parsed.value };
 }
 
@@ -325,7 +364,9 @@ export type PurchaseProductChoice = {
  * One searchable row per product, or one row per option when stock is tracked per option.
  * The same product can be purchased as several lines, one option each.
  */
-export function purchaseChoicesFromProduct(product: PurchaseProductSource): PurchaseProductChoice[] {
+export function purchaseChoicesFromProduct(
+  product: PurchaseProductSource,
+): PurchaseProductChoice[] {
   const variants = product.variants.filter((variant) => variant.id.trim());
   const tracked = product.hasVariants || variants.length > 0;
   if (!tracked) {
@@ -378,8 +419,18 @@ export function purchaseItemBody(item: {
   variantId?: string | null;
   quantity: number;
   unitCost: number;
-}): { product_id: string; variant_id?: string; quantity: number; unit_cost: number } {
-  const body: { product_id: string; variant_id?: string; quantity: number; unit_cost: number } = {
+}): {
+  product_id: string;
+  variant_id?: string;
+  quantity: number;
+  unit_cost: number;
+} {
+  const body: {
+    product_id: string;
+    variant_id?: string;
+    quantity: number;
+    unit_cost: number;
+  } = {
     product_id: item.productId,
     quantity: item.quantity,
     unit_cost: item.unitCost,
@@ -394,8 +445,18 @@ export function adjustmentBody(input: {
   variantId?: string | null;
   quantity: number;
   reason: string;
-}): { product_id: string; variant_id?: string; quantity: number; reason: string } {
-  const body: { product_id: string; variant_id?: string; quantity: number; reason: string } = {
+}): {
+  product_id: string;
+  variant_id?: string;
+  quantity: number;
+  reason: string;
+} {
+  const body: {
+    product_id: string;
+    variant_id?: string;
+    quantity: number;
+    reason: string;
+  } = {
     product_id: input.productId,
     quantity: input.quantity,
     reason: input.reason,
@@ -428,19 +489,36 @@ export function validatePurchaseDraft(draft: {
   }>;
 }): FieldIssue[] {
   const issues: FieldIssue[] = [];
-  if (!draft.supplierId.trim()) issues.push({ field: "supplierId", message: "Choose a supplier." });
+  if (!draft.supplierId.trim())
+    issues.push({ field: "supplierId", message: "Choose a supplier." });
   if (!parseIsoDate(draft.purchasedOn)) {
     issues.push({ field: "purchasedOn", message: "Choose a purchase date." });
   }
   const invoice = draft.invoiceNo.trim();
-  if (invoice.length > 64) issues.push({ field: "invoiceNo", message: "Invoice number must be 64 characters or fewer." });
+  if (invoice.length > 64)
+    issues.push({
+      field: "invoiceNo",
+      message: "Invoice number must be 64 characters or fewer.",
+    });
   const note = (draft.note ?? "").trim();
-  if (note.length > 500) issues.push({ field: "note", message: "Note must be 500 characters or fewer." });
-  if (draft.lines.length === 0) issues.push({ field: "lines", message: "Add at least one product." });
-  if (draft.lines.length > 100) issues.push({ field: "lines", message: "A purchase can have at most 100 lines." });
+  if (note.length > 500)
+    issues.push({
+      field: "note",
+      message: "Note must be 500 characters or fewer.",
+    });
+  if (draft.lines.length === 0)
+    issues.push({ field: "lines", message: "Add at least one product." });
+  if (draft.lines.length > 100)
+    issues.push({
+      field: "lines",
+      message: "A purchase can have at most 100 lines.",
+    });
   draft.lines.forEach((line, index) => {
     if (!line.productId.trim()) {
-      issues.push({ field: `lines.${index}.productId`, message: "Choose a product." });
+      issues.push({
+        field: `lines.${index}.productId`,
+        message: "Choose a product.",
+      });
     }
     if (line.tracksVariants && !line.variantId) {
       issues.push({
@@ -449,9 +527,14 @@ export function validatePurchaseDraft(draft: {
       });
     }
     const quantity = parsePositiveQuantity(line.quantity);
-    if (!quantity.ok) issues.push({ field: `lines.${index}.quantity`, message: quantity.message });
+    if (!quantity.ok)
+      issues.push({
+        field: `lines.${index}.quantity`,
+        message: quantity.message,
+      });
     const cost = parseUnitCost(line.unitCost);
-    if (!cost.ok) issues.push({ field: `lines.${index}.unitCost`, message: cost.message });
+    if (!cost.ok)
+      issues.push({ field: `lines.${index}.unitCost`, message: cost.message });
   });
   return issues;
 }
@@ -548,7 +631,11 @@ export function templateSheet(kind: ImportKind): string[][] {
 }
 
 /** Header row plus data rows. Header names are matched case-insensitively. */
-export function sheetToRows(matrix: string[][]): { rows: SheetRow[]; missing: string[]; kindHeaders: string[] } {
+export function sheetToRows(matrix: string[][]): {
+  rows: SheetRow[];
+  missing: string[];
+  kindHeaders: string[];
+} {
   const header = (matrix[0] ?? []).map((cell) => cell.trim().toLowerCase());
   const rows: SheetRow[] = [];
   matrix.slice(1).forEach((cells, index) => {
@@ -600,7 +687,9 @@ export function classifyImportSheet(
   const missing = expected.filter((name) => !header.includes(name));
   if (missing.length > 0) {
     const row = blankClassified(1);
-    row.errors = [`Missing column${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}.`];
+    row.errors = [
+      `Missing column${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}.`,
+    ];
     return [row];
   }
   const parsed = sheetToRows(matrix).rows;
@@ -656,27 +745,45 @@ function classifyOne(
   const productIdText = sheetRow.cells.product_id ?? "";
   const variantText = sheetRow.cells.variant_id ?? "";
   row.sku = sheetRow.cells.sku ?? "";
-  if (productIdText && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productIdText)) {
+  if (
+    productIdText &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      productIdText,
+    )
+  ) {
     row.errors.push("product_id is not a valid id.");
   }
-  if (variantText && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variantText)) {
+  if (
+    variantText &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      variantText,
+    )
+  ) {
     row.errors.push("variant_id is not a valid id.");
   } else if (variantText) {
     row.variantId = variantText;
     row.errors.push("No variant matches this variant_id.");
   }
   if (!productIdText && !variantText && !row.sku) {
-    row.errors.push("Enter a product_id or a sku. Products are never matched by name.");
+    row.errors.push(
+      "Enter a product_id or a sku. Products are never matched by name.",
+    );
   }
   let product: CatalogProduct | undefined;
-  const productIdValid = Boolean(productIdText) && !row.errors.some((error) => error.startsWith("product_id"));
+  const productIdValid =
+    Boolean(productIdText) &&
+    !row.errors.some((error) => error.startsWith("product_id"));
   if (productIdValid) {
     product = lookups.productsById.get(productIdText);
     if (!product) row.errors.push("No product matches this product_id.");
   } else if (row.sku && !variantText) {
     product = lookups.productsBySku.get(row.sku.toLowerCase());
     if (!product) row.errors.push(`No product uses SKU ${row.sku}.`);
-  } else if (row.sku && variantText && !row.errors.some((error) => error.startsWith("variant_id"))) {
+  } else if (
+    row.sku &&
+    variantText &&
+    !row.errors.some((error) => error.startsWith("variant_id"))
+  ) {
     product = lookups.productsBySku.get(row.sku.toLowerCase());
   }
   if (product) {
@@ -691,11 +798,13 @@ function classifyOne(
     fillOptionalQuantity(row, sheetRow.cells.quantity ?? "");
   } else if (kind === "stock_count") {
     const counted = parseBoundedInteger(sheetRow.cells.counted_qty ?? "", 0);
-    if (!counted.ok) row.errors.push(counted.message.replace("Quantity", "counted_qty"));
+    if (!counted.ok)
+      row.errors.push(counted.message.replace("Quantity", "counted_qty"));
     else row.quantity = counted.value;
     row.reason = (sheetRow.cells.reason ?? "").trim();
     if (!row.reason) row.errors.push("Reason is required.");
-    else if (row.reason.length > 500) row.errors.push("Reason must be 500 characters or fewer.");
+    else if (row.reason.length > 500)
+      row.errors.push("Reason must be 500 characters or fewer.");
   } else {
     const cost = parseUnitCost(sheetRow.cells.unit_cost ?? "");
     if (!cost.ok) row.errors.push(cost.message);
@@ -704,7 +813,10 @@ function classifyOne(
 
   if (row.productId && kind !== "purchases") {
     const key = row.productId;
-    if (seen.has(key)) row.errors.push("This product or option appears more than once in the file.");
+    if (seen.has(key))
+      row.errors.push(
+        "This product or option appears more than once in the file.",
+      );
     else seen.add(key);
   }
 
@@ -718,7 +830,11 @@ function classifyOne(
     if (named && named.count > 1) {
       row.errors.push(`More than one supplier is named '${row.supplierName}'.`);
     }
-    if (row.errors.length === 0 && row.quantity != null && row.unitCost != null) {
+    if (
+      row.errors.length === 0 &&
+      row.quantity != null &&
+      row.unitCost != null
+    ) {
       row.action = "purchase";
       row.summary = `Receive ${row.quantity} at ${moneyText(row.unitCost)} (${product.name})`;
       row.valid = true;
@@ -767,7 +883,8 @@ function classifyOne(
   }
   if (row.unitCost != null) {
     row.action = "cost";
-    const previous = product.costPrice == null ? "none" : moneyText(product.costPrice);
+    const previous =
+      product.costPrice == null ? "none" : moneyText(product.costPrice);
     row.summary = `Cost price ${previous} → ${moneyText(row.unitCost)} (${product.name})`;
     row.valid = true;
   }
@@ -782,14 +899,21 @@ function fillPurchase(row: ClassifiedImportRow, sheetRow: SheetRow) {
   row.invoiceNo = (sheetRow.cells.invoice_no ?? "").trim();
   row.purchasedOn = (sheetRow.cells.purchased_on ?? "").trim();
   if (!row.supplierName) row.errors.push("Enter the supplier name.");
-  else if (row.supplierName.length > 160) row.errors.push("Supplier name must be 160 characters or fewer.");
-  if (row.supplierPhone.length > 40) row.errors.push("Supplier phone must be 40 characters or fewer.");
-  if (row.supplierAddress.length > 500) row.errors.push("Supplier address must be 500 characters or fewer.");
-  if (row.supplierNote.length > 500) row.errors.push("Supplier note must be 500 characters or fewer.");
-  if (row.invoiceNo.length > 64) row.errors.push("Invoice number must be 64 characters or fewer.");
-  if (!parseIsoDate(row.purchasedOn)) row.errors.push("Enter the purchase date as YYYY-MM-DD.");
+  else if (row.supplierName.length > 160)
+    row.errors.push("Supplier name must be 160 characters or fewer.");
+  if (row.supplierPhone.length > 40)
+    row.errors.push("Supplier phone must be 40 characters or fewer.");
+  if (row.supplierAddress.length > 500)
+    row.errors.push("Supplier address must be 500 characters or fewer.");
+  if (row.supplierNote.length > 500)
+    row.errors.push("Supplier note must be 500 characters or fewer.");
+  if (row.invoiceNo.length > 64)
+    row.errors.push("Invoice number must be 64 characters or fewer.");
+  if (!parseIsoDate(row.purchasedOn))
+    row.errors.push("Enter the purchase date as YYYY-MM-DD.");
   const quantity = parseBoundedInteger(sheetRow.cells.quantity ?? "", 1);
-  if (!quantity.ok) row.errors.push(quantity.message.replace("Quantity", "quantity"));
+  if (!quantity.ok)
+    row.errors.push(quantity.message.replace("Quantity", "quantity"));
   else row.quantity = quantity.value;
   const cost = parseUnitCost(sheetRow.cells.unit_cost ?? "");
   if (!cost.ok) row.errors.push(cost.message);
@@ -799,7 +923,8 @@ function fillPurchase(row: ClassifiedImportRow, sheetRow: SheetRow) {
 function fillOptionalQuantity(row: ClassifiedImportRow, raw: string) {
   if (!raw.trim()) return;
   const quantity = parseBoundedInteger(raw, 0);
-  if (!quantity.ok) row.errors.push(quantity.message.replace("Quantity", "quantity"));
+  if (!quantity.ok)
+    row.errors.push(quantity.message.replace("Quantity", "quantity"));
   else row.quantity = quantity.value;
 }
 
@@ -810,18 +935,26 @@ function parseBoundedInteger(raw: string, minimum: number) {
     .replace(/^\+/, "");
   if (!text) return { ok: false as const, message: "Enter Quantity." };
   if (!/^\d+$/.test(text)) {
-    return { ok: false as const, message: `Quantity must be a whole number from ${minimum} to 1,000,000.` };
+    return {
+      ok: false as const,
+      message: `Quantity must be a whole number from ${minimum} to 1,000,000.`,
+    };
   }
   const value = Number(text);
   if (!Number.isSafeInteger(value) || value < minimum || value > 1_000_000) {
-    return { ok: false as const, message: `Quantity must be a whole number from ${minimum} to 1,000,000.` };
+    return {
+      ok: false as const,
+      message: `Quantity must be a whole number from ${minimum} to 1,000,000.`,
+    };
   }
   return { ok: true as const, value };
 }
 
 function moneyText(value: number) {
   const rounded = roundMoney(value);
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return Number.isInteger(rounded)
+    ? String(rounded)
+    : rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 /** Normalises `POST /imports/preview`. */
@@ -830,14 +963,18 @@ export function mapImportPreview(body: unknown): ImportPreview | null {
   const record = body as Record<string, unknown>;
   const fileHash = typeof record.file_hash === "string" ? record.file_hash : "";
   if (!fileHash || !Array.isArray(record.rows)) return null;
-  const importType = typeof record.import_type === "string" ? record.import_type : "";
+  const importType =
+    typeof record.import_type === "string" ? record.import_type : "";
   const rows = record.rows.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const row = item as Record<string, unknown>;
     const number = typeof row.row === "number" ? row.row : Number(row.row);
     if (!Number.isInteger(number)) return [];
     const errors = Array.isArray(row.errors)
-      ? row.errors.filter((error): error is string => typeof error === "string" && error.trim() !== "")
+      ? row.errors.filter(
+          (error): error is string =>
+            typeof error === "string" && error.trim() !== "",
+        )
       : [];
     return [
       {
@@ -851,13 +988,18 @@ export function mapImportPreview(body: unknown): ImportPreview | null {
   });
   const validCount = rows.filter((row) => row.valid).length;
   return {
-    importType: (IMPORT_KINDS as readonly string[]).includes(importType) ? (importType as ImportKind) : "",
+    importType: (IMPORT_KINDS as readonly string[]).includes(importType)
+      ? (importType as ImportKind)
+      : "",
     fileHash,
     duplicate: record.duplicate === true,
     rows,
-    validCount: typeof record.valid_count === "number" ? record.valid_count : validCount,
+    validCount:
+      typeof record.valid_count === "number" ? record.valid_count : validCount,
     invalidCount:
-      typeof record.invalid_count === "number" ? record.invalid_count : rows.length - validCount,
+      typeof record.invalid_count === "number"
+        ? record.invalid_count
+        : rows.length - validCount,
   };
 }
 
@@ -873,7 +1015,9 @@ export function readDuplicateFile(body: unknown) {
   if (record.code !== "conflict") return null;
   const details = record.details;
   const fileHash =
-    details && typeof details === "object" && typeof (details as { file_hash?: unknown }).file_hash === "string"
+    details &&
+    typeof details === "object" &&
+    typeof (details as { file_hash?: unknown }).file_hash === "string"
       ? (details as { file_hash: string }).file_hash
       : "";
   if (!fileHash) return null;
@@ -890,7 +1034,9 @@ export async function sha256Hex(bytes: Uint8Array) {
   const copy = new Uint8Array(bytes.byteLength);
   copy.set(bytes);
   const digest = await crypto.subtle.digest("SHA-256", copy);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export function importResultMessage(saved: number, skipped: number) {
@@ -899,7 +1045,10 @@ export function importResultMessage(saved: number, skipped: number) {
   return `${savedLabel}. ${skippedLabel}.`;
 }
 
-export function adjustmentResultQuantity(current: number | null, delta: number) {
+export function adjustmentResultQuantity(
+  current: number | null,
+  delta: number,
+) {
   const held = current ?? 0;
   return held + delta;
 }

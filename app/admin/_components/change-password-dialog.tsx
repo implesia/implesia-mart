@@ -168,7 +168,7 @@ export function ChangePasswordDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-950/40 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-md sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !pending) onClose();
@@ -179,109 +179,124 @@ export function ChangePasswordDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="force-light w-full max-w-md rounded-t-3xl bg-white p-5 shadow-xl ring-1 ring-neutral-200/80 sm:rounded-2xl sm:p-6"
+        className="force-light w-full max-w-md overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 sm:rounded-2xl"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 id={titleId} className="text-lg font-semibold text-neutral-950">
-              Change password
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-              After it saves, sign in again with the new password. Other devices
-              are signed out.
-            </p>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm shadow-indigo-200">
+              <MaterialIcon name="lock" className="text-[18px]" />
+            </div>
+            <div>
+              <h2 id={titleId} className="text-base font-bold text-slate-900">
+                Change password
+              </h2>
+              <p className="mt-0.5 text-xs font-medium leading-relaxed text-slate-500">
+                After it saves, sign in again with the new password.
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={pending}
             aria-label="Close"
-            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
           >
-            <MaterialIcon name="close" className="text-[20px]" />
+            <MaterialIcon name="close" className="text-[18px]" />
           </button>
         </div>
 
-        {errors.form ? (
-          <p
-            role="alert"
-            className="mt-4 flex items-start gap-2 rounded-2xl bg-red-50 px-3.5 py-3 text-sm leading-relaxed text-red-700 ring-1 ring-red-100"
-          >
-            <MaterialIcon name="error" className="mt-0.5 text-[18px]" />
-            <span>{errors.form}</span>
-          </p>
-        ) : null}
+        <div className="px-5 py-4 sm:px-6 sm:py-5">
+          {errors.form ? (
+            <p
+              role="alert"
+              className="mb-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm font-medium leading-relaxed text-rose-700"
+            >
+              <MaterialIcon name="error" className="mt-0.5 text-[18px]" />
+              <span>{errors.form}</span>
+            </p>
+          ) : null}
 
-        <form onSubmit={submit} className="mt-5 flex flex-col gap-4" noValidate>
-          <PasswordField
-            id="admin-current-password"
-            label="Current password"
-            placeholder="Enter your current password"
-            autoComplete="current-password"
-            value={current}
-            error={errors.current}
-            disabled={pending}
-            onChange={(value) => {
-              setCurrent(value);
-              setErrors((existing) => ({
-                ...existing,
-                current: undefined,
-                form: undefined,
-              }));
-            }}
-          />
-          <PasswordField
-            id="admin-new-password"
-            label="New password"
-            placeholder="At least 12 characters"
-            autoComplete="new-password"
-            value={next}
-            error={errors.next}
-            disabled={pending}
-            onChange={(value) => {
-              setNext(value);
-              setErrors((existing) => ({
-                ...existing,
-                next: undefined,
-                form: undefined,
-              }));
-            }}
-          />
-          <PasswordField
-            id="admin-confirm-password"
-            label="Confirm new password"
-            placeholder="Repeat the new password"
-            autoComplete="new-password"
-            value={confirm}
-            error={errors.confirm}
-            disabled={pending}
-            onChange={(value) => {
-              setConfirm(value);
-              setErrors((existing) => ({
-                ...existing,
-                confirm: undefined,
-                form: undefined,
-              }));
-            }}
-          />
-          <div className="mt-1 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onClose}
+          <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+            <PasswordField
+              id="admin-current-password"
+              label="Current password"
+              placeholder="Enter your current password"
+              autoComplete="current-password"
+              value={current}
+              error={errors.current}
               disabled={pending}
-              className={adminButtonClass.secondary}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
+              onChange={(value) => {
+                setCurrent(value);
+                setErrors((existing) => ({
+                  ...existing,
+                  current: undefined,
+                  form: undefined,
+                }));
+              }}
+            />
+            <PasswordField
+              id="admin-new-password"
+              label="New password"
+              placeholder="At least 12 characters"
+              autoComplete="new-password"
+              value={next}
+              error={errors.next}
               disabled={pending}
-              className={adminButtonClass.primary}
-            >
-              {pending ? "Updating…" : "Update password"}
-            </button>
-          </div>
-        </form>
+              onChange={(value) => {
+                setNext(value);
+                setErrors((existing) => ({
+                  ...existing,
+                  next: undefined,
+                  form: undefined,
+                }));
+              }}
+            />
+            <PasswordField
+              id="admin-confirm-password"
+              label="Confirm new password"
+              placeholder="Repeat the new password"
+              autoComplete="new-password"
+              value={confirm}
+              error={errors.confirm}
+              disabled={pending}
+              onChange={(value) => {
+                setConfirm(value);
+                setErrors((existing) => ({
+                  ...existing,
+                  confirm: undefined,
+                  form: undefined,
+                }));
+              }}
+            />
+
+            <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={pending}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
+              >
+                {pending ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Updating…
+                  </>
+                ) : (
+                  "Update password"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,16 @@ import {
   type ReportGrain,
   type TrendPoint,
 } from "@/lib/admin/reports";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { BarChart3 } from "lucide-react";
 
 type ChartRow = {
   label: string;
@@ -31,54 +40,99 @@ export function SalesTrendChart({
     net: point.netSales,
     profit: point.profit,
   }));
+
   const quiet =
     empty ||
     rows.every((row) => row.net === 0 && (row.profit == null || row.profit === 0));
 
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-600">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-primary" />
-          Net sales
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-secondary" />
-          Profit
-        </span>
-        <span>Asia/Dhaka · {grain}</span>
+    <div className="w-full">
+      {/* Header & Legend */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-[#2bc0b5]/10 px-2 py-1 text-[11px] font-semibold text-[#2bc0b5] ring-1 ring-inset ring-[#2bc0b5]/20">
+            <span className="h-2 w-2 rounded-full bg-[#2bc0b5]" />
+            Net sales
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200/60">
+            <span className="h-2 w-2 rounded-full bg-indigo-500" />
+            Profit
+          </span>
+        </div>
+        <span className="text-[11px] font-medium text-slate-500">Asia/Dhaka · {grain}</span>
       </div>
+
       {quiet ? (
-        <p className="px-1 py-16 text-center text-sm text-neutral-600">No sales in this period.</p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-100">
+            <BarChart3 className="h-6 w-6" />
+          </div>
+          <h3 className="mt-3 text-sm font-semibold text-slate-900">No sales in this period</h3>
+          <p className="mt-1 text-xs font-medium text-slate-500">Try adjusting your date range or filters.</p>
+        </div>
       ) : (
         <div className="h-72 w-full min-w-0" role="img" aria-label={`${grain} net sales and profit`}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="var(--color-outline-variant)" vertical={false} />
+            <AreaChart data={rows} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2bc0b5" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#2bc0b5" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+
               <XAxis
                 dataKey="label"
-                tick={{ fill: "var(--color-neutral-500)", fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 11, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
                 interval="preserveStartEnd"
+                dy={8}
               />
               <YAxis
                 width={72}
                 tickFormatter={(value: number) => formatCompactTaka(value)}
-                tick={{ fill: "var(--color-neutral-500)", fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 11, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
+                cursor={{ stroke: "#cbd5e1", strokeWidth: 1, strokeDasharray: "3 3" }}
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   const row = payload[0]?.payload as ChartRow | undefined;
                   if (!row) return null;
                   return (
-                    <div className="rounded-xl bg-admin-ink px-3 py-2 text-xs text-white shadow-lg">
-                      <p className="font-semibold">{row.label}</p>
-                      <p className="mt-1">Net sales {formatReportMoney(row.net)}</p>
-                      <p>Profit {formatReportMoney(row.profit)}</p>
+                    <div className="min-w-[140px] rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-3 shadow-xl">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        {row.label}
+                      </p>
+                      <div className="mt-2 space-y-1.5">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#2bc0b5]" />
+                            Net Sales
+                          </span>
+                          <span className="text-xs font-bold tabular-nums text-white">
+                            {formatReportMoney(row.net)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                            Profit
+                          </span>
+                          <span className="text-xs font-bold tabular-nums text-white">
+                            {formatReportMoney(row.profit)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   );
                 }}
@@ -87,25 +141,27 @@ export function SalesTrendChart({
                 type="monotone"
                 dataKey="net"
                 name="Net sales"
-                stroke="var(--color-primary)"
-                fill="var(--color-primary)"
-                fillOpacity={0.16}
-                strokeWidth={2}
+                stroke="#2bc0b5"
+                strokeWidth={2.5}
+                fill="url(#netGradient)"
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: "#2bc0b5" }}
               />
               <Area
                 type="monotone"
                 dataKey="profit"
                 name="Profit"
-                stroke="var(--color-secondary)"
-                fill="var(--color-secondary)"
-                fillOpacity={0.1}
-                strokeWidth={2}
+                stroke="#6366f1"
+                strokeWidth={2.5}
+                fill="url(#profitGradient)"
                 connectNulls={false}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: "#6366f1" }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Accessible Data Table */}
       <table className="sr-only">
         <caption>Net sales and profit by {grain}</caption>
         <thead>
