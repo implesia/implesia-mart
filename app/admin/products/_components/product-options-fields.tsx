@@ -48,8 +48,9 @@ export function ProductOptionsFields({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+    <div className="space-y-3">
+      {/* Add-option toolbar */}
+      <div className="flex flex-wrap items-center gap-1.5">
         <AddButton
           icon="palette"
           label="Add color"
@@ -68,9 +69,16 @@ export function ProductOptionsFields({
       </div>
 
       {content.options.length === 0 ? (
-        <p className="rounded-xl bg-[#f5f6f8] px-3 py-3 text-sm text-neutral-500">
-          No choices yet. Add color, size, or another option when the customer should pick one.
-        </p>
+        <div className="flex items-start gap-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 px-3 py-2.5 text-sm text-neutral-500">
+          <MaterialIcon
+            name="info"
+            className="mt-0.5 shrink-0 text-[16px] text-neutral-400"
+          />
+          <p>
+            No choices yet. Add color, size, or another option when the
+            customer should pick one.
+          </p>
+        </div>
       ) : null}
 
       {content.options.map((option) => (
@@ -78,7 +86,9 @@ export function ProductOptionsFields({
           key={option.id}
           option={option}
           onChange={(next) => patch(option.id, next)}
-          onRemove={() => update(content.options.filter((item) => item.id !== option.id))}
+          onRemove={() =>
+            update(content.options.filter((item) => item.id !== option.id))
+          }
           onAddValue={addValue}
         />
       ))}
@@ -98,38 +108,50 @@ function OptionCard({
   onAddValue: (option: ProductOptionGroup, label: string, swatch?: string) => void;
 }) {
   return (
-    <div className="rounded-2xl bg-[#f5f6f8] p-3 sm:p-4">
+    <div className="rounded-xl border border-neutral-200/80 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+      {/* Header: name input + remove */}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <FieldLabel htmlFor={`${option.id}-name`}>
-            {option.kind === "color" ? "Color name" : option.kind === "size" ? "Size name" : "Option name"}
+            {option.kind === "color"
+              ? "Color name"
+              : option.kind === "size"
+                ? "Size name"
+                : "Option name"}
           </FieldLabel>
           <input
             id={`${option.id}-name`}
             value={option.name}
-            onChange={(event) => onChange({ ...option, name: event.target.value })}
-            placeholder={option.kind === "text" ? "Such as Material" : "Customers see this name"}
+            onChange={(event) =>
+              onChange({ ...option, name: event.target.value })
+            }
+            placeholder={
+              option.kind === "text"
+                ? "Such as Material"
+                : "Customers see this name"
+            }
             className={adminFieldClass}
           />
         </div>
         <button
           type="button"
           onClick={onRemove}
-          className="mt-6 grid size-11 shrink-0 place-items-center rounded-xl text-neutral-500 hover:bg-white hover:text-red-500"
+          className="mt-[26px] grid size-8 shrink-0 place-items-center rounded-lg text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
           aria-label="Remove option"
         >
-          <MaterialIcon name="delete" className="text-[20px]" />
+          <MaterialIcon name="delete" className="text-[18px]" />
         </button>
       </div>
 
+      {/* Values */}
       {option.values.length > 0 ? (
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <ul className="mt-2.5 flex flex-wrap gap-1.5">
           {option.values.map((value) => (
             <li key={value.id}>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white py-1 pr-1 pl-2 text-sm font-medium text-neutral-950 ring-1 ring-neutral-200">
+              <span className="group/value inline-flex h-7 items-center gap-1.5 rounded-full bg-white pl-2 pr-1 text-sm font-medium text-neutral-900 ring-1 ring-neutral-200 transition-colors hover:ring-neutral-300">
                 {option.kind === "color" && value.swatch ? (
                   <span
-                    className="size-3.5 rounded-full ring-1 ring-neutral-300"
+                    className="size-3.5 rounded-full ring-1 ring-inset ring-black/10"
                     style={{ background: value.swatch }}
                   />
                 ) : null}
@@ -139,20 +161,25 @@ function OptionCard({
                   onClick={() =>
                     onChange({
                       ...option,
-                      values: option.values.filter((item) => item.id !== value.id),
+                      values: option.values.filter(
+                        (item) => item.id !== value.id,
+                      ),
                     })
                   }
-                  className="grid size-6 place-items-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+                  className="grid size-5 place-items-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   aria-label={`Remove ${value.label}`}
                 >
-                  <MaterialIcon name="close" className="text-[14px]" />
+                  <MaterialIcon name="close" className="text-[13px]" />
                 </button>
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-xs text-neutral-500">Add at least one value, or this group is not saved.</p>
+        <p className="mt-2.5 flex items-center gap-1.5 text-xs text-neutral-500">
+          <MaterialIcon name="info" className="text-[14px] text-neutral-400" />
+          Add at least one value, or this group is not saved.
+        </p>
       )}
 
       <ValueAdder option={option} onAdd={onAddValue} />
@@ -176,60 +203,91 @@ function ValueAdder({
     if (option.kind === "color") setSwatch("#111827");
   }
 
+  const isColor = option.kind === "color";
+  const isSize = option.kind === "size";
+  const canAdd = label.trim().length > 0;
+
   return (
-    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-      {option.kind === "color" ? (
-        <input
-          type="color"
-          value={swatch}
-          onChange={(event) => setSwatch(event.target.value)}
-          aria-label="Swatch"
-          className="h-11 w-14 shrink-0 cursor-pointer rounded-xl border border-neutral-200 bg-white p-1"
-        />
-      ) : null}
-      <input
-        value={label}
-        onChange={(event) => setLabel(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            add();
-          }
-        }}
-        placeholder={option.kind === "size" ? "Size, such as M" : option.kind === "color" ? "Color, such as কালো" : "Value"}
-        className={cn(adminFieldClass, "min-w-0 flex-1")}
-      />
-      <button
-        type="button"
-        onClick={add}
-        className="inline-flex h-11 items-center justify-center rounded-xl bg-neutral-950 px-4 text-sm font-semibold text-white"
+    <div className="mt-2.5 space-y-2">
+      {/* Input row */}
+      <div
+        className={cn(
+          "flex items-stretch gap-1.5 rounded-lg border bg-white p-1 transition-colors",
+          "focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15",
+          canAdd
+            ? "border-neutral-200 shadow-sm"
+            : "border-dashed border-neutral-300",
+        )}
       >
-        Add
-      </button>
-      {option.kind === "size" ? (
-        <div className="flex flex-wrap gap-1.5 sm:hidden">
+        {isColor ? (
+          <div className="relative shrink-0">
+            <input
+              type="color"
+              value={swatch}
+              onChange={(event) => setSwatch(event.target.value)}
+              aria-label="Swatch"
+              className="peer h-8 w-10 cursor-pointer rounded-md border-0 bg-transparent p-0"
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0.5 rounded ring-1 ring-inset ring-black/10 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
+            />
+          </div>
+        ) : null}
+
+        <input
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              add();
+            }
+          }}
+          placeholder={
+            isSize ? "Size, such as M" : isColor ? "Color, such as কালো" : "Value"
+          }
+          aria-label={
+            isSize ? "New size value" : isColor ? "New color value" : "New value"
+          }
+          className="min-w-0 flex-1 rounded-md bg-transparent px-2 text-sm text-neutral-950 outline-none placeholder:text-neutral-400"
+        />
+
+        <button
+          type="button"
+          onClick={add}
+          disabled={!canAdd}
+          className={cn(
+            "inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md px-3 text-[13px] font-semibold transition-all",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1",
+            canAdd
+              ? "bg-neutral-950 text-white shadow-sm hover:bg-neutral-800 active:scale-[0.97]"
+              : "cursor-not-allowed bg-neutral-100 text-neutral-400",
+          )}
+        >
+          <MaterialIcon name="add" className="text-[15px]" />
+          Add
+        </button>
+      </div>
+
+      {/* Size presets */}
+      {isSize ? (
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="mr-0.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+            Quick add
+          </span>
           {SIZE_PRESETS.map((size) => (
             <button
               key={size}
               type="button"
               onClick={() => onAdd(option, size)}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 ring-1 ring-neutral-200"
+              className="group/preset inline-flex h-6 items-center rounded-full bg-neutral-100 px-2 text-[11px] font-semibold text-neutral-700 transition-all hover:bg-neutral-950 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
             >
               {size}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {option.kind === "size" ? (
-        <div className="hidden flex-wrap gap-1.5 sm:flex sm:basis-full">
-          {SIZE_PRESETS.map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => onAdd(option, size)}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 ring-1 ring-neutral-200 hover:ring-neutral-950"
-            >
-              {size}
+              <MaterialIcon
+                name="add"
+                className="ml-0.5 text-[10px] opacity-0 transition-opacity group-hover/preset:opacity-100"
+              />
             </button>
           ))}
         </div>
@@ -251,9 +309,9 @@ function AddButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#f5f6f8] px-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-200"
+      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-800 shadow-sm transition-all hover:-translate-y-px hover:border-neutral-300 hover:bg-neutral-50 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 active:translate-y-0"
     >
-      <MaterialIcon name={icon} className="text-[18px]" />
+      <MaterialIcon name={icon} className="text-[16px] text-neutral-500" />
       {label}
     </button>
   );

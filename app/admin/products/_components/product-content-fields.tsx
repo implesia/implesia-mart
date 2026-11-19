@@ -737,12 +737,11 @@ function SpecList({
   }
 
   return (
-    <div className="border-t border-neutral-100 pt-5">
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-4 pt-5 border-t border-neutral-100">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-neutral-950">
-            Specifications
-          </h3>
+          <h3 className="text-base font-semibold text-neutral-950">Specifications</h3>
           <p className="mt-1 text-sm text-neutral-500">
             Rows on the specifications tab, grouped by topic. The first few also
             appear beside the gallery on large screens.
@@ -753,14 +752,20 @@ function SpecList({
           onClick={() =>
             onChange({ ...content, specs: [...content.specs, blankSpec()] })
           }
-          className={adminButtonClass.secondary}
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-neutral-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2"
         >
+          <MaterialIcon name="add" className="text-[18px]" />
           Add specification
         </button>
       </div>
+
+      {/* Suggestions */}
       {suggestions.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="spec-suggestions">
-          <span className="text-xs text-neutral-500">Suggested for this category:</span>
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-neutral-50 p-3 ring-1 ring-neutral-200/60" data-testid="spec-suggestions">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-600">
+            <MaterialIcon name="lightbulb" className="text-[14px] text-amber-500" />
+            Suggested for this category:
+          </span>
           {suggestions.map((item) => (
             <button
               key={item.label}
@@ -774,96 +779,77 @@ function SpecList({
                   ],
                 })
               }
-              className="h-9 rounded-full bg-[#f5f6f8] px-3 text-xs font-medium text-neutral-800 ring-1 ring-neutral-200 hover:bg-neutral-100"
+              className="inline-flex h-7 items-center gap-1 rounded-full bg-white px-2.5 text-xs font-semibold text-neutral-700 ring-1 ring-neutral-200 transition-all hover:-translate-y-px hover:bg-neutral-950 hover:text-white hover:ring-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              + {item.label}
+              <MaterialIcon name="add" className="text-[12px]" />
+              {item.label}
             </button>
           ))}
         </div>
       ) : null}
+
+      {/* List */}
       {content.specs.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">No specifications yet.</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 py-8 text-center">
+          <MaterialIcon name="list_alt" className="mb-2 text-[32px] text-neutral-300" />
+          <p className="text-sm font-medium text-neutral-600">No specifications yet</p>
+          <p className="mt-0.5 text-xs text-neutral-500">Add rows to display product details.</p>
+        </div>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="space-y-3">
           {content.specs.map((item, index) => (
             <li
               key={item.id}
-              className="rounded-2xl bg-[#f7f8fa] p-3 ring-1 ring-neutral-200"
+              className="group rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-neutral-500">
-                  Specification {index + 1}
+              <div className="mb-3 flex items-center justify-between gap-2 border-b border-neutral-100 pb-2">
+                <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                  <span className="grid size-5 place-items-center rounded-md bg-neutral-100 text-neutral-600">
+                    {index + 1}
+                  </span>
+                  Specification
                 </p>
                 <RowActions
                   label={`specification ${index + 1}`}
                   disableUp={index === 0}
                   disableDown={index === content.specs.length - 1}
-                  onUp={() =>
-                    onChange({
-                      ...content,
-                      specs: move(content.specs, index, index - 1),
-                    })
-                  }
-                  onDown={() =>
-                    onChange({
-                      ...content,
-                      specs: move(content.specs, index, index + 1),
-                    })
-                  }
-                  onRemove={() =>
-                    onChange({
-                      ...content,
-                      specs: content.specs.filter((row) => row.id !== item.id),
-                    })
-                  }
+                  onUp={() => onChange({ ...content, specs: move(content.specs, index, index - 1) })}
+                  onDown={() => onChange({ ...content, specs: move(content.specs, index, index + 1) })}
+                  onRemove={() => onChange({ ...content, specs: content.specs.filter((row) => row.id !== item.id) })}
                 />
               </div>
-              <div className="grid gap-3 sm:grid-cols-[9rem_minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="grid gap-3 sm:grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)]">
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Group
-                  </span>
+                  <span className="mb-1 block text-xs font-semibold text-neutral-600">Group</span>
                   <select
                     value={item.group}
                     aria-label={`Group for specification ${index + 1}`}
-                    onChange={(event) =>
-                      update(item.id, {
-                        group: event.target.value as ProductSpecRow["group"],
-                      })
-                    }
+                    onChange={(event) => update(item.id, { group: event.target.value as ProductSpecRow["group"] })}
                     className={adminFieldClass}
                   >
                     {SPEC_GROUP_OPTIONS.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
+                      <option key={option.id} value={option.id}>{option.label}</option>
                     ))}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Specification
-                  </span>
+                  <span className="mb-1 block text-xs font-semibold text-neutral-600">Specification</span>
                   <input
                     value={item.label}
                     aria-label={`Name for specification ${index + 1}`}
-                    onChange={(event) =>
-                      update(item.id, { label: event.target.value })
-                    }
+                    onChange={(event) => update(item.id, { label: event.target.value })}
                     className={adminFieldClass}
+                    placeholder="e.g. Material"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Value
-                  </span>
+                  <span className="mb-1 block text-xs font-semibold text-neutral-600">Value</span>
                   <input
                     value={item.value}
                     aria-label={`Value for specification ${index + 1}`}
-                    onChange={(event) =>
-                      update(item.id, { value: event.target.value })
-                    }
+                    onChange={(event) => update(item.id, { value: event.target.value })}
                     className={adminFieldClass}
+                    placeholder="e.g. Cotton"
                   />
                 </label>
               </div>
@@ -874,6 +860,7 @@ function SpecList({
     </div>
   );
 }
+
 
 function FaqList({
   formId,
@@ -887,97 +874,75 @@ function FaqList({
   function update(id: string, patch: Partial<ProductFaqRow>) {
     onChange({
       ...content,
-      faqs: content.faqs.map((item) =>
-        item.id === id ? { ...item, ...patch } : item,
-      ),
+      faqs: content.faqs.map((item) => item.id === id ? { ...item, ...patch } : item),
     });
   }
 
   return (
-    <div className="border-t border-neutral-100 pt-5">
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-4 pt-5 border-t border-neutral-100">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-neutral-950">Questions</h3>
+          <h3 className="text-base font-semibold text-neutral-950">Questions</h3>
           <p className="mt-1 text-sm text-neutral-500">
             The questions tab. Leave this empty to hide that tab.
           </p>
         </div>
         <button
           type="button"
-          onClick={() =>
-            onChange({ ...content, faqs: [...content.faqs, blankFaq()] })
-          }
-          className={adminButtonClass.secondary}
+          onClick={() => onChange({ ...content, faqs: [...content.faqs, blankFaq()] })}
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-neutral-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2"
         >
+          <MaterialIcon name="add" className="text-[18px]" />
           Add question
         </button>
       </div>
+
       {content.faqs.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">No questions yet.</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 py-8 text-center">
+          <MaterialIcon name="help_outline" className="mb-2 text-[32px] text-neutral-300" />
+          <p className="text-sm font-medium text-neutral-600">No questions yet</p>
+          <p className="mt-0.5 text-xs text-neutral-500">Add FAQs to display them on the product page.</p>
+        </div>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="space-y-3">
           {content.faqs.map((item, index) => (
-            <li
-              key={item.id}
-              className="rounded-2xl bg-[#f7f8fa] p-3 ring-1 ring-neutral-200"
-            >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-neutral-500">
-                  Question {index + 1}
+            <li key={item.id} className="group rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+              <div className="mb-3 flex items-center justify-between gap-2 border-b border-neutral-100 pb-2">
+                <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                  <span className="grid size-5 place-items-center rounded-md bg-neutral-100 text-neutral-600">
+                    Q{index + 1}
+                  </span>
+                  Question
                 </p>
                 <RowActions
                   label={`question ${index + 1}`}
                   disableUp={index === 0}
                   disableDown={index === content.faqs.length - 1}
-                  onUp={() =>
-                    onChange({
-                      ...content,
-                      faqs: move(content.faqs, index, index - 1),
-                    })
-                  }
-                  onDown={() =>
-                    onChange({
-                      ...content,
-                      faqs: move(content.faqs, index, index + 1),
-                    })
-                  }
-                  onRemove={() =>
-                    onChange({
-                      ...content,
-                      faqs: content.faqs.filter((row) => row.id !== item.id),
-                    })
-                  }
+                  onUp={() => onChange({ ...content, faqs: move(content.faqs, index, index - 1) })}
+                  onDown={() => onChange({ ...content, faqs: move(content.faqs, index, index + 1) })}
+                  onRemove={() => onChange({ ...content, faqs: content.faqs.filter((row) => row.id !== item.id) })}
                 />
               </div>
               <div className="grid gap-3">
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Question
-                  </span>
+                  <span className="mb-1 block text-xs font-semibold text-neutral-600">Question</span>
                   <input
                     id={`${formId}-faq-q-${item.id}`}
                     value={item.question}
-                    onChange={(event) =>
-                      update(item.id, { question: event.target.value })
-                    }
+                    onChange={(event) => update(item.id, { question: event.target.value })}
                     className={adminFieldClass}
+                    placeholder="What do customers ask?"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Answer
-                  </span>
+                  <span className="mb-1 block text-xs font-semibold text-neutral-600">Answer</span>
                   <textarea
                     id={`${formId}-faq-a-${item.id}`}
                     value={item.answer}
                     rows={3}
-                    onChange={(event) =>
-                      update(item.id, { answer: event.target.value })
-                    }
-                    className={cn(
-                      adminFieldClass,
-                      "h-auto py-3 leading-relaxed",
-                    )}
+                    onChange={(event) => update(item.id, { answer: event.target.value })}
+                    className={cn(adminFieldClass, "h-auto py-2.5 leading-relaxed")}
+                    placeholder="Provide a clear, helpful answer."
                   />
                 </label>
               </div>
@@ -1005,38 +970,45 @@ function LineList({
   onChange: (items: string[]) => void;
 }) {
   return (
-    <div>
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-neutral-950">{label}</h3>
+          <h3 className="text-base font-semibold text-neutral-950">{label}</h3>
           <p className="mt-1 text-sm text-neutral-500">{hint}</p>
         </div>
         <button
           type="button"
           onClick={() => onChange([...items, ""])}
-          className={adminButtonClass.secondary}
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-neutral-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2"
         >
+          <MaterialIcon name="add" className="text-[18px]" />
           {addLabel}
         </button>
       </div>
+
       {items.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">None yet.</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 py-6 text-center">
+          <p className="text-sm font-medium text-neutral-600">None yet</p>
+          <p className="mt-0.5 text-xs text-neutral-500">Click &quot;{addLabel}&quot; above to start.</p>
+        </div>
       ) : (
-        <ul className="mt-3 space-y-2">
+        <ul className="space-y-2">
           {items.map((item, index) => (
-            <li key={`${label}-${index}`} className="flex items-center gap-2">
+            <li
+              key={`${label}-${index}`}
+              className="group flex items-center gap-2 rounded-xl border border-neutral-200 bg-white p-1.5 pl-2 shadow-sm transition-colors focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15"
+            >
+              <span className="grid size-6 shrink-0 place-items-center rounded-md bg-neutral-100 text-[11px] font-bold text-neutral-500">
+                {index + 1}
+              </span>
               <input
                 value={item}
                 aria-label={`${label} ${index + 1}`}
                 placeholder={placeholder}
                 onChange={(event) =>
-                  onChange(
-                    items.map((row, rowIndex) =>
-                      rowIndex === index ? event.target.value : row,
-                    ),
-                  )
+                  onChange(items.map((row, rowIndex) => rowIndex === index ? event.target.value : row))
                 }
-                className={adminFieldClass}
+                className="min-w-0 flex-1 border-0 bg-transparent px-1 py-1 text-sm text-neutral-950 outline-none placeholder:text-neutral-400"
               />
               <RowActions
                 label={`${label} ${index + 1}`}
@@ -1044,9 +1016,7 @@ function LineList({
                 disableDown={index === items.length - 1}
                 onUp={() => onChange(move(items, index, index - 1))}
                 onDown={() => onChange(move(items, index, index + 1))}
-                onRemove={() =>
-                  onChange(items.filter((_, rowIndex) => rowIndex !== index))
-                }
+                onRemove={() => onChange(items.filter((_, rowIndex) => rowIndex !== index))}
               />
             </li>
           ))}
@@ -1055,6 +1025,7 @@ function LineList({
     </div>
   );
 }
+
 
 function RowActions({
   label,
@@ -1072,7 +1043,7 @@ function RowActions({
   onRemove: () => void;
 }) {
   return (
-    <span className="flex shrink-0 items-center">
+    <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-neutral-50 p-0.5 opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
       <IconButton
         label={`Move ${label} up`}
         disabled={disableUp}
@@ -1085,21 +1056,25 @@ function RowActions({
         onClick={onDown}
         icon="arrow_downward"
       />
-      <IconButton label={`Remove ${label}`} onClick={onRemove} icon="close" />
+      <span className="mx-0.5 h-4 w-px bg-neutral-200" aria-hidden />
+      <IconButton label={`Remove ${label}`} onClick={onRemove} icon="delete" />
     </span>
   );
 }
+
 
 function IconButton({
   label,
   disabled,
   onClick,
   icon,
+  danger,
 }: {
   label: string;
   disabled?: boolean;
   onClick: () => void;
   icon: string;
+  danger?: boolean;
 }) {
   return (
     <button
@@ -1107,9 +1082,14 @@ function IconButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="grid size-9 place-items-center rounded-full text-neutral-500 hover:bg-white hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:text-neutral-300"
+      className={cn(
+        "grid size-7 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed",
+        danger
+          ? "text-neutral-400 hover:bg-red-50 hover:text-red-600"
+          : "text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900"
+      )}
     >
-      <MaterialIcon name={icon} className="text-[18px]" />
+      <MaterialIcon name={icon} className="text-[16px]" />
     </button>
   );
 }
