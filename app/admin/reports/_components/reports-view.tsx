@@ -310,274 +310,337 @@ export function ReportsView() {
   const channelOptions = ["website", ...(channelValue && channelValue !== "website" ? [channelValue] : [])];
 
   return (
-    <div className="reports-page min-w-0 space-y-4">
-      <style>{PRINT_CSS}</style>
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">Reports</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            {periodLabel || "Sales, profit, stock, and returns"}
-            {previousLabel ? <span className="text-neutral-600"> · compared with {previousLabel}</span> : null}
-          </p>
+    <div className="reports-page min-w-0 space-y-4 pb-10">
+    <style>{PRINT_CSS}</style>
+  
+    {/* Page Header - Reports & Quick Actions in Same Row */}
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2bc0b5] text-white shadow-sm shadow-[#2bc0b5]/30">
+            <MaterialIcon name="analytics" className="text-[20px]" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+            Reports
+          </h1>
         </div>
-        <div className="flex flex-wrap gap-2 print:hidden" data-print-hide>
-          <button
-            type="button"
-            className={adminButtonClass.secondary}
-            onClick={() => {
-              setNow(new Date());
-              setReload((value) => value + 1);
-            }}
-          >
-            <MaterialIcon name="refresh" className="text-[18px]" />
-            Refresh
-          </button>
-          <button type="button" className={adminButtonClass.secondary} onClick={() => window.print()}>
-            <MaterialIcon name="print" className="text-[18px]" />
-            Print
-          </button>
-        </div>
-      </header>
-
-      <p className="print-only text-sm text-neutral-950">
-        Reports · {periodLabel}
-        {previousLabel ? ` · compared with ${previousLabel}` : ""} · Asia/Dhaka
-      </p>
-
-      <section className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 print:hidden" data-print-hide>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Date range">
-          {REPORT_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              aria-pressed={activePreset === preset}
-              onClick={() => selectPreset(preset)}
-              className={cn(
-                "min-h-10 rounded-full px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary",
-                activePreset === preset ? "bg-neutral-950 text-white" : "bg-white text-neutral-700 ring-1 ring-neutral-200",
-              )}
-            >
-              {PRESET_LABEL[preset]}
-            </button>
-          ))}
-          <button
-            type="button"
-            aria-pressed={custom}
-            onClick={selectCustom}
-            className={cn(
-              "min-h-10 rounded-full px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary",
-              custom ? "bg-neutral-950 text-white" : "bg-white text-neutral-700 ring-1 ring-neutral-200",
-            )}
-          >
-            Custom
-          </button>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {custom ? (
+        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-slate-500 sm:pl-11">
+          {periodLabel || "Sales, profit, stock, and returns"}
+          {previousLabel ? (
             <>
-              <label className="block text-sm">
-                <span className="mb-1.5 block font-medium text-neutral-700">From</span>
-                <input
-                  type="date"
-                  value={params.get("from") ?? ""}
-                  onChange={(event) => replace({ preset: null, from: event.target.value }, true)}
-                  className={adminFieldClass}
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1.5 block font-medium text-neutral-700">To</span>
-                <input
-                  type="date"
-                  value={params.get("to") ?? ""}
-                  onChange={(event) => replace({ preset: null, to: event.target.value }, true)}
-                  className={adminFieldClass}
-                />
-              </label>
+              <span className="mx-0.5 text-slate-300">•</span>
+              <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200/60">
+                vs {previousLabel}
+              </span>
             </>
           ) : null}
-          {tab === "coupons" ? (
-            <p className="self-end text-xs leading-5 text-neutral-500 sm:col-span-2">
-              Product, category, and channel do not apply to the coupon report.
-            </p>
-          ) : (
-            <>
-              <FilterSelect
-                label="Product"
-                value={params.get("product_id") ?? ""}
-                onChange={(value) => replace({ product_id: value || null }, true)}
-                options={choices.products.map((product) => ({ id: product.id, label: product.title }))}
-                allLabel="All products"
-              />
-              <FilterSelect
-                label="Category"
-                value={params.get("category_id") ?? ""}
-                onChange={(value) => replace({ category_id: value || null }, true)}
-                options={choices.categories.map((category) => ({ id: category.id, label: category.label }))}
-                allLabel="All categories"
-              />
-              <FilterSelect
-                label="Channel"
-                value={channelValue}
-                onChange={(value) => replace({ channel: value || null }, true)}
-                options={channelOptions.map((channel) => ({ id: channel, label: channel === "website" ? "Website" : channel }))}
-                allLabel="All channels"
-              />
-            </>
-          )}
-        </div>
-      </section>
-
-      {overviewError ? (
-        <p role="alert" className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">
-          {overviewError}
         </p>
-      ) : null}
-
-      {overviewLoading && !overview ? <CardsSkeleton /> : null}
-      {overview ? (
-        <>
-          <SummaryCards cards={cards} />
-          {overview.profit.unknownCostLines > 0 ? (
-            <AdminNotice tone="warning">
-              {overview.profit.unknownCostLines.toLocaleString("en-US")} order{" "}
-              {overview.profit.unknownCostLines === 1 ? "line has" : "lines have"} no cost price (
-              {overview.profit.unknownCostUnits.toLocaleString("en-US")} units,{" "}
-              {formatReportMoney(overview.profit.unknownCostRevenue)}). Profit leaves them out.{" "}
+      </div>
+  
+      <div className="flex flex-wrap items-center gap-2 print:hidden" data-print-hide>
+        <button
+          type="button"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          onClick={() => {
+            setNow(new Date());
+            setReload((value) => value + 1);
+          }}
+        >
+          <MaterialIcon name="refresh" className="text-[16px] text-slate-500" />
+          Refresh
+        </button>
+        <button 
+          type="button" 
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#2bc0b5] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#24a39a]" 
+          onClick={() => window.print()}
+        >
+          <MaterialIcon name="print" className="text-[16px]" />
+          Print
+        </button>
+      </div>
+    </header>
+  
+    <p className="print-only text-sm text-slate-900">
+      Reports · {periodLabel}
+      {previousLabel ? ` · compared with ${previousLabel}` : ""} · Asia/Dhaka
+    </p>
+  
+    {/* Filter Bar */}
+    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] sm:p-5 print:hidden" data-print-hide>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Date range">
+        {REPORT_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            aria-pressed={activePreset === preset}
+            onClick={() => selectPreset(preset)}
+            className={cn(
+              "h-9 rounded-lg px-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2bc0b5]/40",
+              activePreset === preset 
+                ? "bg-[#2bc0b5] text-white shadow-sm" 
+                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900",
+            )}
+          >
+            {PRESET_LABEL[preset]}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-pressed={custom}
+          onClick={selectCustom}
+          className={cn(
+            "h-9 rounded-lg px-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2bc0b5]/40",
+            custom 
+              ? "bg-[#2bc0b5] text-white shadow-sm" 
+              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900",
+          )}
+        >
+          Custom
+        </button>
+      </div>
+      
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {custom ? (
+          <>
+            <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              From Date
+              <input
+                type="date"
+                value={params.get("from") ?? ""}
+                onChange={(event) => replace({ preset: null, from: event.target.value }, true)}
+                className={cn(adminFieldClass, "mt-1.5 h-9 text-sm focus-visible:border-[#2bc0b5] focus-visible:ring-[#2bc0b5]/20")}
+              />
+            </label>
+            <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              To Date
+              <input
+                type="date"
+                value={params.get("to") ?? ""}
+                onChange={(event) => replace({ preset: null, to: event.target.value }, true)}
+                className={cn(adminFieldClass, "mt-1.5 h-9 text-sm focus-visible:border-[#2bc0b5] focus-visible:ring-[#2bc0b5]/20")}
+              />
+            </label>
+          </>
+        ) : null}
+        
+        {tab === "coupons" ? (
+          <p className="self-end text-[11px] font-medium leading-relaxed text-slate-500 sm:col-span-2">
+            Product, category, and channel filters do not apply to the coupon report.
+          </p>
+        ) : (
+          <>
+            <FilterSelect
+              label="Product"
+              value={params.get("product_id") ?? ""}
+              onChange={(value) => replace({ product_id: value || null }, true)}
+              options={choices.products.map((product) => ({ id: product.id, label: product.title }))}
+              allLabel="All products"
+            />
+            <FilterSelect
+              label="Category"
+              value={params.get("category_id") ?? ""}
+              onChange={(value) => replace({ category_id: value || null }, true)}
+              options={choices.categories.map((category) => ({ id: category.id, label: category.label }))}
+              allLabel="All categories"
+            />
+            <FilterSelect
+              label="Channel"
+              value={channelValue}
+              onChange={(value) => replace({ channel: value || null }, true)}
+              options={channelOptions.map((channel) => ({ id: channel, label: channel === "website" ? "Website" : channel }))}
+              allLabel="All channels"
+            />
+          </>
+        )}
+      </div>
+    </section>
+  
+    {overviewError ? (
+      <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+        {overviewError}
+      </p>
+    ) : null}
+  
+    {overviewLoading && !overview ? <CardsSkeleton /> : null}
+  
+    {overview ? (
+      <>
+        <SummaryCards cards={cards} />
+        
+        {overview.profit.unknownCostLines > 0 ? (
+          <AdminNotice tone="warning">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-1.5">
+              <span>
+                <span className="font-bold">{overview.profit.unknownCostLines.toLocaleString("en-US")}</span> order{" "}
+                {overview.profit.unknownCostLines === 1 ? "line has" : "lines have"} no cost price (
+                {overview.profit.unknownCostUnits.toLocaleString("en-US")} units,{" "}
+                {formatReportMoney(overview.profit.unknownCostRevenue)}). Profit leaves them out.
+              </span>
               <Link
                 href={params.get("product_id") ? `/admin/products/${params.get("product_id")}` : "/admin/products"}
-                className="font-semibold underline"
+                className="font-bold underline decoration-amber-300 underline-offset-2 hover:text-amber-950 shrink-0"
               >
                 Fix cost prices
               </Link>
-            </AdminNotice>
-          ) : null}
-          <section className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200/90 sm:p-5">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-neutral-950">Net sales and profit</h2>
-                <p className="mt-0.5 text-xs text-neutral-600">Each point is a {overview.trend.grain} in Asia/Dhaka.</p>
-              </div>
-              <div className="flex flex-wrap gap-2 print:hidden" role="group" aria-label="Chart grain" data-print-hide>
-                {(["day", "week", "month"] as const).map((grain) => (
-                  <button
-                    key={grain}
-                    type="button"
-                    aria-pressed={(params.get("grain") ?? "") === grain}
-                    onClick={() => replace({ grain })}
-                    className={cn(
-                      "min-h-10 rounded-full px-3 text-sm capitalize focus-visible:outline-2 focus-visible:outline-primary",
-                      params.get("grain") === grain
-                        ? "bg-neutral-950 text-white"
-                        : "bg-white text-neutral-700 ring-1 ring-neutral-200",
-                    )}
-                  >
-                    {grain}
-                  </button>
-                ))}
+            </div>
+          </AdminNotice>
+        ) : null}
+  
+        {/* Chart Section */}
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <div className="flex flex-col gap-3 border-b border-slate-100 bg-white p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Net sales and profit</h2>
+              <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+                Each point is a {overview.trend.grain} in Asia/Dhaka.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5 print:hidden" role="group" aria-label="Chart grain" data-print-hide>
+              {(["day", "week", "month"] as const).map((grain) => (
                 <button
+                  key={grain}
                   type="button"
-                  aria-pressed={!params.get("grain")}
-                  onClick={() => replace({ grain: null })}
+                  aria-pressed={(params.get("grain") ?? "") === grain}
+                  onClick={() => replace({ grain })}
                   className={cn(
-                    "min-h-10 rounded-full px-3 text-sm focus-visible:outline-2 focus-visible:outline-primary",
-                    !params.get("grain") ? "bg-neutral-950 text-white" : "bg-white text-neutral-700 ring-1 ring-neutral-200",
+                    "h-7 rounded-md px-2.5 text-[11px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2bc0b5]/40",
+                    params.get("grain") === grain
+                      ? "bg-[#2bc0b5] text-white shadow-sm"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
                   )}
                 >
-                  Auto
+                  {grain}
                 </button>
-              </div>
-            </div>
-            <SalesTrendChart points={overview.trend.points} grain={overview.trend.grain} />
-          </section>
-        </>
-      ) : null}
-
-      <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
-        <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
-          <div role="tablist" aria-label="Report tables" className="flex min-w-0 gap-1 overflow-x-auto">
-            {TABS.map((item, index) => (
+              ))}
               <button
-                key={item.id}
                 type="button"
-                role="tab"
-                id={`report-tab-${item.id}`}
-                aria-selected={tab === item.id}
-                aria-controls={`report-panel-${item.id}`}
-                tabIndex={tab === item.id ? 0 : -1}
-                onClick={() => replace({ tab: item.id, sort: null, dir: null }, true)}
-                onKeyDown={(event) => {
-                  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
-                  event.preventDefault();
-                  const step = event.key === "ArrowRight" ? 1 : -1;
-                  const next = TABS[(index + step + TABS.length) % TABS.length];
-                  replace({ tab: next.id, sort: null, dir: null }, true);
-                  document.getElementById(`report-tab-${next.id}`)?.focus();
-                }}
+                aria-pressed={!params.get("grain")}
+                onClick={() => replace({ grain: null })}
                 className={cn(
-                  "min-h-10 shrink-0 whitespace-nowrap rounded-full px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary",
-                  tab === item.id ? "bg-primary/10 text-primary-ink" : "text-neutral-600 hover:bg-neutral-100",
+                  "h-7 rounded-md px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2bc0b5]/40",
+                  !params.get("grain") 
+                    ? "bg-[#2bc0b5] text-white shadow-sm" 
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
                 )}
               >
-                {item.label}
+                Auto
               </button>
-            ))}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 print:hidden" data-print-hide>
-            <label className="min-w-0 flex-1 sm:w-56 sm:flex-none">
-              <span className="sr-only">Search this table</span>
-              <input
-                value={queryText}
-                onChange={(event) => replace({ q: event.target.value || null }, true)}
-                placeholder="Search"
-                className={adminFieldClass}
-              />
-            </label>
-            <ExportExcelButton
-              onExport={() =>
-                tab === "coupons"
-                  ? downloadCouponReport(call, now)
-                  : downloadReportExport(exportKind(tab), call, now)
-              }
-              filename={`${tab}-${validation.window?.from ?? "report"}-${validation.window?.to ?? "export"}.xlsx`}
-            />
-            <button type="button" className={adminButtonClass.secondary} onClick={() => window.print()}>
-              <MaterialIcon name="print" className="text-[18px]" />
-              Print
+          <div className="p-4 sm:p-5">
+            <SalesTrendChart points={overview.trend.points} grain={overview.trend.grain} />
+          </div>
+        </section>
+      </>
+    ) : null}
+  
+    {/* Data Table Section */}
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+      <div className="flex flex-col gap-3 border-b border-slate-100 bg-white p-2 sm:px-3 lg:flex-row lg:items-center lg:justify-between">
+        {/* Tab List */}
+        <div role="tablist" aria-label="Report tables" className="flex min-w-0 gap-1 overflow-x-auto pb-1 lg:pb-0">
+          {TABS.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              id={`report-tab-${item.id}`}
+              aria-selected={tab === item.id}
+              aria-controls={`report-panel-${item.id}`}
+              tabIndex={tab === item.id ? 0 : -1}
+              onClick={() => replace({ tab: item.id, sort: null, dir: null }, true)}
+              onKeyDown={(event) => {
+                if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+                event.preventDefault();
+                const step = event.key === "ArrowRight" ? 1 : -1;
+                const next = TABS[(index + step + TABS.length) % TABS.length];
+                replace({ tab: next.id, sort: null, dir: null }, true);
+                document.getElementById(`report-tab-${next.id}`)?.focus();
+              }}
+              className={cn(
+                "relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2bc0b5]/40 rounded-t-md",
+                tab === item.id 
+                  ? "text-[#2bc0b5] bg-[#2bc0b5]/5" 
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+              )}
+            >
+              {item.label}
+              {tab === item.id && (
+                <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-t-full bg-[#2bc0b5]" />
+              )}
             </button>
-          </div>
+          ))}
         </div>
-        <div role="tabpanel" id={`report-panel-${tab}`} aria-labelledby={`report-tab-${tab}`}>
-          {tableError ? (
-            <p role="alert" className="px-5 py-8 text-center text-sm text-error">
+  
+        {/* Table Toolbar */}
+        <div className="flex flex-wrap items-center gap-2 px-2 pb-2 lg:p-0" data-print-hide>
+          <label className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+            <span className="sr-only">Search this table</span>
+            <input
+              value={queryText}
+              onChange={(event) => replace({ q: event.target.value || null }, true)}
+              placeholder="Search records..."
+              className={cn(adminFieldClass, "h-8 text-xs pl-3 focus-visible:border-[#2bc0b5] focus-visible:ring-[#2bc0b5]/20")}
+            />
+          </label>
+          <ExportExcelButton
+            onExport={() =>
+              tab === "coupons"
+                ? downloadCouponReport(call, now)
+                : downloadReportExport(exportKind(tab), call, now)
+            }
+            filename={`${tab}-${validation.window?.from ?? "report"}-${validation.window?.to ?? "export"}.xlsx`}
+          />
+          <button 
+            type="button" 
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            onClick={() => window.print()}
+          >
+            <MaterialIcon name="print" className="text-[14px] text-slate-500" />
+            Print
+          </button>
+        </div>
+      </div>
+  
+      <div role="tabpanel" id={`report-panel-${tab}`} aria-labelledby={`report-tab-${tab}`}>
+        {tableError ? (
+          <div className="flex flex-col items-center justify-center p-10 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-500 ring-1 ring-inset ring-rose-100">
+              <MaterialIcon name="error" className="text-[20px]" />
+            </div>
+            <p role="alert" className="mt-3 text-sm font-medium text-rose-700">
               {tableError}
             </p>
-          ) : tableLoading ? (
-            <div className="h-64 animate-pulse bg-admin-subtle" aria-busy="true" aria-label="Loading table" />
-          ) : (
-            <TabBody
-              tab={tab}
-              query={queryText}
-              sort={sort}
-              direction={direction}
-              page={page}
-              products={products ?? []}
-              productTotal={productTotal}
-              productTruncated={productTruncated}
-              stock={stock}
-              stockRows={stockRows ?? []}
-              stockTruncated={stockTruncated}
-              movements={movements}
-              coupons={coupons ?? []}
-              delivery={overview?.delivery ?? null}
-              onSort={(column) => {
-                const nextDir = sort === column && direction === "desc" ? "asc" : sort === column ? "desc" : defaultDirectionFor(column);
-                replace({ sort: column, dir: nextDir }, true);
-              }}
-              onPage={(next) => replace({ page: next <= 1 ? null : String(next) })}
-            />
-          )}
-        </div>
-      </section>
+          </div>
+        ) : tableLoading ? (
+          <div className="flex h-64 items-center justify-center bg-slate-50/50" aria-busy="true" aria-label="Loading table">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-[#2bc0b5]" />
+          </div>
+        ) : (
+          <TabBody
+            tab={tab}
+            query={queryText}
+            sort={sort}
+            direction={direction}
+            page={page}
+            products={products ?? []}
+            productTotal={productTotal}
+            productTruncated={productTruncated}
+            stock={stock}
+            stockRows={stockRows ?? []}
+            stockTruncated={stockTruncated}
+            movements={movements}
+            coupons={coupons ?? []}
+            delivery={overview?.delivery ?? null}
+            onSort={(column) => {
+              const nextDir = sort === column && direction === "desc" ? "asc" : sort === column ? "desc" : defaultDirectionFor(column);
+              replace({ sort: column, dir: nextDir }, true);
+            }}
+            onPage={(next) => replace({ page: next <= 1 ? null : String(next) })}
+          />
+        )}
+      </div>
+    </section>
     </div>
   );
 }
@@ -862,30 +925,92 @@ function productColumns(): ReportColumn<ProductReportRow>[] {
       sortValue: (row) => row.title,
       render: (row) =>
         row.productId ? (
-          <Link href={`/admin/products/${row.productId}`} className="hover:text-primary-ink">
+          <Link 
+            href={`/admin/products/${row.productId}`} 
+            className="font-medium text-slate-900 transition-colors hover:text-[#2bc0b5] hover:underline decoration-[#2bc0b5]/30 underline-offset-2"
+          >
             {row.title}
           </Link>
         ) : (
-          row.title
+          <span className="font-medium text-slate-900">{row.title}</span>
         ),
     },
-    { id: "units", label: "Units", align: "right", sortValue: (row) => row.unitsSold, render: (row) => formatReportCount(row.unitsSold) },
-    { id: "revenue", label: "Revenue", align: "right", sortValue: (row) => row.revenue, render: (row) => formatReportMoney(row.revenue) },
-    { id: "cost", label: "Cost", align: "right", sortValue: (row) => row.cost, render: (row) => formatReportMoney(row.cost) },
-    { id: "profit", label: "Profit", align: "right", sortValue: (row) => row.profit, render: (row) => formatReportMoney(row.profit) },
+    { 
+      id: "units", 
+      label: "Units", 
+      align: "right", 
+      sortValue: (row) => row.unitsSold, 
+      render: (row) => <span className="font-medium text-slate-600">{formatReportCount(row.unitsSold)}</span> 
+    },
+    { 
+      id: "revenue", 
+      label: "Revenue", 
+      align: "right", 
+      sortValue: (row) => row.revenue, 
+      render: (row) => <span className="font-semibold text-slate-900">{formatReportMoney(row.revenue)}</span> 
+    },
+    { 
+      id: "cost", 
+      label: "Cost", 
+      align: "right", 
+      sortValue: (row) => row.cost, 
+      render: (row) => <span className="font-medium text-slate-500">{formatReportMoney(row.cost)}</span> 
+    },
+    { 
+      id: "profit", 
+      label: "Profit", 
+      align: "right", 
+      sortValue: (row) => row.profit, 
+      render: (row) => {
+        const isPositive = row.profit ? row.profit > 0 : false;
+        const isNegative = row.profit ? row.profit < 0 : false;
+        return (
+          <span className={cn(
+            "font-semibold",
+            isPositive && "text-emerald-600",
+            isNegative && "text-rose-600",
+            !isPositive && !isNegative && "text-slate-900"
+          )}>
+            {formatReportMoney(row.profit)}
+          </span>
+        );
+      }
+    },
     {
       id: "margin",
       label: "Margin",
       align: "right",
       sortValue: (row) => row.marginPercent,
-      render: (row) => formatReportPercent(row.marginPercent),
+      render: (row) => {
+        const margin = row.marginPercent ?? 0;
+        return (
+          <span className={cn(
+            "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold ring-1 ring-inset tabular-nums",
+            margin >= 20 && "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
+            margin >= 10 && margin < 20 && "bg-amber-50 text-amber-700 ring-amber-200/60",
+            margin < 10 && "bg-slate-100 text-slate-600 ring-slate-200/60",
+          )}>
+            {formatReportPercent(row.marginPercent)}
+          </span>
+        );
+      },
     },
     {
       id: "returns",
       label: "Returns",
       align: "right",
       sortValue: (row) => row.returnCount,
-      render: (row) => formatReportCount(row.returnCount),
+      render: (row) => {
+        const count = row.returnCount;
+        return (
+          <span className={cn(
+            "font-medium tabular-nums",
+            count > 0 ? "text-amber-600" : "text-slate-400"
+          )}>
+            {formatReportCount(count)}
+          </span>
+        );
+      },
     },
   ];
 }

@@ -12,7 +12,7 @@ import {
   Package,
   CheckCircle2,
   RotateCcw,
-  TrendingDown as ReturnRateIcon,
+  AlertTriangle,
 } from "lucide-react";
 
 export type SummaryCardModel = {
@@ -22,18 +22,45 @@ export type SummaryCardModel = {
   change: PeriodChange;
 };
 
-// Map labels to beautiful, distinct icons and colors
-const CARD_STYLES: Record<string, { icon: React.ComponentType<{ className?: string }>; tone: string }> = {
-  "Net sales": { icon: Wallet, tone: "bg-emerald-50 text-emerald-600 ring-emerald-100" },
-  Profit: { icon: CircleDollarSign, tone: "bg-indigo-50 text-indigo-600 ring-indigo-100" },
-  Margin: { icon: Percent, tone: "bg-violet-50 text-violet-600 ring-violet-100" },
-  "Units sold": { icon: Package, tone: "bg-sky-50 text-sky-600 ring-sky-100" },
-  Delivered: { icon: CheckCircle2, tone: "bg-teal-50 text-teal-600 ring-teal-100" },
-  Returned: { icon: RotateCcw, tone: "bg-amber-50 text-amber-600 ring-amber-100" },
-  "Return rate": { icon: ReturnRateIcon, tone: "bg-rose-50 text-rose-600 ring-rose-100" },
+// Beautiful icon mapping using the primary color #2bc0b5
+const CARD_STYLES: Record<
+  string,
+  { icon: React.ComponentType<{ className?: string }>; tone: string }
+> = {
+  "Net sales": { 
+    icon: Wallet, 
+    tone: "bg-[#2bc0b5]/10 text-[#2bc0b5] ring-[#2bc0b5]/20" 
+  },
+  Profit: { 
+    icon: CircleDollarSign, 
+    tone: "bg-[#2bc0b5]/10 text-[#2bc0b5] ring-[#2bc0b5]/20" 
+  },
+  Margin: { 
+    icon: Percent, 
+    tone: "bg-[#2bc0b5]/10 text-[#2bc0b5] ring-[#2bc0b5]/20" 
+  },
+  "Units sold": { 
+    icon: Package, 
+    tone: "bg-[#2bc0b5]/10 text-[#2bc0b5] ring-[#2bc0b5]/20" 
+  },
+  Delivered: { 
+    icon: CheckCircle2, 
+    tone: "bg-[#2bc0b5]/10 text-[#2bc0b5] ring-[#2bc0b5]/20" 
+  },
+  Returned: { 
+    icon: RotateCcw, 
+    tone: "bg-[#2bc0b5]/10 text-[#2bc0b5] ring-[#2bc0b5]/20" 
+  },
+  "Return rate": { 
+    icon: AlertTriangle, 
+    tone: "bg-[#2bc0b5]/10 text-[#2bc0b5] ring-[#2bc0b5]/20" 
+  },
 };
 
-const DEFAULT_STYLE = { icon: TrendingUp, tone: "bg-slate-100 text-slate-600 ring-slate-200" };
+const DEFAULT_STYLE = { 
+  icon: TrendingUp, 
+  tone: "bg-slate-100 text-slate-600 ring-slate-200" 
+};
 
 export function SummaryCards({ cards }: { cards: SummaryCardModel[] }) {
   return (
@@ -45,10 +72,10 @@ export function SummaryCards({ cards }: { cards: SummaryCardModel[] }) {
         return (
           <article
             key={card.label}
-            className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all duration-200 hover:border-slate-300 hover:shadow-md"
+            className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all duration-200 hover:border-[#2bc0b5]/40 hover:shadow-md"
           >
-            {/* Subtle background glow on hover */}
-            <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-slate-50 opacity-0 blur-2xl transition-opacity group-hover:opacity-100" />
+            {/* Subtle brand glow on hover */}
+            <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#2bc0b5]/5 opacity-0 blur-2xl transition-opacity group-hover:opacity-100" />
 
             <div className="relative">
               <div className="flex items-start justify-between gap-2">
@@ -105,7 +132,7 @@ export function ChangeLine({ change }: { change: PeriodChange }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold ring-1 ring-inset",
+        "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold ring-1 ring-inset tabular-nums",
         toneClass
       )}
       aria-label={spoken}
@@ -135,12 +162,47 @@ export function summaryCardsFrom(input: {
   };
 }): SummaryCardModel[] {
   return [
-    { label: "Net sales", value: input.netSales, hint: "Delivered orders, including delivery", change: input.changes.netSales },
-    { label: "Profit", value: input.profit, hint: "Known-cost lines only. Delivery is not included", change: input.changes.profit },
-    { label: "Margin", value: input.margin, hint: "Profit divided by known-cost revenue", change: input.changes.margin },
-    { label: "Units sold", value: input.units, hint: "Pieces on delivered orders", change: input.changes.units },
-    { label: "Delivered", value: input.delivered, hint: "Counted on the delivered date", change: input.changes.delivered },
-    { label: "Returned", value: input.returned, hint: "Counted on the returned date", change: input.changes.returned },
-    { label: "Return rate", value: input.returnRate, hint: "Returned divided by delivered", change: input.changes.returnRate },
+    { 
+      label: "Net sales", 
+      value: input.netSales, 
+      hint: "Delivered orders, including delivery", 
+      change: input.changes.netSales 
+    },
+    { 
+      label: "Profit", 
+      value: input.profit, 
+      hint: "Known-cost lines only. Delivery is not included", 
+      change: input.changes.profit 
+    },
+    { 
+      label: "Margin", 
+      value: input.margin, 
+      hint: "Profit divided by known-cost revenue", 
+      change: input.changes.margin 
+    },
+    { 
+      label: "Units sold", 
+      value: input.units, 
+      hint: "Pieces on delivered orders", 
+      change: input.changes.units 
+    },
+    { 
+      label: "Delivered", 
+      value: input.delivered, 
+      hint: "Counted on the delivered date", 
+      change: input.changes.delivered 
+    },
+    { 
+      label: "Returned", 
+      value: input.returned, 
+      hint: "Counted on the returned date", 
+      change: input.changes.returned 
+    },
+    { 
+      label: "Return rate", 
+      value: input.returnRate, 
+      hint: "Returned divided by delivered", 
+      change: input.changes.returnRate 
+    },
   ];
 }

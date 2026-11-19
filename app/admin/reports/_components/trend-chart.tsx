@@ -50,8 +50,8 @@ export function SalesTrendChart({
       {/* Header & Legend */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200/60">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-[#2bc0b5]/10 px-2 py-1 text-[11px] font-semibold text-[#2bc0b5] ring-1 ring-inset ring-[#2bc0b5]/20">
+            <span className="h-2 w-2 rounded-full bg-[#2bc0b5]" />
             Net sales
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200/60">
@@ -76,8 +76,8 @@ export function SalesTrendChart({
             <AreaChart data={rows} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#2bc0b5" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#2bc0b5" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
@@ -116,7 +116,7 @@ export function SalesTrendChart({
                       <div className="mt-2 space-y-1.5">
                         <div className="flex items-center justify-between gap-4">
                           <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#2bc0b5]" />
                             Net Sales
                           </span>
                           <span className="text-xs font-bold tabular-nums text-white">
@@ -141,10 +141,10 @@ export function SalesTrendChart({
                 type="monotone"
                 dataKey="net"
                 name="Net sales"
-                stroke="#10b981"
+                stroke="#2bc0b5"
                 strokeWidth={2.5}
                 fill="url(#netGradient)"
-                activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: "#10b981" }}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: "#2bc0b5" }}
               />
               <Area
                 type="monotone"
