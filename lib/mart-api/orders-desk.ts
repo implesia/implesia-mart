@@ -33,11 +33,23 @@ import {
   mockSearchCustomers,
 } from "@/lib/mart-mock/orders-desk";
 import { printOrderFromApi, type PrintOrder } from "@/lib/admin/print-sheet";
-import { MartApiError, authorizedFetch, getMartProduct, listMartProducts, readError } from "@/lib/mart-api/products";
+import {
+  MartApiError,
+  authorizedFetch,
+  getMartProduct,
+  listMartProducts,
+  readError,
+} from "@/lib/mart-api/products";
 import type { AdminProduct } from "@/lib/mart-mock/store";
 import type { AdminVariant } from "@/lib/mart-api/admin-variants";
 
-import { getOrder, listOrders, mapOrder, patchOrder, type MartOrder } from "@/lib/mart-api/orders";
+import {
+  getOrder,
+  listOrders,
+  mapOrder,
+  patchOrder,
+  type MartOrder,
+} from "@/lib/mart-api/orders";
 
 export const ORDERS_DESK_PATHS = {
   overview: "/api/v1/admin/orders/overview",
@@ -126,7 +138,12 @@ async function deskMode() {
   if (mode !== "unknown") return mode;
   try {
     const response = await authorizedFetch(ORDERS_DESK_PATHS.overview);
-    mode = response.status === 404 || response.status === 501 || response.status >= 500 ? "mock" : "live";
+    mode =
+      response.status === 404 ||
+      response.status === 501 ||
+      response.status >= 500
+        ? "mock"
+        : "live";
   } catch {
     mode = "mock";
   }
@@ -143,25 +160,35 @@ function period(body: { orders?: unknown; revenue?: unknown }) {
 function mapOverview(body: Record<string, unknown>): OrderOverview {
   const origins = Array.isArray(body.origins) ? body.origins : [];
   const recent = Array.isArray(body.recent) ? body.recent : [];
-  const counts = (body.status_counts ?? {}) as Partial<Record<OrderStatus, number>>;
+  const counts = (body.status_counts ?? {}) as Partial<
+    Record<OrderStatus, number>
+  >;
   return {
     timezone: "Asia/Dhaka",
-    today: period((body.today ?? {}) as { orders?: unknown; revenue?: unknown }),
+    today: period(
+      (body.today ?? {}) as { orders?: unknown; revenue?: unknown },
+    ),
     week: period((body.week ?? {}) as { orders?: unknown; revenue?: unknown }),
-    month: period((body.month ?? {}) as { orders?: unknown; revenue?: unknown }),
-    pendingConfirm: typeof body.pending_confirm === "number" ? body.pending_confirm : 0,
-    readyToPack: typeof body.ready_to_pack === "number" ? body.ready_to_pack : 0,
+    month: period(
+      (body.month ?? {}) as { orders?: unknown; revenue?: unknown },
+    ),
+    pendingConfirm:
+      typeof body.pending_confirm === "number" ? body.pending_confirm : 0,
+    readyToPack:
+      typeof body.ready_to_pack === "number" ? body.ready_to_pack : 0,
     shipped: typeof body.shipped === "number" ? body.shipped : 0,
     returnRatePercent: readRatePercent(body.return_rate_percent),
     cancelRatePercent: readRatePercent(body.cancel_rate_percent),
     origins: (["online", "offline"] as const).map((origin) => {
-      const row = origins.find((item) => (item as { origin?: string }).origin === origin) as
-        | { orders?: number; revenue?: number }
-        | undefined;
+      const row = origins.find(
+        (item) => (item as { origin?: string }).origin === origin,
+      ) as { orders?: number; revenue?: number } | undefined;
       return { origin, orders: row?.orders ?? 0, revenue: row?.revenue ?? 0 };
     }),
     statusCounts: {
       new: counts.new ?? 0,
+      pending: counts.pending ?? 0,
+      processing: counts.processing ?? 0,
       confirmed: counts.confirmed ?? 0,
       packed: counts.packed ?? 0,
       shipped: counts.shipped ?? 0,
@@ -171,7 +198,8 @@ function mapOverview(body: Record<string, unknown>): OrderOverview {
     },
     recent: recent.flatMap((item) => {
       const row = item as Record<string, unknown>;
-      if (typeof row.id !== "string" || typeof row.number !== "string") return [];
+      if (typeof row.id !== "string" || typeof row.number !== "string")
+        return [];
       const status = typeof row.status === "string" ? row.status : "new";
       return [
         {
@@ -180,7 +208,8 @@ function mapOverview(body: Record<string, unknown>): OrderOverview {
           status: status as OrderStatus,
           origin: row.origin === "offline" ? "offline" : "online",
           total: typeof row.total === "number" ? row.total : 0,
-          customerName: typeof row.customer_name === "string" ? row.customer_name : "",
+          customerName:
+            typeof row.customer_name === "string" ? row.customer_name : "",
           phone: typeof row.phone === "string" ? row.phone : "",
           createdAt: typeof row.created_at === "string" ? row.created_at : "",
           orderedAt: typeof row.ordered_at === "string" ? row.ordered_at : null,
@@ -193,7 +222,10 @@ function mapOverview(body: Record<string, unknown>): OrderOverview {
 export async function getOrderOverview() {
   if ((await deskMode()) === "mock") return mockOrdersOverview();
   const response = await authorizedFetch(ORDERS_DESK_PATHS.overview);
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not load the orders overview."));
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not load the orders overview."),
+    );
   return mapOverview((await response.json()) as Record<string, unknown>);
 }
 
@@ -231,8 +263,13 @@ export async function searchOrderCustomers(q: string) {
   const term = q.trim();
   if (term.length < 2) return [];
   if ((await deskMode()) === "mock") return mockSearchCustomers(term);
-  const response = await authorizedFetch(`${ORDERS_DESK_PATHS.customers}?q=${encodeURIComponent(term)}`);
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not search customers."));
+  const response = await authorizedFetch(
+    `${ORDERS_DESK_PATHS.customers}?q=${encodeURIComponent(term)}`,
+  );
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not search customers."),
+    );
   const body = (await response.json()) as { items?: Record<string, unknown>[] };
   return (body.items ?? []).map((item) => ({
     phone: String(item.phone ?? ""),
@@ -246,7 +283,10 @@ export async function searchOrderCustomers(q: string) {
   })) satisfies CustomerMatch[];
 }
 
-export async function createOfflineOrder(input: OfflineOrderInput, idempotencyKey: string) {
+export async function createOfflineOrder(
+  input: OfflineOrderInput,
+  idempotencyKey: string,
+) {
   if ((await deskMode()) === "mock") {
     try {
       return mockCreateOffline(input, idempotencyKey);
@@ -262,13 +302,20 @@ export async function createOfflineOrder(input: OfflineOrderInput, idempotencyKe
     },
     body: JSON.stringify(offlineCreateBody(input)),
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not create this order."));
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not create this order."),
+    );
   return mapOrder((await response.json()) as Parameters<typeof mapOrder>[0]);
 }
 
 export async function replaceOrderItems(
   orderId: string,
-  input: { items: OfflineLineInput[]; manualDiscount: number | null; deliveryCharge: number | null },
+  input: {
+    items: OfflineLineInput[];
+    manualDiscount: number | null;
+    deliveryCharge: number | null;
+  },
 ) {
   if ((await deskMode()) === "mock") {
     try {
@@ -282,7 +329,10 @@ export async function replaceOrderItems(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderItemsBody(input)),
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not update the items."));
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not update the items."),
+    );
   return mapOrder((await response.json()) as Parameters<typeof mapOrder>[0]);
 }
 
@@ -294,9 +344,19 @@ export async function listReadyToPack(query: OrderListQuery) {
   if (query.courier?.trim()) search.set("courier", query.courier.trim());
   search.set("page", String(query.page));
   search.set("page_size", String(query.pageSize ?? 50));
-  const response = await authorizedFetch(`${ORDERS_DESK_PATHS.ready}?${search}`);
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not load orders ready to pack."));
-  const body = (await response.json()) as { items: Parameters<typeof mapOrder>[0][]; total: number; page: number; pages: number };
+  const response = await authorizedFetch(
+    `${ORDERS_DESK_PATHS.ready}?${search}`,
+  );
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not load orders ready to pack."),
+    );
+  const body = (await response.json()) as {
+    items: Parameters<typeof mapOrder>[0][];
+    total: number;
+    page: number;
+    pages: number;
+  };
   return {
     items: body.items.map((item) => mapOrder(item)),
     total: body.total,
@@ -312,8 +372,18 @@ export async function bulkOrderStatus(status: OrderStatus, ids: string[]) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status, ids }),
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not update these orders."));
-  const body = (await response.json()) as { results?: { id: string; ok: boolean; status?: string | null; error?: string | null }[] };
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not update these orders."),
+    );
+  const body = (await response.json()) as {
+    results?: {
+      id: string;
+      ok: boolean;
+      status?: string | null;
+      error?: string | null;
+    }[];
+  };
   return (body.results ?? []).map((row) => ({
     id: row.id,
     ok: row.ok,
@@ -329,8 +399,14 @@ export async function markOrdersPrinted(ids: string[]) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ids }),
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not record the print."));
-  const body = (await response.json()) as { printed?: string[]; missing?: string[] };
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not record the print."),
+    );
+  const body = (await response.json()) as {
+    printed?: string[];
+    missing?: string[];
+  };
   return { printed: body.printed ?? [], missing: body.missing ?? [] };
 }
 
@@ -345,8 +421,14 @@ export async function getPrintData(ids: string[]) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ids }),
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not load print data."));
-  const body = (await response.json()) as { orders?: Record<string, unknown>[]; missing?: string[] };
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not load print data."),
+    );
+  const body = (await response.json()) as {
+    orders?: Record<string, unknown>[];
+    missing?: string[];
+  };
   return {
     orders: (body.orders ?? []).map(mapPrint),
     missing: body.missing ?? [],
@@ -395,7 +477,12 @@ function choicesFrom(product: AdminProduct): OrderProductChoice[] {
 export async function searchProductsForOrder(q: string) {
   const term = q.trim();
   if (term.length < 2) return [];
-  const page = await listMartProducts({ q: term, page: 1, pageSize: 8, visibility: "live" });
+  const page = await listMartProducts({
+    q: term,
+    page: 1,
+    pageSize: 8,
+    visibility: "live",
+  });
   const detailed = await Promise.all(
     page.items.map(async (item) => {
       if (!item.hasVariants || !item.id) return item;

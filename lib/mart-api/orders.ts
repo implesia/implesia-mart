@@ -17,14 +17,29 @@ import {
   type PaymentStatus,
   type StatusCountMap,
 } from "@/lib/admin/orders-desk";
-import { currentOrderTracking, type OrderTracking } from "@/lib/analytics/order-tracking";
+import {
+  currentOrderTracking,
+  type OrderTracking,
+} from "@/lib/analytics/order-tracking";
 import { orderLookupBody, publicTimelineFrom } from "@/lib/order-lookup";
 import { quoteCouponFromBody, type QuoteCoupon } from "@/lib/coupons";
 import { guestCartHeaders } from "@/lib/mart-api/cart";
 import type { DeliveryZone } from "@/lib/mart-api/delivery";
-import { buildQuotePayload, type QuotePayloadInput } from "@/lib/mart-api/order-payload";
-import { MartApiError, authorizedFetch, mediaUrl, publicFetch } from "@/lib/mart-api/products";
-import { mockOrderApi, mockPlaceOrder, mockQuoteApi } from "@/lib/mart-mock/coupons";
+import {
+  buildQuotePayload,
+  type QuotePayloadInput,
+} from "@/lib/mart-api/order-payload";
+import {
+  MartApiError,
+  authorizedFetch,
+  mediaUrl,
+  publicFetch,
+} from "@/lib/mart-api/products";
+import {
+  mockOrderApi,
+  mockPlaceOrder,
+  mockQuoteApi,
+} from "@/lib/mart-mock/coupons";
 import { mockFallbackAllowed } from "@/lib/mock-mode";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/mart-mock/store";
 import {
@@ -300,7 +315,9 @@ function readAnalyticsEventId(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function mapSelection(selection: { name: string; label: string; swatch?: string }[] | undefined) {
+function mapSelection(
+  selection: { name: string; label: string; swatch?: string }[] | undefined,
+) {
   return (selection ?? []).map((choice) => ({
     name: choice.name,
     label: choice.label,
@@ -319,9 +336,13 @@ function paymentFrom(body: {
   total: number;
 }) {
   const advanceAmount = body.advance_amount ?? 0;
-  const method = isPaymentMethod(body.payment_method) ? body.payment_method : "cod";
-  const paidFromField = typeof body.paid_amount === "number" ? body.paid_amount : null;
-  const paidAmount = paidFromField ?? (method === "bangla_qr" ? advanceAmount : 0);
+  const method = isPaymentMethod(body.payment_method)
+    ? body.payment_method
+    : "cod";
+  const paidFromField =
+    typeof body.paid_amount === "number" ? body.paid_amount : null;
+  const paidAmount =
+    paidFromField ?? (method === "bangla_qr" ? advanceAmount : 0);
   return {
     paymentMethod: method,
     paymentStatus: isPaymentStatus(body.payment_status)
@@ -334,7 +355,11 @@ function paymentFrom(body: {
   };
 }
 
-function mapQuote(body: ApiQuote, sentCode: string | null, mocked = false): OrderQuote {
+function mapQuote(
+  body: ApiQuote,
+  sentCode: string | null,
+  mocked = false,
+): OrderQuote {
   return {
     items: body.items.map((item) => ({
       productId: item.product_id,
@@ -391,7 +416,9 @@ export function mapOrder(body: ApiOrder): MartOrder {
     source: body.source,
     origin: isOrderOrigin(body.origin) ? body.origin : "online",
     status,
-    callStatus: isCallStatus(body.call_status) ? body.call_status : "not_called",
+    callStatus: isCallStatus(body.call_status)
+      ? body.call_status
+      : "not_called",
     ...payment,
     paymentReference: body.payment_reference ?? "",
     anonymous: body.anonymous,
@@ -406,10 +433,17 @@ export function mapOrder(body: ApiOrder): MartOrder {
     subtotal: body.subtotal,
     shipping: body.shipping,
     total: body.total,
-    couponCode: typeof body.coupon_code === "string" && body.coupon_code.trim() ? body.coupon_code.trim() : null,
+    couponCode:
+      typeof body.coupon_code === "string" && body.coupon_code.trim()
+        ? body.coupon_code.trim()
+        : null,
     couponDiscount:
-      typeof body.coupon_discount === "number" && Number.isFinite(body.coupon_discount) ? body.coupon_discount : null,
-    manualDiscount: typeof body.manual_discount === "number" ? body.manual_discount : 0,
+      typeof body.coupon_discount === "number" &&
+      Number.isFinite(body.coupon_discount)
+        ? body.coupon_discount
+        : null,
+    manualDiscount:
+      typeof body.manual_discount === "number" ? body.manual_discount : 0,
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
     printedAt: readOrderTimestamp(body.printed_at),
@@ -431,7 +465,9 @@ export function mapOrder(body: ApiOrder): MartOrder {
     nextStatuses: Array.isArray(body.next_statuses)
       ? nextOrderStatuses(
           status,
-          body.next_statuses.filter((item): item is OrderStatus => isOrderStatus(item)),
+          body.next_statuses.filter((item): item is OrderStatus =>
+            isOrderStatus(item),
+          ),
         )
       : null,
     items: body.items.map((item) => ({
@@ -461,9 +497,16 @@ async function readFailure(response: Response, fallback: string) {
       error_code?: string;
       error?: { message?: string; code?: string; error_code?: string };
     };
-    const message = body.error?.message || (typeof body.message === "string" ? body.message : "") || fallback;
-    const raw = body.error?.error_code || body.error?.code || body.error_code || null;
-    return { message, code: typeof raw === "string" && raw.trim() ? raw : null };
+    const message =
+      body.error?.message ||
+      (typeof body.message === "string" ? body.message : "") ||
+      fallback;
+    const raw =
+      body.error?.error_code || body.error?.code || body.error_code || null;
+    return {
+      message,
+      code: typeof raw === "string" && raw.trim() ? raw : null,
+    };
   } catch {
     return { message: fallback, code: null };
   }
@@ -485,10 +528,12 @@ function pricingMockForced() {
 }
 
 /** Shown when the live quote/order route is down and no stand-in is allowed. */
-export const PRICING_UNAVAILABLE_MESSAGE = "অর্ডারের দাম এখন লোড করা যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।";
+export const PRICING_UNAVAILABLE_MESSAGE =
+  "অর্ডারের দাম এখন লোড করা যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।";
 export const ORDER_UNAVAILABLE_MESSAGE =
   "অর্ডারটি এখন সম্পন্ন করা যায়নি। কিছুক্ষণ পরে আবার চেষ্টা করুন। সমস্যা থাকলে আমাদের সাথে যোগাযোগ করুন।";
-export const API_UNREACHABLE_MESSAGE = "সার্ভারের সাথে সংযোগ করা যাচ্ছে না। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।";
+export const API_UNREACHABLE_MESSAGE =
+  "সার্ভারের সাথে সংযোগ করা যাচ্ছে না। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।";
 
 /**
  * 4xx keeps the API message (coupon invalid/expired, stock, validation). A 5xx
@@ -497,14 +542,18 @@ export const API_UNREACHABLE_MESSAGE = "সার্ভারের সাথে
 async function failureError(response: Response, fallback: string) {
   const failure = await readFailure(response, fallback);
   const server = response.status >= 500;
-  return new MartApiError(server && !failure.code ? fallback : failure.message, {
-    code: failure.code,
-    kind: server ? "server" : "request",
-  });
+  return new MartApiError(
+    server && !failure.code ? fallback : failure.message,
+    {
+      code: failure.code,
+      kind: server ? "server" : "request",
+    },
+  );
 }
 
 function assertMockAllowed() {
-  if (!mockFallbackAllowed()) throw new MartApiError(PRICING_UNAVAILABLE_MESSAGE, { kind: "server" });
+  if (!mockFallbackAllowed())
+    throw new MartApiError(PRICING_UNAVAILABLE_MESSAGE, { kind: "server" });
 }
 
 function routeMissing(status: number) {
@@ -512,7 +561,10 @@ function routeMissing(status: number) {
 }
 
 function unreachable(error: unknown) {
-  return error instanceof MartApiError && error.message === "Could not reach the API.";
+  return (
+    error instanceof MartApiError &&
+    error.message === "Could not reach the API."
+  );
 }
 
 function mockQuoteInput(input: QuoteInput) {
@@ -535,7 +587,11 @@ function quoteBody(input: QuoteInput) {
 function pricedByMock(input: QuoteInput) {
   assertMockAllowed();
   pricingMode = "mock";
-  return mapQuote(mockQuoteApi(mockQuoteInput(input)) as ApiQuote, input.couponCode ?? null, true);
+  return mapQuote(
+    mockQuoteApi(mockQuoteInput(input)) as ApiQuote,
+    input.couponCode ?? null,
+    true,
+  );
 }
 
 export async function quoteOrder(input: QuoteInput) {
@@ -549,10 +605,16 @@ export async function quoteOrder(input: QuoteInput) {
       },
       body: JSON.stringify(quoteBody(input)),
     });
-    if (routeMissing(response.status) && mockFallbackAllowed()) return pricedByMock(input);
-    if (!response.ok) throw await failureError(response, PRICING_UNAVAILABLE_MESSAGE);
+    if (routeMissing(response.status) && mockFallbackAllowed())
+      return pricedByMock(input);
+    if (!response.ok)
+      throw await failureError(response, PRICING_UNAVAILABLE_MESSAGE);
     pricingMode = "live";
-    return mapQuote((await response.json()) as ApiQuote, input.couponCode ?? null, false);
+    return mapQuote(
+      (await response.json()) as ApiQuote,
+      input.couponCode ?? null,
+      false,
+    );
   } catch (error) {
     if (unreachable(error)) {
       if (mockFallbackAllowed()) return pricedByMock(input);
@@ -571,7 +633,11 @@ export async function placeOrder(
     area: string;
     address: string;
     notes: string;
-    payment?: { method: PaymentMethod; advancePercent?: AdvancePercent | null; reference?: string };
+    payment?: {
+      method: PaymentMethod;
+      advancePercent?: AdvancePercent | null;
+      reference?: string;
+    };
     /**
      * Optional. Older APIs ignore unknown JSON. Nulls are sent when a value
      * is missing so the field shape stays stable.
@@ -607,12 +673,14 @@ export async function placeOrder(
     ) {
       return placedByMock(input);
     }
-    if (!response.ok) throw await failureError(response, ORDER_UNAVAILABLE_MESSAGE);
+    if (!response.ok)
+      throw await failureError(response, ORDER_UNAVAILABLE_MESSAGE);
     pricingMode = "live";
     return mapOrder((await response.json()) as ApiOrder);
   } catch (error) {
     if (unreachable(error)) {
-      if (pricingMode !== "live" && mockFallbackAllowed()) return placedByMock(input);
+      if (pricingMode !== "live" && mockFallbackAllowed())
+        return placedByMock(input);
       throw new MartApiError(API_UNREACHABLE_MESSAGE, { kind: "network" });
     }
     throw error;
@@ -628,10 +696,15 @@ function placedByMock(
     area: string;
     address: string;
     notes: string;
-    payment?: { method: PaymentMethod; advancePercent?: AdvancePercent | null; reference?: string };
+    payment?: {
+      method: PaymentMethod;
+      advancePercent?: AdvancePercent | null;
+      reference?: string;
+    };
   },
 ) {
-  if (!mockFallbackAllowed()) throw new MartApiError(ORDER_UNAVAILABLE_MESSAGE, { kind: "server" });
+  if (!mockFallbackAllowed())
+    throw new MartApiError(ORDER_UNAVAILABLE_MESSAGE, { kind: "server" });
   pricingMode = "mock";
   const result = mockPlaceOrder({
     ...mockQuoteInput(input),
@@ -646,13 +719,17 @@ function placedByMock(
     advancePercent: input.payment?.advancePercent,
     paymentReference: input.payment?.reference,
   });
-  if (!result.ok) throw new MartApiError(result.message, { code: result.errorCode });
+  if (!result.ok)
+    throw new MartApiError(result.message, { code: result.errorCode });
   return mapOrder(result.order as ApiOrder);
 }
 
 export async function listOrders(query: OrderListQuery) {
-  const response = await authorizedFetch(`/api/v1/admin/orders?${orderListSearchParams(query)}`);
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not load orders."));
+  const response = await authorizedFetch(
+    `/api/v1/admin/orders?${orderListSearchParams(query)}`,
+  );
+  if (!response.ok)
+    throw new MartApiError(await readError(response, "Could not load orders."));
   const body = (await response.json()) as {
     items: ApiOrder[];
     total: number;
@@ -676,8 +753,13 @@ export async function listOrders(query: OrderListQuery) {
   const statusCounts = emptyStatusCounts();
   for (const status of ORDER_STATUSES) {
     const fromTabs = body.status_counts?.[status];
-    const fromMetrics = body.metrics[status];
-    statusCounts[status] = typeof fromTabs === "number" ? fromTabs : typeof fromMetrics === "number" ? fromMetrics : 0;
+    const fromMetrics = body.metrics[status as keyof typeof body.metrics] ?? 0;
+    statusCounts[status] =
+      typeof fromTabs === "number"
+        ? fromTabs
+        : typeof fromMetrics === "number"
+          ? fromMetrics
+          : 0;
   }
   return {
     items: body.items.map(mapOrder),
@@ -721,7 +803,9 @@ export async function getOrder(orderId: string) {
         if (mocked) return mocked;
       }
       if (response.status === 404) throw new MartApiError("Order not found");
-      throw new MartApiError(await readError(response, "Could not load this order."));
+      throw new MartApiError(
+        await readError(response, "Could not load this order."),
+      );
     }
     return mapOrder((await response.json()) as ApiOrder);
   } catch (error) {
@@ -816,8 +900,12 @@ function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
     total: body.total,
     courierName: body.courier_name,
     trackingNumber: body.tracking_number,
-    couponCode: typeof body.coupon_code === "string" && body.coupon_code.trim() ? body.coupon_code.trim() : null,
-    couponDiscount: typeof body.coupon_discount === "number" ? body.coupon_discount : null,
+    couponCode:
+      typeof body.coupon_code === "string" && body.coupon_code.trim()
+        ? body.coupon_code.trim()
+        : null,
+    couponDiscount:
+      typeof body.coupon_discount === "number" ? body.coupon_discount : null,
     ...paymentFrom(body),
     createdAt: body.created_at,
     timeline: publicTimelineFrom(body.timeline),
@@ -834,7 +922,10 @@ function mapPublicOrder(body: ApiPublicOrder): PublicOrder {
         variantLabel:
           typeof item.variant_label === "string"
             ? item.variant_label
-            : selection.map((choice) => choice.label.trim()).filter(Boolean).join(" / "),
+            : selection
+                .map((choice) => choice.label.trim())
+                .filter(Boolean)
+                .join(" / "),
         selection,
       };
     }),
@@ -848,7 +939,9 @@ export async function lookupPublicOrder(input: {
 }) {
   const body = orderLookupBody(input);
   if (!body) {
-    throw new MartApiError("Send the order number or the tracking number, and the phone");
+    throw new MartApiError(
+      "Send the order number or the tracking number, and the phone",
+    );
   }
   const response = await publicFetch("/api/v1/orders/lookup", {
     method: "POST",
@@ -875,13 +968,17 @@ export async function patchOrder(
   if (patch.status) body.status = patch.status;
   if (patch.callStatus) body.call_status = patch.callStatus;
   if (patch.courierName !== undefined) body.courier_name = patch.courierName;
-  if (patch.trackingNumber !== undefined) body.tracking_number = patch.trackingNumber;
+  if (patch.trackingNumber !== undefined)
+    body.tracking_number = patch.trackingNumber;
   if (patch.notes !== undefined) body.notes = patch.notes;
   const response = await authorizedFetch(`/api/v1/admin/orders/${orderId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new MartApiError(await readError(response, "Could not update this order."));
+  if (!response.ok)
+    throw new MartApiError(
+      await readError(response, "Could not update this order."),
+    );
   return mapOrder((await response.json()) as ApiOrder);
 }

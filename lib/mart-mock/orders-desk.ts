@@ -205,6 +205,8 @@ export function mockOrdersOverview() {
   const orders = state.orders.map((order) => decorate(state, order));
   const counts = {
     new: 0,
+    pending: 0,
+    processing: 0,
     confirmed: 0,
     packed: 0,
     shipped: 0,
@@ -275,6 +277,8 @@ export function mockListOrders(query: OrderListQuery): OrderDirectory {
   const filtered = decorated.filter((order) => matches(order, { ...query, status: null, scope: "all" }));
   const statusCounts = {
     new: 0,
+    pending: 0,
+    processing: 0,
     confirmed: 0,
     packed: 0,
     shipped: 0,

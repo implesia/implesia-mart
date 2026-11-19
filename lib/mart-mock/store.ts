@@ -28,10 +28,12 @@ const BANNERS_KEY = "implesia.admin.banners.v1";
 const DELIVERY_KEY = "implesia.admin.delivery.v1";
 
 export const ORDER_STATUSES = [
+  "pending",
   "new",
   "confirmed",
   "packed",
   "shipped",
+  "processing",
   "delivered",
   "cancelled",
   "returned",
@@ -40,10 +42,12 @@ export const ORDER_STATUSES = [
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  pending: "প্রস্থান",
   new: "নতুন",
   confirmed: "কনফার্ম",
   packed: "প্যাক",
   shipped: "পাঠানো",
+  processing: "প্রস্তুত",
   delivered: "ডেলিভার্ড",
   cancelled: "বাতিল",
   returned: "রিটার্ন",
@@ -225,7 +229,10 @@ export function feeForDistrict(charges: DeliveryCharges, district: string) {
 }
 
 export function orderItemsTotal(order: MockOrder) {
-  return order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  return order.items.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0,
+  );
 }
 
 export function orderGrandTotal(order: MockOrder) {
@@ -377,7 +384,9 @@ export function writeOrders(orders: MockOrder[]) {
 
 export function updateOrder(number: string, patch: Partial<MockOrder>) {
   const next = readOrders().map((order) =>
-    order.number === number ? { ...order, ...patch, number: order.number } : order,
+    order.number === number
+      ? { ...order, ...patch, number: order.number }
+      : order,
   );
   writeOrders(next);
   return next.find((order) => order.number === number) ?? null;
@@ -385,7 +394,9 @@ export function updateOrder(number: string, patch: Partial<MockOrder>) {
 
 export function findPublicOrder(number: string, phone: string) {
   const normalized = number.trim().toUpperCase();
-  const order = readOrders().find((item) => item.number.toUpperCase() === normalized);
+  const order = readOrders().find(
+    (item) => item.number.toUpperCase() === normalized,
+  );
   if (!order || !phonesMatch(order.phone, phone)) return null;
   return order;
 }
@@ -420,7 +431,10 @@ function catalogDraft(product: Product): ProductDraft {
   };
 }
 
-function mergeDraft(seed: ProductDraft, stored: Partial<ProductDraft>): ProductDraft {
+function mergeDraft(
+  seed: ProductDraft,
+  stored: Partial<ProductDraft>,
+): ProductDraft {
   return {
     ...seed,
     ...stored,
@@ -433,10 +447,12 @@ function readOverrides() {
 }
 
 function readCustomProducts() {
-  return (readJson<AdminProduct[]>(CUSTOM_PRODUCTS_KEY) ?? []).map((product) => ({
-    ...product,
-    content: mergeProductContent(emptyProductContent(), product.content),
-  }));
+  return (readJson<AdminProduct[]>(CUSTOM_PRODUCTS_KEY) ?? []).map(
+    (product) => ({
+      ...product,
+      content: mergeProductContent(emptyProductContent(), product.content),
+    }),
+  );
 }
 
 export function listAdminProducts(): AdminProduct[] {
@@ -459,14 +475,17 @@ export function saveAdminProduct(product: AdminProduct) {
   if (inCatalog) {
     const overrides = readOverrides();
     // Overrides store everything except the catalog identity fields.
-    const draft: ProductDraft & Partial<Pick<AdminProduct, "slug" | "custom">> = { ...product };
+    const draft: ProductDraft & Partial<Pick<AdminProduct, "slug" | "custom">> =
+      { ...product };
     delete draft.slug;
     delete draft.custom;
     overrides[product.slug] = draft;
     writeJson(PRODUCT_OVERRIDES_KEY, overrides);
     return;
   }
-  const custom = readCustomProducts().filter((item) => item.slug !== product.slug);
+  const custom = readCustomProducts().filter(
+    (item) => item.slug !== product.slug,
+  );
   custom.push({ ...product, custom: true });
   writeJson(CUSTOM_PRODUCTS_KEY, custom);
 }
@@ -477,7 +496,10 @@ export function createAdminProduct(draft: ProductDraft) {
   return slug;
 }
 
-export function effectiveStockStatus(slug: string, fallback: ProductStatus): StockStatus {
+export function effectiveStockStatus(
+  slug: string,
+  fallback: ProductStatus,
+): StockStatus {
   if (typeof window === "undefined") return fallback;
   return getAdminProduct(slug)?.status ?? fallback;
 }
@@ -500,7 +522,10 @@ export function seedBanners(): AdminBanner[] {
   }));
 }
 
-function normalizeBanner(raw: Partial<AdminBanner>, seed?: AdminBanner): AdminBanner {
+function normalizeBanner(
+  raw: Partial<AdminBanner>,
+  seed?: AdminBanner,
+): AdminBanner {
   return {
     id: raw.id || seed?.id || `slide-${Date.now()}`,
     eyebrow: raw.eyebrow ?? seed?.eyebrow ?? "",
@@ -510,7 +535,8 @@ function normalizeBanner(raw: Partial<AdminBanner>, seed?: AdminBanner): AdminBa
     primaryCtaLabel: raw.primaryCtaLabel ?? seed?.primaryCtaLabel ?? "Order",
     primaryCtaHref: raw.primaryCtaHref ?? seed?.primaryCtaHref ?? "/products",
     secondaryCtaLabel: raw.secondaryCtaLabel ?? seed?.secondaryCtaLabel ?? "",
-    secondaryCtaHref: raw.secondaryCtaHref ?? seed?.secondaryCtaHref ?? "/products",
+    secondaryCtaHref:
+      raw.secondaryCtaHref ?? seed?.secondaryCtaHref ?? "/products",
     imageSrc: raw.imageSrc ?? seed?.imageSrc ?? "",
     imageAlt: raw.imageAlt ?? seed?.imageAlt ?? raw.title ?? "",
     accent: raw.accent ?? seed?.accent ?? "teal",
@@ -522,7 +548,9 @@ export function readBanners() {
   const stored = readJson<Partial<AdminBanner>[]>(BANNERS_KEY);
   if (!stored) return seedBanners();
   const seeds = new Map(seedBanners().map((banner) => [banner.id, banner]));
-  return stored.map((banner) => normalizeBanner(banner, banner.id ? seeds.get(banner.id) : undefined));
+  return stored.map((banner) =>
+    normalizeBanner(banner, banner.id ? seeds.get(banner.id) : undefined),
+  );
 }
 
 export function saveBanner(banner: AdminBanner) {
@@ -549,7 +577,10 @@ export function createBanner(banner: AdminBanner) {
 }
 
 export function deleteBanner(id: string) {
-  writeJson(BANNERS_KEY, readBanners().filter((item) => item.id !== id));
+  writeJson(
+    BANNERS_KEY,
+    readBanners().filter((item) => item.id !== id),
+  );
 }
 
 export function blankBanner(): AdminBanner {
@@ -613,7 +644,8 @@ export function readStoredRefreshToken() {
 }
 
 function storedRole(value: unknown): AdminSession["role"] {
-  if (value === "viewer" || value === "editor" || value === "superadmin") return value;
+  if (value === "viewer" || value === "editor" || value === "superadmin")
+    return value;
   return null;
 }
 

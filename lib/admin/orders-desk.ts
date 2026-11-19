@@ -57,6 +57,8 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
 /** Confirmed is the ready-to-pack queue. Packed is required before shipped. */
 export const ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   new: ["confirmed", "cancelled"],
+  pending: ["confirmed", "cancelled"],
+  processing: ["confirmed", "cancelled"],
   confirmed: ["packed", "cancelled"],
   packed: ["shipped", "cancelled"],
   shipped: ["delivered", "returned"],
@@ -377,6 +379,8 @@ export type StatusCountMap = Record<OrderStatus, number>;
 export function emptyStatusCounts(): StatusCountMap {
   return {
     new: 0,
+    pending: 0,
+    processing: 0,
     confirmed: 0,
     packed: 0,
     shipped: 0,

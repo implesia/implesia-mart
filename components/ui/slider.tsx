@@ -1,6 +1,6 @@
-import { Slider as SliderPrimitive } from "@base-ui/react/slider"
+import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function Slider({
   className,
@@ -14,7 +14,7 @@ function Slider({
     ? value
     : Array.isArray(defaultValue)
       ? defaultValue
-      : [min, max]
+      : [min, max];
 
   return (
     <SliderPrimitive.Root
@@ -42,13 +42,15 @@ function Slider({
             data-slot="slider-thumb"
             index={index}
             key={index}
-            getAriaLabel={() => (index === 0 ? "সর্বনিম্ন দাম" : "সর্বোচ্চ দাম")}
+            getAriaLabel={() =>
+              index === 0 ? "সর্বনিম্ন দাম" : "সর্বোচ্চ দাম"
+            }
             className="relative block size-4 shrink-0 rounded-full border-2 border-primary bg-white shadow-sm ring-primary/30 select-none after:absolute after:-inset-2 hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden active:ring-4 disabled:pointer-events-none disabled:opacity-50"
           />
         ))}
       </SliderPrimitive.Control>
     </SliderPrimitive.Root>
-  )
+  );
 }
 
-export { Slider }
+export { Slider };
