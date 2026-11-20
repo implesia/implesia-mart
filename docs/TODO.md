@@ -2,7 +2,45 @@
 
 Open items found in the code and in recent work. Remove an item when it is done.
 
-## Done (not live)
+## Done (not live / pending production deployment)
+
+- **Customer Authentication & Account Management (2026-11-21).** Complete end-to-end customer auth, profile, and dashboard:
+  - Isolated session cookies (`implesia_cust_access`, `implesia_cust_refresh`) completely separated from admin staff cookies.
+  - BFF proxy routes: `/api/customer/login`, `register`, `logout`, `session`, `profile`, `change-password`, `orders`, `dashboard-summary`.
+  - Global `CustomerAuthProvider` and `useCustomerAuth()` hook in client layout.
+  - Storefront Header: Login link for guests; Avatar dropdown ("আমার ড্যাশবোর্ড", "আমার অর্ডারসমূহ", "প্রোফাইল সেটিংস", "লগআউট") for authenticated customers; responsive mobile drawer integration.
+  - Auth screens: Modern responsive `/login` and `/register` with 11-digit BD mobile phone validation (013-019), password visibility toggle, error handling, and `?next=` redirection.
+  - Protected customer dashboard (`/dashboard`):
+    - Overview: 3 KPI summary cards (Total Orders, Active, Delivered), recent orders preview table, and default delivery address.
+    - Orders (`/dashboard/orders`): Status filter tabs (All, Running, Delivered, Cancelled), item thumbnail/summary, courier tracking link, and printable invoice modal.
+    - Profile (`/dashboard/profile`): Name, phone, email, district, area, full street address editor with instant toast alerts.
+    - Security (`/dashboard/security`): Change password form.
+  - Checkout shipping form auto-populates logged-in customer's profile info with a verified customer badge.
+- **Admin Inventory Suppliers Management (2026-11-20).** Upgraded `/admin/inventory/suppliers`:
+  - Modernized table layout with search, status filtering, and pagination.
+  - Professional Supplier Create modal with clear placeholders, contact validation, and notes.
+  - Soft-delete functionality with safety confirmation modal; product and purchase history links remain intact.
+  - Resolved React 19 synchronous `setState` in `useEffect` warning.
+- **Admin Coupons Creation Page (2026-11-20).** Full screen responsive layout for `/admin/coupons/new` and `coupon-form.tsx`:
+  - Removed narrow max-width constraint; expanded to full responsive width.
+  - Real-time voucher coupon badge preview, clear helper text, and category/product selection.
+
+## Open / Pending Next Steps
+
+- **Deploy to Production (Manual Execution):**
+  - Backend: Run `alembic upgrade head` on the production database to apply migrations 0101 and 0103.
+  - Backend: Rebuild and restart the container (`docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build`).
+  - Frontend: Deploy Cloudflare Workers bundle (`npm run deploy:vinext`).
+- **Customer Product Reviews UI:**
+  - Create interactive review submission form and public reviews list on product detail page (`/products/[ref]`).
+  - Connect to backend endpoints: `GET /api/v1/products/{id}/reviews`, `GET /api/v1/products/{id}/can-review`, and `POST /api/v1/products/{id}/reviews`.
+- **Customer Notifications Bell / Drawer:**
+  - Add notification bell icon to storefront header with real-time unread count badge.
+  - Connect to `/api/v1/customer/notifications` and mark-as-read endpoints for order status updates.
+- **Customer Avatar Upload in Dashboard:**
+  - Add avatar photo upload/crop widget to `/dashboard/profile` calling `/api/v1/customer/avatar`.
+- **Automated Customer SMS via SSL Wireless:**
+  - Connect credentials (`SMS_SSLWIRELESS_API_TOKEN`, `SMS_SSLWIRELESS_SID`) in backend `.env.production` when account is active.
 
 - **Home SEO settings (2026-11-16).** Admin › Site › SEO and the storefront `generateMetadata` call `GET /api/v1/site/settings` and `GET` / `PATCH /api/v1/admin/site/settings` (backend PR #19, branch `cursor/storefront-seo-settings-0629`). Until the admin route answers, and only in dev or with `NEXT_PUBLIC_ENABLE_MOCK=true`, the form uses `lib/mart-mock/site-settings.ts`. The storefront never reads that stand-in; a failed public call uses the built-in title and description. Remove the stand-in once the route answers in the environment this app calls. Not live.
 - **Orders management (2026-11-16).** Admin › Orders Management (overview, offline create, list, ready to pack, print, and the order page) calls the routes in `docs/API.md`. The A4 invoice, the 4×6 label, and `/order-status` follow the print-data and lookup fields on implesia-mart-backend PR #18. Until `GET /api/v1/admin/orders/overview` answers, `lib/mart-mock/orders-desk.ts` fills the admin screens. Remove that fallback once it answers in the environment this app calls. Not live. `docs/ROADMAP.md` is not in this repo.

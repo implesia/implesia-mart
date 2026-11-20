@@ -2,6 +2,41 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Customer Authentication, Account Dashboard, Suppliers Page, and Coupons Fullscreen (2026-11-21).**
+  - **Customer Authentication & BFF:**
+    - Implemented secure, isolated customer cookies (`implesia_cust_access`, `implesia_cust_refresh`) with HTTPOnly and SameSite=Lax.
+    - Added BFF proxy endpoints under `app/api/customer/` (`login`, `register`, `logout`, `session`, `profile`, `change-password`, `orders`, `dashboard-summary`).
+    - Added client API wrapper `lib/mart-api/customer.ts` and React state provider `app/(client)/_providers/customer-auth-provider.tsx` with `useCustomerAuth()` hook.
+    - Integrated with storefront header: shows login button for guests, customer avatar pill and dropdown ("আমার ড্যাশবোর্ড", "আমার অর্ডারসমূহ", "প্রোফাইল সেটিংস", "লগআউট") for authenticated customers, and integrated drawer navigation for mobile.
+    - Built responsive authentication pages `/login` and `/register` with BD 11-digit phone validation (013-019), password toggle, and `?next=` query redirect support.
+    - Created protected customer dashboard at `/dashboard` with:
+      - Overview: KPI cards for total, active, and completed orders, recent orders table, and default delivery address.
+      - Orders: Filter tabs (All, Running, Delivered, Cancelled), item thumbnail previews, courier tracking link, and printable invoice modal.
+      - Profile: Name, phone, email, district, area, and address editor with instant toast alerts.
+      - Security: Password change form.
+    - Updated checkout shipping form to auto-fill logged-in customer's details with a verified badge.
+  - **Admin Inventory Suppliers Management:**
+    - Modernized `/admin/inventory/suppliers` with responsive layout, status filtering, search, and pagination.
+    - Replaced basic form with a professional creation modal with input placeholders and validation.
+    - Added soft-delete functionality with safety confirmation modal, keeping relational data intact.
+    - Fixed React 19 cascading render warning (`react-hooks/set-state-in-effect`).
+  - **Admin Coupons Creation Page:**
+    - Updated `/admin/coupons/new` and `coupon-form.tsx` to expand across the full screen width.
+    - Added live voucher card preview, clear pricing rules, and category/product picker.
+  - Files touched:
+    - `app/(client)/_components/common/header.tsx`
+    - `app/(client)/_providers/customer-auth-provider.tsx`
+    - `app/(client)/layout.tsx`
+    - `app/(client)/login/page.tsx`
+    - `app/(client)/register/page.tsx`
+    - `app/(client)/dashboard/**`
+    - `app/(client)/checkout/_components/**`
+    - `app/api/customer/**`
+    - `lib/auth/customer-cookies.ts`, `lib/auth/customer-bff.ts`, `lib/mart-api/customer.ts`
+    - `app/admin/inventory/suppliers/page.tsx`, `lib/mart-api/inventory.ts`, `lib/mart-mock/inventory.ts`
+    - `app/admin/coupons/_components/coupon-form.tsx`, `app/admin/coupons/new/page.tsx`
+    - `docs/TODO.md`, `docs/CHANGELOG.md`
+
 - **Admin-editable home SEO title and description (2026-11-16).**
   - The root layout and the home page `generateMetadata` read `GET /api/v1/site/settings` on the server and put the title and description in the first HTML (`<title>`, meta description, Open Graph, Twitter). The browser does not set the title. A timeout (3s), any failed response, a body that is not the settings object, or a null / blank / over-long field uses the built-in copy. A title template is used only when it contains `%s` exactly once and no other `%`; otherwise other pages keep `%s | Implesia Mart`. Those pages already use the root title template, so a saved template changes their `<title>`. Each page still sets its own Open Graph title.
   - The home route stays `force-dynamic` (CMS must not be cached). The settings row is cached on its own for 60 seconds, including a failed call, so a down API does not add the timeout to every page. A save shows up on the next request after that window.
