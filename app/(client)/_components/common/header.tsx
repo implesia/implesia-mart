@@ -189,85 +189,84 @@ export default function Header({
         className="fixed inset-x-0 top-0 z-50 pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]"
         inert={mobileOpen}
       >
-        <div className="border-b border-neutral-200 bg-white text-neutral-800">
-          <Container className="flex items-center gap-3 px-4 py-1.5 sm:items-end sm:gap-4 sm:py-2 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-end lg:gap-6 lg:px-8 lg:py-3">
-            <div className="flex min-w-0 shrink-0 flex-col gap-1">
-              {phoneChannel ? (
-                <a
-                  href={phoneChannel.href}
-                  className="hidden items-center gap-1.5 text-[13px] font-medium text-neutral-700 transition-colors hover:text-neutral-950 sm:inline-flex"
-                >
-                  <MaterialIcon name="call" className="text-[16px]" />
-                  <span>{phoneChannel.value}</span>
-                </a>
-              ) : null}
+        {/* Main header bar */}
+        <div className="border-b border-neutral-200/80 bg-white text-neutral-800 dark:border-white/10 dark:bg-[#121a19] dark:text-neutral-100">
+          <Container className="flex h-14 items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-8 lg:px-8">
+            <div className="flex min-w-0 shrink-0 items-center">
               <SiteLogo
                 priority
                 tone="light"
-                className="h-9 w-[7.5rem] min-[360px]:w-[8.875rem] sm:h-10 sm:w-[9.875rem] lg:h-10 lg:w-[9.875rem]"
+                className="h-8.5 w-[7.5rem] min-[360px]:w-[8.875rem] sm:h-9.5 sm:w-[9.875rem]"
                 onClick={closeMenu}
               />
             </div>
 
-            <SearchBox variant="desktop" />
+            <div className="hidden justify-center px-4 lg:flex">
+              <SearchBox variant="desktop" />
+            </div>
 
-            <div className="ml-auto flex shrink-0 flex-col items-end gap-0.5">
-              <span className="hidden items-center gap-1.5 pb-0.5 text-[13px] font-medium text-neutral-700 lg:inline-flex">
-                <span aria-hidden>🇧🇩</span>
-                বাংলা
-              </span>
-              <div className="flex items-center gap-1 sm:gap-2 lg:gap-2.5">
-
-                <Link
-                  href="/order-status"
-                  className="hidden size-9 items-center justify-center rounded-md text-neutral-800 transition-colors hover:bg-neutral-100 lg:inline-flex"
-                  aria-label="আমার অর্ডার"
+            <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4 lg:gap-5">
+              {phoneChannel ? (
+                <a
+                  href={phoneChannel.href}
+                  className="hidden items-center gap-1.5 text-[13px] font-medium text-neutral-800 transition-colors hover:text-neutral-950 lg:inline-flex dark:text-neutral-200 dark:hover:text-white"
                 >
-                  <MaterialIcon name="receipt_long" className="text-[22px]" />
-                </Link>
+                  <MaterialIcon name="call" className="text-[18px] text-neutral-700 dark:text-neutral-300" />
+                  <span>{phoneChannel.value}</span>
+                </a>
+              ) : null}
 
-                <CartTrigger variant="summary" />
+              <Link
+                href="/order-status"
+                className="hidden size-9 items-center justify-center rounded-lg text-neutral-800 transition-colors hover:bg-neutral-100 hover:text-neutral-950 lg:inline-flex dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                aria-label="My Orders"
+                title="My Orders"
+              >
+                <MaterialIcon name="receipt_long" className="text-[22px]" />
+              </Link>
 
-                <button
-                  ref={searchButtonRef}
-                  type="button"
-                  className="inline-flex size-11 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 lg:hidden"
-                  aria-label="প্রোডাক্ট খুঁজুন"
-                  aria-haspopup="dialog"
-                  onClick={() => openMenu(searchButtonRef.current, "search")}
-                >
-                  <MaterialIcon name="search" className="text-[24px]" />
-                </button>
+              <CartTrigger variant="summary" />
 
-                <button
-                  ref={menuButtonRef}
-                  type="button"
-                  className="-mr-1.5 inline-flex size-11 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 lg:hidden"
-                  aria-label={mobileOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
-                  aria-expanded={mobileOpen}
-                  aria-controls={mobileOpen ? menuId : undefined}
-                  onClick={() =>
-                    mobileOpen
-                      ? closeMenu()
-                      : openMenu(menuButtonRef.current, "close")
-                  }
-                >
-                  <MaterialIcon
-                    name={mobileOpen ? "close" : "menu"}
-                    className="text-[24px]"
-                  />
-                </button>
-              </div>
+              <button
+                ref={searchButtonRef}
+                type="button"
+                className="inline-flex size-9 items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 lg:hidden dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
+                aria-label="Search products"
+                aria-haspopup="dialog"
+                onClick={() => openMenu(searchButtonRef.current, "search")}
+              >
+                <MaterialIcon name="search" className="text-[22px]" />
+              </button>
+
+              <button
+                ref={menuButtonRef}
+                type="button"
+                className="-mr-1 inline-flex size-9 items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 lg:hidden dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileOpen}
+                aria-controls={mobileOpen ? menuId : undefined}
+                onClick={() =>
+                  mobileOpen
+                    ? closeMenu()
+                    : openMenu(menuButtonRef.current, "close")
+                }
+              >
+                <MaterialIcon
+                  name={mobileOpen ? "close" : "menu"}
+                  className="text-[22px]"
+                />
+              </button>
             </div>
           </Container>
         </div>
 
+        {/* Categories & Navigation Bar */}
         <div className="hidden bg-neutral-950 text-white lg:block">
-          <Container className="flex h-12 items-center gap-3 px-4 sm:gap-5 sm:px-6 lg:h-[3.25rem] lg:px-8">
+          <Container className="flex h-10 items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
             <div className="relative shrink-0" ref={categoriesRef}>
               <button
                 type="button"
-                className="inline-flex h-10 items-center gap-1.5 rounded-md bg-white px-2.5 text-sm sm:gap-2 sm:px-3 font-semibold text-neutral-950 shadow-sm transition-colors hover:bg-neutral-100"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white px-2.5 text-xs font-semibold text-neutral-950 shadow-xs transition-colors hover:bg-neutral-100"
                 aria-label="Categories"
                 aria-expanded={categoriesOpen}
                 aria-haspopup="true"
@@ -277,12 +276,12 @@ export default function Header({
                   );
                 }}
               >
-                <MaterialIcon name="apps" className="text-[18px]" />
+                <MaterialIcon name="apps" className="text-[17px]" />
                 <span className="hidden min-[360px]:inline">Categories</span>
                 <MaterialIcon
                   name="expand_more"
                   className={cn(
-                    "text-[18px] transition-transform",
+                    "text-[17px] transition-transform duration-200",
                     categoriesOpen && "rotate-180",
                   )}
                 />
@@ -290,7 +289,7 @@ export default function Header({
 
               <div
                 className={cn(
-                  "absolute top-[calc(100%+0.5rem)] left-0 z-50 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 text-neutral-900 shadow-lg dark:border-white/10 dark:bg-[#141c1b] dark:text-white",
+                  "absolute top-[calc(100%+0.375rem)] left-0 z-50 w-56 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 text-neutral-900 shadow-xl dark:border-white/10 dark:bg-[#141c1b] dark:text-white",
                   categoriesOpen ? "block" : "hidden",
                 )}
                 role="menu"
@@ -300,7 +299,7 @@ export default function Header({
                     key={category.slug}
                     href={`/products?category=${category.slug}`}
                     role="menuitem"
-                    className="block px-3.5 py-2.5 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-white/10"
+                    className="block px-3.5 py-2 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-white/10"
                     onClick={() => setCategoriesPath(null)}
                   >
                     {category.label}
@@ -309,7 +308,7 @@ export default function Header({
                 <Link
                   href="/products"
                   role="menuitem"
-                  className="block border-t border-neutral-100 px-3.5 py-2.5 text-sm font-semibold hover:bg-neutral-100 dark:border-white/10 dark:hover:bg-white/10"
+                  className="block border-t border-neutral-100 px-3.5 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-100 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
                   onClick={() => setCategoriesPath(null)}
                 >
                   View All
@@ -318,8 +317,8 @@ export default function Header({
             </div>
 
             <nav
-              className="flex min-w-0 flex-1 snap-x snap-mandatory scroll-px-1 items-center gap-1 overflow-x-auto overscroll-x-contain [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] sm:gap-3 lg:[mask-image:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              aria-label="প্রধান নেভিগেশন"
+              className="flex min-w-0 flex-1 snap-x snap-mandatory scroll-px-1 items-center gap-1 overflow-x-auto overscroll-x-contain [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] sm:gap-2 lg:[mask-image:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              aria-label="Main navigation"
             >
               {navItems.map((item, index) => {
                 const active = item.href === activeHref;
@@ -328,8 +327,8 @@ export default function Header({
                     key={`${index}-${item.href}`}
                     href={item.href}
                     className={cn(
-                      "inline-flex h-11 shrink-0 snap-start items-center rounded-md px-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white last:mr-6 lg:last:mr-0",
-                      active ? "text-white" : "text-white/75 hover:text-white",
+                      "inline-flex h-7.5 shrink-0 snap-start items-center rounded-md px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white last:mr-6 lg:last:mr-0",
+                      active ? "bg-white/15 font-semibold text-white" : "text-white/80 hover:bg-white/10 hover:text-white",
                     )}
                     aria-current={active ? "page" : undefined}
                   >
@@ -342,8 +341,8 @@ export default function Header({
         </div>
       </header>
 
-      {/* Matches the fixed header height per breakpoint (measured) so nothing jumps or gaps. */}
-      <div aria-hidden className="h-[57px] sm:h-[81px] lg:h-[145px]" />
+      {/* Matches the fixed header height per breakpoint so nothing jumps or overlaps content */}
+      <div aria-hidden className="h-14 sm:h-16 lg:h-[104px]" />
 
       {mobileOpen ? (
       <div
@@ -371,12 +370,12 @@ export default function Header({
           )}
           role="dialog"
           aria-modal="true"
-          aria-label="মোবাইল মেনু"
+          aria-label="Mobile menu"
         >
-          <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3.5 sm:px-5 dark:border-white/10">
+          <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 sm:px-5 dark:border-white/10">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-[0.18em] text-neutral-500 uppercase">
-                মেনু
+              <p className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                Menu
               </p>
               <p className="truncate text-sm font-semibold text-neutral-950 dark:text-white">
                 {SITE_NAME}
@@ -385,25 +384,25 @@ export default function Header({
             <Button
               variant="ghost"
               size="icon"
-              className="size-10 shrink-0"
+              className="size-9 shrink-0 text-neutral-600 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-white"
               data-menu-close
-              aria-label="মেনু বন্ধ করুন"
+              aria-label="Close menu"
               onClick={closeMenu}
             >
-              <MaterialIcon name="close" className="text-[24px]" />
+              <MaterialIcon name="close" className="text-[20px]" />
             </Button>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-3.5 sm:px-5">
             <SearchBox variant="mobile" onNavigate={closeMenu} />
 
             {phoneChannel ? (
               <a
                 href={phoneChannel.href}
-                className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-neutral-700 sm:hidden dark:text-neutral-200"
+                className="mb-3 inline-flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-100 sm:hidden dark:bg-white/5 dark:text-neutral-200"
               >
-                <MaterialIcon name="call" className="text-[18px]" />
-                {phoneChannel.value}
+                <MaterialIcon name="call" className="text-[16px] text-neutral-500" />
+                <span>Hotline: {phoneChannel.value}</span>
               </a>
             ) : null}
 
@@ -417,18 +416,18 @@ export default function Header({
                     <li key={category.slug}>
                       <Link
                         href={`/products?category=${category.slug}`}
-                        className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[0.95rem] font-medium text-neutral-800 transition-colors hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10"
+                        className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10"
                         onClick={closeMenu}
                       >
                         <span>{category.label}</span>
-                        <MaterialIcon name="chevron_right" className="text-[18px]" />
+                        <MaterialIcon name="chevron_right" className="text-[18px] text-neutral-400" />
                       </Link>
                     </li>
                   ))}
                   <li>
                     <Link
                       href="/products"
-                      className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[0.95rem] font-semibold text-neutral-950 transition-colors hover:bg-neutral-100 dark:text-white dark:hover:bg-white/10"
+                      className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-neutral-950 transition-colors hover:bg-neutral-100 dark:text-white dark:hover:bg-white/10"
                       onClick={closeMenu}
                     >
                       <span>View All</span>
@@ -439,7 +438,7 @@ export default function Header({
               </nav>
             ) : null}
 
-            <nav className="space-y-1" aria-label="মোবাইল লিংক">
+            <nav className="space-y-0.5" aria-label="Navigation links">
               {navItems.map((item, index) => {
                 const active = item.href === activeHref;
                 return (
@@ -447,7 +446,7 @@ export default function Header({
                     key={`${index}-${item.href}`}
                     href={item.href}
                     className={cn(
-                      "flex items-center justify-between rounded-lg px-3 py-3 text-[0.95rem] font-medium transition-colors",
+                      "flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                       active
                         ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950"
                         : "text-neutral-800 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-white/10",
@@ -457,14 +456,14 @@ export default function Header({
                     <span>{item.label}</span>
                     <MaterialIcon
                       name={active ? "check" : "chevron_right"}
-                      className="text-[18px]"
+                      className="text-[18px] text-neutral-400"
                     />
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="mt-auto grid grid-cols-2 gap-2 pt-6 pb-2">
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-4 pb-2">
               <CartTrigger
                 variant="button"
                 onNavigate={closeMenu}
@@ -478,7 +477,7 @@ export default function Header({
                   name="receipt_long"
                   className="mr-1.5 text-[18px]"
                 />
-                আমার অর্ডার
+                My Orders
               </Link>
             </div>
           </div>

@@ -153,13 +153,13 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
 
   const announce =
     status === "loading"
-      ? "খোঁজা হচ্ছে"
+      ? "Searching..."
       : status === "error"
-        ? "এখন খোঁজা যাচ্ছে না"
+        ? "Unable to search right now"
         : status === "ready"
           ? results && results.products.total + results.blogs.total > 0
-            ? `${results.products.total} টি প্রোডাক্ট, ${results.blogs.total} টি ব্লগ পাওয়া গেছে`
-            : "কিছু পাওয়া যায়নি"
+            ? `${results.products.total} product${results.products.total > 1 ? "s" : ""}, ${results.blogs.total} blog${results.blogs.total > 1 ? "s" : ""} found`
+            : "No results found"
           : "";
 
   const desktop = variant === "desktop";
@@ -183,8 +183,8 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
           value={value}
           autoComplete="off"
           maxLength={200}
-          placeholder="প্রোডাক্ট খুঁজুন..."
-          aria-label="প্রোডাক্ট খুঁজুন"
+          placeholder="Search products..."
+          aria-label="Search products"
           role="combobox"
           aria-expanded={showPanel}
           aria-controls={listId}
@@ -206,7 +206,7 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
           <button
             type="submit"
             className="grid size-11 shrink-0 place-items-center rounded-r-md bg-neutral-950 text-white transition-colors hover:bg-black"
-            aria-label="খুঁজুন"
+            aria-label="Search"
           >
             <MaterialIcon name="search" className="text-[20px]" />
           </button>
@@ -227,12 +227,12 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
           )}
         >
           {status === "loading" ? (
-            <p className="px-4 py-3 text-sm text-neutral-500">খোঁজা হচ্ছে…</p>
+            <p className="px-4 py-3 text-sm text-neutral-500">Searching…</p>
           ) : null}
 
           {status === "error" ? (
             <div role="alert" className="px-4 py-3 text-sm">
-              <p className="text-neutral-700">এখন খোঁজা যাচ্ছে না।</p>
+              <p className="text-neutral-700">Unable to search right now.</p>
               <button
                 type="button"
                 className="mt-2 font-semibold text-primary underline"
@@ -240,26 +240,26 @@ export function SearchBox({ variant, onNavigate }: SearchBoxProps) {
                   setAnswers((current) => Object.fromEntries(Object.entries(current).filter(([k]) => k !== key)))
                 }
               >
-                আবার চেষ্টা করুন
+                Try again
               </button>
             </div>
           ) : null}
 
           {status === "ready" && results && options.length === 1 ? (
             <p className="px-4 py-3 text-sm text-neutral-600">
-              “{query}” এর জন্য কিছু পাওয়া যায়নি।
+              No results found for “{query}”.
             </p>
           ) : null}
 
           {status === "ready" && options.length > 1 ? (
-            <ul id={listId} role="listbox" aria-label="খোঁজার ফল" className="max-h-[60vh] overflow-y-auto py-1">
+            <ul id={listId} role="listbox" aria-label="Search results" className="max-h-[60vh] overflow-y-auto py-1">
               {options.map((option, index) => (
                 <li key={option.id} role="presentation">
                   {index > 0 && options[index - 1].kind !== option.kind && option.kind === "blog" ? (
-                    <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-neutral-500">ব্লগ</p>
+                    <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-neutral-500">Blogs</p>
                   ) : null}
                   {index === 0 && option.kind === "product" ? (
-                    <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-neutral-500">প্রোডাক্ট</p>
+                    <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-neutral-500">Products</p>
                   ) : null}
                   <Link
                     id={option.id}
