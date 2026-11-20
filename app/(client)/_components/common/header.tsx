@@ -25,8 +25,16 @@ import { Container } from "./container";
 import { MaterialIcon } from "./material-icon";
 import { SearchBox } from "./search-box";
 import { SiteLogo } from "./site-logo";
+import { useCustomerAuth } from "../../_providers/customer-auth-provider";
 
 const SITE_NAME = "Implesia Mart";
+
+function getInitials(name: string): string {
+  if (!name.trim()) return "U";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 
 function useScrollLock(locked: boolean) {
   useEffect(() => {
@@ -63,6 +71,15 @@ export default function Header({
 }) {
   const pathname = usePathname();
   const phoneChannel = contactChannel(details, "call");
+  const { customer, isAuthenticated, logout } = useCustomerAuth();
+  const [userMenuPath, setUserMenuPath] = useState<string | null>(null);
+  const userMenuOpen = userMenuPath === pathname;
+  const closeUserMenu = useCallback(() => setUserMenuPath(null), []);
+  const toggleUserMenu = useCallback(
+    () => setUserMenuPath((curr) => (curr === pathname ? null : pathname)),
+    [pathname],
+  );
+  const userDropdownRef = useRef<HTMLDivElement>(null);
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [categoriesPath, setCategoriesPath] = useState<string | null>(null);
   const menuId = useId();
@@ -180,6 +197,24 @@ export default function Header({
     };
   }, [categoriesOpen]);
 
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!userDropdownRef.current?.contains(event.target as Node)) {
+        closeUserMenu();
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeUserMenu();
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [userMenuOpen, closeUserMenu]);
+
   const activeHref = useMemo(() => {
     if (!pathname) return "/";
     if (pathname.startsWith("/products")) return "/products";
@@ -222,11 +257,105 @@ export default function Header({
               <Link
                 href="/order-status"
                 className="hidden size-9 items-center justify-center rounded-lg text-neutral-800 transition-colors hover:bg-neutral-100 hover:text-neutral-950 lg:inline-flex dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
-                aria-label="My Orders"
-                title="My Orders"
+                aria-label="Track Order"
+                title="Track Order"
               >
                 <MaterialIcon name="receipt_long" className="text-[22px]" />
               </Link>
+
+              {/* Customer Account Pill / Dropdown on Desktop */}
+              {!isAuthenticated ? (
+                <Link
+                  href="/login"
+                  className="hidden items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-800 shadow-2xs transition-colors hover:bg-neutral-50 hover:text-neutral-950 lg:inline-flex dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                  title="Login / Register"
+                >
+                  <MaterialIcon name="person" className="text-[18px] text-neutral-600 dark:text-neutral-300" />
+                  <span>Login</span>
+                </Link>
+              ) : customer ? (
+                <div className="relative hidden lg:block" ref={userDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={toggleUserMenu}
+                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-neutral-50/90 py-1 pr-2.5 pl-1 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    aria-expanded={userMenuOpen}
+                    aria-haspopup="menu"
+                  >
+                    <span className="grid size-7 place-items-center rounded-full bg-emerald-700 font-bold text-[11px] text-white">
+                      {getInitials(customer.fullName)}
+                    </span>
+                    <span className="max-w-[100px] truncate text-left font-semibold">
+                      {customer.fullName.split(" ")[0]}
+                    </span>
+                    <MaterialIcon
+                      name="expand_more"
+                      className={cn("text-[16px] text-neutral-500 transition-transform duration-200", userMenuOpen && "rotate-180")}
+                    />
+                  </button>
+
+                  {userMenuOpen ? (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 overflow-hidden rounded-xl border border-neutral-200/80 bg-white py-1.5 text-neutral-900 shadow-xl ring-1 ring-black/5 animate-in fade-in-0 zoom-in-95 dark:border-white/10 dark:bg-[#141c1b] dark:text-white"
+                    >
+                      <div className="border-b border-neutral-100 px-3.5 py-2.5 dark:border-white/10">
+                        <p className="truncate text-xs font-bold text-neutral-950 dark:text-white">
+                          {customer.fullName}
+                        </p>
+                        <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
+                          {customer.phone || customer.email || "Customer"}
+                        </p>
+                      </div>
+
+                      <Link
+                        href="/dashboard"
+                        role="menuitem"
+                        onClick={closeUserMenu}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-white/10"
+                      >
+                        <MaterialIcon name="dashboard" className="text-[17px] text-neutral-500" />
+                        <span>আমার ড্যাশবোর্ড</span>
+                      </Link>
+
+                      <Link
+                        href="/dashboard/orders"
+                        role="menuitem"
+                        onClick={closeUserMenu}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-white/10"
+                      >
+                        <MaterialIcon name="receipt_long" className="text-[17px] text-neutral-500" />
+                        <span>আমার অর্ডারসমূহ</span>
+                      </Link>
+
+                      <Link
+                        href="/dashboard/profile"
+                        role="menuitem"
+                        onClick={closeUserMenu}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-white/10"
+                      >
+                        <MaterialIcon name="settings" className="text-[17px] text-neutral-500" />
+                        <span>প্রোফাইল সেটিংস</span>
+                      </Link>
+
+                      <div className="my-1 border-t border-neutral-100 dark:border-white/10" />
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={async () => {
+                          closeUserMenu();
+                          await logout();
+                        }}
+                        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50/70 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                      >
+                        <MaterialIcon name="logout" className="text-[17px]" />
+                        <span>লগআউট</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <CartTrigger variant="summary" />
 
@@ -398,6 +527,79 @@ export default function Header({
 
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-3.5 sm:px-5">
             <SearchBox variant="mobile" onNavigate={closeMenu} />
+
+            {/* Mobile Drawer Customer Auth Card */}
+            {!isAuthenticated ? (
+              <div className="my-3 rounded-xl border border-neutral-200/90 bg-neutral-50/70 p-3 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-neutral-200/80 text-neutral-700 dark:bg-white/10 dark:text-neutral-200">
+                      <MaterialIcon name="person" className="text-[18px]" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-neutral-900 dark:text-white">
+                        লগইন করা নেই
+                      </p>
+                      <p className="text-[11px] text-neutral-500">
+                        অর্ডার ও প্রোফাইল দেখতে
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/login"
+                    onClick={closeMenu}
+                    className="inline-flex items-center justify-center rounded-lg bg-neutral-950 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-neutral-800 dark:bg-white dark:text-neutral-950"
+                  >
+                    লগইন / সাইন আপ
+                  </Link>
+                </div>
+              </div>
+            ) : customer ? (
+              <div className="my-3 rounded-xl border border-neutral-200/90 bg-neutral-50/80 p-3 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-700 font-bold text-xs text-white">
+                    {getInitials(customer.fullName)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-neutral-900 dark:text-white">
+                      {customer.fullName}
+                    </p>
+                    <p className="truncate text-[11px] text-neutral-500">
+                      {customer.phone || customer.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-2.5 grid grid-cols-2 gap-1.5 border-t border-neutral-200/60 pt-2.5 dark:border-white/10">
+                  <Link
+                    href="/dashboard"
+                    onClick={closeMenu}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                  >
+                    <MaterialIcon name="dashboard" className="text-[16px] text-neutral-500" />
+                    <span>আমার ড্যাশবোর্ড</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/orders"
+                    onClick={closeMenu}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                  >
+                    <MaterialIcon name="receipt_long" className="text-[16px] text-neutral-500" />
+                    <span>আমার অর্ডারসমূহ</span>
+                  </Link>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    closeMenu();
+                    await logout();
+                  }}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                >
+                  <MaterialIcon name="logout" className="text-[16px]" />
+                  <span>লগআউট</span>
+                </button>
+              </div>
+            ) : null}
 
             {phoneChannel ? (
               <a

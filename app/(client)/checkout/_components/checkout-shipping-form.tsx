@@ -9,6 +9,7 @@ import { checkoutCopy } from "../../_data/checkout/checkout";
 
 import { zoneEnabled, type DeliveryZone } from "@/lib/mart-api/delivery";
 
+import { useCustomerAuth } from "../../_providers/customer-auth-provider";
 import { useCheckoutForm } from "./checkout-form-context";
 
 type CheckoutShippingFormProps = {
@@ -114,6 +115,7 @@ function AreaChip({
 }
 
 export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
+  const { customer, isAuthenticated } = useCustomerAuth();
   const { shipping, setShippingField, errors, rates, deliveryZone, zoneKnown, chooseDeliveryZone, pricingBusy } =
     useCheckoutForm();
 
@@ -145,6 +147,15 @@ export function CheckoutShippingForm({ className }: CheckoutShippingFormProps) {
           <p className="mt-1 text-sm leading-relaxed text-neutral-600">{checkoutCopy.shippingHint}</p>
         </div>
       </div>
+
+      {isAuthenticated && customer ? (
+        <div className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-200/90 bg-emerald-50/80 px-3.5 py-2.5 text-xs text-emerald-900">
+          <MaterialIcon name="verified_user" className="text-[18px] text-emerald-700" />
+          <span>
+            লগইন করা প্রোফাইল (<strong>{customer.fullName}</strong>) থেকে আপনার ঠিকানার তথ্য যুক্ত করা হয়েছে।
+          </span>
+        </div>
+      ) : null}
 
       <fieldset className="mb-5">
         <legend className="mb-2 text-sm font-medium text-neutral-700">ডেলিভারি এলাকা</legend>

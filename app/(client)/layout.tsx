@@ -12,6 +12,7 @@ import { StorefrontFrame } from "./_components/common/storefront-frame";
 import Footer from "./_components/common/footer";
 import { FloatingActions } from "./_components/common/floating-actions";
 import Header from "./_components/common/header";
+import { CustomerAuthProvider } from "./_providers/customer-auth-provider";
 import { CartProvider } from "./_providers/cart-provider";
 import {
   FALLBACK_CONTACT_DETAILS,
@@ -138,40 +139,42 @@ export default function ClientLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <CartProvider>
-      <Suspense fallback={null}>
-        <StoreAnalyticsSlot />
-      </Suspense>
-      <Suspense fallback={null}>
-        <CouponCapture />
-      </Suspense>
-      <JsonLd data={websiteJsonLd} />
-      <StorefrontFrame
-        header={
-          <Suspense fallback={<Header details={FALLBACK_CONTACT_DETAILS} />}>
-            <ContactHeader />
-          </Suspense>
-        }
-        footer={
-          <Suspense
-            fallback={
-              <Footer
-                details={FALLBACK_CONTACT_DETAILS}
-                config={DEFAULT_FOOTER}
-              />
-            }
-          >
-            <ContactFooter />
-          </Suspense>
-        }
-        floating={
-          <Suspense fallback={<FloatingActions whatsappHref={fallbackChat} />}>
-            <ContactFloating />
-          </Suspense>
-        }
-      >
-        {children}
-      </StorefrontFrame>
-    </CartProvider>
+    <CustomerAuthProvider>
+      <CartProvider>
+        <Suspense fallback={null}>
+          <StoreAnalyticsSlot />
+        </Suspense>
+        <Suspense fallback={null}>
+          <CouponCapture />
+        </Suspense>
+        <JsonLd data={websiteJsonLd} />
+        <StorefrontFrame
+          header={
+            <Suspense fallback={<Header details={FALLBACK_CONTACT_DETAILS} />}>
+              <ContactHeader />
+            </Suspense>
+          }
+          footer={
+            <Suspense
+              fallback={
+                <Footer
+                  details={FALLBACK_CONTACT_DETAILS}
+                  config={DEFAULT_FOOTER}
+                />
+              }
+            >
+              <ContactFooter />
+            </Suspense>
+          }
+          floating={
+            <Suspense fallback={<FloatingActions whatsappHref={fallbackChat} />}>
+              <ContactFloating />
+            </Suspense>
+          }
+        >
+          {children}
+        </StorefrontFrame>
+      </CartProvider>
+    </CustomerAuthProvider>
   );
 }

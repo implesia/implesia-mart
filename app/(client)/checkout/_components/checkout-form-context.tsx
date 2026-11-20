@@ -57,6 +57,7 @@ import {
 } from "../_lib/validate-shipping";
 import { readBuySelection } from "../../products/_components/purchase-selection";
 import { useCart } from "../../_providers/cart-provider";
+import { useCustomerAuth } from "../../_providers/customer-auth-provider";
 import { usePaymentQr } from "../../_providers/payment-qr-provider";
 
 type OrderSource = "cart" | "direct";
@@ -220,6 +221,23 @@ export function CheckoutFormProvider({
   const ticket = useRef(0);
   const busyRef = useRef(false);
   const itemsRef = useRef(directItems);
+  const { customer, isAuthenticated } = useCustomerAuth();
+  const autofilledRef = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !customer || autofilledRef.current) return;
+    autofilledRef.current = true;
+    setShipping((prev) => ({
+      ...prev,
+      name: prev.name.trim() ? prev.name : customer.fullName || "",
+      phone: prev.phone.trim() ? prev.phone : customer.phone || "",
+      email: prev.email.trim() ? prev.email : customer.email || "",
+      district: prev.district.trim() ? prev.district : customer.district || "",
+      area: prev.area.trim() ? prev.area : customer.area || "",
+      address: prev.address.trim() ? prev.address : customer.address || "",
+    }));
+  }, [isAuthenticated, customer]);
+
   useEffect(() => {
     itemsRef.current = directItems;
   }, [directItems]);
