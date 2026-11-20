@@ -177,12 +177,12 @@ export function readCatalogQuery(raw: {
 }
 
 export function catalogTitle(search: CatalogSearch) {
-  if (search.q) return "খোঁজার ফল";
+  if (search.q) return "Search Results";
   if (search.category) return categoryLabel(search.category);
   if (search.view === "featured") return "Featured Products";
-  if (search.view === "latest") return "সর্বশেষ প্রোডাক্ট";
-  if (search.view === "new") return "নতুন আগমন";
-  return "সব প্রোডাক্ট";
+  if (search.view === "latest") return "Latest Products";
+  if (search.view === "new") return "New Arrivals";
+  return "All Products";
 }
 
 export function toBrowserSearchParams(search: CatalogSearch) {

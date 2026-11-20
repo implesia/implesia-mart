@@ -29,11 +29,11 @@ function breadcrumbJsonLd(trail: { slug: string; label: string }[]) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "হোম", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
       {
         "@type": "ListItem",
         position: 2,
-        name: "সব পণ্য",
+        name: "All Products",
         item: absoluteUrl("/products"),
       },
       ...trail.map((crumb, index) => ({
@@ -72,7 +72,7 @@ export async function generateMetadata({
   return pageMetadata({
     title:
       search.page > 1
-        ? `${pageTitle} — পৃষ্ঠা ${search.page.toLocaleString("bn-BD")}`
+        ? `${pageTitle} — Page ${search.page}`
         : pageTitle,
     description,
     path: canonical,

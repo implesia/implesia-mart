@@ -9,11 +9,10 @@ import { ProductMobileBuyBar } from "./product-mobile-buy-bar";
 import { ProductSupportPanel } from "./product-support-panel";
 import { RelatedProducts } from "./related-products";
 
-/** Built-in badges keep their Bengali storefront wording unless an admin renamed them. */
 const builtInLabel: Record<string, { name: string; label: string }> = {
-  new: { name: "New", label: "নতুন প্রোডাক্ট" },
-  "best-seller": { name: "Best Seller", label: "বেস্ট সেলার" },
-  limited: { name: "Limited", label: "লিমিটেড স্টক" },
+  new: { name: "New", label: "New" },
+  "best-seller": { name: "Best Seller", label: "Best Seller" },
+  limited: { name: "Limited", label: "Limited Stock" },
 };
 
 function detailBadges(product: ProductDetail) {
@@ -25,20 +24,20 @@ function detailBadges(product: ProductDetail) {
 
 export function ProductDetailLayout({ product }: { product: ProductDetail }) {
   return (
-    <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 pt-4 pb-28 sm:px-6 sm:pb-32 lg:px-8 lg:pt-8 lg:pb-16 xl:px-10">
-      <ProductBreadcrumbs items={product.breadcrumbs} />
+    <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-3.5 pt-3 pb-24 sm:px-6 sm:pb-28 lg:px-8 lg:pt-5 lg:pb-16 xl:px-10">
+      <div className="mb-3 sm:mb-4">
+        <ProductBreadcrumbs items={product.breadcrumbs} />
+      </div>
 
-      {/* DOM order is gallery, info (h1), then the desktop support panel (h2s) so headings stay in order;
-          on lg the panel sits in row 2 under the gallery and the info column spans both rows. */}
-      <div className="grid grid-cols-1 items-start gap-5 sm:gap-8 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-0 xl:gap-x-14">
+      <div className="grid grid-cols-1 items-start gap-6 sm:gap-8 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-0 xl:gap-x-12">
         <div className="min-w-0 lg:col-span-7">
           <ProductGallery
             title={product.title}
             badge={
               product.status === "coming-soon"
-                ? "কামিং সুন"
+                ? "Coming Soon"
                 : product.status === "sold-out"
-                  ? "শেষ"
+                  ? "Sold Out"
                   : undefined
             }
             badges={detailBadges(product)}
@@ -52,7 +51,7 @@ export function ProductDetailLayout({ product }: { product: ProductDetail }) {
 
         <ProductSupportPanel
           product={product}
-          className="hidden min-w-0 lg:col-span-7 lg:mt-8 lg:block"
+          className="hidden min-w-0 lg:col-span-7 lg:mt-6 lg:block"
         />
       </div>
 

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
+import { ProductFaqAccordion } from "./product-faq-accordion";
 import { ProductSpecifications } from "./product-specifications";
 
 function Stars({ value }: { value: number }) {
@@ -37,12 +38,12 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
   const [activeTab, setActiveTab] = useState("details");
 
   const tabs = [
-    { value: "details", label: "বিস্তারিত", icon: "description" },
-    { value: "specifications", label: "স্পেসিফিকেশন", icon: "tune" },
+    { value: "details", label: "Overview", icon: "description" },
+    { value: "specifications", label: "Specifications", icon: "tune" },
     ...(faqs.length
-      ? [{ value: "faq", label: "প্রশ্নোত্তর", icon: "help" }]
+      ? [{ value: "faq", label: "FAQs", icon: "help" }]
       : []),
-    { value: "reviews", label: "রিভিউ", icon: "rate_review" },
+    { value: "reviews", label: "Reviews", icon: "rate_review" },
   ];
 
   const tabTriggerClass = cn(
@@ -248,36 +249,10 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
             ) : null}
 
             {activeTab === "faq" && faqs.length ? (
-              <div className="mx-auto max-w-3xl space-y-3 sm:space-y-4">
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-lg font-medium text-on-background sm:font-headline-sm">
-                    সাধারণ জিজ্ঞাসা
-                  </h2>
-                  <p className="mt-1.5 text-sm text-on-surface-variant sm:mt-2 sm:text-base">
-                    অর্ডার, ডেলিভারি, ব্যবহার ও কেয়ার — যে প্রশ্নগুলো বেশি আসে,
-                    তার উত্তর।
-                  </p>
-                </div>
-                {faqs.map((faq) => (
-                  <details
-                    key={faq.question}
-                    className="group rounded-xl border border-outline-variant/30 bg-surface-container-low px-3.5 py-3.5 sm:rounded-2xl sm:px-5 sm:py-4"
-                  >
-                    <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-sm font-semibold text-on-surface sm:items-center sm:gap-4 sm:text-base">
-                      <span className="min-w-0 leading-snug">
-                        {faq.question}
-                      </span>
-                      <MaterialIcon
-                        name="expand_more"
-                        className="mt-0.5 shrink-0 text-outline transition-transform duration-300 group-open:rotate-180"
-                      />
-                    </summary>
-                    <p className="mt-2.5 text-sm leading-relaxed text-on-surface-variant sm:mt-3 sm:text-base">
-                      {faq.answer}
-                    </p>
-                  </details>
-                ))}
-              </div>
+              <ProductFaqAccordion
+                faqs={faqs}
+                isFashion={product.categoryId === "fashion"}
+              />
             ) : null}
 
             {activeTab === "reviews" ? (

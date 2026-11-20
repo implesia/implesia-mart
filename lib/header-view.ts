@@ -3,9 +3,24 @@ import { FOOTER_LIMITS, isSafeFooterHref, type FooterLink } from "@/lib/footer-v
 /** One top-menu link. Same shape and URL rules as a footer link. */
 export type HeaderItem = FooterLink;
 
-export type HeaderAdmin = { items: HeaderItem[]; isDefault: boolean };
+export type HeaderAdmin = {
+  items: HeaderItem[];
+  /** The uploaded navbar logo (an API path, http(s) link, or a blob: preview while editing). */
+  logoSrc: string;
+  logoAlt: string;
+  isDefault: boolean;
+  /** The stored logo cannot be shown (not a usable path or URL): upload it again. */
+  logoNeedsUpload: boolean;
+};
 
-export const HEADER_LIMITS = { items: 8, label: FOOTER_LIMITS.linkLabel } as const;
+/** What the storefront navbar renders: the links plus an optional custom logo. */
+export type HeaderConfig = { items: HeaderItem[]; logo?: { src: string; alt: string } };
+
+export const HEADER_LIMITS = {
+  items: 8,
+  label: FOOTER_LIMITS.linkLabel,
+  logoAlt: FOOTER_LIMITS.logoAlt,
+} as const;
 
 /**
  * The menu the storefront had before it was editable. Mirrors the API default
@@ -29,13 +44,19 @@ export function navItemsToShow(items: readonly HeaderItem[]): HeaderItem[] {
 }
 
 export function defaultHeaderAdmin(): HeaderAdmin {
-  return { items: DEFAULT_HEADER_ITEMS.map((item) => ({ ...item })), isDefault: true };
+  return {
+    items: DEFAULT_HEADER_ITEMS.map((item) => ({ ...item })),
+    logoSrc: "",
+    logoAlt: "",
+    isDefault: true,
+    logoNeedsUpload: false,
+  };
 }
 
 const HTML = /[<>]/;
 
-/** The first thing wrong with a draft menu, or "" when it can be saved (the API re-checks). */
-export function headerDraftError(items: readonly HeaderItem[]): string {
+/** The first thing wrong with a draft menu/logo, or "" when it can be saved (the API re-checks). */
+export function headerDraftError(items: readonly HeaderItem[], logoSrc = "", logoAlt = ""): string {
   if (items.length === 0) return "Add at least one menu link.";
   if (items.length > HEADER_LIMITS.items) return `A menu can have at most ${HEADER_LIMITS.items} links.`;
   if (!items.some((item) => item.enabled)) return "Keep at least one menu link shown.";
@@ -47,5 +68,9 @@ export function headerDraftError(items: readonly HeaderItem[]): string {
     if (HTML.test(label)) return `${where} label must be plain text (no < or >).`;
     if (!isSafeFooterHref(item.href)) return `${where} link must start with /, http(s)://, mailto: or tel:.`;
   }
+  const alt = logoAlt.trim();
+  if (alt.length > HEADER_LIMITS.logoAlt) return `Logo description must be at most ${HEADER_LIMITS.logoAlt} characters.`;
+  if (HTML.test(alt)) return "Logo description must be plain text (no < or >).";
+  if (logoSrc && !alt) return "Describe the logo for screen readers.";
   return "";
 }

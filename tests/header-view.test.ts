@@ -66,3 +66,30 @@ describe("headerDraftError", () => {
     assert.match(headerDraftError([link("x".repeat(HEADER_LIMITS.label + 1), "/a")]), /at most/);
   });
 });
+
+describe("header logo", () => {
+  const menu = [link("Home", "/")];
+
+  it("the built-in header has no custom logo", () => {
+    const admin = defaultHeaderAdmin();
+    assert.equal(admin.logoSrc, "");
+    assert.equal(admin.logoAlt, "");
+    assert.equal(admin.logoNeedsUpload, false);
+  });
+
+  it("accepts a logo with a description, or no logo at all", () => {
+    assert.equal(headerDraftError(menu, "/media/header/a.png", "Shop logo"), "");
+    assert.equal(headerDraftError(menu, "blob:http://localhost/abc", "Shop logo"), "");
+    assert.equal(headerDraftError(menu, "", ""), "");
+  });
+
+  it("requires a plain-text description for a chosen logo", () => {
+    assert.match(headerDraftError(menu, "/media/header/a.png", ""), /Describe the logo/);
+    assert.match(headerDraftError(menu, "/media/header/a.png", "   "), /Describe the logo/);
+    assert.match(headerDraftError(menu, "/media/header/a.png", "<b>x</b>"), /plain text/);
+    assert.match(
+      headerDraftError(menu, "/media/header/a.png", "x".repeat(HEADER_LIMITS.logoAlt + 1)),
+      /at most/,
+    );
+  });
+});

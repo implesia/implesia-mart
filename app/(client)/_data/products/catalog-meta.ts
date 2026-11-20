@@ -60,7 +60,7 @@ export function categoryLabel(slug: string, name?: string | null) {
 
 /** Slider ceiling only. An unset price filter does not apply this limit. */
 export const PRICE_FILTER_MIN = 0;
-export const PRICE_FILTER_MAX = 100_000;
+export const PRICE_FILTER_MAX = 50_000;
 
 export const productFilters = {
   categories: [

@@ -51,12 +51,15 @@ export default function Header({
   details,
   categories = [],
   navItems = DEFAULT_HEADER_ITEMS,
+  logo,
 }: {
   details: ContactDetails | null;
   /** Top-level categories from the API (never a hardcoded list). */
   categories?: HeaderCategory[];
   /** Top menu from the API (Admin → Site → Header); the built-in menu when omitted. */
   navItems?: readonly HeaderItem[];
+  /** Uploaded navbar logo from the API; the built-in logo when omitted. */
+  logo?: { src: string; alt: string };
 }) {
   const pathname = usePathname();
   const phoneChannel = contactChannel(details, "call");
@@ -196,6 +199,7 @@ export default function Header({
               <SiteLogo
                 priority
                 tone="light"
+                custom={logo}
                 className="h-8.5 w-[7.5rem] min-[360px]:w-[8.875rem] sm:h-9.5 sm:w-[9.875rem]"
                 onClick={closeMenu}
               />
@@ -215,7 +219,6 @@ export default function Header({
                   <span>{phoneChannel.value}</span>
                 </a>
               ) : null}
-
               <Link
                 href="/order-status"
                 className="hidden size-9 items-center justify-center rounded-lg text-neutral-800 transition-colors hover:bg-neutral-100 hover:text-neutral-950 lg:inline-flex dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"

@@ -83,16 +83,16 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
       ) : null}
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] text-outline sm:text-label-sm">
+          <p className="text-[10px] text-neutral-500 font-semibold uppercase">
             {isSoldOut
-              ? "শেষ"
+              ? "Sold Out"
               : isComingSoon
-                ? "প্রত্যাশিত মূল্য"
+                ? "Est. Price"
                 : quantity > 1
-                  ? `${quantity} × মূল্য`
-                  : "মোট মূল্য"}
+                  ? `${quantity} × Price`
+                  : "Total"}
           </p>
-          <p className="truncate text-lg font-semibold text-on-background sm:text-xl">
+          <p className="truncate text-lg font-extrabold text-neutral-950 sm:text-xl dark:text-white tabular-nums">
             {formatPrice(
               isComingSoon
                 ? view.unitPrice
@@ -140,9 +140,9 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
             <Button
               type="button"
               disabled
-              className="h-11 flex-1 rounded-full text-sm sm:h-12"
+              className="h-11 flex-1 rounded-xl text-xs font-bold sm:h-12"
             >
-              শেষ
+              Out of Stock
             </Button>
           </>
         ) : isComingSoon ? (
@@ -156,10 +156,10 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
               href="/contact-us"
               className={cn(
                 buttonVariants({ size: "lg" }),
-                "h-11 flex-1 rounded-full text-sm shadow-lg sm:h-12",
+                "h-11 flex-1 rounded-xl text-xs font-bold shadow-sm sm:h-12",
               )}
             >
-              মেসেজ করুন
+              Contact Us
             </Link>
           </>
         ) : (
@@ -173,8 +173,8 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
               type="button"
               variant="outline"
               size="icon"
-              className="size-11 shrink-0 rounded-full sm:size-12"
-              aria-label={`${product.title} কার্টে যুক্ত করুন`}
+              className="size-11 shrink-0 rounded-xl sm:size-12 border-neutral-300"
+              aria-label={`Add ${product.title} to cart`}
               disabled={pending !== null || !canBuy}
               onClick={handleAddToCart}
             >
@@ -185,11 +185,12 @@ export function ProductMobileBuyBar({ product }: { product: ProductDetail }) {
             </Button>
             <Button
               type="button"
-              className="h-11 min-w-0 flex-1 rounded-full px-3 text-sm shadow-lg sm:h-12"
+              className="h-11 min-w-0 flex-1 rounded-xl px-3 text-xs sm:text-sm font-bold shadow-md bg-primary hover:bg-primary-ink text-white sm:h-12"
               disabled={pending !== null || !canBuy}
               onClick={handleBuyNow}
             >
-              {pending === "buy" ? "যাচ্ছে…" : "অর্ডার করুন"}
+              <MaterialIcon name="flash_on" className="text-[18px]" />
+              <span>{pending === "buy" ? "Proceeding…" : "Order Now"}</span>
             </Button>
           </>
         )}

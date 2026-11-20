@@ -11,21 +11,21 @@ type BreadcrumbItem = { label: string; href?: string };
 export function ProductBreadcrumbs({ items }: { items: BreadcrumbItem[] }) {
   return (
     <nav
-      aria-label="ব্রেডক্রাম্ব"
-      className="mb-1 flex flex-wrap items-center gap-1 text-[13px] text-neutral-600 sm:mb-2 sm:gap-1.5 lg:mb-2.5"
+      aria-label="Breadcrumb"
+      className="flex flex-wrap items-center gap-1 text-xs text-neutral-500 sm:gap-1.5 dark:text-neutral-400"
     >
       {items.map((item, idx) => {
         const isLast = idx === items.length - 1;
         const content = item.href ? (
           <Link
             href={item.href}
-            className="-mx-1 inline-flex min-h-11 items-center rounded px-1 transition-colors hover:text-primary-ink focus-visible:outline-2 focus-visible:outline-primary"
+            className="inline-flex items-center rounded py-0.5 font-medium transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
           >
             {item.label}
           </Link>
         ) : (
           <span
-            className={cn("font-semibold", isLast && "text-neutral-950")}
+            className={cn("font-bold", isLast ? "text-neutral-900 dark:text-white" : "font-medium text-neutral-500")}
             aria-current={isLast ? "page" : undefined}
           >
             {item.label}
@@ -33,7 +33,7 @@ export function ProductBreadcrumbs({ items }: { items: BreadcrumbItem[] }) {
         );
 
         return (
-          <span key={`${item.label}-${idx}`} className="inline-flex items-center gap-1.5 sm:gap-2">
+          <span key={`${item.label}-${idx}`} className="inline-flex items-center gap-1 sm:gap-1.5">
             {content}
             {!isLast ? (
               <MaterialIcon name="chevron_right" className="text-[14px] text-neutral-400" />
@@ -44,4 +44,3 @@ export function ProductBreadcrumbs({ items }: { items: BreadcrumbItem[] }) {
     </nav>
   );
 }
-

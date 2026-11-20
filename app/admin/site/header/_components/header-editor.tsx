@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { adminCoverSrc } from "@/lib/blog-view";
 import {
   HEADER_LIMITS,
   headerDraftError,
   type HeaderAdmin,
-  type HeaderItem,
 } from "@/lib/header-view";
 import { getAdminHeader, resetHeader, saveHeader } from "@/lib/mart-api/header";
 import { MartApiError } from "@/lib/mart-api/products";
@@ -16,8 +16,11 @@ import {
   AdminLoading,
   AdminNotice,
   AdminPageHeader,
+  FieldLabel,
   adminButtonClass,
+  adminFieldClass,
 } from "../../../_components/admin-ui";
+import { ImageField } from "../../../_components/image-field";
 import { Card, LinkList } from "../../footer/_components/footer-editor";
 import { useConfirmDelete } from "../../../_components/confirm-delete";
 
@@ -30,6 +33,7 @@ export function HeaderEditor() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [picking, setPicking] = useState(false);
   const confirmDelete = useConfirmDelete();
 
   useEffect(() => {
@@ -41,7 +45,7 @@ export function HeaderEditor() {
         setDraft(next);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setLoadError(e instanceof MartApiError ? e.message : "Could not load the menu.");
+        if (!cancelled) setLoadError(e instanceof MartApiError ? e.message : "Could not load the header.");
       });
     return () => {
       cancelled = true;
@@ -50,8 +54,8 @@ export function HeaderEditor() {
 
   const header = (
     <AdminPageHeader
-      title="Header menu"
-      description="The navigation links shown at the top of every storefront page (and in the mobile menu). The phone number, search, cart and category panel are managed elsewhere."
+      title="Header"
+      description="The logo and navigation links shown at the top of every storefront page (and in the mobile menu). The phone number, search, cart and category panel are managed elsewhere."
       action={
         <a
           href="/"
@@ -84,10 +88,10 @@ export function HeaderEditor() {
   }
 
   const dirty = !SAME(saved, draft);
-  const problem = headerDraftError(draft.items);
+  const problem = headerDraftError(draft.items, draft.logoSrc, draft.logoAlt);
 
-  function change(items: HeaderItem[]) {
-    setDraft((current) => (current ? { ...current, items } : current));
+  function change(patch: Partial<HeaderAdmin>) {
+    setDraft((current) => (current ? { ...current, ...patch } : current));
     setError("");
     setNotice("");
   }
@@ -102,12 +106,13 @@ export function HeaderEditor() {
     setBusy(true);
     setError("");
     try {
-      const next = await saveHeader(draft.items);
+      const next = await saveHeader(draft);
+      if (draft.logoSrc.startsWith("blob:")) URL.revokeObjectURL(draft.logoSrc);
       setSaved(next);
       setDraft(next);
-      setNotice("Saved. The menu is live on the storefront.");
+      setNotice("Saved. The header is live on the storefront.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save the menu.");
+      setError(e instanceof Error ? e.message : "Could not save the header.");
     } finally {
       setBusy(false);
     }
@@ -117,11 +122,11 @@ export function HeaderEditor() {
     if (busy) return;
     setError("");
     void confirmDelete({
-      title: "Restore the built-in menu?",
-      description: "Your saved menu will be removed.",
+      title: "Restore the built-in header?",
+      description: "Your saved menu and logo will be removed.",
       confirmLabel: "Restore",
-      successMessage: "Restored the built-in menu.",
-      errorMessage: "Could not restore the default menu.",
+      successMessage: "Restored the built-in header.",
+      errorMessage: "Could not restore the default header.",
       onConfirm: async () => {
         setBusy(true);
         try {
@@ -140,16 +145,47 @@ export function HeaderEditor() {
       {header}
       {saved.isDefault ? (
         <AdminNotice tone="success">
-          Showing the built-in menu. Make a change and save to start managing it here. The footer is managed
-          under Site → Footer.
+          Showing the built-in menu and logo. Make a change and save to start managing them here. The footer
+          is managed under Site → Footer.
+        </AdminNotice>
+      ) : null}
+      {saved.logoNeedsUpload ? (
+        <AdminNotice tone="warning">
+          The saved logo can no longer be shown on the site. Upload it again and save.
         </AdminNotice>
       ) : null}
       <form onSubmit={onSubmit} className="grid min-w-0 gap-4" aria-busy={busy}>
         <Card
+          title="Logo"
+          hint="Shown at the left of the navbar. Optional: without one the built-in logo is used. A wide image on a transparent or white background works best."
+        >
+          <ImageField
+            label="Logo (optional, replaces the built-in logo)"
+            variant="thumb"
+            value={adminCoverSrc(draft.logoSrc)}
+            onChange={(logoSrc) => change({ logoSrc, logoAlt: logoSrc ? draft.logoAlt || "Implesia Mart" : "" })}
+            onBusy={setPicking}
+          />
+          {draft.logoSrc ? (
+            <div>
+              <FieldLabel htmlFor="header-logo-alt">Logo description (alt text)</FieldLabel>
+              <input
+                id="header-logo-alt"
+                className={adminFieldClass}
+                value={draft.logoAlt}
+                maxLength={HEADER_LIMITS.logoAlt}
+                placeholder="e.g. Implesia Mart"
+                onChange={(e) => change({ logoAlt: e.target.value })}
+              />
+            </div>
+          ) : null}
+        </Card>
+
+        <Card
           title="Menu links"
           hint={`Up to ${HEADER_LIMITS.items} links, shown in this order. Use a page path such as /products, or a full https:// address. Hidden links stay saved but are not shown.`}
         >
-          <LinkList name="Menu" links={draft.items} max={HEADER_LIMITS.items} onChange={change} />
+          <LinkList name="Menu" links={draft.items} max={HEADER_LIMITS.items} onChange={(items) => change({ items })} />
         </Card>
 
         <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/95 p-3 ring-1 ring-neutral-200/90 backdrop-blur">
@@ -172,13 +208,13 @@ export function HeaderEditor() {
             <button
               type="button"
               className={adminButtonClass.secondary}
-              disabled={busy || saved.isDefault}
+              disabled={busy || picking || saved.isDefault}
               onClick={onReset}
             >
-              Restore built-in menu
+              Restore built-in header
             </button>
-            <button type="submit" className={adminButtonClass.primary} disabled={!dirty || busy}>
-              {busy ? "Saving…" : "Save menu"}
+            <button type="submit" className={adminButtonClass.primary} disabled={!dirty || busy || picking}>
+              {busy ? "Saving…" : "Save header"}
             </button>
           </div>
         </div>

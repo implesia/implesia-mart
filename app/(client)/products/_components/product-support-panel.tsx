@@ -29,7 +29,7 @@ export function ProductSupportPanel({ product, className }: ProductSupportPanelP
               <MaterialIcon name={isFashion ? "checkroom" : "tune"} className="text-[16px] sm:text-[18px]" />
             </span>
             <h2 className="text-sm font-semibold text-on-surface sm:text-base">
-              {isFashion ? "ফেব্রিক ও স্পেক" : "স্পেসিফিকেশন"}
+              {isFashion ? "Fabric & Specifications" : "Specifications"}
             </h2>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
@@ -60,7 +60,7 @@ export function ProductSupportPanel({ product, className }: ProductSupportPanelP
               <MaterialIcon name="verified_user" className="text-[18px]" />
             </span>
             <h2 className="text-sm font-semibold text-on-surface sm:text-base">
-              অর্ডার ও ডেলিভারি তথ্য
+              Order & Delivery Information
             </h2>
           </div>
           <ul className="space-y-3.5">
