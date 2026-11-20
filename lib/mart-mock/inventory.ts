@@ -312,6 +312,18 @@ export function updateSupplier(state: InventoryState, id: string, input: Supplie
   };
 }
 
+export function deleteSupplier(state: InventoryState, id: string) {
+  const current = state.suppliers.find((supplier) => supplier.id === id);
+  if (!current) return { state, error: "Supplier not found." };
+  return {
+    state: {
+      ...state,
+      suppliers: state.suppliers.filter((supplier) => supplier.id !== id),
+    },
+    error: null,
+  };
+}
+
 function ensureStock(stock: MockStock[], productId: string, now: Date) {
   const found = stock.find((row) => row.productId === productId);
   if (found) return { stock, row: found };

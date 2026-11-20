@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
@@ -85,16 +85,18 @@ function FilterBody({
   const [draft, setDraft] = useState<[number, number]>(priceRange);
   const [minInput, setMinInput] = useState(() => priceRange[0].toLocaleString("en-US"));
   const [maxInput, setMaxInput] = useState(() => priceRange[1].toLocaleString("en-US"));
+  const [prevPriceRange, setPrevPriceRange] = useState<[number, number]>(priceRange);
 
-  const allCategoriesSelected = !activeCategory;
-  const categoryRows = categoryBranch(categoryTree, activeCategory);
-
-  // Sync inputs when priceRange prop changes externally
-  useEffect(() => {
+  // Sync inputs when priceRange prop changes externally without triggering cascading effect renders
+  if (prevPriceRange[0] !== priceRange[0] || prevPriceRange[1] !== priceRange[1]) {
+    setPrevPriceRange(priceRange);
     setDraft(priceRange);
     setMinInput(priceRange[0].toLocaleString("en-US"));
     setMaxInput(priceRange[1].toLocaleString("en-US"));
-  }, [priceRange[0], priceRange[1]]);
+  }
+
+  const allCategoriesSelected = !activeCategory;
+  const categoryRows = categoryBranch(categoryTree, activeCategory);
 
   const handleSliderChange = (value: number | readonly number[]) => {
     if (!Array.isArray(value) || value.length < 2) return;

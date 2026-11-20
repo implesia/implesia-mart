@@ -33,6 +33,7 @@ import {
   confirmWorkbook,
   createPurchase,
   createSupplier,
+  deleteSupplier as deleteSupplierMock,
   listMovements,
   listPurchases,
   listSuppliers,
@@ -353,6 +354,21 @@ export async function saveSupplier(input: SupplierInput, id?: string): Promise<S
   });
   if (!response.ok) throw new MartApiError(await readError(response, "Could not save the supplier."));
   return supplierFromApi((await response.json()) as Record<string, unknown>);
+}
+
+export async function deleteSupplier(id: string): Promise<void> {
+  requireWriter();
+  if ((await inventoryBackend()) === "mock") {
+    const state = loadInventory();
+    const result = deleteSupplierMock(state, id);
+    if (result.error) throw new MartApiError(result.error);
+    saveInventory(result.state);
+    return;
+  }
+  const response = await authorizedFetch(INVENTORY_PATHS.supplier(id), {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new MartApiError(await readError(response, "Could not delete the supplier."));
 }
 
 export async function fetchPurchases(query: {
