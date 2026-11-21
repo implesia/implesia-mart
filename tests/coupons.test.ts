@@ -45,7 +45,9 @@ function memory(): CouponStorage {
   };
 }
 
-function quote(couponCode: string | null, extra: { phone?: string; productIds?: string[]; district?: string } = {}) {
+const TEST_NOW = new Date("2026-11-10T06:00:00.000Z");
+
+function quote(couponCode: string | null, extra: { phone?: string; productIds?: string[]; district?: string; now?: Date } = {}) {
   return mockQuoteApi({
     couponCode,
     deliveryZone: "inside",
@@ -53,6 +55,7 @@ function quote(couponCode: string | null, extra: { phone?: string; productIds?: 
     phone: extra.phone,
     productIds: extra.productIds,
     source: "cart",
+    now: extra.now ?? TEST_NOW,
   });
 }
 

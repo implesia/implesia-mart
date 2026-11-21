@@ -1,49 +1,71 @@
 "use client";
 
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { resolveInitialProductTab } from "@/lib/mart-api/product-reviews";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
 import type { ProductDetail } from "../../_data/products/product-details";
 import { ProductFaqAccordion } from "./product-faq-accordion";
+import { ProductReviewsTab } from "./product-reviews-tab";
 import { ProductSpecifications } from "./product-specifications";
 
-function Stars({ value }: { value: number }) {
-  return (
-    <div className="flex text-tertiary">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <MaterialIcon
-          key={i}
-          name="star"
-          filled={i < Math.round(value)}
-          className="text-[18px]"
-        />
-      ))}
-    </div>
-  );
-}
-
-export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
+function ProductDetailsTabsInner({ product }: { product: ProductDetail }) {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const howToUse = product.howToUse ?? [];
   const suitableFor = product.suitableFor ?? [];
   const faqs = product.faqs ?? [];
-  const reviews = product.reviews;
-  const hasReviews = Boolean(reviews && reviews.items.length > 0);
-  const [activeTab, setActiveTab] = useState("details");
+  const hasFaqs = faqs.length > 0;
+
+  const initialTab = resolveInitialProductTab(tabParam, null, hasFaqs);
+  const openedReviewsFromQuery = tabParam?.trim().toLowerCase() === "reviews";
+
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [liveReviewCount, setLiveReviewCount] = useState<number | null>(null);
+  const [autoOpenReviewForm, setAutoOpenReviewForm] = useState(
+    openedReviewsFromQuery,
+  );
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  // Sync with ?tab=reviews or #reviews and scroll smoothly to the reviews section
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const wantsReviews =
+      tabParam?.trim().toLowerCase() === "reviews" ||
+      hash.toLowerCase() === "#reviews";
+
+    if (!wantsReviews) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setActiveTab("reviews");
+      setAutoOpenReviewForm(true);
+      sectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [tabParam]);
 
   const tabs = [
     { value: "details", label: "Overview", icon: "description" },
     { value: "specifications", label: "Specifications", icon: "tune" },
-    ...(faqs.length
-      ? [{ value: "faq", label: "FAQs", icon: "help" }]
-      : []),
-    { value: "reviews", label: "Reviews", icon: "rate_review" },
+    ...(hasFaqs ? [{ value: "faq", label: "FAQs", icon: "help" }] : []),
+    {
+      value: "reviews",
+      label:
+        liveReviewCount !== null && liveReviewCount > 0
+          ? `Reviews (${liveReviewCount})`
+          : "Reviews",
+      icon: "rate_review",
+    },
   ];
 
   const tabTriggerClass = cn(
@@ -58,7 +80,11 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
   );
 
   return (
-    <section className="mt-8 sm:mt-10 lg:mt-16">
+    <section
+      id="reviews"
+      ref={sectionRef}
+      className="mt-8 scroll-mt-24 sm:mt-10 lg:mt-16"
+    >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="-mx-1 overflow-x-auto px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList
@@ -105,7 +131,6 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
         role="tabpanel"
         aria-label={tabs.find((t) => t.value === activeTab)?.label}
       >
-        {" "}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -248,7 +273,7 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
               <ProductSpecifications product={product} />
             ) : null}
 
-            {activeTab === "faq" && faqs.length ? (
+            {activeTab === "faq" && hasFaqs ? (
               <ProductFaqAccordion
                 faqs={faqs}
                 isFashion={product.categoryId === "fashion"}
@@ -256,113 +281,29 @@ export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
             ) : null}
 
             {activeTab === "reviews" ? (
-              !hasReviews || !reviews ? (
-                <section className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low p-6 sm:p-8 md:p-12">
-                  <div className="mb-3 inline-flex items-center gap-2 text-primary">
-                    <MaterialIcon name="rate_review" />
-                    <span className="font-label-md tracking-widest uppercase">
-                      রিভিউ
-                    </span>
-                  </div>
-                  <h2 className="mb-3 text-xl font-medium text-on-background sm:font-headline-sm">
-                    এখনও কোনো রিভিউ নেই
-                  </h2>
-                  <p className="max-w-2xl text-sm text-on-surface-variant sm:text-body-md">
-                    {product.status === "coming-soon"
-                      ? "প্রোডাক্ট লঞ্চ হওয়ার পর এখানে ভেরিফাইড কাস্টমার রিভিউ যুক্ত হবে।"
-                      : "প্রথম রিভিউটি আপনার হতে পারে — অর্ডার করার পর আপনার অভিজ্ঞতা শেয়ার করুন।"}
-                  </p>
-                </section>
-              ) : (
-                <section className="pb-6 sm:pb-10">
-                  <div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:gap-6 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <h2 className="mb-2 font-headline-md text-xl sm:text-2xl lg:text-3xl">
-                        কাস্টমার ফিডব্যাক
-                      </h2>
-                      <p className="text-sm text-on-surface-variant sm:text-base">
-                        আমাদের কাস্টমারদের সত্যিকারের অভিজ্ঞতা।
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground sm:w-auto"
-                    >
-                      রিভিউ লিখুন
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-3 lg:gap-10">
-                    <div className="h-fit rounded-2xl border border-outline-variant/30 bg-card p-5 sm:p-6 lg:p-8">
-                      <div className="mb-6 text-center sm:mb-8">
-                        <span className="text-5xl font-bold leading-none text-on-background sm:text-6xl">
-                          {reviews.average.toFixed(1)}
-                        </span>
-                        <div className="my-2 flex justify-center gap-1 text-tertiary">
-                          <Stars value={reviews.average} />
-                        </div>
-                        <p className="text-label-sm text-outline">
-                          {reviews.total} টি ভেরিফাইড রিভিউয়ের ভিত্তিতে
-                        </p>
-                      </div>
-
-                      <div className="space-y-4">
-                        {reviews.breakdown
-                          .filter((b) => b.stars >= 3)
-                          .map((b) => (
-                            <div
-                              key={b.stars}
-                              className="flex items-center gap-3 sm:gap-4"
-                            >
-                              <span className="w-4 text-label-sm">
-                                {b.stars}
-                              </span>
-                              <div className="flex-1">
-                                <Progress value={b.percent} />
-                              </div>
-                              <span className="w-10 shrink-0 text-label-sm text-outline">
-                                {b.percent}%
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-5 sm:space-y-6 lg:col-span-2 lg:space-y-8">
-                      {reviews.items.map((r) => (
-                        <div
-                          key={r.id}
-                          className="border-b border-outline-variant/30 pb-5 sm:p-6 sm:pb-6 lg:p-8"
-                        >
-                          <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4 sm:gap-6">
-                            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest font-bold text-primary sm:h-12 sm:w-12">
-                                {r.initials}
-                              </div>
-                              <div className="min-w-0">
-                                <h3 className="truncate font-label-md text-on-surface">
-                                  {r.name}
-                                </h3>
-                                <p className="text-label-sm text-outline">
-                                  {r.meta}
-                                </p>
-                              </div>
-                            </div>
-                            <Stars value={r.rating} />
-                          </div>
-                          <p className="text-sm leading-relaxed text-on-surface-variant italic sm:text-base">
-                            &ldquo;{r.quote}&rdquo;
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )
+              <ProductReviewsTab
+                product={product}
+                autoOpenForm={autoOpenReviewForm}
+                onTotalReviewsChange={setLiveReviewCount}
+              />
             ) : null}
           </motion.div>
         </AnimatePresence>
       </div>
     </section>
+  );
+}
+
+export function ProductDetailsTabs({ product }: { product: ProductDetail }) {
+  return (
+    <Suspense
+      fallback={
+        <section className="mt-8 sm:mt-10 lg:mt-16">
+          <div className="h-12 animate-pulse rounded-2xl bg-surface-container-low" />
+        </section>
+      }
+    >
+      <ProductDetailsTabsInner product={product} />
+    </Suspense>
   );
 }

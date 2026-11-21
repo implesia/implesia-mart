@@ -75,11 +75,14 @@ Notes on the tables below:
 | `/blogs/[slug]` | `blog-categories`, `blog-cta`, `blog-listing`, `blog-posts`, `blog-related` |
 | `/checkout` | `cart`, `delivery`, `orders`, `payment-settings` |
 | `/contact-us` | `contact-details`, `contact-faq`, `contact-form`, `contact-hero`, `contact-support`, `inquiry-public` |
+| `/dashboard` | `customer`, `cart` |
+| `/dashboard/*` | `customer`, `cart` (orders, tracking, purchases, notifications, address, profile, settings, cart) |
 | `/faqs` | `delivery`, `faq-callout`, `faq-categories`, `faq-help`, `faq-hero`, `faq-items`, `faq-listing` |
+| `/login`, `/register` | `customer`, `cart` |
 | `/order-status` | `orders` |
 | `/privacy-policy` | `privacy-collection`, `privacy-contents`, `privacy-hero`, `privacy-introduction`, `privacy-rights`, `privacy-sharing`, `privacy-support`, `privacy-usage` |
 | `/products` | `catalog`, `categories` |
-| `/products/[ref]` | `catalog`, `payment-settings`, `site-contact` |
+| `/products/[ref]` | `catalog`, `payment-settings`, `product-reviews`, `site-contact` |
 | `/search` | `search` |
 | `/shipping-returns` | `catalog`, `shipping-block`, `shipping-contents`, `shipping-faq`, `shipping-hero`, `shipping-payment`, `shipping-refund`, `shipping-returns`, `shipping-support` |
 | `/sustainability` | `sustainability-commitment`, `sustainability-cta`, `sustainability-durability`, `sustainability-hero`, `sustainability-impact`, `sustainability-origin`, `sustainability-quality` |

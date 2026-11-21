@@ -7,6 +7,7 @@ import {
   getCustomerPurchasedProducts,
   type PurchasedProductItem,
 } from "@/lib/mart-api/customer";
+import { productPath } from "@/lib/mart-api/product-url";
 import { cn } from "@/lib/utils";
 
 import { MaterialIcon } from "../../_components/common/material-icon";
@@ -280,6 +281,7 @@ export default function DashboardPurchasesPage() {
           {filteredItems.map((item, idx) => {
             const methodBadge = getPaymentMethodBadge(item.paymentMethod);
             const statusBadge = getPaymentStatusBadge(item.paymentStatus);
+            const href = productPath({ id: item.productId, slug: item.slug });
 
             return (
               <div
@@ -290,7 +292,7 @@ export default function DashboardPurchasesPage() {
                   {/* Product Info */}
                   <div className="flex min-w-0 items-start gap-3.5">
                     <Link
-                      href={`/products/${item.slug}`}
+                      href={href}
                       className="shrink-0 overflow-hidden rounded-xl ring-1 ring-neutral-200/80 dark:ring-white/10"
                     >
                       {item.imageUrl ? (
@@ -309,7 +311,7 @@ export default function DashboardPurchasesPage() {
 
                     <div className="min-w-0 flex-1">
                       <Link
-                        href={`/products/${item.slug}`}
+                        href={href}
                         className="line-clamp-2 text-sm font-bold text-neutral-950 hover:text-emerald-700 hover:underline dark:text-white dark:hover:text-emerald-400"
                       >
                         {item.title}
@@ -370,7 +372,7 @@ export default function DashboardPurchasesPage() {
 
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
-                        href={`/products/${item.slug}`}
+                        href={href}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-800 transition-colors hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
                       >
                         <MaterialIcon
@@ -382,7 +384,7 @@ export default function DashboardPurchasesPage() {
 
                       {item.canReview ? (
                         <Link
-                          href={`/products/${item.slug}?tab=reviews#reviews`}
+                          href={`${href}?tab=reviews#reviews`}
                           className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-neutral-950 shadow-xs transition-colors hover:bg-amber-400"
                         >
                           <MaterialIcon name="star" className="text-[15px]" />

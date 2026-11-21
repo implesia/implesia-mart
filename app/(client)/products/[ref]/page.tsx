@@ -27,18 +27,20 @@ export const dynamic = "force-dynamic";
  * blog content, search results) answers 308 to the id URL. Unknown, unpublished or
  * malformed refs are 404. The id route never redirects elsewhere, so no loops.
  */
-const resolveProduct = cache(async (ref: string) => {
+const lookupProduct = cache(async (ref: string) => {
   const parsed = parseProductRef(ref);
   if (parsed.kind === "invalid") notFound();
   if (parsed.kind === "slug") {
     const bySlug = await getStoreProduct(parsed.slug);
     if (!bySlug) notFound();
-    permanentRedirect(productPath(bySlug));
+    return { product: bySlug, redirectTo: productPath(bySlug) };
   }
   const product = await getStoreProductById(parsed.id);
   if (!product) notFound();
-  if (!parsed.canonical) permanentRedirect(productPath(product));
-  return product;
+  return {
+    product,
+    redirectTo: parsed.canonical ? null : productPath(product),
+  };
 });
 
 export async function generateMetadata({
@@ -47,7 +49,7 @@ export async function generateMetadata({
   params: Promise<{ ref: string }>;
 }): Promise<Metadata> {
   const { ref } = await params;
-  const product = await resolveProduct(ref);
+  const { product } = await lookupProduct(ref);
 
   const seo = productSeo(product);
 
@@ -72,12 +74,29 @@ export async function generateMetadata({
 
 export default async function ProductDetailsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ ref: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { ref } = await params;
-  const [product, contact, rates, payment] = await Promise.all([
-    resolveProduct(ref),
+  const { product, redirectTo } = await lookupProduct(ref);
+
+  if (redirectTo) {
+    const query = await searchParams;
+    const sp = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (Array.isArray(value)) {
+        for (const item of value) sp.append(key, item);
+      } else if (typeof value === "string") {
+        sp.set(key, value);
+      }
+    }
+    const qs = sp.toString();
+    permanentRedirect(qs ? `${redirectTo}?${qs}` : redirectTo);
+  }
+
+  const [contact, rates, payment] = await Promise.all([
     getPublicSiteContact(),
     getStoreDeliveryRates(),
     getPublicPaymentSettings(),

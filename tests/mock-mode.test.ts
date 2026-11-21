@@ -34,14 +34,14 @@ function respond(status: number, body: unknown = {}) {
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     calls.push(String(input));
     return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
 }
 
 function networkDown() {
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     calls.push(String(input));
     throw new TypeError("fetch failed");
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
 }
 
 const quoteInput = {

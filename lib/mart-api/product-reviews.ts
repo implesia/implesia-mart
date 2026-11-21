@@ -41,6 +41,97 @@ export type ProductReviewCreateInput = {
   comment?: string;
 };
 
+export type RatingBreakdownRow = {
+  stars: 5 | 4 | 3 | 2 | 1;
+  count: number;
+  percent: number;
+};
+
+export const REVIEW_RATING_LABELS: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: "খুবই খারাপ",
+  2: "খারাপ",
+  3: "মোটামুটি",
+  4: "ভালো",
+  5: "অসাধারণ!",
+};
+
+const STAR_LEVELS: readonly (5 | 4 | 3 | 2 | 1)[] = [5, 4, 3, 2, 1];
+
+export function buildRatingBreakdown(
+  summary: ProductReviewSummary | null | undefined,
+): RatingBreakdownRow[] {
+  const total = summary?.totalReviews ?? 0;
+  const histogram = summary?.ratingHistogram ?? {};
+  return STAR_LEVELS.map((stars) => {
+    const rawCount = Number(histogram[String(stars)] ?? 0);
+    const count = Number.isFinite(rawCount) && rawCount > 0 ? Math.floor(rawCount) : 0;
+    const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+    return { stars, count, percent };
+  });
+}
+
+export function validateReviewInput(input: {
+  rating: number;
+  headline: string;
+  comment: string;
+}): { ok: true } | { ok: false; error: string } {
+  if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
+    return { ok: false, error: "অনুগ্রহ করে ১ থেকে ৫ এর মধ্যে স্টার রেটিং নির্বাচন করুন।" };
+  }
+  const headline = input.headline.trim();
+  const comment = input.comment.trim();
+  if (headline.length > 160) {
+    return { ok: false, error: "শিরোনাম সর্বোচ্চ ১৬০ অক্ষরের মধ্যে হতে হবে।" };
+  }
+  if (!comment) {
+    return { ok: false, error: "অনুগ্রহ করে পণ্যটি সম্পর্কে আপনার মতামত লিখুন।" };
+  }
+  if (comment.length > 2000) {
+    return { ok: false, error: "মতামত সর্বোচ্চ ২০০০ অক্ষরের মধ্যে হতে হবে।" };
+  }
+  return { ok: true };
+}
+
+export function formatReviewDateBn(iso?: string | null): string {
+  if (!iso) return "";
+  try {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("bn-BD", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
+export function buildReviewLoginHref(slug: string): string {
+  const safeSlug = encodeURIComponent(slug.trim());
+  const nextPath = `/products/${safeSlug}?tab=reviews`;
+  return `/login?next=${encodeURIComponent(nextPath)}`;
+}
+
+export function resolveInitialProductTab(
+  tabParam: string | null | undefined,
+  hash?: string | null,
+  hasFaqs = false,
+): "details" | "specifications" | "faq" | "reviews" {
+  const normalizedTab = tabParam?.trim().toLowerCase();
+  const normalizedHash = hash?.trim().toLowerCase();
+  if (normalizedTab === "reviews" || normalizedHash === "#reviews") {
+    return "reviews";
+  }
+  if (normalizedTab === "specifications") {
+    return "specifications";
+  }
+  if (normalizedTab === "faq" && hasFaqs) {
+    return "faq";
+  }
+  return "details";
+}
+
 type RawProductReview = {
   id: string;
   product_id: string;

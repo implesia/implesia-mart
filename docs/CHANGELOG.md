@@ -2,6 +2,26 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Phase 10 Live Verified Product Reviews on Product Detail Page (2026-11-21).**
+  - **Live Product Reviews Tab (`app/(client)/products/_components/product-reviews-tab.tsx` & `product-details-tabs.tsx`):**
+    - Replaced the static `product.reviews` block with live `<ProductReviewsTab />` fetching `GET {MART_API_URL}/api/v1/products/{product.id}/reviews?page=1&page_size=10` for all visitors (logged-in and guest).
+    - Renders average rating score, star display, total verified review count, complete 5-to-1 star breakdown progress bars (all 5 bars with counts and percentages), paginated review cards with reviewer avatar (`CustomerAvatar` using `mediaUrl`-resolved `userAvatar` or initials fallback), reviewer name, "ভেরিফাইড ক্রেতা" badge, Bangla formatted date, headline, and comment.
+    - Supports direct deep-linking via `?tab=reviews` (and `#reviews`) with smooth scrolling to `#reviews`, auto-opening the review form when eligible, and preserving query parameters across `/products/[ref]` slug-to-canonical-ID redirects (`app/(client)/products/[ref]/page.tsx`) as well as using canonical `productPath` in `/dashboard/purchases`.
+    - Verified purchaser submission flow:
+      - Guests see a clean prompt and "রিভিউ দিতে লগইন করুন" CTA linking to `/login?next=/products/{slug}?tab=reviews`.
+      - Logged-in customers check `GET /api/customer/products/{product.id}/can-review`; eligible purchasers get an inline interactive 1–5 star review form calling `POST /api/customer/products/{product.id}/reviews` with Bangla confirmation toast and instant list/summary refresh; ineligible customers see the backend's clear Bangla `reason` status card.
+  - **Helpers & Unit Tests (`lib/mart-api/product-reviews.ts`, `tests/product-reviews.test.ts`):**
+    - Added pure helpers (`buildRatingBreakdown`, `validateReviewInput`, `formatReviewDateBn`, `buildReviewLoginHref`, `resolveInitialProductTab`) and unit tests covering breakdown calculation, validation, login redirect encoding, tab resolution, and error propagation.
+  - Files touched:
+    - `app/(client)/products/_components/product-reviews-tab.tsx`
+    - `app/(client)/products/_components/product-details-tabs.tsx`
+    - `app/(client)/products/[ref]/page.tsx`
+    - `app/(client)/dashboard/purchases/page.tsx`
+    - `lib/mart-api/product-reviews.ts`
+    - `tests/product-reviews.test.ts`
+    - `docs/CHANGELOG.md`, `docs/TODO.md`
+  - Backend (`implesia-mart-backend`): no backend changes required; consumes existing `GET /api/v1/products/{id}/reviews`, `GET /api/v1/products/{id}/can-review`, and `POST /api/v1/products/{id}/reviews`.
+
 - **Phase 9B Customer Notifications Center, Address Manager, Avatar & Profile, Settings & In-Dashboard Cart (2026-11-21).**
   - **Notification Center (`app/(client)/dashboard/notifications/page.tsx`):**
     - Fetches `GET /api/customer/notifications` with `সকল` and `অপঠিত` filter tabs, "সব পঠিত হিসেবে চিহ্নিত করুন" bulk action, per-item mark-as-read and delete actions, cross-component unread sync (`notifyCustomerNotificationsChanged`), and a 30-day automatic cleanup info banner.
