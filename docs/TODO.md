@@ -33,11 +33,11 @@ Open items found in the code and in recent work. Remove an item when it is done.
   - Frontend: Deploy Cloudflare Workers bundle (`npm run deploy:vinext`).
 - **Customer Notifications Bell / Drawer (2026-11-21):** Done — added live storefront header notification bell with unread count badge, quick 5-item dropdown, and cross-component event sync (`customer-notification-bell.tsx`).
 - **Customer Dashboard Shell & Overview Upgrade (2026-11-21):** Done — grouped sidebar navigation with live unread & cart badges, mobile `Sheet` drawer, 5 live KPI cards, 2-column summary section, real customer avatar, executive header dropdown, and `/dashboard/security` → `/dashboard/settings` redirect.
+- **Customer Order Receipt Modal, Dedicated Order Tracking & Purchased History (2026-11-21):** Done — upgraded `/dashboard/orders` with live detail fetch and printable receipt, built `/dashboard/tracking` with 5-step timeline & courier card, and built `/dashboard/purchases` with payment filters and review CTAs.
+- **Customer Account & Utility Dashboard Pages (2026-11-21):** Done — built `/dashboard/notifications` (30-day retention notice, filters, mark-read, delete), `/dashboard/address` (auto-fill badge, edit & clear), `/dashboard/profile` (avatar upload/delete + profile editor), `/dashboard/settings` (polished password change with strength meter), and `/dashboard/cart` (account-synced in-dashboard cart).
 - **Customer Product Reviews UI:**
   - Create interactive review submission form and public reviews list on product detail page (`/products/[ref]`).
   - Connect to backend endpoints: `GET /api/v1/products/{id}/reviews`, `GET /api/v1/products/{id}/can-review`, and `POST /api/v1/products/{id}/reviews`.
-- **Customer Avatar Upload & Dedicated Dashboard Subpages:**
-  - Add avatar upload/delete widget on `/dashboard/profile` and build dedicated `/dashboard/tracking`, `/dashboard/purchases`, `/dashboard/cart`, `/dashboard/notifications`, and `/dashboard/address` subpages.
 - **Automated Customer SMS via SSL Wireless:**
   - Connect credentials (`SMS_SSLWIRELESS_API_TOKEN`, `SMS_SSLWIRELESS_SID`) in backend `.env.production` when account is active.
 

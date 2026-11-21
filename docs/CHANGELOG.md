@@ -2,6 +2,45 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Phase 9B Customer Notifications Center, Address Manager, Avatar & Profile, Settings & In-Dashboard Cart (2026-11-21).**
+  - **Notification Center (`app/(client)/dashboard/notifications/page.tsx`):**
+    - Fetches `GET /api/customer/notifications` with `সকল` and `অপঠিত` filter tabs, "সব পঠিত হিসেবে চিহ্নিত করুন" bulk action, per-item mark-as-read and delete actions, cross-component unread sync (`notifyCustomerNotificationsChanged`), and a 30-day automatic cleanup info banner.
+    - Clicking an order notification marks it read and navigates to `/dashboard/tracking?order=...` (or `/dashboard/orders`).
+  - **Delivery Address Page (`app/(client)/dashboard/address/page.tsx`):**
+    - Displays the saved delivery address card with "চেকআউটে অটো-ফিল সক্রিয়" verified badge, edit form (`district`, `area`, `address`), and inline-confirmed "ঠিকানা মুছে ফেলুন" clear action synced immediately with `CustomerAuthProvider` for `/checkout`.
+  - **My Profile & Avatar Management (`app/(client)/dashboard/profile/page.tsx`):**
+    - Added interactive circular Profile Photo card with client-side type (JPG/PNG/WEBP/GIF) and 5 MB size validation before `POST /api/customer/profile/avatar`, plus "ছবি মুছুন" (`DELETE /api/customer/profile/avatar`), updating `CustomerAuthProvider` across Header, Dropdown, and Dashboard immediately.
+    - Supports editing full name, phone, and optional email (including clearing email to `null`).
+  - **Settings Page (`app/(client)/dashboard/settings/page.tsx`):**
+    - Polished password change form with show/hide toggles on all three fields, 4-level Bangla password strength meter & hint, and clear validation messages. `/dashboard/security` continues redirecting cleanly to `/dashboard/settings`.
+  - **My Cart Page (`app/(client)/dashboard/cart/page.tsx`):**
+    - In-dashboard synced cart screen powered by `useCart()` showing "অ্যাকাউন্টের সাথে সিঙ্ক করা" badge, quantity `−`/`+` controls, remove button, subtotal/shipping summary, empty-state CTA, and "চেকআউটে যান" (`/checkout`).
+  - Files touched:
+    - `app/(client)/dashboard/notifications/page.tsx`
+    - `app/(client)/dashboard/address/page.tsx`
+    - `app/(client)/dashboard/profile/page.tsx`
+    - `app/(client)/dashboard/settings/page.tsx`
+    - `app/(client)/dashboard/cart/page.tsx`
+    - `docs/CHANGELOG.md`, `docs/TODO.md`
+  - Backend (`implesia-mart-backend`): no backend changes required; consumes Phase 6/7 endpoints.
+
+- **Phase 9A Customer Order Receipt Modal, Dedicated Order Tracking & Purchased Products History (2026-11-21).**
+  - **Order Detail & Printable Receipt Modal (`app/(client)/dashboard/orders/page.tsx`):**
+    - Fetches full `GET /api/customer/orders/{number}` on clicking "রসিদ / বিবরণ" (also supports opening directly via `?order=` query param) to display itemized product lines with thumbnails/qty/unit price/line total, delivery address, subtotal/shipping/coupon/manual discount/paid/due breakdown, payment method badge, courier info, and a clean print-friendly "রসিদ প্রিন্ট করুন" action.
+    - Updated "ট্র্যাকিং দেখুন" links to route directly to `/dashboard/tracking?order={number}` inside the customer dashboard.
+  - **Dedicated Order Tracking Page (`app/(client)/dashboard/tracking/page.tsx`):**
+    - Lets customers pick from recent orders (auto-selecting `?order=` or the latest active order) or search by order number.
+    - Calls `GET /api/customer/orders/{number}/tracking` to render a responsive 5-step progress timeline with real activity timestamps, distinct alert/step visuals for `cancelled` and `returned` orders, and a Courier Info card with copyable tracking number and live courier events support ("লাইভ কুরিয়ার ট্র্যাকিং শীঘ্রই যুক্ত হবে" placeholder when `liveEvents` is empty).
+  - **Purchased Products History Page (`app/(client)/dashboard/purchases/page.tsx`):**
+    - Calls `GET /api/customer/purchased-products` and displays a 4-metric summary strip, search box, and Payment Method filter tabs (`সকল`, `অনলাইন পেমেন্ট`, `ক্যাশ অন ডেলিভারি (COD)`).
+    - Renders full repeat-purchase line history with product thumbnail, title, order number, purchase date, quantity/unit/line price, payment method & status badges, "আবার কিনুন" link (`/products/[slug]`), and conditional "রিভিউ দিন" CTA (`/products/[slug]?tab=reviews#reviews`) or "রিভিউ দেওয়া হয়েছে" badge.
+  - Files touched:
+    - `app/(client)/dashboard/orders/page.tsx`
+    - `app/(client)/dashboard/tracking/page.tsx`
+    - `app/(client)/dashboard/purchases/page.tsx`
+    - `docs/CHANGELOG.md`, `docs/TODO.md`
+  - Backend (`implesia-mart-backend`): no backend changes required; consumes Phase 6/7 endpoints.
+
 - **Phase 8 Customer Dashboard Shell, Overview KPIs, Header Profile Dropdown & Notification Bell (2026-11-21).**
   - **Customer Dashboard Shell (`app/(client)/dashboard/layout.tsx` + `_components/`):**
     - Upgraded to an Admin-inspired shell (`dashboard-shell.tsx`, `dashboard-nav.ts`, `dashboard-ui.tsx`) with 3 grouped navigation sections (**প্রধান**: ওভারভিউ, আমার অর্ডার, অর্ডার ট্র্যাকিং, কেনা পণ্যের হিস্ট্রি; **কার্ট ও অ্যালার্ট**: আমার কার্ট with live cart item count badge, নোটিফিকেশন with live unread count badge; **অ্যাকাউন্ট**: ডেলিভারি ঠিকানা, আমার প্রোফাইল, সেটিংস), active pill indicator + left accent bar, and real customer avatar (`customer.avatarUrl` with initials fallback).
