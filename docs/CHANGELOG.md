@@ -2,6 +2,10 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Daily Handoff & Cross-Device Sync Doc (2026-11-21).**
+  - Added `docs/HANDOFF.md` consolidating today's Planning decisions (Customer Dashboard Phases 6–10, SaaS Admin Phases A–G, Notification Architecture audit, Bengali communication preference), Implesia Mart implementation summary, DevOps live audit & production deployment runbook, pending backlog, and Home Laptop resume steps.
+  - Files touched: `docs/HANDOFF.md`, `docs/CHANGELOG.md`. Matching handoff added in `implesia-mart-backend`.
+
 - **Phase G Admin-Only Delete with Impact/Merge Modals, Offline Delivery Toggle, Payment Collection & Management Pages Polish (2026-11-21).**
   - **Superadmin-Only Delete & Reusable `ImpactDeleteModal` (`app/admin/_components/impact-delete-modal.tsx`, `use-superadmin.ts`, `lib/admin/staff-role.ts`, `lib/mart-api/orders-desk.ts`, `lib/mart-api/badges.ts`, `lib/mart-api/inventory.ts`):**
     - Added `isSuperadmin()` and `useIsSuperadmin()` to gate Delete controls for Orders, Badges, and Suppliers strictly to `superadmin` (in addition to backend `RequireSuperadmin` 403 enforcement).
