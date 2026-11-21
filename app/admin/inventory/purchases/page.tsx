@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import { formatDhakaDate, formatTakaAmount, grandTotal } from "@/lib/admin/inventory";
@@ -23,6 +23,7 @@ import {
   adminFieldClass,
 } from "../../_components/admin-ui";
 import { ExportExcelButton, ImportExcelButton } from "../_components/excel-actions";
+import { InventorySubNav } from "../_components/inventory-nav";
 import { InventoryPager } from "../_components/pager";
 import { useInventoryWriter } from "../_components/use-inventory-role";
 
@@ -94,6 +95,17 @@ export default function PurchasesPage() {
     [from, to],
   );
 
+  const pageSummary = useMemo(() => {
+    const items = rows ?? [];
+    let spend = 0;
+    let units = 0;
+    for (const p of items) {
+      spend += invoiceTotal(p);
+      units += p.items.reduce((sum, line) => sum + line.quantity, 0);
+    }
+    return { spend, units };
+  }, [rows]);
+
   return (
     <div className="min-w-0 space-y-4">
       <AdminPageHeader
@@ -116,6 +128,35 @@ export default function PurchasesPage() {
           </div>
         }
       />
+
+      <InventorySubNav />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Purchases</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-slate-950">{rows ? total : "—"}</p>
+          <p className="mt-0.5 text-xs text-slate-400">Matching invoices</p>
+        </div>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Purchase Spend</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-[#0b3d39]">
+            {rows ? formatTakaAmount(pageSummary.spend) : "—"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">Current page total</p>
+        </div>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Units Purchased</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-emerald-700">
+            {rows ? `+${pageSummary.units.toLocaleString("en-US")}` : "—"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">Stock received on page</p>
+        </div>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Active Suppliers</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-slate-950">{suppliers.length}</p>
+          <p className="mt-0.5 text-xs text-slate-400">Available vendors</p>
+        </div>
+      </div>
 
       <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
         <div className="grid gap-3 border-b border-neutral-100 px-4 py-4 sm:grid-cols-3 sm:px-5">

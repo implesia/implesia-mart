@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { ReportsView } from "./_components/reports-view";
+import { ReportsOverviewPage } from "./_components/overview-report";
+import { ReportLoadingSkeleton } from "./_components/report-shell";
 
 export const metadata: Metadata = {
-  title: "Reports",
+  title: "Reports Overview",
   robots: { index: false, follow: false },
 };
 
 export default function AdminReportsPage() {
   return (
-    <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200/90" aria-busy="true" />}>
-      <ReportsView />
+    <Suspense fallback={<ReportLoadingSkeleton cards={8} />}>
+      <ReportsOverviewPage />
     </Suspense>
   );
 }

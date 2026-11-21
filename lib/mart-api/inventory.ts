@@ -356,19 +356,132 @@ export async function saveSupplier(input: SupplierInput, id?: string): Promise<S
   return supplierFromApi((await response.json()) as Record<string, unknown>);
 }
 
-export async function deleteSupplier(id: string): Promise<void> {
+export type SupplierDeleteImpact = {
+  supplierName: string;
+  purchasesCount: number;
+  totalPurchaseAmount: number;
+  linkedProductsCount: number;
+  availableMergeTargets: { id: string; name: string; phone: string }[];
+};
+
+export type SupplierDeleteRequest = {
+  mode: "merge" | "archive" | "hard_delete";
+  targetSupplierId?: string | null;
+  reason?: string;
+  unlinkProducts?: boolean;
+};
+
+export type SupplierDeleteResult = {
+  deletedSupplierId: string;
+  deletedSupplierName: string;
+  mode: "merge" | "archive" | "hard_delete";
+  targetSupplierId: string | null;
+  movedPurchasesCount: number;
+  movedProductsCount: number;
+  unlinkedProductsCount: number;
+};
+
+export async function fetchSupplierDeleteImpact(id: string): Promise<SupplierDeleteImpact> {
+  if ((await inventoryBackend()) === "mock") {
+    const state = loadInventory();
+    const target = state.suppliers.find((s) => s.id === id);
+    if (!target) throw new MartApiError("Supplier not found.");
+    const purchases = state.purchases.filter((p) => p.supplierId === id);
+    const totalPurchaseAmount = purchases.reduce(
+      (sum, p) => sum + p.items.reduce((s, item) => s + item.quantity * item.unitCost, 0),
+      0,
+    );
+    return {
+      supplierName: target.name,
+      purchasesCount: purchases.length,
+      totalPurchaseAmount,
+      linkedProductsCount: 0,
+      availableMergeTargets: state.suppliers
+        .filter((s) => s.id !== id)
+        .map((s) => ({ id: s.id, name: s.name, phone: s.phone })),
+    };
+  }
+  const response = await authorizedFetch(`${INVENTORY_PATHS.supplier(id)}/delete-impact`);
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Could not inspect supplier delete impact."));
+  }
+  const body = (await response.json()) as Record<string, unknown>;
+  const targets = Array.isArray(body.available_merge_targets)
+    ? body.available_merge_targets.flatMap((row) => {
+        const item = row as Record<string, unknown>;
+        return typeof item.id === "string"
+          ? [{ id: item.id, name: String(item.name ?? ""), phone: String(item.phone ?? "") }]
+          : [];
+      })
+    : [];
+  return {
+    supplierName: String(body.supplier_name ?? ""),
+    purchasesCount: Number(body.purchases_count ?? 0),
+    totalPurchaseAmount: Number(body.total_purchase_amount ?? 0),
+    linkedProductsCount: Number(body.linked_products_count ?? 0),
+    availableMergeTargets: targets,
+  };
+}
+
+export async function deleteSupplier(
+  id: string,
+  payload?: SupplierDeleteRequest,
+): Promise<SupplierDeleteResult> {
   requireWriter();
   if ((await inventoryBackend()) === "mock") {
     const state = loadInventory();
+    const target = state.suppliers.find((s) => s.id === id);
     const result = deleteSupplierMock(state, id);
     if (result.error) throw new MartApiError(result.error);
     saveInventory(result.state);
-    return;
+    return {
+      deletedSupplierId: id,
+      deletedSupplierName: target?.name ?? "",
+      mode: payload?.mode ?? "archive",
+      targetSupplierId: payload?.targetSupplierId ?? null,
+      movedPurchasesCount: 0,
+      movedProductsCount: 0,
+      unlinkedProductsCount: 0,
+    };
   }
-  const response = await authorizedFetch(INVENTORY_PATHS.supplier(id), {
-    method: "DELETE",
-  });
+  const init: RequestInit = payload
+    ? {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: payload.mode,
+          ...(payload.targetSupplierId ? { target_supplier_id: payload.targetSupplierId } : {}),
+          ...(payload.reason !== undefined ? { reason: payload.reason } : {}),
+          ...(payload.unlinkProducts !== undefined
+            ? { unlink_products: payload.unlinkProducts }
+            : {}),
+        }),
+      }
+    : { method: "DELETE" };
+  const response = await authorizedFetch(INVENTORY_PATHS.supplier(id), init);
   if (!response.ok) throw new MartApiError(await readError(response, "Could not delete the supplier."));
+  if (response.status === 204) {
+    return {
+      deletedSupplierId: id,
+      deletedSupplierName: "",
+      mode: payload?.mode ?? "archive",
+      targetSupplierId: payload?.targetSupplierId ?? null,
+      movedPurchasesCount: 0,
+      movedProductsCount: 0,
+      unlinkedProductsCount: 0,
+    };
+  }
+  const body = (await response.json()) as Record<string, unknown>;
+  return {
+    deletedSupplierId: String(body.deleted_supplier_id ?? id),
+    deletedSupplierName: String(body.deleted_supplier_name ?? ""),
+    mode:
+      body.mode === "merge" || body.mode === "hard_delete" ? body.mode : "archive",
+    targetSupplierId: typeof body.target_supplier_id === "string" ? body.target_supplier_id : null,
+    movedPurchasesCount: Number(body.moved_purchases_count ?? 0),
+    movedProductsCount: Number(body.moved_products_count ?? 0),
+    unlinkedProductsCount: Number(body.unlinked_products_count ?? 0),
+  };
 }
 
 export async function fetchPurchases(query: {

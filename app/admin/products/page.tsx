@@ -10,6 +10,9 @@ import { categoryLabel } from "@/app/(client)/_data/products/catalog-meta";
 import type { ProductCategoryId } from "@/app/(client)/_data/products/products";
 import { listAdminCategories, type CategoryTile } from "@/lib/mart-api/categories";
 import { categoryChips, categoryTrail } from "@/lib/mart-api/category-tree";
+import { costMargin, formatMarginTaka } from "@/lib/admin/cost-price";
+import { fetchSuppliers, type Supplier } from "@/lib/mart-api/inventory";
+import { percentText } from "@/lib/mart-api/pricing";
 import {
   deleteMartProduct,
   bulkDeleteMartProducts,
@@ -80,6 +83,7 @@ function ProductsView() {
   const category = isCategory(params.get("category"))
     ? (params.get("category") as ProductCategoryId)
     : null;
+  const supplierId = params.get("supplier_id")?.trim() || null;
   const status = isStock(params.get("status"))
     ? (params.get("status") as StockStatus)
     : null;
@@ -94,7 +98,7 @@ function ProductsView() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(
-    Boolean(minPrice || maxPrice || visibility),
+    Boolean(minPrice || maxPrice || visibility || supplierId),
   );
   const [pageState, setPageState] = useState({ key: "", page: 0 });
   const [list, setList] = useState<ProductListResult | null>(null);
@@ -108,6 +112,7 @@ function ProductsView() {
   });
   const [bulkBusy, setBulkBusy] = useState(false);
   const [categories, setCategories] = useState<CategoryTile[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const confirmDelete = useConfirmDelete();
   const notify = useAdminNotify();
 
@@ -119,6 +124,13 @@ function ProductsView() {
       })
       .catch(() => {
         /* the tabs fall back to "All"; the product list reports its own errors */
+      });
+    fetchSuppliers({ page: 1, pageSize: 100 })
+      .then((res) => {
+        if (!cancelled) setSuppliers(res.items);
+      })
+      .catch(() => {
+        /* optional supplier dropdown stays empty */
       });
     return () => {
       cancelled = true;
@@ -136,6 +148,7 @@ function ProductsView() {
   const requestKey = JSON.stringify([
     debouncedQuery,
     category,
+    supplierId,
     status,
     visibility,
     minPrice,
@@ -151,6 +164,7 @@ function ProductsView() {
     listMartProducts({
       q: debouncedQuery,
       category,
+      supplierId,
       status,
       visibility,
       minPrice,
@@ -180,6 +194,7 @@ function ProductsView() {
   }, [
     debouncedQuery,
     category,
+    supplierId,
     status,
     visibility,
     minPrice,
@@ -204,6 +219,7 @@ function ProductsView() {
       const result = await listMartProducts({
         q: debouncedQuery,
         category,
+        supplierId,
         status,
         visibility,
         minPrice,
@@ -256,6 +272,7 @@ function ProductsView() {
             await listMartProducts({
               q: debouncedQuery,
               category,
+              supplierId,
               status,
               visibility,
               minPrice,
@@ -325,6 +342,7 @@ function ProductsView() {
                 await listMartProducts({
                   q: debouncedQuery,
                   category,
+                  supplierId,
                   status,
                   visibility,
                   minPrice,
@@ -385,12 +403,14 @@ function ProductsView() {
   const subChips = category ? categoryChips(categories, category).filter((item) => item.parentId) : [];
   const catalogEmpty =
     categoryCounts.all === 0 &&
+    !supplierId &&
     !status &&
     !visibility &&
     !minPrice &&
     !maxPrice &&
     !debouncedQuery;
   const advanced = Boolean(
+    supplierId ||
     minPrice ||
     maxPrice ||
     visibility ||
@@ -398,6 +418,8 @@ function ProductsView() {
     status ||
     category,
   );
+  const selectedSupplierName =
+    suppliers.find((s) => s.id === supplierId)?.name ?? (supplierId ? "Selected supplier" : "");
   const scoped = advanced || Boolean(query.trim());
 
   function clearFilters() {
@@ -498,13 +520,13 @@ function ProductsView() {
           className={cn(
             adminButtonClass.secondary,
             "transition-shadow",
-            (minPrice || maxPrice || visibility || status) &&
+            (supplierId || minPrice || maxPrice || visibility || status) &&
               "ring-1 ring-primary/30",
           )}
         >
           <MaterialIcon name="tune" className="text-[18px]" />
           Filters
-          {minPrice || maxPrice || visibility || status ? (
+          {supplierId || minPrice || maxPrice || visibility || status ? (
             <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white tabular-nums">
               On
             </span>
@@ -553,7 +575,16 @@ function ProductsView() {
 
     {/* Advanced filters */}
     {filtersOpen ? (
-      <div className="grid gap-3 rounded-xl border border-neutral-100 bg-neutral-50/60 p-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 rounded-xl border border-neutral-100 bg-neutral-50/60 p-3 sm:grid-cols-2 xl:grid-cols-5">
+        <FilterSelect
+          label="Supplier"
+          value={supplierId ?? ""}
+          onChange={(value) => setParam("supplier_id", value || null)}
+          options={[
+            { id: "", label: "All suppliers" },
+            ...suppliers.map((s) => ({ id: s.id, label: s.name })),
+          ]}
+        />
         <FilterSelect
           label="Stock"
           value={status ?? ""}
@@ -600,6 +631,8 @@ function ProductsView() {
         trail[trail.length - 1]?.label ??
         (category ? categoryLabel(category) : "")
       }
+      supplierId={supplierId}
+      supplierName={selectedSupplierName}
       status={status}
       visibility={visibility}
       minPrice={minPrice}
@@ -828,8 +861,8 @@ function ProductsView() {
               <th className="w-[7.25rem] border-b-2 border-neutral-200 bg-neutral-50/80 px-3 py-3 font-medium xl:px-4">
                 Category
               </th>
-              <th className="w-24 border-b-2 border-neutral-200 bg-neutral-50/80 px-2 py-3 text-right font-medium xl:px-4">
-                Price
+              <th className="w-36 border-b-2 border-neutral-200 bg-neutral-50/80 px-2 py-3 text-right font-medium xl:px-4">
+                Price &amp; Margin
               </th>
               <th className="w-[6.5rem] border-b-2 border-neutral-200 bg-neutral-50/80 px-3 py-3 font-medium xl:px-4">
                 Quantity
@@ -840,8 +873,8 @@ function ProductsView() {
               <th className="w-[7.5rem] border-b-2 border-neutral-200 bg-neutral-50/80 px-3 py-3 font-medium xl:px-4">
                 Published
               </th>
-              <th className="w-14 border-b-2 border-neutral-200 bg-neutral-50/80 px-2 py-3 font-medium xl:px-3">
-                <span className="sr-only">Actions</span>
+              <th className="w-32 border-b-2 border-neutral-200 bg-neutral-50/95 px-3 py-3 text-right font-medium xl:sticky xl:right-0 xl:z-20 xl:border-l xl:border-neutral-200 xl:backdrop-blur">
+                Actions
               </th>
             </tr>
           </thead>
@@ -981,6 +1014,8 @@ function Metric({
 function ActiveFilters({
   category,
   categoryName,
+  supplierId,
+  supplierName,
   status,
   visibility,
   minPrice,
@@ -989,6 +1024,8 @@ function ActiveFilters({
 }: {
   category: ProductCategoryId | null;
   categoryName: string;
+  supplierId: string | null;
+  supplierName: string;
   status: StockStatus | null;
   visibility: Visibility | null;
   minPrice: string;
@@ -1012,6 +1049,15 @@ function ActiveFilters({
             caption: "Category",
             icon: "sell",
             tone: "neutral" as const,
+          }
+        : null,
+      supplierId
+        ? {
+            key: "supplier_id",
+            label: supplierName,
+            caption: "Supplier",
+            icon: "handshake",
+            tone: "emerald" as const,
           }
         : null,
       status
@@ -1267,7 +1313,8 @@ function ProductRow({
   onDelete: () => void;
 }) {
   const router = useRouter();
-  const href = `/admin/products/${product.id}`;
+  const viewHref = `/admin/products/${product.id}/view`;
+  const editHref = `/admin/products/${product.id}`;
   const pinned =
     "border-b border-neutral-100 xl:sticky xl:z-10 xl:bg-white xl:group-hover:bg-neutral-50 xl:group-data-[selected=true]:bg-primary/5";
   return (
@@ -1277,7 +1324,7 @@ function ProductRow({
         "group cursor-pointer transition-colors",
         selected ? "bg-primary/5" : "hover:bg-neutral-50",
       )}
-      onClick={() => router.push(href)}
+      onClick={() => router.push(viewHref)}
     >
       <td
         className={cn(pinned, "py-3 pr-1 pl-3 xl:left-0 xl:pl-4")}
@@ -1308,7 +1355,7 @@ function ProductRow({
           <ProductThumb product={product} />
           <span className="min-w-0">
             <Link
-              href={href}
+              href={viewHref}
               className="block truncate font-semibold text-neutral-950 transition-colors hover:text-primary"
               onClick={(event) => event.stopPropagation()}
             >
@@ -1317,10 +1364,15 @@ function ProductRow({
             <span className="block truncate text-xs text-neutral-500">
               {product.subtitle}
             </span>
-            <span className="mt-0.5 flex min-w-0 items-center gap-2">
+            <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5">
               <span className="truncate text-xs text-neutral-400">
                 {product.slug}
               </span>
+              {product.supplierName ? (
+                <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                  {product.supplierName}
+                </span>
+              ) : null}
               {product.featured ? (
                 <span className="shrink-0 rounded-full bg-amber-50 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
                   Featured
@@ -1351,8 +1403,20 @@ function ProductRow({
           onChange={onPublished}
         />
       </td>
-      <td className="border-b border-neutral-100 px-2 py-3 text-right xl:px-3">
-        <DeleteProductButton product={product} pending={pending} onDelete={onDelete} />
+      <td
+        className={cn(
+          pinned,
+          "px-2 py-3 text-right whitespace-nowrap xl:right-0 xl:border-l xl:border-neutral-200 xl:px-3",
+        )}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ProductRowActions
+          product={product}
+          viewHref={viewHref}
+          editHref={editHref}
+          pending={pending}
+          onDelete={onDelete}
+        />
       </td>
     </tr>
   );
@@ -1379,7 +1443,8 @@ function ProductCard({
   onPublished: (published: boolean) => void;
   onDelete: () => void;
 }) {
-  const href = `/admin/products/${product.id}`;
+  const viewHref = `/admin/products/${product.id}/view`;
+  const editHref = `/admin/products/${product.id}`;
   return (
     <li className={cn("px-3 py-2", selected && "bg-primary/5")}>
       <div
@@ -1388,7 +1453,7 @@ function ProductCard({
           selected ? "ring-1 ring-primary/30" : "hover:bg-neutral-50/80",
         )}
       >
-        <Link href={href} className="flex min-w-0 items-start gap-3">
+        <Link href={viewHref} className="flex min-w-0 items-start gap-3">
           <ProductThumb product={product} />
           <span className="min-w-0 flex-1">
             <span className="flex items-baseline justify-between gap-2">
@@ -1401,6 +1466,7 @@ function ProductCard({
             </span>
             <span className="mt-0.5 block truncate text-xs text-neutral-500">
               {product.categoryPath?.map((node) => node.name).join(" › ") || product.categoryName || categoryLabel(product.categoryId)}
+              {product.supplierName ? ` · ${product.supplierName}` : ""}
               {product.featured ? " · Featured" : ""}
             </span>
             <span className="mt-2 flex items-end justify-between gap-3">
@@ -1409,7 +1475,7 @@ function ProductCard({
             </span>
           </span>
         </Link>
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <span className="flex w-[3.25rem] shrink-0 justify-center">
             <RowSelectBox
               title={product.title}
@@ -1427,7 +1493,13 @@ function ProductCard({
               pending={pending}
               onChange={onPublished}
             />
-            <DeleteProductButton product={product} pending={pending} onDelete={onDelete} />
+            <ProductRowActions
+              product={product}
+              viewHref={viewHref}
+              editHref={editHref}
+              pending={pending}
+              onDelete={onDelete}
+            />
           </span>
         </div>
       </div>
@@ -1488,30 +1560,54 @@ function RowSelectBox({
   );
 }
 
-function DeleteProductButton({
+function ProductRowActions({
   product,
+  viewHref,
+  editHref,
   pending,
   onDelete,
 }: {
   product: AdminProduct;
+  viewHref: string;
+  editHref: string;
   pending: boolean;
   onDelete: () => void;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={`Delete ${product.title}`}
-      title="Delete"
-      disabled={pending}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onDelete();
-      }}
-      className="inline-grid size-9 place-items-center rounded-full text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-40"
-    >
-      <MaterialIcon name="delete" className="text-[18px]" />
-    </button>
+    <span className="inline-flex items-center justify-end gap-0.5">
+      <Link
+        href={viewHref}
+        title="View details"
+        aria-label={`View ${product.title}`}
+        onClick={(event) => event.stopPropagation()}
+        className="inline-grid size-8 place-items-center rounded-lg text-neutral-500 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        <MaterialIcon name="visibility" className="text-[18px]" />
+      </Link>
+      <Link
+        href={editHref}
+        title="Edit product"
+        aria-label={`Edit ${product.title}`}
+        onClick={(event) => event.stopPropagation()}
+        className="inline-grid size-8 place-items-center rounded-lg text-neutral-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+      >
+        <MaterialIcon name="edit" className="text-[18px]" />
+      </Link>
+      <button
+        type="button"
+        aria-label={`Delete ${product.title}`}
+        title="Delete product"
+        disabled={pending}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onDelete();
+        }}
+        className="inline-grid size-8 place-items-center rounded-lg text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-40"
+      >
+        <MaterialIcon name="delete" className="text-[18px]" />
+      </button>
+    </span>
   );
 }
 
@@ -1681,14 +1777,43 @@ function PriceStack({ product }: { product: AdminProduct }) {
     product.compareAtPrice != null && product.compareAtPrice > product.price
       ? product.compareAtPrice
       : null;
+  const cost = product.costPrice ?? null;
+  const margin = cost != null ? costMargin(product.price, cost) : null;
   return (
     <span className="block text-right">
-      <span className="block font-semibold tabular-nums text-neutral-950">
-        {formatTaka(product.price)}
+      <span className="flex items-baseline justify-end gap-1.5">
+        <span className="font-semibold tabular-nums text-neutral-950">
+          {formatTaka(product.price)}
+        </span>
+        {compare != null ? (
+          <span className="text-[11px] text-neutral-400 line-through tabular-nums">
+            {formatTaka(compare)}
+          </span>
+        ) : null}
       </span>
-      {compare != null ? (
-        <span className="block text-xs text-neutral-400 line-through tabular-nums">
-          {formatTaka(compare)}
+      {cost != null ? (
+        <span className="mt-0.5 block text-[11px] tabular-nums text-neutral-500">
+          Cost {formatMarginTaka(cost)}
+        </span>
+      ) : (
+        <span className="mt-0.5 block text-[10px] font-medium text-amber-600">
+          No cost set
+        </span>
+      )}
+      {margin ? (
+        <span
+          className={cn(
+            "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+            margin.profit < 0
+              ? "bg-rose-50 text-rose-700"
+              : margin.profit > 0
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-neutral-100 text-neutral-600",
+          )}
+        >
+          {margin.profit < 0 ? "Loss " : "+"}
+          {formatMarginTaka(margin.profit)}
+          {margin.percent != null ? ` (${percentText(Math.abs(margin.percent))}%)` : ""}
         </span>
       ) : null}
     </span>

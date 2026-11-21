@@ -4,6 +4,12 @@ Open items found in the code and in recent work. Remove an item when it is done.
 
 ## Done (not live / pending production deployment)
 
+- **SaaS Admin Reporting, Product View, & Superadmin Safe Delete Suite (Phases D–G, 2026-11-21).** Complete SaaS admin upgrade consuming backend Phases A–C:
+  - Collapsible SaaS sidebar navigation & upgraded Executive Dashboard (`/admin`) with Net Realized Sales, COGS, Net Profit/Loss, Margin %, Collected vs Due, Stock Capital Value, Online vs Offline bar, and Unknown Cost audit callout.
+  - Optional Supplier picker & per-variant `cost_price` with live Unit Profit/Margin previews; dedicated `/admin/products/[id]/view` executive product page + visible sticky `Actions` (`View`/`Edit`/`Delete`) on `/admin/products`.
+  - 7-page SaaS Reports Suite (`/admin/reports`, `/profit-loss`, `/products`, `/sales`, `/inventory`, `/suppliers`, `/delivery-coupons`) with persistent URL-synced filters, Excel `.xlsx` exports, and Print/PDF support.
+  - Superadmin-only safe delete & merge modals (`ImpactDeleteModal`) for Orders (with stock ledger reconciliation), Badges (merge/unlink), and Suppliers (merge/archive/hard delete), plus walk-in immediate delivery toggle on offline orders, payment collection on order detail, and SaaS KPI/nav polish on Inventory, Inquiries, and Carts.
+
 - **Customer Authentication & Account Management (2026-11-21).** Complete end-to-end customer auth, profile, and dashboard:
   - Isolated session cookies (`implesia_cust_access`, `implesia_cust_refresh`) completely separated from admin staff cookies.
   - BFF proxy routes: `/api/customer/login`, `register`, `logout`, `session`, `profile`, `profile/avatar`, `change-password`, `orders`, `orders/[number]`, `orders/[number]/tracking`, `purchased-products`, `dashboard-summary`, `notifications`, `notifications/[id]/read`, `notifications/[id]`, `notifications/mark-all-read`, `cart/merge`, `cart/[[...path]]`, `products/[id]/can-review`, `products/[id]/reviews`.
@@ -28,7 +34,7 @@ Open items found in the code and in recent work. Remove an item when it is done.
 ## Open / Pending Next Steps
 
 - **Deploy to Production (Manual Execution):**
-  - Backend: Run `alembic upgrade head` on the production database to apply pending migrations through `0103` (including `0102` and `0103`).
+  - Backend: Run `alembic upgrade head` on the production database to apply pending migrations through `0105` (including `0102`, `0103`, `0104`, and `0105`).
   - Backend: Rebuild and restart the container (`docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build`).
   - Frontend: Deploy Cloudflare Workers bundle (`npm run deploy:vinext`).
 - **Customer Notifications Bell / Drawer (2026-11-21):** Done — added live storefront header notification bell with unread count badge, quick 5-item dropdown, and cross-component event sync (`customer-notification-bell.tsx`).

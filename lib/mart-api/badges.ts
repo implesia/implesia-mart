@@ -5,6 +5,28 @@ const BASE = "/api/v1/admin/badges";
 
 export type BadgeInput = { name: string; tone: BadgeTone; isActive: boolean };
 
+export type BadgeDeleteImpact = {
+  badgeName: string;
+  isSystem: boolean;
+  linkedProductsCount: number;
+  sampleProducts: { id: string; title: string }[];
+  availableMergeTargets: { id: string; name: string; slug: string }[];
+};
+
+export type BadgeDeleteRequest = {
+  mode: "unlink" | "merge";
+  targetBadgeId?: string | null;
+};
+
+export type BadgeDeleteResult = {
+  message: string;
+  deletedBadgeId: string;
+  deletedBadgeName: string;
+  mode: "unlink" | "merge";
+  affectedProductsCount: number;
+  targetBadgeId: string | null;
+};
+
 async function call(path: string, init: RequestInit | undefined, fallback: string) {
   const response = await authorizedFetch(path, init);
   if (response.status === 401) throw new MartApiError("Sign in again to manage badges.");
@@ -56,10 +78,70 @@ export async function updateMartBadge(
   return parsed(await response.json(), "The badge could not be saved.");
 }
 
-export async function deleteMartBadge(id: string): Promise<void> {
-  await call(
+export async function fetchBadgeDeleteImpact(id: string): Promise<BadgeDeleteImpact> {
+  const response = await call(
+    `${BASE}/${encodeURIComponent(id)}/delete-impact`,
+    undefined,
+    "Could not inspect badge delete impact.",
+  );
+  const body = (await response.json()) as Record<string, unknown>;
+  const sampleProducts = Array.isArray(body.sample_products)
+    ? body.sample_products.flatMap((row) => {
+        const item = row as Record<string, unknown>;
+        return typeof item.id === "string"
+          ? [{ id: item.id, title: String(item.title ?? "") }]
+          : [];
+      })
+    : [];
+  const availableMergeTargets = Array.isArray(body.available_merge_targets)
+    ? body.available_merge_targets.flatMap((row) => {
+        const item = row as Record<string, unknown>;
+        return typeof item.id === "string"
+          ? [{ id: item.id, name: String(item.name ?? ""), slug: String(item.slug ?? "") }]
+          : [];
+      })
+    : [];
+  return {
+    badgeName: String(body.badge_name ?? ""),
+    isSystem: body.is_system === true,
+    linkedProductsCount: Number(body.linked_products_count ?? 0),
+    sampleProducts,
+    availableMergeTargets,
+  };
+}
+
+export async function deleteMartBadge(
+  id: string,
+  payload?: BadgeDeleteRequest,
+): Promise<BadgeDeleteResult> {
+  const init: RequestInit = payload
+    ? json("DELETE", {
+        mode: payload.mode,
+        ...(payload.targetBadgeId ? { target_badge_id: payload.targetBadgeId } : {}),
+      })
+    : { method: "DELETE" };
+  const response = await call(
     `${BASE}/${encodeURIComponent(id)}`,
-    { method: "DELETE" },
+    init,
     "The badge could not be deleted.",
   );
+  if (response.status === 204) {
+    return {
+      message: "Badge deleted",
+      deletedBadgeId: id,
+      deletedBadgeName: "",
+      mode: payload?.mode ?? "unlink",
+      affectedProductsCount: 0,
+      targetBadgeId: payload?.targetBadgeId ?? null,
+    };
+  }
+  const body = (await response.json()) as Record<string, unknown>;
+  return {
+    message: String(body.message ?? "Badge deleted"),
+    deletedBadgeId: String(body.deleted_badge_id ?? id),
+    deletedBadgeName: String(body.deleted_badge_name ?? ""),
+    mode: body.mode === "merge" ? "merge" : "unlink",
+    affectedProductsCount: Number(body.affected_products_count ?? 0),
+    targetBadgeId: typeof body.target_badge_id === "string" ? body.target_badge_id : null,
+  };
 }

@@ -425,6 +425,8 @@ export type OfflineLineInput = {
   priceEdited: boolean;
 };
 
+export type OfflineInitialStatus = "new" | "confirmed" | "delivered";
+
 export type OfflineOrderInput = {
   customerName: string;
   phone: string;
@@ -442,6 +444,10 @@ export type OfflineOrderInput = {
   paymentReference: string;
   /** Null omits the field so the server uses now. */
   orderDate: string | null;
+  /** Optional initial status for counter/walk-in sales. */
+  initialStatus?: OfflineInitialStatus;
+  /** Optional shorthand to mark delivered immediately on create. */
+  markDelivered?: boolean;
 };
 
 function lineBody(item: OfflineLineInput) {
@@ -470,6 +476,8 @@ export function offlineCreateBody(input: OfflineOrderInput) {
     paid_amount: Math.trunc(input.paidAmount),
     payment_reference: input.paymentReference.replace(/\s+/g, ""),
     ...(input.orderDate ? { order_date: input.orderDate } : {}),
+    ...(input.initialStatus ? { initial_status: input.initialStatus } : {}),
+    ...(input.markDelivered ? { mark_delivered: true } : {}),
   };
 }
 

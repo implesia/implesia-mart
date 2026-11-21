@@ -181,16 +181,16 @@ function InquiriesView() {
         description="Messages and newsletter sign-ups from the storefront. Every field a visitor leaves is optional."
       />
 
-      {/* Summary Cards */}
+      {/* Summary KPI Strip */}
       <section aria-label="Inquiry summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {(
           [
-            ["All", counts?.total, null],
-            ["New", counts?.new, "new"],
-            ["In progress", counts?.inProgress, "in_progress"],
-            ["Resolved", counts?.resolved, "resolved"],
+            ["Total Inquiries", counts?.total, null, "inbox", "bg-slate-100 text-slate-600"],
+            ["New / Unread", counts?.new, "new", "mark_email_unread", "bg-amber-50 text-amber-700"],
+            ["Replied / Active", counts?.inProgress, "in_progress", "reply", "bg-sky-50 text-sky-700"],
+            ["Resolved", counts?.resolved, "resolved", "check_circle", "bg-emerald-50 text-emerald-700"],
           ] as const
-        ).map(([label, value, key]) => (
+        ).map(([label, value, key, icon, iconTone]) => (
           <button
             key={label}
             type="button"
@@ -201,16 +201,64 @@ function InquiriesView() {
               status === key && "border-[#2bc0b5] ring-1 ring-[#2bc0b5]",
             )}
           >
-            <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#2bc0b5]/5 opacity-0 blur-2xl transition-opacity group-hover:opacity-100" />
-            <div className="relative">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
-              <span className="mt-1 block text-2xl font-bold tabular-nums text-slate-900">{value ?? "—"}</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {label}
+              </span>
+              <span className={cn("grid size-7 place-items-center rounded-lg", iconTone)}>
+                <MaterialIcon name={icon} className="text-[16px]" />
+              </span>
             </div>
+            <span className="mt-2 block text-2xl font-bold tabular-nums text-slate-900">
+              {value ?? "—"}
+            </span>
           </button>
         ))}
       </section>
 
       <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+        {/* Status Filter Tabs */}
+        <div className="flex gap-1 overflow-x-auto border-b border-slate-100 bg-slate-50/50 px-3 pt-2">
+          {(
+            [
+              ["All", counts?.total, null],
+              ["New / Unread", counts?.new, "new"],
+              ["Replied / In Progress", counts?.inProgress, "in_progress"],
+              ["Resolved", counts?.resolved, "resolved"],
+            ] as const
+          ).map(([label, count, key]) => {
+            const active = status === key;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setParam("status", key)}
+                className={cn(
+                  "relative inline-flex shrink-0 items-center gap-1.5 rounded-t-lg px-3 py-2 text-xs font-semibold transition",
+                  active
+                    ? "text-[#0b3d39]"
+                    : "text-slate-500 hover:bg-slate-100/70 hover:text-slate-900",
+                )}
+              >
+                {label}
+                {count != null ? (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                      active ? "bg-teal-100 text-[#0b3d39]" : "bg-slate-200/70 text-slate-600",
+                    )}
+                  >
+                    {count}
+                  </span>
+                ) : null}
+                {active ? (
+                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#2bc0b5]" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Filter Bar */}
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:p-5">
           <label className="relative block min-w-0">

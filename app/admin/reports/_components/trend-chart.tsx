@@ -22,6 +22,7 @@ type ChartRow = {
   label: string;
   start: string;
   net: number;
+  cost: number | null;
   profit: number | null;
 };
 
@@ -29,15 +30,18 @@ export function SalesTrendChart({
   points,
   grain,
   empty,
+  showCost = false,
 }: {
   points: TrendPoint[];
   grain: ReportGrain;
   empty?: boolean;
+  showCost?: boolean;
 }) {
   const rows: ChartRow[] = points.map((point) => ({
     label: formatBucketLabel(point.start, grain),
     start: point.start,
     net: point.netSales,
+    cost: point.profit != null ? Math.max(Math.round((point.netSales - point.profit) * 100) / 100, 0) : null,
     profit: point.profit,
   }));
 
@@ -49,11 +53,17 @@ export function SalesTrendChart({
     <div className="w-full">
       {/* Header & Legend */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-[#2bc0b5]/10 px-2 py-1 text-[11px] font-semibold text-[#2bc0b5] ring-1 ring-inset ring-[#2bc0b5]/20">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-[#2bc0b5]/10 px-2 py-1 text-[11px] font-semibold text-[#0b3d39] ring-1 ring-inset ring-[#2bc0b5]/25">
             <span className="h-2 w-2 rounded-full bg-[#2bc0b5]" />
-            Net sales
+            Revenue (Net Sales)
           </span>
+          {showCost ? (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200/70">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              Cost (COGS)
+            </span>
+          ) : null}
           <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200/60">
             <span className="h-2 w-2 rounded-full bg-indigo-500" />
             Profit
@@ -71,13 +81,17 @@ export function SalesTrendChart({
           <p className="mt-1 text-xs font-medium text-slate-500">Try adjusting your date range or filters.</p>
         </div>
       ) : (
-        <div className="h-72 w-full min-w-0" role="img" aria-label={`${grain} net sales and profit`}>
+        <div className="h-72 w-full min-w-0" role="img" aria-label={`${grain} net sales, cost, and profit`}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={rows} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#2bc0b5" stopOpacity={0.25} />
                   <stop offset="95%" stopColor="#2bc0b5" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
@@ -109,7 +123,7 @@ export function SalesTrendChart({
                   const row = payload[0]?.payload as ChartRow | undefined;
                   if (!row) return null;
                   return (
-                    <div className="min-w-[140px] rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-3 shadow-xl">
+                    <div className="min-w-[160px] rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-3 shadow-xl">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                         {row.label}
                       </p>
@@ -123,6 +137,17 @@ export function SalesTrendChart({
                             {formatReportMoney(row.net)}
                           </span>
                         </div>
+                        {showCost ? (
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                              Cost (COGS)
+                            </span>
+                            <span className="text-xs font-bold tabular-nums text-white">
+                              {formatReportMoney(row.cost)}
+                            </span>
+                          </div>
+                        ) : null}
                         <div className="flex items-center justify-between gap-4">
                           <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
                             <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -146,6 +171,19 @@ export function SalesTrendChart({
                 fill="url(#netGradient)"
                 activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: "#2bc0b5" }}
               />
+              {showCost ? (
+                <Area
+                  type="monotone"
+                  dataKey="cost"
+                  name="Cost (COGS)"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                  fill="url(#costGradient)"
+                  connectNulls={false}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: "#f59e0b" }}
+                />
+              ) : null}
               <Area
                 type="monotone"
                 dataKey="profit"
@@ -163,11 +201,12 @@ export function SalesTrendChart({
 
       {/* Accessible Data Table */}
       <table className="sr-only">
-        <caption>Net sales and profit by {grain}</caption>
+        <caption>Net sales, cost, and profit by {grain}</caption>
         <thead>
           <tr>
             <th>Period</th>
             <th>Net sales</th>
+            {showCost ? <th>Cost</th> : null}
             <th>Profit</th>
           </tr>
         </thead>
@@ -176,6 +215,7 @@ export function SalesTrendChart({
             <tr key={row.start}>
               <td>{row.label}</td>
               <td>{formatReportMoney(row.net)}</td>
+              {showCost ? <td>{formatReportMoney(row.cost)}</td> : null}
               <td>{formatReportMoney(row.profit)}</td>
             </tr>
           ))}

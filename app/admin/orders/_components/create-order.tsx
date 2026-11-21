@@ -99,6 +99,7 @@ export function CreateOrder() {
   const [paid, setPaid] = useState("0");
   const [reference, setReference] = useState("");
   const [orderDate, setOrderDate] = useState("");
+  const [markDelivered, setMarkDelivered] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -244,6 +245,8 @@ export function CreateOrder() {
           paidAmount: Number(paid) || 0,
           paymentReference: reference,
           orderDate: orderDate || null,
+          initialStatus: markDelivered ? "delivered" : "new",
+          markDelivered,
         },
         idempotencyKey.current,
       );
@@ -420,10 +423,59 @@ export function CreateOrder() {
               </ul>
             </section>
 
-            {/* Payment Section */}
+            {/* Payment & Fulfillment Status Section */}
             <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] sm:p-5">
-              <h2 className="text-sm font-semibold text-slate-900">Payment</h2>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <h2 className="text-sm font-semibold text-slate-900">Payment &amp; Sale Status</h2>
+
+              {/* Sale Status Toggle: Walk-in Delivered vs Pending Delivery */}
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label="Sale status">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={markDelivered}
+                  onClick={() => setMarkDelivered(true)}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition",
+                    markDelivered
+                      ? "border-[#0b3d39] bg-teal-50/50 ring-1 ring-[#0b3d39]"
+                      : "border-slate-200 hover:bg-slate-50",
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-2 text-xs font-bold text-slate-950">
+                    <span>Mark as Delivered immediately</span>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                      Walk-in / Counter
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-[11px] leading-relaxed text-slate-600">
+                    Syncs immediately into Sales, Profit, Stock &amp; Dashboard reports on the selected order date.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!markDelivered}
+                  onClick={() => setMarkDelivered(false)}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition",
+                    !markDelivered
+                      ? "border-indigo-500 bg-indigo-50/40 ring-1 ring-indigo-500"
+                      : "border-slate-200 hover:bg-slate-50",
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-2 text-xs font-bold text-slate-950">
+                    <span>New (Pending Delivery)</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      Courier / Dispatch
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-[11px] leading-relaxed text-slate-600">
+                    Enters the normal fulfilment pipeline (New → Confirmed → Packed → Shipped → Delivered).
+                  </span>
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Method
                   <select value={method} onChange={(event) => setMethod(event.target.value as OfflinePaymentMethod)} className={cn(inputClass, "mt-1.5 h-9 text-sm")}>
@@ -433,7 +485,30 @@ export function CreateOrder() {
                   </select>
                   <FieldError message={errors.paymentMethod} />
                 </label>
-                <Field id="paid-amount" label="Paid amount" placeholder="0" value={paid} onChange={setPaid} error={errors.paidAmount} />
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="paid-amount" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      Paid amount
+                    </label>
+                    {preview.total != null && preview.total > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setPaid(String(preview.total))}
+                        className="text-[11px] font-semibold text-[#0b3d39] hover:underline"
+                      >
+                        Set full ({formatTaka(preview.total)})
+                      </button>
+                    ) : null}
+                  </div>
+                  <input
+                    id="paid-amount"
+                    value={paid}
+                    placeholder="0"
+                    onChange={(event) => setPaid(event.target.value)}
+                    className={cn(inputClass, "mt-1.5 h-9 text-sm")}
+                  />
+                  <FieldError message={errors.paidAmount} />
+                </div>
                 <Field id="order-discount" label="Discount" placeholder="0" value={discount} onChange={setDiscount} error={errors.manualDiscount} />
                 <Field id="delivery-charge" label="Delivery charge" value={delivery} onChange={setDelivery} error={errors.deliveryCharge} placeholder="Optional — blank is ৳0" />
                 <Field id="payment-reference" label="Payment reference" placeholder="e.g. TrxID (optional)" value={reference} onChange={setReference} error={errors.paymentReference} />

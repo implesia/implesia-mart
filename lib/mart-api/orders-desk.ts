@@ -60,7 +60,53 @@ export const ORDERS_DESK_PATHS = {
   printed: "/api/v1/admin/orders/printed",
   printData: "/api/v1/admin/orders/print-data",
   items: (id: string) => `/api/v1/admin/orders/${encodeURIComponent(id)}/items`,
+  payments: (id: string) => `/api/v1/admin/orders/${encodeURIComponent(id)}/payments`,
+  deleteImpact: (id: string) => `/api/v1/admin/orders/${encodeURIComponent(id)}/delete-impact`,
+  deleteOrder: (id: string) => `/api/v1/admin/orders/${encodeURIComponent(id)}`,
 } as const;
+
+export type OrderStockRestoreItem = {
+  productId: string | null;
+  variantId: string | null;
+  title: string;
+  quantity: number;
+};
+
+export type OrderDeleteImpact = {
+  orderNumber: string;
+  status: string;
+  origin: string;
+  total: number;
+  paidAmount: number;
+  dueAmount: number;
+  inventoryHeld: boolean;
+  stockRestoreItems: OrderStockRestoreItem[];
+  stockMovementsCount: number;
+  couponRedemptionCode: string | null;
+  reviewsCount: number;
+  notificationsCount: number;
+  reportImpactWarning: string;
+};
+
+export type OrderDeleteRequest = {
+  confirm: true;
+  reconcileStock: boolean;
+  reason: string;
+};
+
+export type OrderDeleteResult = {
+  deletedOrderNumber: string;
+  stockRestoredUnits: number;
+  couponReleased: boolean;
+  reportsSynced: boolean;
+};
+
+export type OrderPaymentInput = {
+  amount: number;
+  paymentMethod?: string | null;
+  paymentReference?: string;
+  note?: string;
+};
 
 export type OrderOverview = {
   timezone: "Asia/Dhaka";
@@ -494,6 +540,90 @@ export async function searchProductsForOrder(q: string) {
     }),
   );
   return detailed.flatMap(choicesFrom);
+}
+
+export async function fetchOrderDeleteImpact(orderId: string): Promise<OrderDeleteImpact> {
+  const response = await authorizedFetch(ORDERS_DESK_PATHS.deleteImpact(orderId));
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Could not inspect order delete impact."));
+  }
+  const body = (await response.json()) as Record<string, unknown>;
+  const restoreItems = Array.isArray(body.stock_restore_items)
+    ? body.stock_restore_items.flatMap((row) => {
+        const item = row as Record<string, unknown>;
+        return [
+          {
+            productId: typeof item.product_id === "string" ? item.product_id : null,
+            variantId: typeof item.variant_id === "string" ? item.variant_id : null,
+            title: String(item.title ?? ""),
+            quantity: Number(item.quantity ?? 0),
+          },
+        ];
+      })
+    : [];
+  return {
+    orderNumber: String(body.order_number ?? ""),
+    status: String(body.status ?? ""),
+    origin: String(body.origin ?? "online"),
+    total: Number(body.total ?? 0),
+    paidAmount: Number(body.paid_amount ?? 0),
+    dueAmount: Number(body.due_amount ?? 0),
+    inventoryHeld: body.inventory_held === true,
+    stockRestoreItems: restoreItems,
+    stockMovementsCount: Number(body.stock_movements_count ?? 0),
+    couponRedemptionCode:
+      typeof body.coupon_redemption_code === "string" ? body.coupon_redemption_code : null,
+    reviewsCount: Number(body.reviews_count ?? 0),
+    notificationsCount: Number(body.notifications_count ?? 0),
+    reportImpactWarning: String(body.report_impact_warning ?? ""),
+  };
+}
+
+export async function deleteDeskOrder(
+  orderId: string,
+  payload: OrderDeleteRequest,
+): Promise<OrderDeleteResult> {
+  const response = await authorizedFetch(ORDERS_DESK_PATHS.deleteOrder(orderId), {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      confirm: payload.confirm,
+      reconcile_stock: payload.reconcileStock,
+      reason: payload.reason.trim(),
+    }),
+  });
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Could not delete this order."));
+  }
+  const body = (await response.json()) as Record<string, unknown>;
+  return {
+    deletedOrderNumber: String(body.deleted_order_number ?? ""),
+    stockRestoredUnits: Number(body.stock_restored_units ?? 0),
+    couponReleased: body.coupon_released === true,
+    reportsSynced: body.reports_synced !== false,
+  };
+}
+
+export async function recordOrderPayment(
+  orderId: string,
+  input: OrderPaymentInput,
+): Promise<MartOrder> {
+  const response = await authorizedFetch(ORDERS_DESK_PATHS.payments(orderId), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: Math.trunc(input.amount),
+      ...(input.paymentMethod ? { payment_method: input.paymentMethod } : {}),
+      ...(input.paymentReference?.trim()
+        ? { payment_reference: input.paymentReference.replace(/\s+/g, "") }
+        : {}),
+      ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+    }),
+  });
+  if (!response.ok) {
+    throw new MartApiError(await readError(response, "Could not record payment."));
+  }
+  return mapOrder((await response.json()) as Parameters<typeof mapOrder>[0]);
 }
 
 export type { MartOrder };

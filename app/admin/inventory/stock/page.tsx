@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   STOCK_MOVEMENT_TYPES,
@@ -32,6 +32,7 @@ import {
 } from "../../_components/admin-ui";
 import { useAdminNotify } from "../../_components/confirm-delete";
 import { ExportExcelButton, ImportExcelButton } from "../_components/excel-actions";
+import { InventorySubNav } from "../_components/inventory-nav";
 import { InventoryPager } from "../_components/pager";
 import { useInventoryWriter } from "../_components/use-inventory-role";
 
@@ -53,7 +54,10 @@ export default function StockHistoryPage() {
   const [preset, setPreset] = useState<DatePreset>("month");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [productId, setProductId] = useState("");
+  const [productId, setProductId] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("product_id") ?? "";
+  });
   const [type, setType] = useState("");
   const [page, setPage] = useState(1);
   const [products, setProducts] = useState<ProductChoice[]>([]);
@@ -140,6 +144,17 @@ export default function StockHistoryPage() {
     }
   }
 
+  const flowSummary = useMemo(() => {
+    const items = rows ?? [];
+    let stockIn = 0;
+    let stockOut = 0;
+    for (const row of items) {
+      if (row.quantity > 0) stockIn += row.quantity;
+      else if (row.quantity < 0) stockOut += Math.abs(row.quantity);
+    }
+    return { stockIn, stockOut, net: stockIn - stockOut };
+  }, [rows]);
+
   return (
     <div className="min-w-0 space-y-4">
       <AdminPageHeader
@@ -162,6 +177,48 @@ export default function StockHistoryPage() {
           </div>
         }
       />
+
+      <InventorySubNav />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Movements</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-slate-950">{rows ? total : "—"}</p>
+          <p className="mt-0.5 text-xs text-slate-400">Ledger entries in range</p>
+        </div>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Stock In (Page)</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-emerald-700">
+            {rows ? `+${flowSummary.stockIn.toLocaleString("en-US")}` : "—"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">Purchases, returns, +adj</p>
+        </div>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Stock Out (Page)</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-rose-700">
+            {rows ? `−${flowSummary.stockOut.toLocaleString("en-US")}` : "—"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">Sales &amp; negative adj</p>
+        </div>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Net Change (Page)</p>
+          <p
+            className={cn(
+              "mt-2 text-2xl font-bold tabular-nums",
+              flowSummary.net > 0
+                ? "text-emerald-700"
+                : flowSummary.net < 0
+                  ? "text-rose-700"
+                  : "text-slate-900",
+            )}
+          >
+            {rows
+              ? `${flowSummary.net > 0 ? "+" : ""}${flowSummary.net.toLocaleString("en-US")}`
+              : "—"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">In minus Out on page</p>
+        </div>
+      </div>
 
       <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-200/90">
         <div className="space-y-3 border-b border-neutral-100 px-4 py-4 sm:px-5">

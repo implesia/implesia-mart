@@ -64,6 +64,7 @@ import {
   ProductGalleryFields,
 } from "./product-content-fields";
 import { CategoryCascade } from "./category-cascade";
+import { SupplierPicker } from "./supplier-picker";
 import { ProductOptionsFields } from "./product-options-fields";
 import { ProductVariantsFields } from "./product-variants-fields";
 import { productPath } from "@/lib/mart-api/product-url";
@@ -111,6 +112,8 @@ type FormState = {
   categoryId: ProductCategoryId;
   categoryRefId: string;
   categoryTrail: string;
+  supplierId: string | null;
+  supplierName: string | null;
   /** Derived from regularPrice + baseDiscount; kept for the preview and the variant default. */
   price: string;
   compareAtPrice: string;
@@ -172,6 +175,7 @@ const SERVER_FIELD_ORDER = [
   "variants",
   "content",
   "category",
+  "supplier",
   "badges",
   "seo",
   "slug",
@@ -196,6 +200,7 @@ const SERVER_FIELD_LABEL: Record<string, string> = {
   variants: "ভ্যারিয়েন্ট",
   content: "প্রোডাক্টের বিস্তারিত",
   category: "ক্যাটাগরি",
+  supplier: "সাপ্লায়ার",
   badges: "ব্যাজ",
   seo: "সার্চ (SEO)",
   publishing: "পাবলিশিং",
@@ -220,6 +225,7 @@ const SERVER_FIELD_SECTION: Record<string, SectionId> = {
   variants: "product-variants",
   content: "product-details",
   category: "product-organization",
+  supplier: "product-organization",
   badges: "product-organization",
   seo: "product-seo",
   publishing: "product-publishing",
@@ -262,6 +268,7 @@ const SERVER_FIELDS_FOR: Partial<Record<keyof FormState, string[]>> = {
   maxOrderMode: ["orderLimits"],
   variants: ["variants", "price", "quantity"],
   imageSrc: ["images"],
+  supplierId: ["supplier"],
   badges: ["badges"],
   published: ["publishing"],
   featured: ["publishing"],
@@ -307,6 +314,8 @@ function toForm(product?: AdminProduct): FormState {
       categoryId: "",
       categoryRefId: "",
       categoryTrail: "",
+      supplierId: null,
+      supplierName: null,
       price: "",
       compareAtPrice: "",
       regularPrice: "",
@@ -342,6 +351,8 @@ function toForm(product?: AdminProduct): FormState {
     categoryId: product.categoryId,
     categoryRefId: product.categoryRefId ?? "",
     categoryTrail: product.categoryPath?.map((node) => node.name).join(" › ") ?? "",
+    supplierId: product.supplierId ?? null,
+    supplierName: product.supplierName ?? null,
     // A draft saved without a price is stored as 0; show it blank so publishing asks for one.
     price:
       !product.published && product.price === 0 && !product.variants?.length
@@ -742,6 +753,7 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
       subtitle: form.subtitle.trim(),
       categoryId: form.categoryId,
       categoryRefId: form.categoryRefId,
+      supplierId: form.supplierId,
       price,
       compareAtPrice,
       ...(!variantMode && pricingChanged && form.regularPrice.trim()
@@ -1331,18 +1343,19 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                     }
                     aria-live="polite"
                     className={cn(
-                      "mt-1.5 text-xs font-medium tabular-nums",
+                      "mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums",
                       margin.profit > 0
-                        ? "text-success"
+                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70"
                         : margin.profit < 0
-                          ? "text-error"
-                          : "text-neutral-600",
+                          ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200/70"
+                          : "bg-neutral-100 text-neutral-600",
                     )}
                   >
-                    {margin.profit < 0 ? "ক্ষতি" : "লাভ"} {formatMarginTaka(margin.profit)}
+                    {margin.profit < 0 ? "ক্ষতি (Loss)" : "লাভ (Profit)"}{" "}
+                    {formatMarginTaka(margin.profit)}
                     {margin.percent == null
-                      ? " (বিক্রয় মূল্য ০, শতাংশ হিসাব হয় না)"
-                      : ` (বিক্রয় মূল্যের ${percentText(Math.abs(margin.percent))}%)`}
+                      ? " (বিক্রয় মূল্য ০)"
+                      : ` · ${percentText(Math.abs(margin.percent))}% margin`}
                   </p>
                 ) : null}
               </div>
@@ -1673,10 +1686,10 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
           </FormSection>
 
           <FormSection
-            invalid={serverFor("category", "badges").length > 0}
+            invalid={serverFor("category", "supplier", "badges").length > 0}
             id="product-organization"
             title="Organization"
-            description="Category is required. Badges are optional."
+            description="Category is required. Supplier and badges are optional."
           >
             <div>
               <p className="mb-1.5 text-sm font-medium text-neutral-700">
@@ -1703,6 +1716,19 @@ export function ProductForm({ product }: { product?: AdminProduct }) {
                 Pick a category, then a subcategory if there is one. The product shows up under every
                 level above the one you choose.
               </p>
+            </div>
+            <div className="mt-4">
+              <SupplierPicker
+                id={`${formId}-supplier`}
+                value={form.supplierId}
+                selectedName={form.supplierName}
+                error={serverFor("supplier")[0]?.message}
+                onChange={(supplierId, supplierName) => {
+                  if (supplierId !== form.supplierId) clearServer(["supplier"]);
+                  setForm((current) => ({ ...current, supplierId, supplierName }));
+                }}
+              />
+              <ServerFieldErrors id={`${formId}-server-supplier`} items={serverFor("supplier")} />
             </div>
             <div className="mt-4">
               <ProductBadgePicker

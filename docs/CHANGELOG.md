@@ -2,6 +2,74 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Phase G Admin-Only Delete with Impact/Merge Modals, Offline Delivery Toggle, Payment Collection & Management Pages Polish (2026-11-21).**
+  - **Superadmin-Only Delete & Reusable `ImpactDeleteModal` (`app/admin/_components/impact-delete-modal.tsx`, `use-superadmin.ts`, `lib/admin/staff-role.ts`, `lib/mart-api/orders-desk.ts`, `lib/mart-api/badges.ts`, `lib/mart-api/inventory.ts`):**
+    - Added `isSuperadmin()` and `useIsSuperadmin()` to gate Delete controls for Orders, Badges, and Suppliers strictly to `superadmin` (in addition to backend `RequireSuperadmin` 403 enforcement).
+    - Built `ImpactDeleteModal` that queries `GET .../delete-impact` on open, displays all affected records and accounting impact, and provides safe resolution options: Order stock restoration + ledger reconciliation checkbox & required audit reason; Badge Merge-into-target vs Unlink & Delete; Supplier Merge-purchases-and-products vs Archive vs Permanent Delete (when 0 purchases).
+    - Wired `ImpactDeleteModal` into `/admin/orders/list`, `/admin/orders/[number]`, `/admin/badges`, and `/admin/inventory/suppliers`.
+  - **Offline Walk-in Delivery & Due Collection (`app/admin/orders/_components/create-order.tsx`, `order-detail.tsx`, `lib/admin/orders-desk.ts`):**
+    - Added **Sale Status** toggle on `/admin/orders/new` (`Mark as Delivered immediately (Walk-in / Counter)` vs `New (Pending Delivery)`) sending `initial_status` / `mark_delivered` + 1-click "Set full" paid helper.
+    - Added **"Collect Payment / Update Paid Amount"** panel on `/admin/orders/[number]` calling `POST /api/v1/admin/orders/{id}/payments` for orders with `due_amount > 0`.
+  - **SaaS Management Pages Upgrade (`app/admin/inventory/_components/inventory-nav.tsx`, `suppliers/page.tsx`, `purchases/page.tsx`, `stock/page.tsx`, `inquiries/page.tsx`, `cart/page.tsx`):**
+    - Added shared `InventorySubNav` quick-navigation tabs across Suppliers, Purchases, New Purchase, and Stock History, plus consistent KPI summary headers and supplier-linked product/purchase badges.
+    - Upgraded `/admin/inquiries` with icon KPI strip (`Total`, `New / Unread`, `Replied / Active`, `Resolved`) and quick status filter tabs.
+    - Upgraded `/admin/cart` with `Total Active Carts`, `Registered User Carts`, `Guest / Abandoned Carts`, and `Potential Cart Value (৳)` KPI strip and updated owner filter labels.
+  - Files touched:
+    - `lib/admin/staff-role.ts`, `lib/admin/orders-desk.ts`, `lib/mart-api/orders-desk.ts`, `lib/mart-api/badges.ts`, `lib/mart-api/inventory.ts`
+    - `app/admin/_components/use-superadmin.ts`, `app/admin/_components/impact-delete-modal.tsx`
+    - `app/admin/orders/_components/orders-list.tsx`, `order-detail.tsx`, `create-order.tsx`
+    - `app/admin/badges/page.tsx`
+    - `app/admin/inventory/_components/inventory-nav.tsx`, `suppliers/page.tsx`, `purchases/page.tsx`, `stock/page.tsx`
+    - `app/admin/inquiries/page.tsx`, `app/admin/cart/page.tsx`
+    - `tests/phase-g-admin.test.ts`
+    - `docs/CHANGELOG.md`, `docs/API.md`, `docs/TODO.md`
+  - Backend (`implesia-mart-backend`): consumes Phase A (`initial_status`, `mark_delivered`, `POST /admin/orders/{id}/payments`) and Phase C (`RequireSuperadmin` `delete-impact` & `DELETE` endpoints for orders, badges, suppliers).
+
+- **Phase F Multi-Page SaaS Reports Suite (2026-11-21).**
+  - **Shared SaaS Report Shell & Persistent URL-Synced Filter Bar (`app/admin/reports/_components/report-shell.tsx`, `report-filters.tsx`, `trend-chart.tsx`, `lib/mart-api/reports.ts`, `lib/mart-mock/reports.ts`):**
+    - Built reusable `ReportShell` with executive header, active range pill, Excel (`.xlsx`) export button(s), Print/PDF button, and 7-page sub-navigation bar preserving active URL query filters across pages.
+    - Built `useReportQuery()` + `ReportFilterBar` with Date Presets (`Today`, `Last 7 Days`, `This Week`, `This Month`, `Last Month`, `This Year`, `Custom Range`), Channel/Origin (`All`, `Online (Website)`, `Offline`), Supplier selector, Category selector, searchable Product dropdown, and optional Chart Grain toggle.
+    - Upgraded `SalesTrendChart` with optional multi-series `Revenue vs Cost (COGS) vs Profit` plotting (`showCost`), extended `loadReportFilterChoices()` to load suppliers, and expanded `REPORT_EXPORT_KINDS` to cover all 11 backend `.xlsx` export routes (`sales`, `profit`, `profit-loss`, `products`, `channels`, `suppliers`, `stock`, `movements`, `delivery`, `trend`, `coupons`).
+  - **7 Focused SaaS Report Pages under `app/admin/reports/`:**
+    - `/admin/reports` (**Reports Overview**): 8-card executive KPI grid, multi-series Revenue vs Cost vs Profit chart, Online vs Offline comparison cards, and Top 5 Most Profitable + Top 5 Loss/Low-Margin products with deep links.
+    - `/admin/reports/profit-loss` (**Profit & Loss Statement**): Accounting waterfall table (Gross Sales → Discounts → Net Merchandise Sales + Delivery → Net Realized Sales → COGS → Gross Profit / Net Profit & Margin %), Collected vs Due receivables summary, and Unknown-Cost lines audit callout.
+    - `/admin/reports/products` (**Product Profitability & Sales**): Sortable/searchable table & mobile cards with profitability filter pills (`All`, `Profitable`, `Loss-Making`, `Missing Cost`), profit/loss pills, margin %, returns, on-hand stock, and stock value.
+    - `/admin/reports/sales` (**Sales & Channels Report**): Time-series trend chart (Day/Week/Month grain), Online vs Offline breakdown table, and Payment Method breakdown (`COD`, `Bangla QR`, `Cash`, `bKash`, `Nagad`, `Card`, `Due`) with Collected vs Due columns.
+    - `/admin/reports/inventory` (**Inventory & Stock Valuation**): Stock Cost Value, Potential Retail Value, Expected Profit on Hand, Stock Movement Reconciliation equation (`Opening + Purchase + Sale + Return + Cancel ± Adjustment = Closing`), and tabbed All / Low Stock / Dead Stock (30d) / Missing Cost valuation views.
+    - `/admin/reports/suppliers` (**Supplier Performance Report**): Per-supplier linked products, purchase count/spend, units sold, revenue, COGS, net profit, margin %, and current stock value.
+    - `/admin/reports/delivery-coupons` (**Delivery, Returns & Coupons**): Delivery vs Return vs Cancel KPIs, return rate delta vs previous period, outcome mix bar, sales trajectory, and Coupon ROI table.
+  - Files touched:
+    - `app/admin/reports/_components/report-filters.tsx`, `report-shell.tsx`, `trend-chart.tsx`, `overview-report.tsx`, `profit-loss-report.tsx`, `products-report.tsx`, `sales-channels-report.tsx`, `inventory-report.tsx`, `suppliers-report.tsx`, `delivery-coupons-report.tsx`
+    - `app/admin/reports/page.tsx`, `profit-loss/page.tsx`, `products/page.tsx`, `sales/page.tsx`, `inventory/page.tsx`, `suppliers/page.tsx`, `delivery-coupons/page.tsx`
+    - `lib/mart-api/reports.ts`, `lib/mart-mock/reports.ts`
+    - `tests/phase-f-reports.test.ts`
+    - `docs/CHANGELOG.md`, `docs/API.md`
+  - Backend (`implesia-mart-backend`): consumes Phase B SaaS report endpoints and matching `/export` `.xlsx` routes.
+
+- **Phase D & Phase E SaaS Navigation, Executive Dashboard, Product Supplier/Variant Cost & Product View Page (2026-11-21).**
+  - **SaaS Sidebar Architecture (`app/admin/_config/nav.ts`, `app/admin/_components/admin-shell.tsx`):**
+    - Organized the admin sidebar into collapsible SaaS groups with expandable sub-menus: Overview, Reports & Analytics (Overview, Profit & Loss, Product Analytics, Sales & Channels, Inventory & Valuation, Suppliers Report, Delivery & Coupons), Order Management, Product Management (Product List, Add Product, Badges), Inventory Management (Suppliers, Purchases, New Purchase, Stock History), Engagement (Inquiries, Cart Management), and Storefront & Marketing.
+    - Updated `currentAdminPage`, `adminBackHref`, `isAdminBranchActive`, and `isWideAdminPath` for all report sub-routes and `/admin/products/[id]/view`, and displayed the actual staff role (`Super Admin` / `Editor` / `Viewer`) in the header dropdown.
+  - **Upgraded Executive Dashboard (`app/admin/_components/dashboard/dashboard-view.tsx`, `dashboard-sections.tsx`, `lib/admin/reports.ts`, `lib/mart-api/reports.ts`):**
+    - Added Top Financial KPI Strip powered by `/profit-loss` and `/stock`: Net Realized Sales, Total Cost (COGS), Net Profit / Loss (green/red badge with below-cost loss callout), Profit Margin (%), Collected vs Due, and Stock Capital Value, with a clear `"Realized = Delivered minus Returned"` indicator.
+    - Added Online vs Offline Channel Summary Bar (`/channels`), Unknown Cost Alert Banner linking to `/admin/reports/products?profit_filter=unknown_cost`, and upgraded Best Selling Products to show both Revenue and Realized Profit / Margin % linking to `/admin/products/[id]/view`.
+  - **Optional Product Supplier & Per-Variant Cost Price (`app/admin/products/_components/supplier-picker.tsx`, `product-form.tsx`, `product-variants-fields.tsx`, `lib/mart-api/admin-variants.ts`, `lib/mart-api/products.ts`, `lib/mart-mock/store.ts`):**
+    - Added searchable optional Supplier selector (`SupplierPicker`) with clear action in Product Organization (`supplier_id` sent on create/update) and a Supplier filter dropdown + chip on `/admin/products`.
+    - Added optional per-variant `cost_price` input in `ProductVariantsFields` with live Unit Profit (৳) & Margin (%) preview badges on both variant and simple products.
+  - **Dedicated Product View Page & Upgraded Products Table (`app/admin/products/[id]/view/page.tsx`, `_components/product-media-viewer.tsx`, `_components/product-view-sections.tsx`, `app/admin/products/page.tsx`):**
+    - Built `/admin/products/[id]/view` fetching `GET /api/v1/admin/products/{id}` and `GET /api/v1/admin/products/{id}/analytics` with executive header (clickable supplier badge, Edit, View on Storefront, Delete), Financial & Inventory KPI strip (including red below-cost alert), interactive Media Gallery (images + video/YouTube), Variants Breakdown Table, Product Details/Specs/FAQs/Tiers/Badges/SEO preview, and Recent Stock Movements ledger preview.
+    - Upgraded `/admin/products` table with visible sticky-right `Actions` column (`View`, `Edit`, `Delete` buttons with tooltips on desktop & mobile), clicking product title/row opens `/admin/products/[id]/view`, and added Cost Price & Unit Profit/Margin % directly under Price.
+  - Files touched:
+    - `app/admin/_config/nav.ts`, `app/admin/_components/admin-shell.tsx`
+    - `app/admin/_components/dashboard/dashboard-view.tsx`, `app/admin/_components/dashboard/dashboard-sections.tsx`
+    - `app/admin/products/_components/supplier-picker.tsx`, `app/admin/products/_components/product-form.tsx`, `app/admin/products/_components/product-variants-fields.tsx`
+    - `app/admin/products/page.tsx`
+    - `app/admin/products/[id]/view/page.tsx`, `app/admin/products/[id]/view/_components/product-media-viewer.tsx`, `app/admin/products/[id]/view/_components/product-view-sections.tsx`
+    - `lib/admin/reports.ts`, `lib/mart-api/reports.ts`, `lib/mart-api/admin-variants.ts`, `lib/mart-api/products.ts`, `lib/mart-mock/store.ts`
+    - `tests/phase-d-e.test.ts`
+    - `docs/CHANGELOG.md`
+  - Backend (`implesia-mart-backend`): consumes Phase A (`supplier_id`, variant `cost_price`) and Phase B (`/profit-loss`, `/channels`, `/suppliers`, `/products`, `/stock`, `/admin/products/{id}/analytics`) endpoints.
+
 - **Phase 10 Live Verified Product Reviews on Product Detail Page (2026-11-21).**
   - **Live Product Reviews Tab (`app/(client)/products/_components/product-reviews-tab.tsx` & `product-details-tabs.tsx`):**
     - Replaced the static `product.reviews` block with live `<ProductReviewsTab />` fetching `GET {MART_API_URL}/api/v1/products/{product.id}/reviews?page=1&page_size=10` for all visitors (logged-in and guest).

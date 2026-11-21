@@ -56,9 +56,12 @@ type TabId = (typeof TABS)[number]["id"];
 type Direction = "asc" | "desc";
 
 const PRESET_LABEL: Record<ReportPreset, string> = {
+  today: "Today",
+  "7d": "Last 7 days",
   this_week: "This week",
   this_month: "This month",
   last_month: "Last month",
+  this_year: "This year",
 };
 
 const PAGE_SIZE = 20;
@@ -68,7 +71,7 @@ function isTab(value: string | null): value is TabId {
 }
 
 function isPreset(value: string | null): value is ReportPreset {
-  return value === "this_week" || value === "this_month" || value === "last_month";
+  return value !== null && (REPORT_PRESETS as readonly string[]).includes(value);
 }
 
 export function ReportsView() {

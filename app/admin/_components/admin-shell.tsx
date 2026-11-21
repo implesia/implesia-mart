@@ -337,40 +337,46 @@ function SidebarNav({
       <nav
         className={cn(
           "flex flex-1 flex-col overflow-y-auto",
-          collapsed ? "gap-2 p-2" : "gap-3 p-3",
+          collapsed ? "gap-2 p-2" : "gap-2.5 p-3",
         )}
       >
-        {ADMIN_NAV.map((group) => (
-          <div key={group.title}>
-            {collapsed ? (
-              <div className="mx-1 mb-1 h-px bg-neutral-200" />
-            ) : (
-              <p className="px-3 pb-1.5 text-[10px] font-semibold tracking-[0.18em] text-neutral-500 uppercase">
-                {group.title}
-              </p>
-            )}
-            <div
-              className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}
-            >
-              {group.items.map((item) => (
-                <NavBranch
-                  key={item.href}
-                  item={item}
-                  pathname={pathname}
-                  collapsed={collapsed}
-                  onNavigate={onNavigate}
-                  open={Boolean(openMap[item.href])}
-                  onToggle={() =>
-                    setOpenMap((prev) => ({
-                      ...prev,
-                      [item.href]: !prev[item.href],
-                    }))
-                  }
-                />
-              ))}
+        {ADMIN_NAV.map((group) => {
+          const singleBranch =
+            group.items.length === 1 &&
+            Boolean(group.items[0].children?.length) &&
+            group.items[0].label === group.title;
+          return (
+            <div key={group.title}>
+              {collapsed ? (
+                <div className="mx-1 mb-1 h-px bg-neutral-200" />
+              ) : singleBranch ? null : (
+                <p className="px-3 pb-1 text-[10px] font-semibold tracking-[0.16em] text-neutral-400 uppercase">
+                  {group.title}
+                </p>
+              )}
+              <div
+                className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}
+              >
+                {group.items.map((item) => (
+                  <NavBranch
+                    key={item.href}
+                    item={item}
+                    pathname={pathname}
+                    collapsed={collapsed}
+                    onNavigate={onNavigate}
+                    open={Boolean(openMap[item.href])}
+                    onToggle={() =>
+                      setOpenMap((prev) => ({
+                        ...prev,
+                        [item.href]: !prev[item.href],
+                      }))
+                    }
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
     </div>
   );
@@ -489,7 +495,13 @@ function AdminHeader({
                 {displayName}
               </span>
               <span className="block max-w-[100px] truncate text-[10px] font-medium leading-tight text-slate-500">
-                Administrator
+                {session.role === "superadmin"
+                  ? "Super Admin"
+                  : session.role === "editor"
+                    ? "Editor"
+                    : session.role === "viewer"
+                      ? "Viewer"
+                      : "Administrator"}
               </span>
             </span>
             

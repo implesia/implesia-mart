@@ -35,7 +35,10 @@ import {
   PaymentBadge,
   adminFieldClass,
 } from "../../_components/admin-ui";
-import { DuplicateWarning, HistoryBadge, OriginBadge, PaymentStatusBadge } from "./order-badges";
+import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { ImpactDeleteModal, type ImpactDeleteTarget } from "../../_components/impact-delete-modal";
+import { useIsSuperadmin } from "../../_components/use-superadmin";
+import { HistoryBadge, OriginBadge, PaymentStatusBadge } from "./order-badges";
 
 const SORTS = [
   { id: "newest", label: "Newest" },
@@ -83,6 +86,8 @@ export function OrdersList() {
   const [bulkStatus, setBulkStatus] = useState<OrderStatus>("confirmed");
   const [printKind, setPrintKind] = useState("both");
   const [reload, setReload] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<ImpactDeleteTarget | null>(null);
+  const canDelete = useIsSuperadmin();
 
   useEffect(() => {
     const wanted = query.trim();
@@ -349,6 +354,9 @@ export function OrdersList() {
                   <th className="px-4 py-3 font-semibold">Payment</th>
                   <th className="px-4 py-3 font-semibold">Call</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
+                  {canDelete ? (
+                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -361,6 +369,14 @@ export function OrdersList() {
                     onSelect={(on) => setSelected((current) => on ? [...current, order.id] : current.filter((id) => id !== order.id))}
                     onStatus={changeStatus}
                     onCall={changeCall}
+                    canDelete={canDelete}
+                    onDelete={() =>
+                      setDeleteTarget({
+                        entity: "order",
+                        id: order.id,
+                        label: order.number,
+                      })
+                    }
                   />
                 ))}
               </tbody>
@@ -383,6 +399,12 @@ export function OrdersList() {
           </div>
         ) : null}
       </section>
+
+      <ImpactDeleteModal
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={() => setReload((value) => value + 1)}
+      />
     </div>
   );
 }
@@ -450,6 +472,8 @@ function OrderRow({
   onSelect,
   onStatus,
   onCall,
+  canDelete,
+  onDelete,
 }: {
   rowNumber: number;
   order: MartOrder;
@@ -457,6 +481,8 @@ function OrderRow({
   onSelect: (on: boolean) => void;
   onStatus: (order: MartOrder, status: OrderStatus) => void;
   onCall: (order: MartOrder, status: CallStatus) => void;
+  canDelete: boolean;
+  onDelete: () => void;
 }) {
   return (
     <tr className="group transition-colors hover:bg-slate-50/80">
@@ -484,6 +510,19 @@ function OrderRow({
       </td>
       <td className="px-4 py-3"><CallSelect order={order} onCall={onCall} /></td>
       <td className="px-4 py-3"><StatusSelect order={order} onStatus={onStatus} /></td>
+      {canDelete ? (
+        <td className="px-4 py-3 text-right whitespace-nowrap">
+          <button
+            type="button"
+            title="Delete order (Admin only)"
+            aria-label={`Delete order ${order.number}`}
+            onClick={onDelete}
+            className="inline-grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+          >
+            <MaterialIcon name="delete_outline" className="text-[18px]" />
+          </button>
+        </td>
+      ) : null}
     </tr>
   );
 }

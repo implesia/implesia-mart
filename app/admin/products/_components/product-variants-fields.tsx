@@ -4,6 +4,13 @@ import { useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
 import {
+  costMargin,
+  costPriceError,
+  costPriceForApi,
+  costPriceLiveError,
+  formatMarginTaka,
+} from "@/lib/admin/cost-price";
+import {
   addMissingRows,
   combinations,
   rollup,
@@ -12,6 +19,7 @@ import {
   type VariantCheck,
   type VariantRow,
 } from "@/lib/mart-api/admin-variants";
+import { percentText } from "@/lib/mart-api/pricing";
 import type { ProductOptionGroup } from "@/lib/mart-mock/product-content";
 import { cn } from "@/lib/utils";
 
@@ -62,8 +70,9 @@ export function ProductVariantsFields({
   return (
     <div className="space-y-4" data-testid="variants-editor">
       <p className="text-sm text-neutral-600">
-        Use variants when price, stock, or SKU differ by option, such as a size or weight. Each variant is one
-        combination of your options. Leave this empty for a product with a single price.
+        Use variants when price, cost, stock, or SKU differ by option, such as a size or weight.
+        Each variant is one combination of your options. Leave this empty for a product with a
+        single price.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -107,6 +116,14 @@ export function ProductVariantsFields({
               const errors = showErrors ? (check.rows[row.key] ?? {}) : {};
               const label = variantLabel(groups, row.options);
               const id = `${formId}-variant-${index}`;
+              const costRaw = row.costPrice ?? "";
+              const costErr = errors.costPrice ?? costPriceLiveError(costRaw) ?? undefined;
+              const sellingNum = /^\d+$/.test(row.price.trim()) ? Number(row.price.trim()) : null;
+              const costNum =
+                costRaw.trim() && !costPriceError(costRaw) ? costPriceForApi(costRaw) : null;
+              const margin =
+                sellingNum != null && costNum != null ? costMargin(sellingNum, costNum) : null;
+
               return (
                 <li
                   key={row.key}
@@ -117,14 +134,37 @@ export function ProductVariantsFields({
                   )}
                 >
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-neutral-900" data-testid="variant-label">
-                      {label}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p
+                        className="text-sm font-semibold text-neutral-900"
+                        data-testid="variant-label"
+                      >
+                        {label}
+                      </p>
                       {!row.isActive ? (
-                        <span className="ml-2 rounded-full bg-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
+                        <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
                           Hidden from shoppers
                         </span>
                       ) : null}
-                    </p>
+                      {margin ? (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums",
+                            margin.profit > 0
+                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70"
+                              : margin.profit < 0
+                                ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200/70"
+                                : "bg-neutral-200/70 text-neutral-700",
+                          )}
+                        >
+                          {margin.profit < 0 ? "Loss" : "Profit"}{" "}
+                          {formatMarginTaka(margin.profit)}
+                          {margin.percent != null
+                            ? ` (${percentText(Math.abs(margin.percent))}%)`
+                            : ""}
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="flex items-center gap-1">
                       <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-2 text-sm text-neutral-700">
                         <input
@@ -150,18 +190,27 @@ export function ProductVariantsFields({
                       {errors.options}
                     </p>
                   ) : null}
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                     <Field
                       id={`${id}-price`}
-                      label="Price (taka)"
+                      label="Price (৳)"
                       value={row.price}
                       inputMode="numeric"
                       error={errors.price}
                       onChange={(price) => patch(row.key, { price })}
                     />
                     <Field
+                      id={`${id}-cost`}
+                      label="Cost price (৳)"
+                      value={costRaw}
+                      inputMode="decimal"
+                      placeholder="Optional"
+                      error={costErr}
+                      onChange={(costPrice) => patch(row.key, { costPrice })}
+                    />
+                    <Field
                       id={`${id}-compare`}
-                      label="Compare-at price"
+                      label="Compare-at (৳)"
                       value={row.compareAtPrice}
                       inputMode="numeric"
                       placeholder="Optional"
@@ -173,7 +222,7 @@ export function ProductVariantsFields({
                       label="Stock"
                       value={row.quantity}
                       inputMode="numeric"
-                      placeholder="Blank = made to order"
+                      placeholder="Blank = unlimited"
                       error={errors.quantity}
                       onChange={(quantity) => patch(row.key, { quantity })}
                     />
@@ -191,9 +240,15 @@ export function ProductVariantsFields({
             })}
           </ul>
 
-          <p className="rounded-xl bg-[#f5f6f8] px-3 py-2.5 text-xs text-neutral-600" data-testid="variants-rollup">
+          <p
+            className="rounded-xl bg-[#f5f6f8] px-3 py-2.5 text-xs text-neutral-600"
+            data-testid="variants-rollup"
+          >
             Shown in the product list:{" "}
-            {summary.price == null ? "no price yet" : `from ৳${summary.price.toLocaleString("en-US")}`},{" "}
+            {summary.price == null
+              ? "no price yet"
+              : `from ৳${summary.price.toLocaleString("en-US")}`}
+            ,{" "}
             {summary.quantity == null
               ? "stock not limited"
               : `${summary.quantity} in stock${summary.soldOut ? " (sold out)" : ""}`}
@@ -219,7 +274,7 @@ function Field({
   value: string;
   onChange: (value: string) => void;
   error?: string;
-  inputMode?: "numeric";
+  inputMode?: "numeric" | "decimal";
   placeholder?: string;
 }) {
   return (

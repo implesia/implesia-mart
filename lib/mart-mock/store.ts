@@ -129,6 +129,9 @@ export type AdminProduct = {
    * API only. Null clears it on PATCH. Never copied onto a storefront product.
    */
   costPrice?: number | null;
+  /** Optional primary supplier (admin product API only, never public). */
+  supplierId?: string | null;
+  supplierName?: string | null;
   /** Search snippet overrides (API products). "" = use the title / description. */
   seoTitle?: string;
   seoDescription?: string;

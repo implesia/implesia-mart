@@ -7,13 +7,36 @@
 
 import { dhakaParts, formatDhakaDate, parseIsoDate } from "@/lib/admin/inventory";
 
-export const REPORT_PRESETS = ["this_week", "this_month", "last_month"] as const;
+export const REPORT_PRESETS = [
+  "today",
+  "7d",
+  "this_week",
+  "this_month",
+  "last_month",
+  "this_year",
+] as const;
 export type ReportPreset = (typeof REPORT_PRESETS)[number];
 
 export const REPORT_GRAINS = ["day", "week", "month"] as const;
 export type ReportGrain = (typeof REPORT_GRAINS)[number];
 
-export const REPORT_CHANNELS = ["website"] as const;
+export const REPORT_CHANNELS = ["website", "offline"] as const;
+
+export const REPORT_ORIGINS = ["online", "offline"] as const;
+export type ReportOrigin = (typeof REPORT_ORIGINS)[number];
+
+export const REPORT_PROFIT_FILTERS = ["all", "profit", "loss", "unknown_cost"] as const;
+export type ReportProfitFilter = (typeof REPORT_PROFIT_FILTERS)[number];
+
+export const PRODUCT_REPORT_SORTS = [
+  "revenue",
+  "profit",
+  "margin",
+  "units_sold",
+  "cost",
+  "stock_value",
+] as const;
+export type ProductReportSort = (typeof PRODUCT_REPORT_SORTS)[number];
 
 export const REPORT_PAGE_SIZE_MAX = 100;
 export const REPORT_RANGE_MAX_DAYS = 366;
@@ -35,7 +58,10 @@ export type ReportFilters = {
   to: string;
   productId: string | null;
   categoryId: string | null;
+  supplierId?: string | null;
   channel: string | null;
+  origin?: ReportOrigin | null;
+  profitFilter?: ReportProfitFilter | null;
   /** False on stock and movements: those totals ignore `channel`. */
   channelApplies: boolean;
 };
@@ -48,6 +74,7 @@ export type SalesSummary = {
   discount: number;
   /** Coupon taka already included in `discount`. Missing on older payloads counts as 0. */
   couponDiscount: number;
+  manualDiscount?: number;
   deliveryCharge: number;
   netSales: number;
 };
@@ -57,7 +84,30 @@ export type ProfitReport = {
   revenue: number;
   cost: number | null;
   profit: number | null;
+  lossAmount?: number;
+  netProfit?: number | null;
   marginPercent: number | null;
+  unknownCostLines: number;
+  unknownCostUnits: number;
+  unknownCostRevenue: number;
+};
+
+export type ProfitLossReport = {
+  filters: ReportFilters;
+  grossSales: number;
+  productDiscount: number;
+  couponDiscount: number;
+  manualDiscount: number;
+  deliveryCharge: number;
+  returnedOrderValue: number;
+  netRealizedSales: number;
+  totalCost: number | null;
+  grossProfit: number | null;
+  lossAmount: number;
+  netProfit: number | null;
+  marginPercent: number | null;
+  collectedAmount: number;
+  dueAmount: number;
   unknownCostLines: number;
   unknownCostUnits: number;
   unknownCostRevenue: number;
@@ -66,17 +116,31 @@ export type ProfitReport = {
 export type ProductReportRow = {
   productId: string | null;
   title: string;
+  slug?: string;
+  sku?: string;
+  categoryName?: string;
+  supplierId?: string | null;
+  supplierName?: string | null;
   unitsSold: number;
+  avgSellingPrice?: number | null;
+  unitCostAvg?: number | null;
+  currentCostPrice?: number | null;
+  currentStock?: number | null;
+  stockValue?: number | null;
   revenue: number;
   cost: number | null;
   profit: number | null;
+  isLoss?: boolean;
   marginPercent: number | null;
   returnCount: number;
+  returnedUnits?: number;
+  returnValue?: number;
   unknownCostUnits: number;
 };
 
 export type ProductReport = {
   filters: ReportFilters;
+  sort?: ProductReportSort;
   items: ProductReportRow[];
   total: number;
   page: number;
@@ -84,10 +148,72 @@ export type ProductReport = {
   pages: number;
 };
 
+export type ChannelBreakdownRow = {
+  origin: ReportOrigin;
+  channel: string;
+  orderCount: number;
+  units: number;
+  netSales: number;
+  cogs: number | null;
+  profit: number | null;
+  marginPercent: number | null;
+  collected: number;
+  due: number;
+  unknownCostUnits: number;
+};
+
+export type PaymentMethodBreakdownRow = {
+  paymentMethod: string;
+  orderCount: number;
+  units: number;
+  netSales: number;
+  cogs: number | null;
+  profit: number | null;
+  marginPercent: number | null;
+  collected: number;
+  due: number;
+  unknownCostUnits: number;
+};
+
+export type ChannelBreakdownReport = {
+  filters: ReportFilters;
+  channels: ChannelBreakdownRow[];
+  paymentMethods: PaymentMethodBreakdownRow[];
+};
+
+export type SupplierPerformanceRow = {
+  supplierId: string;
+  supplierName: string;
+  linkedProductsCount: number;
+  purchaseCount: number;
+  totalPurchasedUnits: number;
+  totalPurchaseSpend: number;
+  unitsSold: number;
+  salesRevenue: number;
+  cogs: number | null;
+  netProfit: number | null;
+  marginPercent: number | null;
+  currentStockUnits: number;
+  currentStockValue: number;
+  unknownCostUnits: number;
+};
+
+export type SupplierPerformanceReport = {
+  filters: ReportFilters;
+  items: SupplierPerformanceRow[];
+  totalPurchaseSpend: number;
+  totalSalesRevenue: number;
+  totalCogs: number | null;
+  totalNetProfit: number | null;
+};
+
 export type StockSummary = {
   productCount: number;
   unitsOnHand: number;
   stockValue: number;
+  potentialRetailValue?: number;
+  expectedProfitOnHand?: number;
+  missingCostCount?: number;
   unknownCostUnits: number;
   lowStockCount: number;
   lowStockAt: number;
@@ -98,8 +224,12 @@ export type StockRow = {
   productId: string;
   title: string;
   quantity: number | null;
+  sellingPrice?: number;
   costPrice: number | null;
   stockValue: number | null;
+  potentialRetailValue?: number | null;
+  expectedProfitOnHand?: number | null;
+  supplierName?: string | null;
   lowStock: boolean;
   noSale30d: boolean;
 };
@@ -134,6 +264,7 @@ export type DeliveryReport = {
   filters: ReportFilters;
   delivered: number;
   returned: number;
+  returnedValue?: number;
   cancelled: number;
   returnRatePercent: number | null;
 };
@@ -151,14 +282,61 @@ export type TrendReport = {
   points: TrendPoint[];
 };
 
+export type ProductAnalyticsPeriod = {
+  unitsSold: number;
+  revenue: number;
+  cogs: number | null;
+  profit: number | null;
+  isLoss: boolean;
+  marginPercent: number | null;
+  returnCount: number;
+  returnedUnits: number;
+  unknownCostUnits: number;
+};
+
+export type ProductAnalyticsMovement = {
+  id: string;
+  productId: string | null;
+  variantId: string | null;
+  productTitle: string;
+  sku: string;
+  quantity: number;
+  movementType: string;
+  unitCost: number | null;
+  orderId: string | null;
+  purchaseId: string | null;
+  note: string;
+  createdAt: string;
+};
+
+export type ProductAnalyticsReport = {
+  productId: string;
+  title: string;
+  slug: string;
+  supplierId: string | null;
+  supplierName: string | null;
+  currentStock: number | null;
+  currentCostPrice: number | null;
+  sellingPrice: number;
+  currentStockValue: number | null;
+  potentialRetailValue: number | null;
+  lifetime: ProductAnalyticsPeriod;
+  last30Days: ProductAnalyticsPeriod;
+  recentMovements: ProductAnalyticsMovement[];
+};
+
 export type ReportCall = {
   preset?: string | null;
   from?: string | null;
   to?: string | null;
   productId?: string | null;
   categoryId?: string | null;
+  supplierId?: string | null;
   channel?: string | null;
+  origin?: string | null;
+  profitFilter?: string | null;
   grain?: string | null;
+  sort?: string | null;
   page?: number;
   pageSize?: number;
 };
@@ -202,16 +380,25 @@ export function inclusiveDays(from: string, to: string) {
   return span + 1;
 }
 
-/** Monday through today, the 1st through today, or the whole previous month. */
+/** Today, last 7d, Monday-to-today, month-to-date, previous month, or year-to-date. */
 export function presetBounds(preset: ReportPreset, now: Date) {
   const parts = dhakaParts(now);
   const today = isoDate(parts);
+  if (preset === "today") {
+    return { from: today, to: today };
+  }
+  if (preset === "7d") {
+    return { from: addIsoDays(today, -6) ?? today, to: today };
+  }
   if (preset === "this_week") {
     const sinceMonday = (parts.weekday + 6) % 7;
     return { from: addIsoDays(today, -sinceMonday) ?? today, to: today };
   }
   if (preset === "this_month") {
     return { from: isoDate({ ...parts, day: 1 }), to: today };
+  }
+  if (preset === "this_year") {
+    return { from: isoDate({ year: parts.year, month: 1, day: 1 }), to: today };
   }
   const firstThis = isoDate({ year: parts.year, month: parts.month, day: 1 });
   const lastPrevious = addIsoDays(firstThis, -1) ?? firstThis;
@@ -241,7 +428,14 @@ export function defaultGrain(from: string, to: string): ReportGrain {
 }
 
 function isPreset(value: string | null | undefined): value is ReportPreset {
-  return value === "this_week" || value === "this_month" || value === "last_month";
+  return (
+    value === "today" ||
+    value === "7d" ||
+    value === "this_week" ||
+    value === "this_month" ||
+    value === "last_month" ||
+    value === "this_year"
+  );
 }
 
 function isGrain(value: string | null | undefined): value is ReportGrain {
@@ -331,8 +525,12 @@ export function reportSearchParams(call: ReportCall) {
   }
   if (call.productId) search.set("product_id", call.productId);
   if (call.categoryId) search.set("category_id", call.categoryId);
+  if (call.supplierId) search.set("supplier_id", call.supplierId);
   if (call.channel) search.set("channel", call.channel);
+  if (call.origin) search.set("origin", call.origin);
+  if (call.profitFilter && call.profitFilter !== "all") search.set("profit_filter", call.profitFilter);
   if (call.grain) search.set("grain", call.grain);
+  if (call.sort) search.set("sort", call.sort);
   if (call.page && call.page !== 1) search.set("page", String(call.page));
   if (call.pageSize && call.pageSize !== 20) search.set("page_size", String(call.pageSize));
   return search;
@@ -458,6 +656,8 @@ export function parseReportFilters(value: unknown, channelApplies = true): Repor
   const from = text(body.from ?? body.date_from);
   const to = text(body.to ?? body.date_to);
   if (!parseIsoDate(from) || !parseIsoDate(to)) return null;
+  const originRaw = text(body.origin);
+  const profitFilterRaw = text(body.profit_filter);
   return {
     timezone: "Asia/Dhaka",
     preset: body.preset == null || body.preset === "" ? null : text(body.preset),
@@ -465,7 +665,16 @@ export function parseReportFilters(value: unknown, channelApplies = true): Repor
     to,
     productId: body.product_id == null ? null : text(body.product_id) || null,
     categoryId: body.category_id == null ? null : text(body.category_id) || null,
+    supplierId: body.supplier_id == null ? null : text(body.supplier_id) || null,
     channel: body.channel == null || body.channel === "" ? null : text(body.channel),
+    origin: originRaw === "online" || originRaw === "offline" ? originRaw : null,
+    profitFilter:
+      profitFilterRaw === "all" ||
+      profitFilterRaw === "profit" ||
+      profitFilterRaw === "loss" ||
+      profitFilterRaw === "unknown_cost"
+        ? profitFilterRaw
+        : null,
     channelApplies: typeof body.channel_applies === "boolean" ? body.channel_applies : channelApplies,
   };
 }
@@ -481,6 +690,7 @@ export function parseSalesSummary(value: unknown): SalesSummary | null {
     grossSales: int(body.gross_sales),
     discount: int(body.discount),
     couponDiscount: int(body.coupon_discount),
+    manualDiscount: int(body.manual_discount),
     deliveryCharge: int(body.delivery_charge),
     netSales: int(body.net_sales),
   };
@@ -495,7 +705,35 @@ export function parseProfitReport(value: unknown): ProfitReport | null {
     revenue: int(body.revenue),
     cost: num(body.cost),
     profit: num(body.profit),
+    lossAmount: num(body.loss_amount) ?? 0,
+    netProfit: body.net_profit !== undefined ? num(body.net_profit) : num(body.profit),
     marginPercent: num(body.margin_percent),
+    unknownCostLines: int(body.unknown_cost_lines),
+    unknownCostUnits: int(body.unknown_cost_units),
+    unknownCostRevenue: int(body.unknown_cost_revenue),
+  };
+}
+
+export function parseProfitLossReport(value: unknown): ProfitLossReport | null {
+  const body = record(value);
+  const filters = parseReportFilters(body?.filters);
+  if (!body || !filters) return null;
+  return {
+    filters,
+    grossSales: int(body.gross_sales),
+    productDiscount: int(body.product_discount),
+    couponDiscount: int(body.coupon_discount),
+    manualDiscount: int(body.manual_discount),
+    deliveryCharge: int(body.delivery_charge),
+    returnedOrderValue: int(body.returned_order_value),
+    netRealizedSales: int(body.net_realized_sales),
+    totalCost: num(body.total_cost),
+    grossProfit: num(body.gross_profit),
+    lossAmount: num(body.loss_amount) ?? 0,
+    netProfit: num(body.net_profit),
+    marginPercent: num(body.margin_percent),
+    collectedAmount: int(body.collected_amount),
+    dueAmount: int(body.due_amount),
     unknownCostLines: int(body.unknown_cost_lines),
     unknownCostUnits: int(body.unknown_cost_units),
     unknownCostRevenue: int(body.unknown_cost_revenue),
@@ -505,15 +743,29 @@ export function parseProfitReport(value: unknown): ProfitReport | null {
 function parseProductRow(value: unknown): ProductReportRow | null {
   const body = record(value);
   if (!body) return null;
+  const profit = num(body.profit);
   return {
     productId: body.product_id == null ? null : text(body.product_id) || null,
     title: text(body.title) || "Removed product",
+    slug: text(body.slug),
+    sku: text(body.sku),
+    categoryName: text(body.category_name),
+    supplierId: body.supplier_id == null ? null : text(body.supplier_id) || null,
+    supplierName: body.supplier_name == null ? null : text(body.supplier_name) || null,
     unitsSold: int(body.units_sold),
+    avgSellingPrice: num(body.avg_selling_price),
+    unitCostAvg: num(body.unit_cost_avg),
+    currentCostPrice: num(body.current_cost_price),
+    currentStock: body.current_stock == null ? null : int(body.current_stock),
+    stockValue: num(body.stock_value),
     revenue: int(body.revenue),
     cost: num(body.cost),
-    profit: num(body.profit),
+    profit,
+    isLoss: typeof body.is_loss === "boolean" ? body.is_loss : profit != null && profit < 0,
     marginPercent: num(body.margin_percent),
     returnCount: int(body.return_count),
+    returnedUnits: int(body.returned_units),
+    returnValue: int(body.return_value),
     unknownCostUnits: int(body.unknown_cost_units),
   };
 }
@@ -522,8 +774,13 @@ export function parseProductReport(value: unknown): ProductReport | null {
   const body = record(value);
   const filters = parseReportFilters(body?.filters);
   if (!body || !filters || !Array.isArray(body.items)) return null;
+  const sortRaw = text(body.sort);
+  const sort = PRODUCT_REPORT_SORTS.includes(sortRaw as ProductReportSort)
+    ? (sortRaw as ProductReportSort)
+    : undefined;
   return {
     filters,
+    ...(sort ? { sort } : {}),
     items: body.items.flatMap((item) => {
       const row = parseProductRow(item);
       return row ? [row] : [];
@@ -532,6 +789,92 @@ export function parseProductReport(value: unknown): ProductReport | null {
     page: int(body.page, 1),
     pageSize: int(body.page_size, 20),
     pages: int(body.pages),
+  };
+}
+
+export function parseChannelBreakdownReport(value: unknown): ChannelBreakdownReport | null {
+  const body = record(value);
+  const filters = parseReportFilters(body?.filters);
+  if (!body || !filters || !Array.isArray(body.channels) || !Array.isArray(body.payment_methods)) {
+    return null;
+  }
+  return {
+    filters,
+    channels: body.channels.flatMap((item) => {
+      const row = record(item);
+      const origin = text(row?.origin);
+      if (!row || (origin !== "online" && origin !== "offline")) return [];
+      return [
+        {
+          origin,
+          channel: text(row.channel) || (origin === "online" ? "website" : "offline"),
+          orderCount: int(row.order_count),
+          units: int(row.units),
+          netSales: int(row.net_sales),
+          cogs: num(row.cogs),
+          profit: num(row.profit),
+          marginPercent: num(row.margin_percent),
+          collected: int(row.collected),
+          due: int(row.due),
+          unknownCostUnits: int(row.unknown_cost_units),
+        },
+      ];
+    }),
+    paymentMethods: body.payment_methods.flatMap((item) => {
+      const row = record(item);
+      const method = text(row?.payment_method);
+      if (!row || !method) return [];
+      return [
+        {
+          paymentMethod: method,
+          orderCount: int(row.order_count),
+          units: int(row.units),
+          netSales: int(row.net_sales),
+          cogs: num(row.cogs),
+          profit: num(row.profit),
+          marginPercent: num(row.margin_percent),
+          collected: int(row.collected),
+          due: int(row.due),
+          unknownCostUnits: int(row.unknown_cost_units),
+        },
+      ];
+    }),
+  };
+}
+
+export function parseSupplierPerformanceReport(value: unknown): SupplierPerformanceReport | null {
+  const body = record(value);
+  const filters = parseReportFilters(body?.filters);
+  if (!body || !filters || !Array.isArray(body.items)) return null;
+  return {
+    filters,
+    items: body.items.flatMap((item) => {
+      const row = record(item);
+      const id = text(row?.supplier_id);
+      if (!row || !id) return [];
+      return [
+        {
+          supplierId: id,
+          supplierName: text(row.supplier_name),
+          linkedProductsCount: int(row.linked_products_count),
+          purchaseCount: int(row.purchase_count),
+          totalPurchasedUnits: int(row.total_purchased_units),
+          totalPurchaseSpend: num(row.total_purchase_spend) ?? 0,
+          unitsSold: int(row.units_sold),
+          salesRevenue: int(row.sales_revenue),
+          cogs: num(row.cogs),
+          netProfit: num(row.net_profit),
+          marginPercent: num(row.margin_percent),
+          currentStockUnits: int(row.current_stock_units),
+          currentStockValue: num(row.current_stock_value) ?? 0,
+          unknownCostUnits: int(row.unknown_cost_units),
+        },
+      ];
+    }),
+    totalPurchaseSpend: num(body.total_purchase_spend) ?? 0,
+    totalSalesRevenue: int(body.total_sales_revenue),
+    totalCogs: num(body.total_cogs),
+    totalNetProfit: num(body.total_net_profit),
   };
 }
 
@@ -550,6 +893,9 @@ export function parseStockReport(value: unknown): StockReport | null {
       productCount: int(summary.product_count),
       unitsOnHand: int(summary.units_on_hand),
       stockValue: num(summary.stock_value) ?? 0,
+      potentialRetailValue: num(summary.potential_retail_value) ?? 0,
+      expectedProfitOnHand: num(summary.expected_profit_on_hand) ?? 0,
+      missingCostCount: int(summary.missing_cost_count),
       unknownCostUnits: int(summary.unknown_cost_units),
       lowStockCount: int(summary.low_stock_count),
       lowStockAt: int(summary.low_stock_at, 5),
@@ -563,8 +909,12 @@ export function parseStockReport(value: unknown): StockReport | null {
           productId: text(row.product_id),
           title: text(row.title),
           quantity: row.quantity == null ? null : int(row.quantity),
+          sellingPrice: int(row.selling_price),
           costPrice: num(row.cost_price),
           stockValue: num(row.stock_value),
+          potentialRetailValue: num(row.potential_retail_value),
+          expectedProfitOnHand: num(row.expected_profit_on_hand),
+          supplierName: row.supplier_name == null ? null : text(row.supplier_name) || null,
           lowStock: row.low_stock === true,
           noSale30d: row.no_sale_30d === true,
         },
@@ -574,6 +924,66 @@ export function parseStockReport(value: unknown): StockReport | null {
     page: int(body.page, 1),
     pageSize: int(body.page_size, 20),
     pages: int(body.pages),
+  };
+}
+
+function parseAnalyticsPeriod(value: unknown): ProductAnalyticsPeriod | null {
+  const body = record(value);
+  if (!body) return null;
+  const profit = num(body.profit);
+  return {
+    unitsSold: int(body.units_sold),
+    revenue: int(body.revenue),
+    cogs: num(body.cogs),
+    profit,
+    isLoss: typeof body.is_loss === "boolean" ? body.is_loss : profit != null && profit < 0,
+    marginPercent: num(body.margin_percent),
+    returnCount: int(body.return_count),
+    returnedUnits: int(body.returned_units),
+    unknownCostUnits: int(body.unknown_cost_units),
+  };
+}
+
+export function parseProductAnalyticsReport(value: unknown): ProductAnalyticsReport | null {
+  const body = record(value);
+  if (!body || !text(body.product_id)) return null;
+  const lifetime = parseAnalyticsPeriod(body.lifetime);
+  const last30Days = parseAnalyticsPeriod(body.last_30_days);
+  if (!lifetime || !last30Days) return null;
+  const rawMovements = Array.isArray(body.recent_movements) ? body.recent_movements : [];
+  return {
+    productId: text(body.product_id),
+    title: text(body.title),
+    slug: text(body.slug),
+    supplierId: body.supplier_id == null ? null : text(body.supplier_id) || null,
+    supplierName: body.supplier_name == null ? null : text(body.supplier_name) || null,
+    currentStock: body.current_stock == null ? null : int(body.current_stock),
+    currentCostPrice: num(body.current_cost_price),
+    sellingPrice: int(body.selling_price),
+    currentStockValue: num(body.current_stock_value),
+    potentialRetailValue: num(body.potential_retail_value),
+    lifetime,
+    last30Days,
+    recentMovements: rawMovements.flatMap((item) => {
+      const row = record(item);
+      if (!row || !text(row.id)) return [];
+      return [
+        {
+          id: text(row.id),
+          productId: row.product_id == null ? null : text(row.product_id) || null,
+          variantId: row.variant_id == null ? null : text(row.variant_id) || null,
+          productTitle: text(row.product_title),
+          sku: text(row.sku),
+          quantity: int(row.quantity),
+          movementType: text(row.movement_type),
+          unitCost: num(row.unit_cost),
+          orderId: row.order_id == null ? null : text(row.order_id) || null,
+          purchaseId: row.purchase_id == null ? null : text(row.purchase_id) || null,
+          note: text(row.note),
+          createdAt: text(row.created_at),
+        },
+      ];
+    }),
   };
 }
 
@@ -602,6 +1012,7 @@ export function parseDeliveryReport(value: unknown): DeliveryReport | null {
     filters,
     delivered: int(body.delivered),
     returned: int(body.returned),
+    returnedValue: int(body.returned_value),
     cancelled: int(body.cancelled),
     returnRatePercent: num(body.return_rate_percent),
   };
@@ -658,6 +1069,16 @@ export function dashboardReportCall(
   if (range === "30d") return { from: addIsoDays(today, -29) ?? today, to: today };
   return { from: customFrom, to: customTo };
 }
+
+export const REPORT_PAGES = [
+  { href: "/admin/reports", label: "Overview", icon: "analytics" },
+  { href: "/admin/reports/profit-loss", label: "Profit & Loss", icon: "account_balance" },
+  { href: "/admin/reports/products", label: "Product Analytics", icon: "inventory_2" },
+  { href: "/admin/reports/sales", label: "Sales & Channels", icon: "trending_up" },
+  { href: "/admin/reports/inventory", label: "Inventory & Valuation", icon: "warehouse" },
+  { href: "/admin/reports/suppliers", label: "Suppliers", icon: "handshake" },
+  { href: "/admin/reports/delivery-coupons", label: "Delivery & Coupons", icon: "local_shipping" },
+] as const;
 
 export function reportsPageHref(call: ReportCall) {
   const search = reportSearchParams(call);

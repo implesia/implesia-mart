@@ -3,6 +3,7 @@
  * them. The API validates everything again; these checks only stop a bad save before it is sent.
  */
 import type { ProductOptionGroup } from "../mart-mock/product-content";
+import { costPriceError, costPriceForApi, formatCostPriceInput } from "../admin/cost-price";
 
 export const MAX_VARIANTS = 100;
 export const SKU_MAX_LENGTH = 64;
@@ -16,6 +17,8 @@ export type AdminVariant = {
   sku: string;
   price: number;
   compareAtPrice: number | null;
+  /** Optional per-variant wholesale cost (admin only). */
+  costPrice?: number | null;
   /** null = made to order (no stock limit). */
   quantity: number | null;
   isActive: boolean;
@@ -29,6 +32,7 @@ export type VariantRow = {
   sku: string;
   price: string;
   compareAtPrice: string;
+  costPrice?: string;
   quantity: string;
   isActive: boolean;
 };
@@ -38,6 +42,7 @@ export type VariantRowErrors = {
   sku?: string;
   price?: string;
   compareAtPrice?: string;
+  costPrice?: string;
   quantity?: string;
 };
 
@@ -74,6 +79,9 @@ export function rowsFromVariants(variants: AdminVariant[] | undefined): VariantR
     sku: variant.sku,
     price: String(variant.price),
     compareAtPrice: variant.compareAtPrice == null ? "" : String(variant.compareAtPrice),
+    ...(variant.costPrice !== undefined
+      ? { costPrice: formatCostPriceInput(variant.costPrice) }
+      : {}),
     quantity: variant.quantity == null ? "" : String(variant.quantity),
     isActive: variant.isActive,
   }));
@@ -172,6 +180,10 @@ export function validateVariants(rows: VariantRow[], groups: ProductOptionGroup[
     if (row.quantity.trim() && !isWhole(row.quantity)) {
       note(row.key, "quantity", "Whole number of 0 or more, or blank for made to order.");
     }
+    if (row.costPrice !== undefined && row.costPrice.trim()) {
+      const problem = costPriceError(row.costPrice);
+      if (problem) note(row.key, "costPrice", problem);
+    }
 
     const sku = row.sku.trim();
     if (sku.length > SKU_MAX_LENGTH) note(row.key, "sku", `At most ${SKU_MAX_LENGTH} characters.`);
@@ -199,6 +211,9 @@ export function variantPayload(row: VariantRow) {
     sku: row.sku.trim(),
     price: Number(row.price),
     compare_at_price: row.compareAtPrice.trim() ? Number(row.compareAtPrice) : null,
+    ...(row.costPrice !== undefined
+      ? { cost_price: costPriceError(row.costPrice) ? null : costPriceForApi(row.costPrice) }
+      : {}),
     quantity: row.quantity.trim() ? Number(row.quantity) : null,
     is_active: row.isActive,
   };
@@ -211,6 +226,9 @@ export function rowsToVariants(rows: VariantRow[]): AdminVariant[] {
     sku: row.sku.trim(),
     price: Number(row.price),
     compareAtPrice: row.compareAtPrice.trim() ? Number(row.compareAtPrice) : null,
+    ...(row.costPrice !== undefined
+      ? { costPrice: costPriceError(row.costPrice) ? null : costPriceForApi(row.costPrice) }
+      : {}),
     quantity: row.quantity.trim() ? Number(row.quantity) : null,
     isActive: row.isActive,
   }));

@@ -43,8 +43,8 @@ function deliveryOffer(cart: SavedCart) {
 
 const FILTERS = [
   { id: "all", label: "All" },
-  { id: "user", label: "Logged in" },
-  { id: "guest", label: "Anonymous" },
+  { id: "user", label: "Registered Users" },
+  { id: "guest", label: "Guests / Abandoned" },
 ] as const;
 
 type OwnerFilter = (typeof FILTERS)[number]["id"];
@@ -105,6 +105,9 @@ export default function AdminCartPage() {
   const selected =
     directory?.items.find((cart) => cart.id === selectedId) ?? null;
   const metrics = directory?.metrics;
+  const potentialCartValue = directory
+    ? directory.items.reduce((sum, cart) => sum + cart.subtotal, 0)
+    : undefined;
 
   return (
     <div className="min-w-0 space-y-4 pb-8">
@@ -120,15 +123,39 @@ export default function AdminCartPage() {
         </div>
       ) : null}
 
-      {/* Summary Cards - Compact Horizontal Layout */}
+      {/* Summary Cards - Executive KPI Strip */}
       <section
         aria-label="Cart summary"
         className="grid grid-cols-2 gap-2.5 xl:grid-cols-4"
       >
-        <Metric label="Carts with items" value={metrics?.carts} icon="shopping_cart" tone="primary" />
-        <Metric label="Logged in" value={metrics?.userCarts} icon="person" tone="emerald" />
-        <Metric label="Anonymous" value={metrics?.guestCarts} icon="visibility_off" tone="amber" />
-        <Metric label="Units added" value={metrics?.units} icon="inventory" tone="neutral" />
+        <Metric
+          label="Total Active Carts"
+          value={metrics?.carts}
+          hint={metrics?.units != null ? `${metrics.units} total units` : undefined}
+          icon="shopping_cart"
+          tone="primary"
+        />
+        <Metric
+          label="Registered User Carts"
+          value={metrics?.userCarts}
+          hint="Signed-in shoppers"
+          icon="person"
+          tone="emerald"
+        />
+        <Metric
+          label="Guest / Abandoned Carts"
+          value={metrics?.guestCarts}
+          hint="Anonymous visitors"
+          icon="visibility_off"
+          tone="amber"
+        />
+        <Metric
+          label="Potential Cart Value"
+          value={potentialCartValue != null ? formatTaka(potentialCartValue) : undefined}
+          hint="Merchandise value on page"
+          icon="payments"
+          tone="neutral"
+        />
       </section>
 
       {/* Main Split Layout */}
@@ -420,11 +447,13 @@ function AddPanel({ onAdded }: { onAdded: () => void }) {
 function Metric({
   label,
   value,
+  hint,
   icon,
   tone = "neutral",
 }: {
   label: string;
-  value: number | undefined;
+  value: number | string | undefined;
+  hint?: string;
   icon: string;
   tone?: "neutral" | "primary" | "emerald" | "amber";
 }) {
@@ -442,8 +471,9 @@ function Metric({
         <p className="mt-0.5 text-xl font-bold tracking-tight tabular-nums text-neutral-950">
           {value ?? "—"}
         </p>
+        {hint ? <p className="mt-0.5 text-[10px] text-neutral-400">{hint}</p> : null}
       </div>
-      <div className={cn("grid size-8 place-items-center rounded-lg", toneStyles[tone])}>
+      <div className={cn("grid size-8 shrink-0 place-items-center rounded-lg", toneStyles[tone])}>
         <MaterialIcon name={icon} className="text-[18px]" />
       </div>
     </div>

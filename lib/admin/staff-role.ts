@@ -16,3 +16,8 @@ export function isStaffRole(value: unknown): value is StaffRole {
 export function canWriteInventory(role: string | null | undefined) {
   return role !== "viewer";
 }
+
+/** True only for superadmin (the only role permitted to delete orders, badges, or suppliers). */
+export function isSuperadmin(role: string | null | undefined) {
+  return role === "superadmin";
+}

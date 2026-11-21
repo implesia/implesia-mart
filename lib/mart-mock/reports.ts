@@ -786,6 +786,46 @@ export function mockReportWorkbook(kind: ReportExportKind, call: ReportCall, now
         moneyCell(report.returnRatePercent),
       ],
     ];
+  } else if (kind === "profit-loss") {
+    const sales = mockSales(call, now);
+    const profit = mockProfit(call, now);
+    rows = [
+      ...preamble("Profit & Loss", scope, true),
+      ["Metric", "Amount"],
+      ["Gross sales", String(sales.grossSales)],
+      ["Discounts", String(sales.discount)],
+      ["Delivery charge", String(sales.deliveryCharge)],
+      ["Net realized sales", String(sales.netSales)],
+      ["Total cost (COGS)", moneyCell(profit.cost)],
+      ["Net profit", moneyCell(profit.profit)],
+      ["Margin %", moneyCell(profit.marginPercent)],
+    ];
+  } else if (kind === "channels") {
+    const sales = mockSales(call, now);
+    const profit = mockProfit(call, now);
+    rows = [
+      ...preamble("Channels", scope, true),
+      ["Origin", "Orders", "Units", "Net sales", "COGS", "Profit", "Margin %"],
+      [
+        "online",
+        String(sales.orderCount),
+        String(sales.unitsSold),
+        String(sales.netSales),
+        moneyCell(profit.cost),
+        moneyCell(profit.profit),
+        moneyCell(profit.marginPercent),
+      ],
+    ];
+  } else if (kind === "suppliers") {
+    rows = [
+      ...preamble("Suppliers", scope, true),
+      ["Supplier", "Products", "Purchases", "Purchase spend", "Units sold", "Revenue", "COGS", "Net profit"],
+    ];
+  } else if (kind === "coupons") {
+    rows = [
+      ...preamble("Coupons", scope, false),
+      ["Code", "Times used", "Total discount", "Total sales"],
+    ];
   } else {
     const report = mockTrend(call, now);
     rows = [
@@ -825,11 +865,15 @@ function collectStockRows(call: ReportCall, now: Date) {
 export const REPORT_EXPORT_KINDS = [
   "sales",
   "profit",
+  "profit-loss",
   "products",
+  "channels",
+  "suppliers",
   "stock",
   "movements",
   "delivery",
   "trend",
+  "coupons",
 ] as const;
 
 export type ReportExportKind = (typeof REPORT_EXPORT_KINDS)[number];

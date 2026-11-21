@@ -14,7 +14,6 @@ import {
 } from "@/lib/mart-api/badge-rules";
 import {
   createMartBadge,
-  deleteMartBadge,
   listMartBadges,
   updateMartBadge,
 } from "@/lib/mart-api/badges";
@@ -22,7 +21,6 @@ import { MartApiError } from "@/lib/mart-api/products";
 import { cn } from "@/lib/utils";
 
 import {
-  AdminEmpty,
   AdminLoading,
   AdminNotice,
   AdminPageHeader,
@@ -32,7 +30,8 @@ import {
   adminButtonClass,
   adminFieldClass,
 } from "../_components/admin-ui";
-import { useConfirmDelete } from "../_components/confirm-delete";
+import { ImpactDeleteModal, type ImpactDeleteTarget } from "../_components/impact-delete-modal";
+import { useIsSuperadmin } from "../_components/use-superadmin";
 
 type Editor = { id: string | null; name: string; tone: BadgeTone; isActive: boolean };
 
@@ -43,8 +42,9 @@ function message(reason: unknown, fallback: string) {
 }
 
 export default function AdminBadgesPage() {
+  const canDelete = useIsSuperadmin();
   const [badges, setBadges] = useState<AdminBadge[] | null>(null);
-  const confirmDelete = useConfirmDelete();
+  const [deleteTarget, setDeleteTarget] = useState<ImpactDeleteTarget | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor>(EMPTY);
   const [touched, setTouched] = useState(false);
@@ -138,21 +138,10 @@ export default function AdminBadgesPage() {
 
   function remove(badge: AdminBadge) {
     setRowError(null);
-    void confirmDelete({
-      title: "Delete this badge?",
-      description: `“${badge.name}” will be deleted. This cannot be undone.`,
-      successMessage: `“${badge.name}” deleted`,
-      errorMessage: "The badge could not be deleted.",
-      onConfirm: async () => {
-        setBusyId(badge.id);
-        try {
-          await deleteMartBadge(badge.id);
-        } finally {
-          setBusyId(null);
-        }
-        setBadges((current) => (current ?? []).filter((item) => item.id !== badge.id));
-        if (editor.id === badge.id) reset();
-      },
+    setDeleteTarget({
+      entity: "badge",
+      id: badge.id,
+      label: badge.name,
     });
   }
 
@@ -275,12 +264,13 @@ export default function AdminBadgesPage() {
                         </span>
                       </button>
 
-                      {badge.isSystem ? null : (
+                      {!canDelete || badge.isSystem ? null : (
                         <button
                           type="button"
                           onClick={() => remove(badge)}
                           disabled={busyId === badge.id}
-                          aria-label={`Delete ${badge.name}`}
+                          aria-label={`Delete or merge ${badge.name}`}
+                          title="Delete or merge badge (Admin only)"
                           className="inline-flex size-7 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:text-neutral-300"
                         >
                           <MaterialIcon name="delete" className="text-[14px]" />
@@ -439,6 +429,15 @@ export default function AdminBadgesPage() {
           </button>
         </form>
       </div>
+
+      <ImpactDeleteModal
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={() => {
+          if (deleteTarget && editor.id === deleteTarget.id) reset();
+          void load();
+        }}
+      />
     </div>
   );
 }

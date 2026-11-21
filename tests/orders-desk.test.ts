@@ -242,11 +242,11 @@ test("payment status and stock copy", () => {
 });
 
 test("orders management is one sidebar group and old list links are not the overview", () => {
-  const orders = ADMIN_NAV.flatMap((group) => group.items).find((item) => item.label === "Orders Management");
+  const orders = ADMIN_NAV.flatMap((group) => group.items).find((item) => item.label === "Order Management");
   assert.ok(orders);
   assert.deepEqual(
     orders?.children?.map((child) => child.label),
-    ["Overview", "Create Order", "Order List", "Ready to Pack"],
+    ["Overview", "Create Offline Order", "Order List", "Ready to Pack"],
   );
   assert.equal(isAdminBranchActive("/admin/orders/list", orders!), true);
   assert.equal(isAdminBranchActive("/admin/orders/abc", orders!), true);

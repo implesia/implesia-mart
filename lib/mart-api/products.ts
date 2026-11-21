@@ -258,6 +258,7 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
             sku: variant.sku,
             price: variant.price,
             compare_at_price: variant.compareAtPrice,
+            ...(variant.costPrice !== undefined ? { cost_price: variant.costPrice } : {}),
             quantity: variant.quantity,
             is_active: variant.isActive,
           })),
@@ -298,6 +299,7 @@ function productFields(draft: ProductDraft, sendMainFile: boolean, updating: boo
     // Admin product JSON only. PATCH: omit keeps the stored numeric(12, 2); null clears it.
     // The form always sends the current field (a number, or null when empty).
     ...(draft.costPrice !== undefined ? { cost_price: draft.costPrice } : {}),
+    ...(draft.supplierId !== undefined ? { supplier_id: draft.supplierId } : {}),
     min_order_quantity: draft.minOrderQuantity ?? 1,
     max_order_quantity: draft.maxOrderQuantity ?? null,
     ...(draft.seoTitle !== undefined
@@ -589,6 +591,9 @@ type ApiCard = {
    * JSON number or null. Not present on public product responses.
    */
   cost_price?: number | null;
+  supplier_id?: string | null;
+  supplier_name?: string | null;
+  supplier?: { id: string; name: string } | null;
 };
 
 type ApiVariant = {
@@ -598,6 +603,7 @@ type ApiVariant = {
   sku: string;
   price: number;
   compare_at_price: number | null;
+  cost_price?: number | null;
   quantity: number | null;
   is_active: boolean;
 };
@@ -615,6 +621,7 @@ type ApiList = {
 export type ProductListQuery = {
   q?: string;
   category?: ProductCategoryId | null;
+  supplierId?: string | null;
   status?: StockStatus | null;
   visibility?: "live" | "hidden" | null;
   minPrice?: string;
@@ -728,6 +735,7 @@ function cardToProduct(item: ApiCard): AdminProduct {
       sku: variant.sku,
       price: variant.price,
       compareAtPrice: variant.compare_at_price,
+      ...(variant.cost_price !== undefined ? { costPrice: readCostPrice(variant.cost_price) } : {}),
       quantity: variant.quantity,
       isActive: variant.is_active,
     })),
@@ -740,6 +748,8 @@ function cardToProduct(item: ApiCard): AdminProduct {
         }
       : {}),
     costPrice: readCostPrice(item.cost_price),
+    supplierId: item.supplier_id ?? item.supplier?.id ?? null,
+    supplierName: item.supplier_name ?? item.supplier?.name ?? null,
   };
 }
 
@@ -762,6 +772,7 @@ export async function listMartProducts(query: ProductListQuery): Promise<Product
   const search = new URLSearchParams();
   if (query.q?.trim()) search.set("q", query.q.trim());
   if (query.category) search.set("category", query.category);
+  if (query.supplierId) search.set("supplier_id", query.supplierId);
   if (query.status) search.set("status", query.status);
   if (query.visibility) search.set("visibility", query.visibility);
   const minPrice = wholeNumber(query.minPrice);

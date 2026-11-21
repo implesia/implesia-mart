@@ -1,21 +1,29 @@
 import {
   ReportQueryError,
+  parseChannelBreakdownReport,
   parseDeliveryReport,
   parseMovementReport,
+  parseProductAnalyticsReport,
   parseProductReport,
+  parseProfitLossReport,
   parseProfitReport,
   parseSalesSummary,
   parseStockReport,
+  parseSupplierPerformanceReport,
   parseTrendReport,
   previousRange,
   reportSearchParams,
+  type ChannelBreakdownReport,
   type DeliveryReport,
   type MovementReport,
+  type ProductAnalyticsReport,
   type ProductReport,
+  type ProfitLossReport,
   type ProfitReport,
   type ReportCall,
   type SalesSummary,
   type StockReport,
+  type SupplierPerformanceReport,
   type TrendReport,
 } from "@/lib/admin/reports";
 import {
@@ -32,6 +40,7 @@ import {
 } from "@/lib/mart-mock/reports";
 import { mockFallbackAllowed } from "@/lib/mock-mode";
 import { listAdminCategories } from "@/lib/mart-api/categories";
+import { fetchSuppliers } from "@/lib/mart-api/inventory";
 import { MartApiError, authorizedFetch, listMartProducts } from "@/lib/mart-api/products";
 
 const REPORTS = "/api/v1/admin/reports";
@@ -46,6 +55,11 @@ export type ReportOverview = {
   previousDelivery: DeliveryReport;
   previousFrom: string;
   previousTo: string;
+  profitLoss?: ProfitLossReport | null;
+  previousProfitLoss?: ProfitLossReport | null;
+  channels?: ChannelBreakdownReport | null;
+  stock?: StockReport | null;
+  topProducts?: ProductReport | null;
 };
 
 let mode: "unknown" | "live" | "mock" = "unknown";
@@ -180,20 +194,129 @@ export async function fetchTrend(call: ReportCall, now = new Date()): Promise<Tr
   return getJson(`${REPORTS}/trend?${reportSearchParams(call)}`, parseTrendReport, "Could not load the trend.");
 }
 
+export async function fetchProfitLoss(call: ReportCall, now = new Date()): Promise<ProfitLossReport> {
+  if ((await reportsBackend()) === "mock") {
+    const [sales, profit] = [mockSales(call, now), mockProfit(call, now)];
+    return {
+      filters: sales.filters,
+      grossSales: sales.grossSales,
+      productDiscount: Math.max(sales.discount - sales.couponDiscount, 0),
+      couponDiscount: sales.couponDiscount,
+      manualDiscount: 0,
+      deliveryCharge: sales.deliveryCharge,
+      returnedOrderValue: 0,
+      netRealizedSales: sales.netSales,
+      totalCost: profit.cost,
+      grossProfit: profit.profit,
+      lossAmount: 0,
+      netProfit: profit.profit,
+      marginPercent: profit.marginPercent,
+      collectedAmount: sales.netSales,
+      dueAmount: 0,
+      unknownCostLines: profit.unknownCostLines,
+      unknownCostUnits: profit.unknownCostUnits,
+      unknownCostRevenue: profit.unknownCostRevenue,
+    };
+  }
+  return getJson(
+    `${REPORTS}/profit-loss?${reportSearchParams(call)}`,
+    parseProfitLossReport,
+    "Could not load profit & loss.",
+  );
+}
+
+export async function fetchChannels(call: ReportCall, now = new Date()): Promise<ChannelBreakdownReport> {
+  if ((await reportsBackend()) === "mock") {
+    const [sales, profit] = [mockSales(call, now), mockProfit(call, now)];
+    return {
+      filters: sales.filters,
+      channels: [
+        {
+          origin: "online",
+          channel: "website",
+          orderCount: sales.orderCount,
+          units: sales.unitsSold,
+          netSales: sales.netSales,
+          cogs: profit.cost,
+          profit: profit.profit,
+          marginPercent: profit.marginPercent,
+          collected: sales.netSales,
+          due: 0,
+          unknownCostUnits: profit.unknownCostUnits,
+        },
+        {
+          origin: "offline",
+          channel: "offline",
+          orderCount: 0,
+          units: 0,
+          netSales: 0,
+          cogs: 0,
+          profit: 0,
+          marginPercent: null,
+          collected: 0,
+          due: 0,
+          unknownCostUnits: 0,
+        },
+      ],
+      paymentMethods: [],
+    };
+  }
+  return getJson(
+    `${REPORTS}/channels?${reportSearchParams(call)}`,
+    parseChannelBreakdownReport,
+    "Could not load channel breakdown.",
+  );
+}
+
+export async function fetchSuppliersReport(
+  call: ReportCall,
+  now = new Date(),
+): Promise<SupplierPerformanceReport> {
+  if ((await reportsBackend()) === "mock") {
+    const sales = mockSales(call, now);
+    return {
+      filters: sales.filters,
+      items: [],
+      totalPurchaseSpend: 0,
+      totalSalesRevenue: 0,
+      totalCogs: 0,
+      totalNetProfit: 0,
+    };
+  }
+  return getJson(
+    `${REPORTS}/suppliers?${reportSearchParams(call)}`,
+    parseSupplierPerformanceReport,
+    "Could not load supplier performance.",
+  );
+}
+
+export async function fetchProductAnalytics(productId: string): Promise<ProductAnalyticsReport> {
+  return getJson(
+    `/api/v1/admin/products/${encodeURIComponent(productId)}/analytics`,
+    parseProductAnalyticsReport,
+    "Could not load product analytics.",
+  );
+}
+
 export async function loadReportOverview(call: ReportCall, now = new Date()): Promise<ReportOverview> {
-  const [sales, profit, delivery, trend] = await Promise.all([
+  const [sales, profit, delivery, trend, profitLoss, channels, stock, topProducts] = await Promise.all([
     fetchSales(call, now),
     fetchProfit(call, now),
     fetchDelivery(call, now),
     fetchTrend(call, now),
+    fetchProfitLoss(call, now).catch(() => null),
+    fetchChannels(call, now).catch(() => null),
+    fetchStock({ ...call, page: 1, pageSize: 1 }, now).catch(() => null),
+    fetchProducts({ ...call, sort: "revenue", page: 1, pageSize: 8 }, now).catch(() => null),
   ]);
   const previous = previousRange(sales.filters.from, sales.filters.to);
   if (!previous) throw new MartApiError("Could not compare with the previous period.");
   const previousCall = callOf(call, previous);
-  const [previousSales, previousProfit, previousDelivery] = await Promise.all([
+  const [previousSales, previousProfit, previousDelivery, previousProfitLoss] = await Promise.all([
     fetchSales(previousCall, now),
     fetchProfit(previousCall, now),
     fetchDelivery(previousCall, now),
+    fetchProfitLoss(previousCall, now).catch(() => null),
   ]);
   return {
     sales,
@@ -205,6 +328,11 @@ export async function loadReportOverview(call: ReportCall, now = new Date()): Pr
     previousDelivery,
     previousFrom: previous.from,
     previousTo: previous.to,
+    profitLoss,
+    previousProfitLoss,
+    channels,
+    stock,
+    topProducts,
   };
 }
 
@@ -257,20 +385,34 @@ export async function downloadReportExport(kind: ReportExportKind, call: ReportC
   return response.blob();
 }
 
-export async function loadReportFilterChoices() {
-  if ((await reportsBackend()) === "mock") return mockFilterOptions();
+export type ReportFilterChoices = {
+  products: { id: string; title: string }[];
+  categories: { id: string; label: string }[];
+  suppliers: { id: string; name: string }[];
+};
+
+export async function loadReportFilterChoices(): Promise<ReportFilterChoices> {
+  if ((await reportsBackend()) === "mock") {
+    const base = mockFilterOptions();
+    return { ...base, suppliers: [] };
+  }
   try {
-    const [products, categories] = await Promise.all([
+    const [products, categories, suppliersPage] = await Promise.all([
       listMartProducts({ page: 1, pageSize: 100 }),
       listAdminCategories(),
+      fetchSuppliers({ page: 1, pageSize: 100 }).catch(() => ({ items: [] })),
     ]);
     return {
       products: products.items.flatMap((product) =>
         product.id ? [{ id: product.id, title: product.title }] : [],
       ),
       categories: categories.map((category) => ({ id: category.id, label: category.label })),
+      suppliers: suppliersPage.items.map((supplier) => ({
+        id: supplier.id,
+        name: supplier.name,
+      })),
     };
   } catch {
-    return { products: [], categories: [] };
+    return { products: [], categories: [], suppliers: [] };
   }
 }

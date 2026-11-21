@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
@@ -9,13 +10,20 @@ import { formatDhakaDateTime } from "@/lib/admin/order-timestamps";
 import {
   CALL_STATUSES,
   CALL_STATUS_LABEL,
+  OFFLINE_PAYMENT_METHODS,
   PAYMENT_METHOD_LABEL,
   isPaymentMethod,
   nextOrderStatuses,
   type CallStatus,
   type OfflineLineInput,
+  type OfflinePaymentMethod,
 } from "@/lib/admin/orders-desk";
-import { getDeskOrder, patchDeskOrder, replaceOrderItems } from "@/lib/mart-api/orders-desk";
+import {
+  getDeskOrder,
+  patchDeskOrder,
+  recordOrderPayment,
+  replaceOrderItems,
+} from "@/lib/mart-api/orders-desk";
 import type { MartOrder, MartOrderItem } from "@/lib/mart-api/orders";
 import { MartApiError } from "@/lib/mart-api/products";
 import { formatTaka, whatsappHref, type OrderStatus } from "@/lib/mart-mock/store";
@@ -26,9 +34,10 @@ import {
   AdminNotice,
   ORDER_STATUS_MARK,
   OrderStatusBadge,
-  adminButtonClass,
   adminFieldClass,
 } from "../../_components/admin-ui";
+import { ImpactDeleteModal, type ImpactDeleteTarget } from "../../_components/impact-delete-modal";
+import { useIsSuperadmin } from "../../_components/use-superadmin";
 import { CallStatusBadge, DuplicateWarning, HistoryBadge, OriginBadge, PaymentStatusBadge } from "./order-badges";
 import { ProductPicker } from "./product-picker";
 
@@ -67,6 +76,8 @@ function linesFrom(order: MartOrder): DraftLine[] {
 const labelClass = "block text-[11px] font-semibold uppercase tracking-wide text-slate-500";
 
 export function OrderDetail({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const canDelete = useIsSuperadmin();
   const [order, setOrder] = useState<MartOrder | null>(null);
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +90,13 @@ export function OrderDetail({ orderId }: { orderId: string }) {
   const [discount, setDiscount] = useState("0");
   const [delivery, setDelivery] = useState("0");
   const [savingItems, setSavingItems] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ImpactDeleteTarget | null>(null);
+  const [collectOpen, setCollectOpen] = useState(false);
+  const [collectAmount, setCollectAmount] = useState("");
+  const [collectMethod, setCollectMethod] = useState<OfflinePaymentMethod>("cash");
+  const [collectRef, setCollectRef] = useState("");
+  const [collectNote, setCollectNote] = useState("");
+  const [collecting, setCollecting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,6 +223,39 @@ export function OrderDetail({ orderId }: { orderId: string }) {
     }
   }
 
+  async function collectPayment() {
+    if (!order || collecting) return;
+    const amount = Math.trunc(Number(collectAmount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a valid payment amount greater than ৳0.");
+      return;
+    }
+    if (amount > order.dueAmount) {
+      setError(`Amount cannot exceed the remaining due balance (${formatTaka(order.dueAmount)}).`);
+      return;
+    }
+    setCollecting(true);
+    try {
+      const saved = await recordOrderPayment(order.id, {
+        amount,
+        paymentMethod: collectMethod,
+        paymentReference: collectRef,
+        note: collectNote,
+      });
+      setOrder(saved);
+      setCollectOpen(false);
+      setCollectAmount("");
+      setCollectRef("");
+      setCollectNote("");
+      setError(null);
+      setNotice(`Recorded payment of ${formatTaka(amount)}. Remaining due: ${formatTaka(saved.dueAmount)}.`);
+    } catch (reason) {
+      setError(reason instanceof MartApiError ? reason.message : "Could not record payment.");
+    } finally {
+      setCollecting(false);
+    }
+  }
+
   return (
     <div className="space-y-4 pb-10">
       {notice ? <AdminNotice tone="success">{notice}</AdminNotice> : null}
@@ -233,6 +284,22 @@ export function OrderDetail({ orderId }: { orderId: string }) {
             <Link href={`/admin/orders/print?ids=${order.id}&kind=both`} className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
               Print
             </Link>
+            {canDelete ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setDeleteTarget({
+                    entity: "order",
+                    id: order.id,
+                    label: order.number,
+                  })
+                }
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/70 px-3.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+              >
+                <MaterialIcon name="delete_outline" className="text-[17px]" />
+                Delete
+              </button>
+            ) : null}
           </div>
         </div>
         <Timeline order={order} />
@@ -401,6 +468,91 @@ export function OrderDetail({ orderId }: { orderId: string }) {
               </div>
               {order.paymentReference ? <Info label="Reference" value={order.paymentReference} /> : null}
             </dl>
+
+            {/* Collect Payment / Update Paid Amount */}
+            {order.dueAmount > 0 && order.status !== "cancelled" && order.status !== "returned" ? (
+              <div className="mt-4 border-t border-slate-100 pt-3.5">
+                {!collectOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCollectAmount(String(order.dueAmount));
+                      setCollectOpen(true);
+                    }}
+                    className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0b3d39] px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#09322f]"
+                  >
+                    <MaterialIcon name="payments" className="text-[16px]" />
+                    Collect Payment / Update Paid Amount
+                  </button>
+                ) : (
+                  <div className="space-y-2.5 rounded-xl border border-teal-200/80 bg-teal-50/40 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#0b3d39]">Record Payment</span>
+                      <button
+                        type="button"
+                        onClick={() => setCollectOpen(false)}
+                        className="text-xs font-medium text-slate-500 hover:text-slate-900"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    <label className="block text-[11px] font-semibold uppercase text-slate-600">
+                      Amount Received (Max {formatTaka(order.dueAmount)})
+                      <input
+                        type="number"
+                        min={1}
+                        max={order.dueAmount}
+                        value={collectAmount}
+                        onChange={(event) => setCollectAmount(event.target.value)}
+                        className={cn(adminFieldClass, "mt-1 h-8 text-sm")}
+                      />
+                    </label>
+                    <label className="block text-[11px] font-semibold uppercase text-slate-600">
+                      Method
+                      <select
+                        value={collectMethod}
+                        onChange={(event) =>
+                          setCollectMethod(event.target.value as OfflinePaymentMethod)
+                        }
+                        className={cn(adminFieldClass, "mt-1 h-8 text-xs")}
+                      >
+                        {OFFLINE_PAYMENT_METHODS.filter((m) => m !== "due").map((m) => (
+                          <option key={m} value={m}>
+                            {PAYMENT_METHOD_LABEL[m]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block text-[11px] font-semibold uppercase text-slate-600">
+                      Reference (Optional)
+                      <input
+                        value={collectRef}
+                        onChange={(event) => setCollectRef(event.target.value)}
+                        placeholder="TrxID or receipt #"
+                        className={cn(adminFieldClass, "mt-1 h-8 text-xs")}
+                      />
+                    </label>
+                    <label className="block text-[11px] font-semibold uppercase text-slate-600">
+                      Note (Optional)
+                      <input
+                        value={collectNote}
+                        onChange={(event) => setCollectNote(event.target.value)}
+                        placeholder="e.g. Received via bKash"
+                        className={cn(adminFieldClass, "mt-1 h-8 text-xs")}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={collecting}
+                      onClick={() => void collectPayment()}
+                      className="h-8 w-full rounded-lg bg-[#0b3d39] px-3 text-xs font-semibold text-white transition hover:bg-[#09322f] disabled:opacity-50"
+                    >
+                      {collecting ? "Recording…" : "Confirm Payment"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </section>
 
           {/* Courier Section */}
@@ -451,6 +603,12 @@ export function OrderDetail({ orderId }: { orderId: string }) {
           </section>
         </div>
       </div>
+
+      <ImpactDeleteModal
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={() => router.replace("/admin/orders/list")}
+      />
     </div>
   );
 }

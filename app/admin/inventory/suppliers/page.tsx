@@ -3,13 +3,14 @@
 import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
 
 import { MaterialIcon } from "@/app/(client)/_components/common/material-icon";
+import { formatReportMoney } from "@/lib/admin/reports";
 import {
-  deleteSupplier,
   fetchSuppliers,
   saveSupplier,
   type Supplier,
 } from "@/lib/mart-api/inventory";
 import { MartApiError } from "@/lib/mart-api/products";
+import { fetchSuppliersReport } from "@/lib/mart-api/reports";
 import { cn } from "@/lib/utils";
 
 import {
@@ -19,8 +20,11 @@ import {
   AdminPageHeader,
   adminButtonClass,
 } from "../../_components/admin-ui";
-import { useAdminNotify, useConfirmDelete } from "../../_components/confirm-delete";
+import { useAdminNotify } from "../../_components/confirm-delete";
+import { ImpactDeleteModal, type ImpactDeleteTarget } from "../../_components/impact-delete-modal";
+import { useIsSuperadmin } from "../../_components/use-superadmin";
 import { InventoryDialog } from "../_components/inventory-dialog";
+import { InventorySubNav } from "../_components/inventory-nav";
 import { InventoryPager } from "../_components/pager";
 import { useInventoryWriter } from "../_components/use-inventory-role";
 
@@ -59,8 +63,8 @@ function getBadgeColor(name: string): string {
 
 export default function SuppliersPage() {
   const canWrite = useInventoryWriter();
+  const canDelete = useIsSuperadmin();
   const notify = useAdminNotify();
-  const confirmDelete = useConfirmDelete();
 
   const [query, setQuery] = useState("");
   const [applied, setApplied] = useState("");
@@ -70,8 +74,37 @@ export default function SuppliersPage() {
   const [pages, setPages] = useState(1);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<{ id?: string; draft: Draft } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ImpactDeleteTarget | null>(null);
   const [reload, setReload] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [supplierStats, setSupplierStats] = useState<
+    Record<string, { linkedProducts: number; purchases: number; spend: number }>
+  >({});
+  const [totalPurchaseSpend, setTotalPurchaseSpend] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSuppliersReport({ preset: "this_year" })
+      .then((report) => {
+        if (cancelled) return;
+        const next: Record<string, { linkedProducts: number; purchases: number; spend: number }> = {};
+        for (const item of report.items) {
+          next[item.supplierId] = {
+            linkedProducts: item.linkedProductsCount,
+            purchases: item.purchaseCount,
+            spend: item.totalPurchaseSpend,
+          };
+        }
+        setSupplierStats(next);
+        setTotalPurchaseSpend(report.totalPurchaseSpend);
+      })
+      .catch(() => {
+        /* report stats optional */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reload]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -110,34 +143,16 @@ export default function SuppliersPage() {
   const metrics = useMemo(() => {
     const items = rows || [];
     const withPhone = items.filter((item) => Boolean(item.phone?.trim())).length;
-    const withAddress = items.filter((item) => Boolean(item.address?.trim())).length;
-    return { withPhone, withAddress, currentCount: items.length };
-  }, [rows]);
+    const totalLinked = Object.values(supplierStats).reduce((s, x) => s + x.linkedProducts, 0);
+    return { withPhone, totalLinked, currentCount: items.length };
+  }, [rows, supplierStats]);
 
-  async function handleDelete(supplier: Supplier) {
-    const deleted = await confirmDelete({
-      title: `Delete supplier "${supplier.name}"?`,
-      description: (
-        <div className="space-y-2 text-sm text-slate-600">
-          <p>
-            Are you sure you want to delete <strong className="text-slate-900 font-semibold">{supplier.name}</strong>?
-          </p>
-          <p className="rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 ring-1 ring-amber-200/70">
-            <strong>Note:</strong> This supplier will be soft-deleted and removed from active vendor selection. Past purchase records and order history linked to this supplier will remain completely intact.
-          </p>
-        </div>
-      ),
-      confirmLabel: "Delete Supplier",
-      onConfirm: async () => {
-        await deleteSupplier(supplier.id);
-      },
-      successMessage: `Supplier "${supplier.name}" has been deleted.`,
-      errorMessage: `Could not delete supplier "${supplier.name}".`,
+  function handleDelete(supplier: Supplier) {
+    setDeleteTarget({
+      entity: "supplier",
+      id: supplier.id,
+      label: supplier.name,
     });
-
-    if (deleted) {
-      setReload((v) => v + 1);
-    }
   }
 
   return (
@@ -178,6 +193,8 @@ export default function SuppliersPage() {
         }
       />
 
+      <InventorySubNav />
+
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
@@ -189,10 +206,40 @@ export default function SuppliersPage() {
               <MaterialIcon name="business" className="text-[17px]" />
             </span>
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
             {rows ? total : "—"}
           </p>
-          <p className="mt-0.5 text-xs text-slate-400">Registered vendors</p>
+          <p className="mt-0.5 text-xs text-slate-400">Active registered vendors</p>
+        </div>
+
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              YTD Purchase Spend
+            </span>
+            <span className="grid size-7 place-items-center rounded-lg bg-teal-50 text-[#0b3d39]">
+              <MaterialIcon name="payments" className="text-[17px]" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+            {totalPurchaseSpend != null ? formatReportMoney(totalPurchaseSpend) : "—"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">This year procurement total</p>
+        </div>
+
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Linked Products
+            </span>
+            <span className="grid size-7 place-items-center rounded-lg bg-sky-50 text-sky-600">
+              <MaterialIcon name="inventory_2" className="text-[17px]" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+            {totalPurchaseSpend != null ? metrics.totalLinked : "—"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">Assigned across vendors</p>
         </div>
 
         <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
@@ -204,40 +251,10 @@ export default function SuppliersPage() {
               <MaterialIcon name="call" className="text-[17px]" />
             </span>
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
             {rows ? metrics.withPhone : "—"}
           </p>
           <p className="mt-0.5 text-xs text-slate-400">On current page</p>
-        </div>
-
-        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              With Address
-            </span>
-            <span className="grid size-7 place-items-center rounded-lg bg-sky-50 text-sky-600">
-              <MaterialIcon name="location_on" className="text-[17px]" />
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-            {rows ? metrics.withAddress : "—"}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-400">Physical locations</p>
-        </div>
-
-        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Directory Status
-            </span>
-            <span className="grid size-7 place-items-center rounded-lg bg-teal-50 text-teal-600">
-              <MaterialIcon name="verified" className="text-[17px]" />
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-600">
-            Active
-          </p>
-          <p className="mt-0.5 text-xs text-slate-400">Sync with purchase orders</p>
         </div>
       </div>
 
@@ -388,9 +405,17 @@ export default function SuppliersPage() {
                               <p className="font-semibold text-slate-900">
                                 {supplier.name}
                               </p>
-                              <span className="font-mono text-[11px] text-slate-400">
-                                ID: {supplier.id.slice(0, 8)}
-                              </span>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                <span className="font-mono text-[11px] text-slate-400">
+                                  ID: {supplier.id.slice(0, 8)}
+                                </span>
+                                {supplierStats[supplier.id] ? (
+                                  <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-[#0b3d39] ring-1 ring-teal-200/70 tabular-nums">
+                                    {supplierStats[supplier.id].linkedProducts} products ·{" "}
+                                    {supplierStats[supplier.id].purchases} purchases
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -474,15 +499,17 @@ export default function SuppliersPage() {
                                 <span>Edit</span>
                               </button>
 
-                              <button
-                                type="button"
-                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-transparent px-2.5 text-xs font-semibold text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
-                                onClick={() => void handleDelete(supplier)}
-                                title="Delete supplier"
-                              >
-                                <MaterialIcon name="delete_outline" className="text-[16px]" />
-                                <span className="hidden lg:inline">Delete</span>
-                              </button>
+                              {canDelete ? (
+                                <button
+                                  type="button"
+                                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-transparent px-2.5 text-xs font-semibold text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                                  onClick={() => handleDelete(supplier)}
+                                  title="Delete or merge supplier (Admin only)"
+                                >
+                                  <MaterialIcon name="delete_outline" className="text-[16px]" />
+                                  <span className="hidden lg:inline">Delete</span>
+                                </button>
+                              ) : null}
                             </div>
                           </td>
                         ) : null}
@@ -540,14 +567,16 @@ export default function SuppliersPage() {
                           >
                             <MaterialIcon name="edit" className="text-[16px]" />
                           </button>
-                          <button
-                            type="button"
-                            className="grid size-8 place-items-center rounded-lg border border-transparent text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                            onClick={() => void handleDelete(supplier)}
-                            title="Delete"
-                          >
-                            <MaterialIcon name="delete_outline" className="text-[17px]" />
-                          </button>
+                          {canDelete ? (
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-lg border border-transparent text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                              onClick={() => handleDelete(supplier)}
+                              title="Delete or merge supplier (Admin only)"
+                            >
+                              <MaterialIcon name="delete_outline" className="text-[17px]" />
+                            </button>
+                          ) : null}
                         </div>
                       ) : null}
                     </div>
@@ -616,6 +645,12 @@ export default function SuppliersPage() {
           }}
         />
       ) : null}
+
+      <ImpactDeleteModal
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={() => setReload((value) => value + 1)}
+      />
     </div>
   );
 }

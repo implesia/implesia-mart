@@ -63,9 +63,16 @@ Notes on the tables below:
 | `/admin/orders/ready-to-pack` | `orders-desk` |
 | `/admin/orders/print` | `orders-desk` |
 | `/admin/orders/[number]` | `orders-desk` |
-| `/admin/products` | `badges`, `categories`, `products` |
-| `/admin/reports` | `reports`, `coupons`, `products`, `categories` |
+| `/admin/products` | `badges`, `categories`, `inventory`, `products` |
 | `/admin/products/[id]` | `products`, `inventory` |
+| `/admin/products/[id]/view` | `products`, `reports` |
+| `/admin/reports` | `reports`, `inventory`, `products`, `categories` |
+| `/admin/reports/profit-loss` | `reports`, `inventory`, `products`, `categories` |
+| `/admin/reports/products` | `reports`, `inventory`, `products`, `categories` |
+| `/admin/reports/sales` | `reports`, `inventory`, `products`, `categories` |
+| `/admin/reports/inventory` | `reports`, `inventory`, `products`, `categories` |
+| `/admin/reports/suppliers` | `reports`, `inventory`, `products`, `categories` |
+| `/admin/reports/delivery-coupons` | `reports`, `coupons`, `inventory`, `products`, `categories` |
 | `/admin/site/contact` | `site-contact` |
 | `/admin/site/footer` | `contact-details`, `footer` |
 | `/admin/site/header` | `header` |
@@ -101,7 +108,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `about-steps.ts` | `/api/v1/admin/pages/about/steps`<br>`/api/v1/admin/pages/about/steps/items`<br>`/api/v1/admin/pages/about/steps/items/order`<br>`/api/v1/admin/pages/about/steps/items/{id}`<br>`/api/v1/pages/about/steps` |
 | `about-stories.ts` | `/api/v1/admin/pages/about/stories`<br>`/api/v1/admin/pages/about/stories/order`<br>`/api/v1/admin/pages/about/stories/{id}`<br>`/api/v1/pages/about/stories` |
 | `about-values.ts` | `/api/v1/admin/pages/about/values`<br>`/api/v1/admin/pages/about/values/items`<br>`/api/v1/admin/pages/about/values/items/order`<br>`/api/v1/admin/pages/about/values/items/{id}`<br>`/api/v1/pages/about/values` |
-| `badges.ts` | `/api/v1/admin/badges` |
+| `badges.ts` | `/api/v1/admin/badges`<br>`/api/v1/admin/badges/{id}`<br>`/api/v1/admin/badges/{id}/delete-impact` |
 | `blog-categories.ts` | `/api/v1/admin/pages/blogs/categories`<br>`/api/v1/pages/blogs/categories` |
 | `blog-cta.ts` | `/api/v1/admin/pages/blogs/cta`<br>`/api/v1/pages/blogs/cta` |
 | `blog-hero.ts` | `/api/v1/admin/pages/blogs/hero`<br>`/api/v1/pages/blogs/hero` |
@@ -134,12 +141,12 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `header.ts` | `/api/v1/admin/site/header`<br>`/api/v1/site/header` |
 | `hero.ts` | `/api/v1/admin/home/banner`<br>`/api/v1/admin/home/banner/slides`<br>`/api/v1/admin/home/banner/slides/{id}`<br>`/api/v1/admin/home/banner/slides/{id}/move`<br>`/api/v1/home/banner` |
 | `inquiries.ts` | `/api/v1/admin/inquiries`<br>`/api/v1/admin/inquiries/counts`<br>`/api/v1/admin/inquiries/{id}` |
-| `inventory.ts` | `/api/v1/admin/inventory/suppliers`<br>`/api/v1/admin/inventory/suppliers/{id}`<br>`/api/v1/admin/inventory/purchases`<br>`/api/v1/admin/inventory/purchases/{id}`<br>`/api/v1/admin/inventory/movements`<br>`/api/v1/admin/inventory/adjustments`<br>`/api/v1/admin/inventory/opening-stock`<br>`/api/v1/admin/inventory/imports/templates/{kind}`<br>`/api/v1/admin/inventory/imports/preview`<br>`/api/v1/admin/inventory/imports/confirm`<br>`/api/v1/admin/inventory/exports/{kind}` |
+| `inventory.ts` | `/api/v1/admin/inventory/suppliers`<br>`/api/v1/admin/inventory/suppliers/{id}`<br>`/api/v1/admin/inventory/suppliers/{id}/delete-impact`<br>`/api/v1/admin/inventory/purchases`<br>`/api/v1/admin/inventory/purchases/{id}`<br>`/api/v1/admin/inventory/movements`<br>`/api/v1/admin/inventory/adjustments`<br>`/api/v1/admin/inventory/opening-stock`<br>`/api/v1/admin/inventory/imports/templates/{kind}`<br>`/api/v1/admin/inventory/imports/preview`<br>`/api/v1/admin/inventory/imports/confirm`<br>`/api/v1/admin/inventory/exports/{kind}` |
 | `inquiry-public.ts` | `/api/v1/inquiries` |
 | `home-media.ts` | `/api/v1/admin/home/media`<br>`/api/v1/admin/home/media/image`<br>`/api/v1/admin/home/media/video`<br>`/api/v1/home/media` |
 | `newsletter.ts` | `/api/v1/admin/home/newsletter`<br>`/api/v1/admin/home/newsletter/perks`<br>`/api/v1/admin/home/newsletter/perks/order`<br>`/api/v1/admin/home/newsletter/perks/{id}`<br>`/api/v1/home/newsletter` |
 | `orders.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/orders`<br>`/api/v1/orders/lookup`<br>`/api/v1/orders/quote` |
-| `orders-desk.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}`<br>`/api/v1/admin/orders/{id}/items`<br>`/api/v1/admin/orders/overview`<br>`/api/v1/admin/orders/customers`<br>`/api/v1/admin/orders/offline`<br>`/api/v1/admin/orders/ready-to-pack`<br>`/api/v1/admin/orders/bulk-status`<br>`/api/v1/admin/orders/printed`<br>`/api/v1/admin/orders/print-data`<br>`/api/v1/admin/products`<br>`/api/v1/orders/quote` |
+| `orders-desk.ts` | `/api/v1/admin/orders`<br>`/api/v1/admin/orders/{id}` (`GET`, `PATCH`, `DELETE` superadmin-only)<br>`/api/v1/admin/orders/{id}/delete-impact` (superadmin-only)<br>`/api/v1/admin/orders/{id}/items`<br>`/api/v1/admin/orders/{id}/payments`<br>`/api/v1/admin/orders/overview`<br>`/api/v1/admin/orders/customers`<br>`/api/v1/admin/orders/offline`<br>`/api/v1/admin/orders/ready-to-pack`<br>`/api/v1/admin/orders/bulk-status`<br>`/api/v1/admin/orders/printed`<br>`/api/v1/admin/orders/print-data`<br>`/api/v1/admin/products`<br>`/api/v1/orders/quote` |
 | `order-alerts.ts` | `/api/v1/admin/orders/new` |
 | `payment-settings.ts` | `/api/v1/admin/site/payment`<br>`/api/v1/admin/site/payment/qr`<br>`/api/v1/site/payment` |
 | `pricing-settings.ts` | `/api/v1/admin/pricing` |
@@ -153,7 +160,7 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `privacy-usage.ts` | `/api/v1/admin/pages/privacy/usage`<br>`/api/v1/pages/privacy/usage` |
 | `products.ts` | `/api/v1/admin/products`<br>`/api/v1/admin/products/bulk`<br>`/api/v1/admin/products/{id}` |
 | `promo.ts` | `/api/v1/admin/home/promo`<br>`/api/v1/home/promo` |
-| `reports.ts` | `/api/v1/admin/reports/sales`<br>`/api/v1/admin/reports/profit`<br>`/api/v1/admin/reports/products`<br>`/api/v1/admin/reports/stock`<br>`/api/v1/admin/reports/movements`<br>`/api/v1/admin/reports/delivery`<br>`/api/v1/admin/reports/trend`<br>and the matching `/export` path on each |
+| `reports.ts` | `/api/v1/admin/reports/sales`<br>`/api/v1/admin/reports/profit`<br>`/api/v1/admin/reports/profit-loss`<br>`/api/v1/admin/reports/products`<br>`/api/v1/admin/reports/channels`<br>`/api/v1/admin/reports/suppliers`<br>`/api/v1/admin/reports/stock`<br>`/api/v1/admin/reports/movements`<br>`/api/v1/admin/reports/delivery`<br>`/api/v1/admin/reports/trend`<br>`/api/v1/admin/reports/coupons`<br>`/api/v1/admin/products/{id}/analytics`<br>and the matching `/export` path on each report |
 | `reviews.ts` | `/api/v1/admin/home/reviews`<br>`/api/v1/admin/home/reviews/items`<br>`/api/v1/admin/home/reviews/items/order`<br>`/api/v1/admin/home/reviews/items/{id}`<br>`/api/v1/home/reviews` |
 | `search.ts` | `/api/v1/search` |
 | `shipping-block.ts` | `/api/v1/admin/pages/shipping/shipping`<br>`/api/v1/pages/shipping/shipping` |
@@ -218,14 +225,19 @@ Until `GET /api/v1/admin/reports/sales` answers (404, 501, 5xx, or the API canno
 | --- | --- |
 | Sales summary | `GET /api/v1/admin/reports/sales` |
 | Profit | `GET /api/v1/admin/reports/profit` |
-| Products | `GET /api/v1/admin/reports/products` |
-| Stock | `GET /api/v1/admin/reports/stock` |
-| Stock movement | `GET /api/v1/admin/reports/movements` |
-| Delivery and return | `GET /api/v1/admin/reports/delivery` |
+| Profit & Loss waterfall (`/admin/reports/profit-loss`) | `GET /api/v1/admin/reports/profit-loss` |
+| Products profitability (`/admin/reports/products`) | `GET /api/v1/admin/reports/products` |
+| Channels & payment methods (`/admin/reports/sales`) | `GET /api/v1/admin/reports/channels` |
+| Supplier performance (`/admin/reports/suppliers`) | `GET /api/v1/admin/reports/suppliers` |
+| Stock valuation (`/admin/reports/inventory`) | `GET /api/v1/admin/reports/stock` |
+| Stock movement reconciliation (`/admin/reports/inventory`) | `GET /api/v1/admin/reports/movements` |
+| Delivery and return (`/admin/reports/delivery-coupons`) | `GET /api/v1/admin/reports/delivery` |
+| Coupons ROI (`/admin/reports/delivery-coupons`) | `GET /api/v1/admin/reports/coupons` |
 | Trend | `GET /api/v1/admin/reports/trend` |
+| Product detail analytics (`/admin/products/[id]/view`) | `GET /api/v1/admin/products/{id}/analytics` |
 | Excel for the same filters | `GET /api/v1/admin/reports/{kind}/export` |
 
-Query: `preset` (`this_week`, `this_month`, `last_month`) or `from` and `to` (`YYYY-MM-DD`, inclusive Asia/Dhaka days). Optional `product_id`, `category_id`, `channel`. `grain` (`day`, `week`, `month`) on the trend only. `page` and `page_size` (max 100) on products and stock. A range over 366 days, a preset together with dates, or `from` after `to` is 422.
+Query: `preset` (`today`, `7d`, `this_week`, `this_month`, `last_month`, `this_year`) or `from` and `to` (`YYYY-MM-DD`, inclusive Asia/Dhaka days). Optional `product_id`, `category_id`, `supplier_id`, `channel`, `origin` (`online` \| `offline`), `profit_filter` (`all` \| `profit` \| `loss` \| `unknown_cost`), `sort` (`revenue`, `profit`, `margin`, `units_sold`, `cost`, `stock_value`). `grain` (`day`, `week`, `month`) on the trend only. `page` and `page_size` (max 100) on products and stock. A range over 366 days, a preset together with dates, or `from` after `to` is 422.
 
 `ReportFilters` uses JSON names `from` and `to` (not `date_from`). `MovementReport` uses `return` for the returned quantity. `DeliveryReport` uses `return_rate_percent`, which is null when nothing was delivered. `ProfitReport.profit` and `margin_percent` are null when every line has no cost. `StockReport.period_applies` is false. `channel_applies` is false on stock and movements.
 

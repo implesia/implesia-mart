@@ -17,6 +17,11 @@ import type {
   DashboardSeller,
   DashboardStatusSlice,
 } from "@/lib/mart-api/dashboard";
+import {
+  formatReportMoney,
+  formatReportPercent,
+  type ProductReportRow,
+} from "@/lib/admin/reports";
 import { formatTaka } from "@/lib/mart-mock/store";
 import { cn } from "@/lib/utils";
 
@@ -103,17 +108,23 @@ export function OrderActivity({
 
 export function BestSellingProducts({
   products,
+  profitRows = [],
 }: {
   products: DashboardSeller[];
+  profitRows?: ProductReportRow[];
 }) {
+  const profitById = new Map<string, ProductReportRow>();
+  for (const row of profitRows) {
+    if (row.productId) profitById.set(row.productId, row);
+  }
   return (
     <section className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
       <div className="border-b border-slate-100 bg-white px-4 py-3.5 sm:px-5">
         <SectionHeading
           title="Best selling products"
-          description="Product revenue in this period, excluding cancelled and returned orders."
-          href="/admin/products"
-          action="View all products"
+          description="Revenue and realized profit in this period, excluding cancelled and returned orders."
+          href="/admin/reports/products"
+          action="Product analytics"
           icon={Package}
         />
       </div>
@@ -124,49 +135,72 @@ export function BestSellingProducts({
         </div>
       ) : (
         <ol className="flex-1 divide-y divide-slate-100">
-          {products.map((product, index) => (
-            <li key={product.productId ?? product.slug}>
-              <Link
-                href={
-                  product.productId
-                    ? `/admin/products/${product.productId}`
-                    : "/admin/products"
-                }
-                className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 sm:px-5"
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[10px] font-bold text-slate-500">
-                  {index + 1}
-                </span>
-                <span className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                  {product.imageSrc ? (
-                    <Image
-                      src={product.imageSrc}
-                      alt=""
-                      fill
-                      sizes="40px"
-                      className="object-cover"
-                    />
-                  ) : null}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-slate-900 group-hover:text-indigo-600">
-                    {product.title}
+          {products.map((product, index) => {
+            const perf = product.productId ? profitById.get(product.productId) : undefined;
+            const profit = perf?.profit ?? null;
+            const margin = perf?.marginPercent ?? null;
+            return (
+              <li key={product.productId ?? product.slug}>
+                <Link
+                  href={
+                    product.productId
+                      ? `/admin/products/${product.productId}/view`
+                      : "/admin/products"
+                  }
+                  className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 sm:px-5"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[10px] font-bold text-slate-500">
+                    {index + 1}
                   </span>
-                  <span className="mt-0.5 block truncate text-[11px] font-medium text-slate-500">
-                    {product.category} · {product.stockLabel}
+                  <span className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    {product.imageSrc ? (
+                      <Image
+                        src={product.imageSrc}
+                        alt=""
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    ) : null}
                   </span>
-                </span>
-                <span className="shrink-0 text-right">
-                  <span className="block text-sm font-semibold tabular-nums text-slate-900">
-                    {formatTaka(product.revenue)}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-slate-900 group-hover:text-indigo-600">
+                      {product.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11px] font-medium text-slate-500">
+                      {product.category} · {product.stockLabel}
+                    </span>
                   </span>
-                  <span className="mt-0.5 block text-[11px] font-medium tabular-nums text-slate-500">
-                    {product.units} sold
+                  <span className="shrink-0 text-right">
+                    <span className="block text-sm font-semibold tabular-nums text-slate-900">
+                      {formatTaka(product.revenue)}
+                    </span>
+                    <span className="mt-0.5 flex items-center justify-end gap-1.5 text-[11px] font-medium tabular-nums text-slate-500">
+                      <span>{product.units} sold</span>
+                      {profit != null ? (
+                        <span
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-[10px] font-semibold",
+                            profit < 0
+                              ? "bg-rose-50 text-rose-700"
+                              : "bg-emerald-50 text-emerald-700",
+                          )}
+                        >
+                          {profit < 0 ? "Loss " : "+"}
+                          {formatReportMoney(Math.abs(profit))}
+                          {margin != null ? ` (${formatReportPercent(margin)})` : ""}
+                        </span>
+                      ) : perf && perf.unknownCostUnits > 0 ? (
+                        <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                          No cost
+                        </span>
+                      ) : null}
+                    </span>
                   </span>
-                </span>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </li>
+            );
+          })}
         </ol>
       )}
     </section>
