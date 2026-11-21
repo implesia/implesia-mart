@@ -11,7 +11,36 @@ import {
 
 export { cartItemBody } from "@/lib/mart-api/cart-body";
 
-const GUEST_KEY = "implesia.cart.guest.v1";
+export const GUEST_CART_KEY = "implesia.cart.guest.v1";
+const GUEST_KEY = GUEST_CART_KEY;
+
+let customerCartAuthenticated = false;
+
+export function setCustomerCartAuthenticated(authenticated: boolean): void {
+  customerCartAuthenticated = authenticated;
+}
+
+export function isCustomerCartAuthenticated(): boolean {
+  return customerCartAuthenticated;
+}
+
+export function readGuestCartToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(GUEST_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearGuestCartToken(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(GUEST_KEY);
+  } catch {
+    /* ignore storage failures */
+  }
+}
 
 export type CartLine = {
   id: string;
@@ -159,8 +188,7 @@ type ApiSavedCart = {
 };
 
 function guestToken() {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(GUEST_KEY);
+  return readGuestCartToken();
 }
 
 function rememberShopper(body: ApiShopCart) {
@@ -263,16 +291,42 @@ async function shop(
   if (guest) headers["X-Cart-Token"] = guest;
   if (payload) headers["Content-Type"] = "application/json";
 
-  const response = await publicFetch(`/api/v1/cart${path}`, {
-    method,
-    headers,
-    body: payload ? JSON.stringify(payload) : undefined,
-  });
+  const response = customerCartAuthenticated
+    ? await fetch(`/api/customer/cart${path}`, {
+        method,
+        headers: { Accept: "application/json", ...headers },
+        body: payload ? JSON.stringify(payload) : undefined,
+        cache: "no-store",
+        credentials: "same-origin",
+      })
+    : await publicFetch(`/api/v1/cart${path}`, {
+        method,
+        headers,
+        body: payload ? JSON.stringify(payload) : undefined,
+      });
   if (!response.ok)
     throw new MartApiError(
       await readError(response, "The cart could not be updated."),
     );
   return mapShop((await response.json()) as ApiShopCart);
+}
+
+export async function mergeGuestCart(guestTokenValue: string): Promise<ShopCart> {
+  const response = await fetch("/api/customer/cart/merge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ guest_token: guestTokenValue }),
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    throw new MartApiError(
+      await readError(response, "Could not merge guest cart."),
+    );
+  }
+  const merged = mapShop((await response.json()) as ApiShopCart);
+  clearGuestCartToken();
+  return merged;
 }
 
 export function getShopCart() {

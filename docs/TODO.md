@@ -6,8 +6,8 @@ Open items found in the code and in recent work. Remove an item when it is done.
 
 - **Customer Authentication & Account Management (2026-11-21).** Complete end-to-end customer auth, profile, and dashboard:
   - Isolated session cookies (`implesia_cust_access`, `implesia_cust_refresh`) completely separated from admin staff cookies.
-  - BFF proxy routes: `/api/customer/login`, `register`, `logout`, `session`, `profile`, `change-password`, `orders`, `dashboard-summary`.
-  - Global `CustomerAuthProvider` and `useCustomerAuth()` hook in client layout.
+  - BFF proxy routes: `/api/customer/login`, `register`, `logout`, `session`, `profile`, `profile/avatar`, `change-password`, `orders`, `orders/[number]`, `orders/[number]/tracking`, `purchased-products`, `dashboard-summary`, `notifications`, `notifications/[id]/read`, `notifications/[id]`, `notifications/mark-all-read`, `cart/merge`, `cart/[[...path]]`, `products/[id]/can-review`, `products/[id]/reviews`.
+  - Global `CustomerAuthProvider` and `useCustomerAuth()` hook in client layout with automatic guest-to-account cart merge (`implesia.cart.guest.v1`) and authenticated account cart routing through `/api/customer/cart`.
   - Storefront Header: Login link for guests; Avatar dropdown ("আমার ড্যাশবোর্ড", "আমার অর্ডারসমূহ", "প্রোফাইল সেটিংস", "লগআউট") for authenticated customers; responsive mobile drawer integration.
   - Auth screens: Modern responsive `/login` and `/register` with 11-digit BD mobile phone validation (013-019), password visibility toggle, error handling, and `?next=` redirection.
   - Protected customer dashboard (`/dashboard`):
@@ -31,14 +31,13 @@ Open items found in the code and in recent work. Remove an item when it is done.
   - Backend: Run `alembic upgrade head` on the production database to apply migrations 0101 and 0103.
   - Backend: Rebuild and restart the container (`docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build`).
   - Frontend: Deploy Cloudflare Workers bundle (`npm run deploy:vinext`).
+- **Customer Notifications Bell / Drawer (2026-11-21):** Done — added live storefront header notification bell with unread count badge, quick 5-item dropdown, and cross-component event sync (`customer-notification-bell.tsx`).
+- **Customer Dashboard Shell & Overview Upgrade (2026-11-21):** Done — grouped sidebar navigation with live unread & cart badges, mobile `Sheet` drawer, 5 live KPI cards, 2-column summary section, real customer avatar, executive header dropdown, and `/dashboard/security` → `/dashboard/settings` redirect.
 - **Customer Product Reviews UI:**
   - Create interactive review submission form and public reviews list on product detail page (`/products/[ref]`).
   - Connect to backend endpoints: `GET /api/v1/products/{id}/reviews`, `GET /api/v1/products/{id}/can-review`, and `POST /api/v1/products/{id}/reviews`.
-- **Customer Notifications Bell / Drawer:**
-  - Add notification bell icon to storefront header with real-time unread count badge.
-  - Connect to `/api/v1/customer/notifications` and mark-as-read endpoints for order status updates.
-- **Customer Avatar Upload in Dashboard:**
-  - Add avatar photo upload/crop widget to `/dashboard/profile` calling `/api/v1/customer/avatar`.
+- **Customer Avatar Upload & Dedicated Dashboard Subpages:**
+  - Add avatar upload/delete widget on `/dashboard/profile` and build dedicated `/dashboard/tracking`, `/dashboard/purchases`, `/dashboard/cart`, `/dashboard/notifications`, and `/dashboard/address` subpages.
 - **Automated Customer SMS via SSL Wireless:**
   - Connect credentials (`SMS_SSLWIRELESS_API_TOKEN`, `SMS_SSLWIRELESS_SID`) in backend `.env.production` when account is active.
 

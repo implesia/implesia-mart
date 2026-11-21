@@ -29,6 +29,7 @@ import {
   type CartLineResolved,
   type CartPricing,
 } from "../_lib/cart-shared";
+import { useOptionalCustomerAuth } from "./customer-auth-provider";
 
 type AddItemOptions = {
   openDrawer?: boolean;
@@ -139,6 +140,11 @@ function applyCart(cart: ShopCart) {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const customerAuth = useOptionalCustomerAuth();
+  const authLoading = customerAuth?.isLoading ?? false;
+  const isAuthenticated = customerAuth?.isAuthenticated ?? false;
+  const cartSyncVersion = customerAuth?.cartSyncVersion ?? 0;
+
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<CartLineResolved[]>([]);
   const [pricing, setPricing] = useState<CartPricing>(EMPTY_PRICING);
@@ -242,7 +248,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
     let cancelled = false;
+    desired.current.clear();
+    writes.current.clear();
     const seen = epoch.current;
     const ticket = ++flight.current;
     getShopCart()
@@ -264,7 +273,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [commit]);
+  }, [authLoading, isAuthenticated, cartSyncVersion, commit]);
 
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);

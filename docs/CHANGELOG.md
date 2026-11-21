@@ -2,6 +2,64 @@
 
 Newest first. Every task adds an entry: date, what changed, files touched, and anything the backend repo (`implesia-mart-backend`) must change.
 
+- **Phase 8 Customer Dashboard Shell, Overview KPIs, Header Profile Dropdown & Notification Bell (2026-11-21).**
+  - **Customer Dashboard Shell (`app/(client)/dashboard/layout.tsx` + `_components/`):**
+    - Upgraded to an Admin-inspired shell (`dashboard-shell.tsx`, `dashboard-nav.ts`, `dashboard-ui.tsx`) with 3 grouped navigation sections (**প্রধান**: ওভারভিউ, আমার অর্ডার, অর্ডার ট্র্যাকিং, কেনা পণ্যের হিস্ট্রি; **কার্ট ও অ্যালার্ট**: আমার কার্ট with live cart item count badge, নোটিফিকেশন with live unread count badge; **অ্যাকাউন্ট**: ডেলিভারি ঠিকানা, আমার প্রোফাইল, সেটিংস), active pill indicator + left accent bar, and real customer avatar (`customer.avatarUrl` with initials fallback).
+    - Replaced cramped mobile horizontal tabs with a compact top dashboard bar and a slide-out `Sheet` navigation drawer.
+  - **Upgraded Dashboard Overview (`app/(client)/dashboard/page.tsx`):**
+    - Added 5 crisp KPI cards powered by live backend metrics: মোট অর্ডার (`totalOrders`), চলতি / প্রসেসিং (`activeOrders`), সফল ডেলিভারি (`deliveredOrders`, fixing the prior `total - active` calculation), কেনা প্রোডাক্ট (`totalProductsPurchased`), and সর্বমোট খরচ (`totalSpent` in BDT `৳`).
+    - Added a 2-column summary section below KPIs: Recent Orders table (linking to `/dashboard/tracking?order=...` and order detail) alongside Recent Unread Notifications preview (with click-to-mark-read sync) and Default Delivery Address card with quick edit link.
+  - **Storefront Header Dropdown & Customer Notification Bell (`header.tsx`, `customer-avatar.tsx`, `customer-notification-bell.tsx`):**
+    - Displays real `customer.avatarUrl` (with fallback initials) in the header pill and mobile drawer.
+    - Redesigned desktop customer dropdown with rich identity header card ("ভেরিফাইড কাস্টমার" badge), grouped quick links (ড্যাশবোর্ড, আমার অর্ডার, অর্ডার ট্র্যাকিং, কেনা পণ্যের হিস্ট্রি, নোটিফিকেশন with live unread pill, আমার প্রোফাইল, সেটিংস), and styled logout footer.
+    - Added `<CustomerNotificationBell />` next to the profile pill when signed in with live unread badge, latest 5 notification preview dropdown, click-to-mark-read, "সব পড়া হয়েছে" action, and link to `/dashboard/notifications`.
+  - **Settings & Security Redirect:**
+    - Moved password settings to `/dashboard/settings` (`app/(client)/dashboard/settings/page.tsx`) and made `/dashboard/security` redirect cleanly to `/dashboard/settings`.
+  - Files touched:
+    - `app/(client)/_components/common/customer-avatar.tsx`, `app/(client)/_components/common/customer-notification-bell.tsx`, `app/(client)/_components/common/header.tsx`
+    - `app/(client)/dashboard/_components/dashboard-nav.ts`, `app/(client)/dashboard/_components/dashboard-ui.tsx`, `app/(client)/dashboard/_components/dashboard-shell.tsx`
+    - `app/(client)/dashboard/layout.tsx`, `app/(client)/dashboard/page.tsx`, `app/(client)/dashboard/settings/page.tsx`, `app/(client)/dashboard/security/page.tsx`
+    - `docs/CHANGELOG.md`, `docs/TODO.md`
+  - Backend (`implesia-mart-backend`): no new backend changes required; consumes Phase 6/7 endpoints.
+
+- **Phase 7 Frontend BFF, Customer API Wrappers, Avatar Support & Auto Guest-to-Account Cart Merge (2026-11-21).**
+  - **Avatar Support in Auth & BFF:**
+    - Added `avatar_url?: string | null` to `RawCustomerProfile` and `avatarUrl: string | null` (resolved via `mediaUrl`) to `FormattedCustomerProfile` (`lib/auth/customer-bff.ts`) and `CustomerProfile` (`lib/mart-api/customer.ts`).
+    - Updated `proxyCustomerRequest` to support `FormData` and arbitrary `BodyInit` payloads cleanly without forcing `Content-Type: application/json`, and added shared `forbiddenCustomerResponse`, `forwardCustomerResponse`, and `proxyGuestFallbackRequest` helpers.
+    - Added `app/api/customer/profile/avatar/route.ts` supporting `POST` (multipart upload to `/api/v1/customer/profile/avatar`) and `DELETE`.
+  - **Customer BFF Routes (same-origin checked, cookie rotation via `applyCustomerPair`, `Cache-Control: no-store`):**
+    - `GET /api/customer/orders/[number]` → `GET /api/v1/customer/orders/{number}`
+    - `GET /api/customer/orders/[number]/tracking` → `GET /api/v1/customer/orders/{number}/tracking`
+    - `GET /api/customer/purchased-products` → `GET /api/v1/customer/purchased-products`
+    - `GET /api/customer/notifications` → `GET /api/v1/customer/notifications`
+    - `PATCH /api/customer/notifications/[id]/read` → `PATCH /api/v1/customer/notifications/{id}/read`
+    - `DELETE /api/customer/notifications/[id]` → `DELETE /api/v1/customer/notifications/{id}`
+    - `POST /api/customer/notifications/mark-all-read` → `POST /api/v1/customer/notifications/mark-all-read`
+    - `POST /api/customer/cart/merge` → `POST /api/v1/customer/cart/merge`
+    - `GET/POST/PATCH/DELETE /api/customer/cart/[[...path]]` → `/api/v1/cart...` with customer Bearer token when signed in, falling back cleanly to guest cart if unauthenticated/expired.
+    - `GET /api/customer/products/[id]/can-review` → `GET /api/v1/products/{id}/can-review`
+    - `POST /api/customer/products/[id]/reviews` → `POST /api/v1/products/{id}/reviews`
+  - **Client API Wrappers:**
+    - Expanded `lib/mart-api/customer.ts` with `deliveredOrders`, `cancelledOrders`, `totalProductsPurchased`, and `unreadNotifications` on `CustomerDashboardStats`, nullable clearing support on `CustomerProfileUpdateInput`, and typed wrappers for avatar upload/delete, order detail, order tracking, purchased products, notifications (list, mark-read, mark-all-read, delete), and cart merge.
+    - Added `lib/mart-api/product-reviews.ts` for public product reviews (`GET /api/v1/products/{id}/reviews`) and customer review checks/submissions through BFF (`/api/customer/products/{id}/can-review`, `/api/customer/products/{id}/reviews`).
+  - **Automatic Guest-to-Account Cart Merge & Persistent Account Cart:**
+    - Updated `lib/mart-api/cart.ts`, `app/(client)/_providers/customer-auth-provider.tsx`, and `app/(client)/_providers/cart-provider.tsx`:
+      - On login, registration, or session restore, if a guest cart token exists in `localStorage` (`implesia.cart.guest.v1`), automatically calls `POST /api/customer/cart/merge`, clears the local guest token, and triggers `CartProvider` to reload the merged account cart.
+      - When authenticated, shop cart calls in `lib/mart-api/cart.ts` route through `/api/customer/cart` so cart updates persist to the customer account across devices; on logout, switches back to guest cart mode and reloads cleanly.
+  - Files touched:
+    - `lib/auth/customer-bff.ts`
+    - `lib/mart-api/customer.ts`, `lib/mart-api/product-reviews.ts`, `lib/mart-api/cart.ts`
+    - `app/(client)/_providers/customer-auth-provider.tsx`, `app/(client)/_providers/cart-provider.tsx`
+    - `app/api/customer/profile/avatar/route.ts`
+    - `app/api/customer/orders/[number]/route.ts`, `app/api/customer/orders/[number]/tracking/route.ts`
+    - `app/api/customer/purchased-products/route.ts`
+    - `app/api/customer/notifications/route.ts`, `app/api/customer/notifications/[id]/read/route.ts`, `app/api/customer/notifications/[id]/route.ts`, `app/api/customer/notifications/mark-all-read/route.ts`
+    - `app/api/customer/cart/merge/route.ts`, `app/api/customer/cart/[[...path]]/route.ts`
+    - `app/api/customer/products/[id]/can-review/route.ts`, `app/api/customer/products/[id]/reviews/route.ts`
+    - `tests/customer-phase7.test.ts`
+    - `docs/CHANGELOG.md`, `docs/API.md`, `docs/BUSINESS_LOGIC.md`, `docs/TODO.md`
+  - Backend (`implesia-mart-backend`): Phase 6 upgrades already provide all matching endpoints (`DELETE /api/v1/customer/profile/avatar`, `DELETE /api/v1/customer/notifications/{id}`, extended dashboard summary, upgraded tracking timeline, and repeat-purchase history).
+
 - **Customer Authentication, Account Dashboard, Suppliers Page, and Coupons Fullscreen (2026-11-21).**
   - **Customer Authentication & BFF:**
     - Implemented secure, isolated customer cookies (`implesia_cust_access`, `implesia_cust_refresh`) with HTTPOnly and SameSite=Lax.

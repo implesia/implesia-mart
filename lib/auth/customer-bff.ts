@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { mediaUrl } from "@/lib/mart-api/media-url";
 import {
   CUSTOMER_ACCESS_COOKIE,
   CUSTOMER_REFRESH_COOKIE,
@@ -77,6 +78,7 @@ export type RawCustomerProfile = {
   district: string | null;
   area: string | null;
   address: string | null;
+  avatar_url?: string | null;
   created_at: string;
 };
 
@@ -88,12 +90,14 @@ export type FormattedCustomerProfile = {
   district: string | null;
   area: string | null;
   address: string | null;
+  avatarUrl: string | null;
   createdAt: string;
 };
 
 export function formatCustomerProfile(
   raw: RawCustomerProfile,
 ): FormattedCustomerProfile {
+  const resolvedAvatar = raw.avatar_url ? mediaUrl(raw.avatar_url) : "";
   return {
     id: raw.id,
     fullName: raw.full_name,
@@ -102,6 +106,7 @@ export function formatCustomerProfile(
     district: raw.district,
     area: raw.area,
     address: raw.address,
+    avatarUrl: resolvedAvatar || null,
     createdAt: raw.created_at,
   };
 }
@@ -142,11 +147,46 @@ export async function getValidCustomerToken(): Promise<{
   return { access, rotated };
 }
 
+export function forbiddenCustomerResponse(): NextResponse {
+  return NextResponse.json(
+    { error: { message: "Forbidden" } },
+    { status: 403, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+export async function forwardCustomerResponse(
+  response: Response,
+  rotated: TokenPair | null,
+  options: { clearOn401?: boolean } = {},
+): Promise<NextResponse> {
+  const clearOn401 = options.clearOn401 !== false;
+  const contentType = response.headers.get("content-type") ?? "application/json";
+  const bodyless =
+    response.status === 204 || response.status === 205 || response.status === 304;
+  const payload = bodyless ? null : await response.arrayBuffer();
+
+  const result = new NextResponse(payload, {
+    status: response.status,
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+    },
+  });
+
+  if (rotated && response.status !== 401) {
+    applyCustomerPair(result, rotated);
+  } else if (response.status === 401 && clearOn401) {
+    clearCustomerCookies(result);
+  }
+
+  return result;
+}
+
 export async function proxyCustomerRequest(
   path: string,
   options: {
     method?: string;
-    body?: string;
+    body?: BodyInit | null;
     headers?: Record<string, string>;
   } = {},
 ): Promise<{ response: Response; rotated: TokenPair | null }> {
@@ -154,18 +194,32 @@ export async function proxyCustomerRequest(
   const jar = await cookies();
   const refresh = jar.get(CUSTOMER_REFRESH_COOKIE)?.value ?? null;
 
-  const makeRequest = (token: string | null) =>
-    fetch(`${API}${path}`, {
+  const extraHeaders = options.headers ?? {};
+  const hasExplicitContentType = Object.keys(extraHeaders).some(
+    (key) => key.toLowerCase() === "content-type",
+  );
+  const shouldDefaultJson =
+    typeof options.body === "string" && options.body.length > 0 && !hasExplicitContentType;
+
+  const makeRequest = (token: string | null) => {
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (shouldDefaultJson) {
+      headers.set("Content-Type", "application/json");
+    }
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      headers.set(key, value);
+    }
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    return fetch(`${API}${path}`, {
       method: options.method ?? "GET",
-      headers: {
-        Accept: "application/json",
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...options.headers,
-      },
-      body: options.body,
+      headers,
+      body: options.body ?? undefined,
       cache: "no-store",
     });
+  };
 
   let res = await makeRequest(access);
 
@@ -178,4 +232,34 @@ export async function proxyCustomerRequest(
   }
 
   return { response: res, rotated };
+}
+
+export async function proxyGuestFallbackRequest(
+  path: string,
+  options: {
+    method?: string;
+    body?: BodyInit | null;
+    headers?: Record<string, string>;
+  } = {},
+): Promise<Response> {
+  const extraHeaders = options.headers ?? {};
+  const hasExplicitContentType = Object.keys(extraHeaders).some(
+    (key) => key.toLowerCase() === "content-type",
+  );
+  const shouldDefaultJson =
+    typeof options.body === "string" && options.body.length > 0 && !hasExplicitContentType;
+  const headers = new Headers();
+  headers.set("Accept", "application/json");
+  if (shouldDefaultJson) {
+    headers.set("Content-Type", "application/json");
+  }
+  for (const [key, value] of Object.entries(extraHeaders)) {
+    headers.set(key, value);
+  }
+  return fetch(`${API}${path}`, {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body ?? undefined,
+    cache: "no-store",
+  });
 }

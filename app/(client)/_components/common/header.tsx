@@ -22,19 +22,17 @@ import {
 
 import { CartTrigger } from "../cart/cart-trigger";
 import { Container } from "./container";
+import { CustomerAvatar } from "./customer-avatar";
+import {
+  CustomerNotificationBell,
+  useCustomerUnreadCount,
+} from "./customer-notification-bell";
 import { MaterialIcon } from "./material-icon";
 import { SearchBox } from "./search-box";
 import { SiteLogo } from "./site-logo";
 import { useCustomerAuth } from "../../_providers/customer-auth-provider";
 
 const SITE_NAME = "Implesia Mart";
-
-function getInitials(name: string): string {
-  if (!name.trim()) return "U";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
 
 function useScrollLock(locked: boolean) {
   useEffect(() => {
@@ -72,6 +70,7 @@ export default function Header({
   const pathname = usePathname();
   const phoneChannel = contactChannel(details, "call");
   const { customer, isAuthenticated, logout } = useCustomerAuth();
+  const unreadNotifications = useCustomerUnreadCount(isAuthenticated);
   const [userMenuPath, setUserMenuPath] = useState<string | null>(null);
   const userMenuOpen = userMenuPath === pathname;
   const closeUserMenu = useCallback(() => setUserMenuPath(null), []);
@@ -263,6 +262,9 @@ export default function Header({
                 <MaterialIcon name="receipt_long" className="text-[22px]" />
               </Link>
 
+              {/* Customer Notification Bell (when signed in) */}
+              <CustomerNotificationBell enabled={isAuthenticated} />
+
               {/* Customer Account Pill / Dropdown on Desktop */}
               {!isAuthenticated ? (
                 <Link
@@ -278,13 +280,18 @@ export default function Header({
                   <button
                     type="button"
                     onClick={toggleUserMenu}
-                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-neutral-50/90 py-1 pr-2.5 pl-1 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-neutral-50/90 py-1 pr-2.5 pl-1 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10",
+                      userMenuOpen && "border-emerald-300 bg-white ring-2 ring-emerald-500/20 dark:border-emerald-700/60 dark:bg-white/10",
+                    )}
                     aria-expanded={userMenuOpen}
                     aria-haspopup="menu"
                   >
-                    <span className="grid size-7 place-items-center rounded-full bg-emerald-700 font-bold text-[11px] text-white">
-                      {getInitials(customer.fullName)}
-                    </span>
+                    <CustomerAvatar
+                      name={customer.fullName}
+                      avatarUrl={customer.avatarUrl}
+                      size="xs"
+                    />
                     <span className="max-w-[100px] truncate text-left font-semibold">
                       {customer.fullName.split(" ")[0]}
                     </span>
@@ -297,61 +304,129 @@ export default function Header({
                   {userMenuOpen ? (
                     <div
                       role="menu"
-                      className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 overflow-hidden rounded-xl border border-neutral-200/80 bg-white py-1.5 text-neutral-900 shadow-xl ring-1 ring-black/5 animate-in fade-in-0 zoom-in-95 dark:border-white/10 dark:bg-[#141c1b] dark:text-white"
+                      className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-72 origin-top-right overflow-hidden rounded-2xl border border-neutral-200/90 bg-white text-neutral-900 shadow-2xl shadow-black/10 ring-1 ring-black/5 animate-in fade-in-0 zoom-in-95 dark:border-white/10 dark:bg-[#131c1b] dark:text-white"
                     >
-                      <div className="border-b border-neutral-100 px-3.5 py-2.5 dark:border-white/10">
-                        <p className="truncate text-xs font-bold text-neutral-950 dark:text-white">
-                          {customer.fullName}
-                        </p>
-                        <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
-                          {customer.phone || customer.email || "Customer"}
-                        </p>
+                      {/* Rich Header Card */}
+                      <div className="border-b border-neutral-100 bg-gradient-to-br from-emerald-50/60 via-white to-white px-4 py-3.5 dark:border-white/10 dark:from-emerald-950/30 dark:via-[#131c1b] dark:to-[#131c1b]">
+                        <div className="flex items-center gap-3">
+                          <CustomerAvatar
+                            name={customer.fullName}
+                            avatarUrl={customer.avatarUrl}
+                            size="md"
+                            shape="rounded"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-neutral-950 dark:text-white">
+                              {customer.fullName}
+                            </p>
+                            <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
+                              {customer.phone || customer.email || "ইমপ্লেসিয়া গ্রাহক"}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-500/30">
+                          <MaterialIcon name="verified" className="text-[13px]" />
+                          <span>ভেরিফাইড কাস্টমার</span>
+                        </span>
                       </div>
 
-                      <Link
-                        href="/dashboard"
-                        role="menuitem"
-                        onClick={closeUserMenu}
-                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-white/10"
-                      >
-                        <MaterialIcon name="dashboard" className="text-[17px] text-neutral-500" />
-                        <span>আমার ড্যাশবোর্ড</span>
-                      </Link>
+                      {/* Group 1: Orders & Activity */}
+                      <div className="p-1.5">
+                        <p className="px-2.5 pt-1 pb-1 text-[10px] font-bold tracking-wider text-neutral-400 uppercase dark:text-neutral-500">
+                          অর্ডার ও কার্যক্রম
+                        </p>
+                        <Link
+                          href="/dashboard"
+                          role="menuitem"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100/80 hover:text-neutral-950 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MaterialIcon name="dashboard" className="text-[17px] text-neutral-400" />
+                          <span>ড্যাশবোর্ড</span>
+                        </Link>
+                        <Link
+                          href="/dashboard/orders"
+                          role="menuitem"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100/80 hover:text-neutral-950 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MaterialIcon name="receipt_long" className="text-[17px] text-neutral-400" />
+                          <span>আমার অর্ডার</span>
+                        </Link>
+                        <Link
+                          href="/dashboard/tracking"
+                          role="menuitem"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100/80 hover:text-neutral-950 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MaterialIcon name="local_shipping" className="text-[17px] text-neutral-400" />
+                          <span>অর্ডার ট্র্যাকিং</span>
+                        </Link>
+                        <Link
+                          href="/dashboard/purchases"
+                          role="menuitem"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100/80 hover:text-neutral-950 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MaterialIcon name="shopping_bag" className="text-[17px] text-neutral-400" />
+                          <span>কেনা পণ্যের হিস্ট্রি</span>
+                        </Link>
+                        <Link
+                          href="/dashboard/notifications"
+                          role="menuitem"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100/80 hover:text-neutral-950 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MaterialIcon name="notifications" className="text-[17px] text-neutral-400" />
+                          <span>নোটিফিকেশন</span>
+                          {unreadNotifications > 0 ? (
+                            <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white tabular-nums">
+                              {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                            </span>
+                          ) : null}
+                        </Link>
+                      </div>
 
-                      <Link
-                        href="/dashboard/orders"
-                        role="menuitem"
-                        onClick={closeUserMenu}
-                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-white/10"
-                      >
-                        <MaterialIcon name="receipt_long" className="text-[17px] text-neutral-500" />
-                        <span>আমার অর্ডারসমূহ</span>
-                      </Link>
+                      {/* Group 2: Account */}
+                      <div className="border-t border-neutral-100 p-1.5 dark:border-white/10">
+                        <p className="px-2.5 pt-1 pb-1 text-[10px] font-bold tracking-wider text-neutral-400 uppercase dark:text-neutral-500">
+                          অ্যাকাউন্ট
+                        </p>
+                        <Link
+                          href="/dashboard/profile"
+                          role="menuitem"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100/80 hover:text-neutral-950 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MaterialIcon name="person" className="text-[17px] text-neutral-400" />
+                          <span>আমার প্রোফাইল</span>
+                        </Link>
+                        <Link
+                          href="/dashboard/settings"
+                          role="menuitem"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100/80 hover:text-neutral-950 dark:text-neutral-200 dark:hover:bg-white/10 dark:hover:text-white"
+                        >
+                          <MaterialIcon name="settings" className="text-[17px] text-neutral-400" />
+                          <span>সেটিংস</span>
+                        </Link>
+                      </div>
 
-                      <Link
-                        href="/dashboard/profile"
-                        role="menuitem"
-                        onClick={closeUserMenu}
-                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-white/10"
-                      >
-                        <MaterialIcon name="settings" className="text-[17px] text-neutral-500" />
-                        <span>প্রোফাইল সেটিংস</span>
-                      </Link>
-
-                      <div className="my-1 border-t border-neutral-100 dark:border-white/10" />
-
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={async () => {
-                          closeUserMenu();
-                          await logout();
-                        }}
-                        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50/70 dark:text-rose-400 dark:hover:bg-rose-950/30"
-                      >
-                        <MaterialIcon name="logout" className="text-[17px]" />
-                        <span>লগআউট</span>
-                      </button>
+                      {/* Styled Logout */}
+                      <div className="border-t border-neutral-100 bg-neutral-50/60 p-1.5 dark:border-white/10 dark:bg-white/[0.02]">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={async () => {
+                            closeUserMenu();
+                            await logout();
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                        >
+                          <MaterialIcon name="logout" className="text-[17px]" />
+                          <span>লগআউট</span>
+                        </button>
+                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -555,36 +630,80 @@ export default function Header({
                 </div>
               </div>
             ) : customer ? (
-              <div className="my-3 rounded-xl border border-neutral-200/90 bg-neutral-50/80 p-3 dark:border-white/10 dark:bg-white/5">
-                <div className="flex items-center gap-2.5">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-700 font-bold text-xs text-white">
-                    {getInitials(customer.fullName)}
-                  </span>
+              <div className="my-3 rounded-2xl border border-neutral-200/90 bg-neutral-50/80 p-3.5 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center gap-3">
+                  <CustomerAvatar
+                    name={customer.fullName}
+                    avatarUrl={customer.avatarUrl}
+                    size="md"
+                    shape="rounded"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-bold text-neutral-900 dark:text-white">
                       {customer.fullName}
                     </p>
-                    <p className="truncate text-[11px] text-neutral-500">
+                    <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
                       {customer.phone || customer.email}
                     </p>
+                    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950/60 dark:text-emerald-300">
+                      <MaterialIcon name="verified" className="text-[12px]" />
+                      <span>ভেরিফাইড কাস্টমার</span>
+                    </span>
                   </div>
                 </div>
-                <div className="mt-2.5 grid grid-cols-2 gap-1.5 border-t border-neutral-200/60 pt-2.5 dark:border-white/10">
+                <div className="mt-3 grid grid-cols-2 gap-1.5 border-t border-neutral-200/60 pt-2.5 dark:border-white/10">
                   <Link
                     href="/dashboard"
                     onClick={closeMenu}
-                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
                   >
                     <MaterialIcon name="dashboard" className="text-[16px] text-neutral-500" />
-                    <span>আমার ড্যাশবোর্ড</span>
+                    <span>ড্যাশবোর্ড</span>
                   </Link>
                   <Link
                     href="/dashboard/orders"
                     onClick={closeMenu}
-                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
                   >
                     <MaterialIcon name="receipt_long" className="text-[16px] text-neutral-500" />
-                    <span>আমার অর্ডারসমূহ</span>
+                    <span>আমার অর্ডার</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/tracking"
+                    onClick={closeMenu}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                  >
+                    <MaterialIcon name="local_shipping" className="text-[16px] text-neutral-500" />
+                    <span>অর্ডার ট্র্যাকিং</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/notifications"
+                    onClick={closeMenu}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                  >
+                    <MaterialIcon name="notifications" className="text-[16px] text-neutral-500" />
+                    <span>নোটিফিকেশন</span>
+                    {unreadNotifications > 0 ? (
+                      <span className="ml-auto rounded-full bg-rose-600 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white tabular-nums">
+                        {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                      </span>
+                    ) : null}
+                  </Link>
+                  <Link
+                    href="/dashboard/profile"
+                    onClick={closeMenu}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                  >
+                    <MaterialIcon name="person" className="text-[16px] text-neutral-500" />
+                    <span>আমার প্রোফাইল</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/settings"
+                    onClick={closeMenu}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200/60 dark:text-neutral-200 dark:hover:bg-white/10"
+                  >
+                    <MaterialIcon name="settings" className="text-[16px] text-neutral-500" />
+                    <span>সেটিংস</span>
                   </Link>
                 </div>
                 <button
@@ -593,7 +712,7 @@ export default function Header({
                     closeMenu();
                     await logout();
                   }}
-                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200/70 bg-rose-50/70 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300"
                 >
                   <MaterialIcon name="logout" className="text-[16px]" />
                   <span>লগআউট</span>

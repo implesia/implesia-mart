@@ -11,6 +11,7 @@ Which page uses which backend endpoint. The full endpoint list (methods, access,
   - forwards only paths under `api/v1/admin/`,
   - attaches the staff access token from the HttpOnly cookie and rotates it with the refresh token when it expires.
 - **Auth routes** (Next.js, not the API): `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/session`. They call the API's `/api/v1/auth/*` endpoints and set or clear the cookies.
+- **Customer BFF routes** (Next.js, `app/api/customer/**`): same-origin protected (`isSameOrigin`), `Cache-Control: no-store`, attach customer Bearer token from HttpOnly cookies (`implesia_cust_access` / `implesia_cust_refresh`) and rotate refreshed cookies via `applyCustomerPair`. Authenticated shop cart calls route through `/api/customer/cart/[[...path]]` (falling back cleanly to guest cart if unauthenticated).
 
 Notes on the tables below:
 - They were generated from the imports and path strings in the code. A route lists the modules used by its own folder.
@@ -104,7 +105,9 @@ Paths are as written in the module; `{id}` stands for any interpolated value.
 | `blog-listing.ts` | `/api/v1/admin/pages/blogs/listing`<br>`/api/v1/pages/blogs/listing` |
 | `blog-posts.ts` | `/api/v1/admin/pages/blogs/posts`<br>`/api/v1/admin/pages/blogs/posts/cover`<br>`/api/v1/admin/pages/blogs/posts/order`<br>`/api/v1/admin/pages/blogs/posts/{id}`<br>`/api/v1/pages/blogs/posts`<br>`/api/v1/pages/blogs/posts/{id}` |
 | `blog-related.ts` | `/api/v1/admin/pages/blogs/related`<br>`/api/v1/pages/blogs/related` |
-| `cart.ts` | `/api/v1/admin/carts`<br>`/api/v1/cart{id}`<br>`/api/v1/products/by-slug/{id}` |
+| `cart.ts` | `/api/v1/admin/carts`<br>`/api/v1/cart{id}` (guest) or `/api/customer/cart{id}` → `/api/v1/cart{id}` (signed-in customer)<br>`/api/customer/cart/merge` → `/api/v1/customer/cart/merge`<br>`/api/v1/products/by-slug/{id}` |
+| `customer.ts` | `/api/customer/login`, `register`, `logout`, `session`, `profile`, `profile/avatar`, `change-password`, `dashboard-summary`, `orders`, `orders/{number}`, `orders/{number}/tracking`, `purchased-products`, `notifications`, `notifications/{id}/read`, `notifications/{id}`, `notifications/mark-all-read`, `cart/merge` → matching `/api/v1/customer/*` endpoints |
+| `product-reviews.ts` | `GET /api/v1/products/{id}/reviews` (public)<br>`GET /api/customer/products/{id}/can-review` → `GET /api/v1/products/{id}/can-review`<br>`POST /api/customer/products/{id}/reviews` → `POST /api/v1/products/{id}/reviews` |
 | `catalog.ts` | `/api/v1/delivery`<br>`/api/v1/products`<br>`/api/v1/products/by-slug/{id}`<br>`/api/v1/products/{id}` |
 | `categories.ts` | `/api/v1/admin/categories`<br>`/api/v1/admin/categories/order`<br>`/api/v1/admin/categories/{id}`<br>`/api/v1/admin/home/categories`<br>`/api/v1/categories/tree`<br>`/api/v1/home/categories` |
 | `category-preview.ts` | `/api/v1/categories/{id}/products` |
@@ -345,3 +348,22 @@ Until `GET /api/v1/admin/site/settings` answers (404, 501, 5xx, or the API canno
 - Admin: `GET /api/v1/admin/site/payment`, `POST /api/v1/admin/site/payment/qr` (multipart field `image`), `DELETE /api/v1/admin/site/payment/qr`; all through `/api/proxy`.
 - `POST /api/v1/orders/quote` → `bangla_qr_options: [{ percent, advance, due }]` (empty when no QR or total 0).
 - `POST /api/v1/orders` accepts `payment_method` (`cod` | `bangla_qr`), `advance_percent` (25/50/75/100, Bangla QR only) and `payment_reference` (Bangla QR only). Order reads return `payment_method`, `advance_percent`, `advance_amount`, `due_amount`; admin reads and the create response also return `payment_reference`.
+
+## Customer BFF routes (`app/api/customer/**`)
+
+All routes enforce `isSameOrigin`, return `Cache-Control: no-store`, and rotate refreshed customer cookies via `applyCustomerPair` (clearing cookies on 401 except the cart guest fallback).
+
+| Next.js BFF Route | Methods | Backend Endpoint |
+| --- | --- | --- |
+| `/api/customer/profile/avatar` | POST (multipart), DELETE | `POST`, `DELETE /api/v1/customer/profile/avatar` |
+| `/api/customer/orders/[number]` | GET | `GET /api/v1/customer/orders/{number}` |
+| `/api/customer/orders/[number]/tracking` | GET | `GET /api/v1/customer/orders/{number}/tracking` |
+| `/api/customer/purchased-products` | GET | `GET /api/v1/customer/purchased-products` |
+| `/api/customer/notifications` | GET | `GET /api/v1/customer/notifications` |
+| `/api/customer/notifications/[id]/read` | PATCH | `PATCH /api/v1/customer/notifications/{id}/read` |
+| `/api/customer/notifications/[id]` | DELETE | `DELETE /api/v1/customer/notifications/{id}` |
+| `/api/customer/notifications/mark-all-read` | POST | `POST /api/v1/customer/notifications/mark-all-read` |
+| `/api/customer/cart/merge` | POST | `POST /api/v1/customer/cart/merge` |
+| `/api/customer/cart/[[...path]]` | GET, POST, PATCH, DELETE | `/api/v1/cart`, `/api/v1/cart/items`, `/api/v1/cart/items/{id}` |
+| `/api/customer/products/[id]/can-review` | GET | `GET /api/v1/products/{id}/can-review` |
+| `/api/customer/products/[id]/reviews` | POST | `POST /api/v1/products/{id}/reviews` |
